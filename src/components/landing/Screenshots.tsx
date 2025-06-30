@@ -12,7 +12,7 @@ export default function Screenshots() {
     {
       title: "Home",
       description: "Browse trending anime with beautiful card layouts",
-      image: "/screenshots/home.jpeg",
+      image: "/images/screenshots/home.jpeg",
       category: "Home",
       width: 540,
       height: 1200,
@@ -21,7 +21,7 @@ export default function Screenshots() {
     {
       title: "Details",
       description: "Detailed information with ratings and reviews",
-      image: "/screenshots/details.jpeg",
+      image: "/images/screenshots/details.jpeg",
       category: "Details",
       width: 540,
       height: 1200,
@@ -30,7 +30,7 @@ export default function Screenshots() {
     {
       title: "Video Player",
       description: "Immersive video player with custom controls",
-      image: "/screenshots/player.jpeg",
+      image: "/images/screenshots/player.jpeg",
       category: "Player",
       width: 1200,
       height: 540,
@@ -39,7 +39,7 @@ export default function Screenshots() {
     {
       title: "Manga Reader",
       description: "Beautiful manga reading experience",
-      image: "/screenshots/reader.png",
+      image: "/images/screenshots/reader.png",
       category: "Reader",
       width: 540,
       height: 1200,
@@ -48,7 +48,7 @@ export default function Screenshots() {
     {
       title: "Search & Discovery",
       description: "Find content with smart search features",
-      image: "/screenshots/search.jpeg",
+      image: "/images/screenshots/search.jpeg",
       category: "Search",
       width: 540,
       height: 1200,
@@ -57,7 +57,7 @@ export default function Screenshots() {
     {
       title: "Favorites",
       description: "Manage your favorite content easily",
-      image: "/screenshots/favorite.jpeg",
+      image: "/images/screenshots/favorite.jpeg",
       category: "Lists",
       width: 540,
       height: 1200,

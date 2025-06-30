@@ -44,7 +44,7 @@ export const API_ENDPOINTS = {
 
 export const LINKS={
   discord: "https://discord.gg/n7xVPxbG4R",
-  github: "https://github.com/2004durgesh"
+  github: "https://github.com/uwumilabs/uwumi"
 } as const;
 
 // Error messages

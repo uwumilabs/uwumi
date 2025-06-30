@@ -53,8 +53,8 @@ export interface GitHubAnalytics {
 
 class GitHubService {
   private baseUrl = "https://api.github.com";
-  private owner = "2004durgesh"; // Your GitHub username
-  private repo = "uwumi"; // Your repository name
+  private owner = "uwumilabs"; // Your GitHub username or organization
+  private repo = "uwumi";
 
   async fetchRepository(): Promise<GitHubRepo> {
     const response = await fetch(
