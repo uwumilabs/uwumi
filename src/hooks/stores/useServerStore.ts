@@ -10,6 +10,7 @@ interface ServerState {
   getCurrentServer: () => IEpisodeServer | null;
   getServerByName: (name: string) => IEpisodeServer | undefined;
   getServerUrl: (name: string) => string | undefined;
+  clearServers: () => void; // Add this
 }
 
 export const useServerStore = create<ServerState>((set, get) => ({
@@ -24,9 +25,7 @@ export const useServerStore = create<ServerState>((set, get) => ({
 
   setCurrentServer: (serverName) => {
     const server = get().servers.find((s) => s.name === serverName);
-    if (server) {
-      set({ currentServer: server });
-    }
+    set({ currentServer: server || null });
   },
 
   getCurrentServer: () => get().currentServer,
@@ -34,4 +33,9 @@ export const useServerStore = create<ServerState>((set, get) => ({
   getServerByName: (name) => get().servers.find((s) => s.name === name),
 
   getServerUrl: (name) => get().servers.find((s) => s.name === name)?.url,
+
+  // Add this method
+  clearServers: () => {
+    set({ servers: [], currentServer: null });
+  },
 }));

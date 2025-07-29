@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { createProviderInstance, DEFAULT_PROVIDERS } from '@/constants/provider';
-import { IEpisodeServer, ISource, MediaFormat, SubOrSub, TvType } from 'react-native-consumet';
+import { IEpisodeServer, ISource, MediaFormat, StreamingServers, SubOrSub, TvType } from 'react-native-consumet';
 import { useQuery } from '@tanstack/react-query';
 // import { getFetchUrl } from '@/constants/utils';
 import axios from 'axios';
@@ -28,8 +28,8 @@ export function useWatchAnimeEpisodes({
         const animeProviderInitializer = createProviderInstance(MediaType.ANIME, provider);
         const data =
           provider === 'animepahe'
-            ? await new animeProviderInitializer.fetchEpisodeSources(episodeId, dub ? SubOrSub.DUB : SubOrSub.SUB)
-            : await new animeProviderInitializer.fetchEpisodeSources(
+            ? await animeProviderInitializer.fetchEpisodeSources(episodeId, dub ? SubOrSub.DUB : SubOrSub.SUB)
+            : await animeProviderInitializer.fetchEpisodeSources(
                 episodeId,
                 undefined,
                 dub ? SubOrSub.DUB : SubOrSub.SUB,
@@ -58,18 +58,20 @@ export function useWatchMoviesEpisodes({
   server?: string;
   embed: boolean;
 }) {
-  // console.log('from query', episodeId, mediaId,);
+  console.log('from query', episodeId, mediaId, server, provider);
   return useQuery<ISource & { servers: IEpisodeServer[] }>({
-    queryKey: ['watch', episodeId, mediaId, server, provider],
+    queryKey: ['watch', episodeId, mediaId, server, provider, embed],
     queryFn: async () => {
       try {
         const moviesProviderInitializer = createProviderInstance(MediaType.MOVIE, provider);
-        const data = (await new moviesProviderInitializer.fetchEpisodeSources(episodeId, mediaId)) as ISource;
-        const servers = (await new moviesProviderInitializer.fetchEpisodeServers(
+        console.log(moviesProviderInitializer);
+        const data = (await moviesProviderInitializer.fetchEpisodeSources(
           episodeId,
           mediaId,
-        )) as IEpisodeServer[];
-        // console.log('useWatchMoviesEpisodes', { ...data, servers });
+          server as StreamingServers,
+        )) as ISource;
+        const servers = (await moviesProviderInitializer.fetchEpisodeServers(episodeId, mediaId)) as IEpisodeServer[];
+        console.log('useWatchMoviesEpisodes', { ...data, servers });
         return { ...data, servers };
       } catch (error) {
         throw new Error(`Error fetching movies episode sources: ${error}`);

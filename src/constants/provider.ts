@@ -31,11 +31,9 @@ const PROVIDERS: ProviderGroups = {
     { name: 'Mangakakalot', value: 'mangakakalot' },
   ],
   [MediaType.MOVIE]: [
-    // { name: 'Rive', value: 'rive', embed: true, nonEmbed: true },
     { name: 'HiMovies', value: 'himovies', embed: true, nonEmbed: false },
     { name: 'MultiMovies', value: 'multimovies', embed: true, nonEmbed: false },
-    { name: 'NetflixMirror', value: 'netflixmirror', embed: true, nonEmbed: false },
-    // { name: 'DramaCool', value: 'dramacool' },
+    { name: 'MultiStream', value: 'multistream', embed: false, nonEmbed: true },
   ],
 };
 
@@ -53,17 +51,37 @@ const META_PROVIDERS = {
   [MediaType.MOVIE]: 'tmdb',
 };
 
-export const createProviderInstance = (mediaType: MediaType, providerValue: string) => {
+// Type definitions for each provider instance
+type AnimeProviderInstance =
+  | InstanceType<typeof ANIME.Zoro>
+  | InstanceType<typeof ANIME.AnimeKai>
+  | InstanceType<typeof ANIME.AnimePahe>;
+
+type MangaProviderInstance = InstanceType<typeof MANGA.MangaDex> | InstanceType<typeof MANGA.MangaKakalot>;
+
+type MovieProviderInstance =
+  | InstanceType<typeof MOVIES.MultiMovies>
+  | InstanceType<typeof MOVIES.MultiStream>
+  | InstanceType<typeof MOVIES.HiMovies>;
+
+// Overloaded function signatures for type inference
+export function createProviderInstance(mediaType: MediaType.ANIME, providerValue: string): AnimeProviderInstance;
+export function createProviderInstance(mediaType: MediaType.MANGA, providerValue: string): MangaProviderInstance;
+export function createProviderInstance(mediaType: MediaType.MOVIE, providerValue: string): MovieProviderInstance;
+export function createProviderInstance(
+  mediaType: MediaType,
+  providerValue: string,
+): AnimeProviderInstance | MangaProviderInstance | MovieProviderInstance {
   // Anime provider mapping
   if (mediaType === MediaType.ANIME) {
-    const animeProviders: Record<string, () => any> = {
+    const animeProviders: Record<string, () => AnimeProviderInstance> = {
       zoro: () => new ANIME.Zoro('https://hianime.to'),
       animekai: () => new ANIME.AnimeKai(),
       animepahe: () => new ANIME.AnimePahe(),
       // Add new providers here in the future
     };
 
-    const providerFunc = animeProviders[providerValue] || animeProviders[DEFAULT_PROVIDERS.anime];
+    const providerFunc = animeProviders[providerValue] || animeProviders[DEFAULT_PROVIDERS[MediaType.ANIME]];
 
     if (!providerFunc) {
       throw new Error(`Unsupported anime provider: ${providerValue}`);
@@ -74,16 +92,16 @@ export const createProviderInstance = (mediaType: MediaType, providerValue: stri
 
   // Manga provider mapping
   if (mediaType === MediaType.MANGA) {
-    const animeProviders: Record<string, () => any> = {
+    const mangaProviders: Record<string, () => MangaProviderInstance> = {
       mangadex: () => new MANGA.MangaDex(),
       mangakakalot: () => new MANGA.MangaKakalot(),
       // Add new providers here in the future
     };
 
-    const providerFunc = animeProviders[providerValue] || animeProviders[DEFAULT_PROVIDERS.anime];
+    const providerFunc = mangaProviders[providerValue] || mangaProviders[DEFAULT_PROVIDERS[MediaType.MANGA]];
 
     if (!providerFunc) {
-      throw new Error(`Unsupported anime provider: ${providerValue}`);
+      throw new Error(`Unsupported manga provider: ${providerValue}`);
     }
 
     return providerFunc();
@@ -91,15 +109,14 @@ export const createProviderInstance = (mediaType: MediaType, providerValue: stri
 
   // Movie provider mapping
   if (mediaType === MediaType.MOVIE) {
-    const movieProviders: Record<string, () => any> = {
-      // rive: () => new MOVIES.Rive(),
+    const movieProviders: Record<string, () => MovieProviderInstance> = {
       multimovies: () => new MOVIES.MultiMovies(),
-      netflixmirror: () => new MOVIES.NetflixMirror(),
+      multistream: () => new MOVIES.MultiStream(),
       himovies: () => new MOVIES.HiMovies(),
       // Add new providers here in the future
     };
 
-    const providerFunc = movieProviders[providerValue] || movieProviders[DEFAULT_PROVIDERS.movie];
+    const providerFunc = movieProviders[providerValue] || movieProviders[DEFAULT_PROVIDERS[MediaType.MOVIE]];
 
     if (!providerFunc) {
       throw new Error(`Unsupported movie provider: ${providerValue}`);
@@ -109,7 +126,7 @@ export const createProviderInstance = (mediaType: MediaType, providerValue: stri
   }
 
   throw new Error(`Unsupported media type: ${mediaType}`);
-};
+}
 
 interface ProviderState {
   providers: {

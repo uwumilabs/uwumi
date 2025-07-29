@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { MotiView } from 'moti';
 
 type CountdownProps = {
-  targetDate: number;
+  targetDate: number | string;
 };
 
 const AnimatedCountdown: React.FC<CountdownProps> = ({ targetDate }) => {
@@ -17,7 +17,15 @@ const AnimatedCountdown: React.FC<CountdownProps> = ({ targetDate }) => {
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date().getTime();
-      const target = new Date(targetDate * 1000).getTime();
+      // Handle both timestamp and date string formats
+      let target: number;
+      if (typeof targetDate === 'string') {
+        // If it's a string (yyyy-mm-dd format)
+        target = new Date(targetDate).getTime();
+      } else {
+        // If it's a number (Unix timestamp in seconds)
+        target = new Date(targetDate * 1000).getTime();
+      }
       const difference = target - now;
 
       if (difference > 0) {

@@ -3,6 +3,7 @@ import { Check, ChevronDown, X } from '@tamagui/lucide-icons';
 import { Adapt, Select, Sheet } from 'tamagui';
 import { usePureBlackBackground } from '@/hooks';
 import RippleButton from './RippleButton';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type SelectOption = {
   name: string;
@@ -23,6 +24,7 @@ const CustomSelect = ({
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const bgColor = pureBlackBackground ? '$color3' : 'black';
   const [openSelect, setOpenSelect] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleValueChange = (newValue: string) => {
     onValueChange(newValue);
@@ -40,11 +42,11 @@ const CustomSelect = ({
           modal
           open={openSelect}
           onOpenChange={setOpenSelect}
-          snapPoints={[30]}
+          snapPoints={[40]}
           dismissOnSnapToBottom
           animation="quick">
           <Sheet.Overlay backgroundColor="transparent" />
-          <Sheet.Frame backgroundColor={bgColor}>
+          <Sheet.Frame paddingBottom={insets.bottom} backgroundColor={bgColor}>
             <Sheet.ScrollView showsVerticalScrollIndicator>
               <Adapt.Contents />
             </Sheet.ScrollView>

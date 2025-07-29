@@ -129,8 +129,10 @@ const Info = () => {
 
                 <XStack justifyContent="space-between">
                   <IconTitle icon={Star} text={data?.rating} />
-                  {data?.nextAiringEpisode?.airingTime && (
-                    <AnimatedCountdown targetDate={data.nextAiringEpisode.airingTime} />
+                  {(data?.nextAiringEpisode?.airingTime || data?.nextAiringEpisode?.releaseDate) && (
+                    <AnimatedCountdown
+                      targetDate={data.nextAiringEpisode.airingTime || data?.nextAiringEpisode?.releaseDate}
+                    />
                   )}
                   <IconTitle text={data?.type} />
                 </XStack>
