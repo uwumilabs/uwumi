@@ -2,7 +2,7 @@
   "expo": {
     "name": "uwumi",
     "slug": "uwumi",
-    "version": "2.6.0",
+    "version": "2.7.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "uwumi",
@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
-      "buildNumber": "13"
+      "buildNumber": "14"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +20,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.x2004durgesh.uwumi",
-      "versionCode": 13
+      "versionCode": 14
     },
     "web": {
       "bundler": "metro",

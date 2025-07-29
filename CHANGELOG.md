@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.7.0 (2025-07-29)
+
+* feat(onboarding): add onboarding flow with custom ui and state handling ([cd623d5](https://github.com/uwumilabs/uwumi/commit/cd623d5))
+* feat(providers): update anime sources and add multistream movie support ([8675ce6](https://github.com/uwumilabs/uwumi/commit/8675ce6))
+
 ## 2.6.0 (2025-07-11)
 
 * refactor: enhance update checking mechanism with loading and error handling ([071aa87](https://github.com/uwumilabs/uwumi/commit/071aa87))

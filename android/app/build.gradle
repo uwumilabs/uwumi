@@ -97,8 +97,8 @@ android {
         applicationId 'com.x2004durgesh.uwumi'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 13
-        versionName "2.6.0"
+        versionCode 14
+        versionName "2.7.0"
     }
     signingConfigs {
         debug {
