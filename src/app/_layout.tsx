@@ -15,9 +15,8 @@ import {
   Inter_800ExtraBold as InterBold,
 } from '@expo-google-fonts/inter';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useThemeStore, useAccentStore } from '@/hooks';
+import { useThemeStore, useAccentStore, useUpdateChecker, useOnboardingFlowStore } from '@/hooks';
 import * as WebBrowser from 'expo-web-browser';
-import { useUpdateChecker } from '@/hooks/useUpdateChecker';
 import { SystemBars } from 'react-native-edge-to-edge';
 import { LogBox } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
@@ -135,6 +134,7 @@ const AppContent = () => {
       SplashScreen.hideAsync();
     }
   }, [loaded, isUpdateChecked]);
+  const { hasCompletedOnboarding } = useOnboardingFlowStore();
 
   if (!loaded) {
     return null;
@@ -145,6 +145,7 @@ const AppContent = () => {
       <PortalProvider>
         <Theme name={themeName}>
           <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
+            <Stack.Screen name="(onboarding)" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="info/[mediaType]" />
             <Stack.Screen name="watch/[mediaType]" />

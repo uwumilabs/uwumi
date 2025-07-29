@@ -91,7 +91,7 @@
     "react-dom": "19.0.0",
     "react-native": "0.79.5",
     "react-native-awesome-slider": "^2.9.0",
-    "react-native-consumet": "^0.8.0",
+    "react-native-consumet": "^0.9.0",
     "react-native-edge-to-edge": "^1.6.2",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-material-ripple": "^0.9.1",

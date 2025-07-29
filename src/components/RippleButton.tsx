@@ -9,7 +9,7 @@ interface RippleButtonProps extends TouchableWithoutFeedbackProps {
   children?: React.ReactNode;
 }
 
-const RippleButton: FC<RippleButtonProps> = ({ onPress, children }) => {
+const RippleButton: FC<RippleButtonProps> = ({ onPress, children, ...props }) => {
   const themeName = useThemeStore((state) => state.themeName);
   return (
     <Ripple
@@ -19,9 +19,10 @@ const RippleButton: FC<RippleButtonProps> = ({ onPress, children }) => {
         // e.stopPropagation();
       }}
       rippleColor={themeName === 'light' ? 'black' : 'white'}
-      rippleDuration={500}
+      rippleDuration={300}
       rippleContainerBorderRadius={50}
-      rippleOpacity={1}>
+      rippleOpacity={1}
+      {...props}>
       <View padding={10}>{children}</View>
     </Ripple>
   );

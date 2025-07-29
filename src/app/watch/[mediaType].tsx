@@ -89,7 +89,7 @@ const Watch = () => {
   const { top } = useSafeAreaInsets();
   const { setProgress, getProgress } = useWatchProgressStore();
   const { setProvider, getProvider } = useProviderStore();
-  const { setServers, setCurrentServer, currentServer } = useServerStore();
+  const { setServers, setCurrentServer, currentServer, clearServers } = useServerStore();
   const [isEmbed, setIsEmbed] = useState<boolean>(true);
   const [serverInitialized, setServerInitialized] = useState(false);
 
@@ -155,20 +155,21 @@ const Watch = () => {
   //   : { data: undefined, isLoading: false, error: null };
 
   useEffect(() => {
-    if (mediaType === MediaType.MOVIE && movieQuery.data && 'servers' in movieQuery.data && !serverInitialized) {
+    if (mediaType === MediaType.MOVIE && movieQuery.data && 'servers' in movieQuery.data) {
       const movieData = movieQuery.data as ISource & { servers: IEpisodeServer[] };
+      console.log('Setting servers:', movieData.servers);
       setServers(movieData.servers);
       if (movieData.servers.length > 0 && !currentServer) {
-        // Set current server only if not already set
         setCurrentServer(movieData.servers[0].name);
       }
       setServerInitialized(true);
     }
-  }, [movieQuery.data, setCurrentServer, setServers, serverInitialized, currentServer, mediaType]);
+  }, [movieQuery.data, setCurrentServer, setServers, mediaType, provider, isEmbed, currentServer]);
 
   useEffect(() => {
     setServerInitialized(false);
-  }, [isEmbed, provider]);
+    clearServers();
+  }, [isEmbed, provider, clearServers]);
 
   const [subtitleTracks, setSubtitleTracks] = useState<(SubtitleTrack | ISubtitle)[] | undefined>([]);
   const [nullSubtitleIndex, setNullSubtitleIndex] = useState<number | undefined>(0);
@@ -247,11 +248,11 @@ const Watch = () => {
 
   const enterFullscreen = useCallback(async () => {
     try {
-      // Replace the current SystemBars entry with fullscreen settings
+      setIsFullscreen(true);
       if (systemBarsStackEntry.current) {
         systemBarsStackEntry.current = SystemBars.replaceStackEntry(systemBarsStackEntry.current, {
           style: 'dark',
-          hidden: true, // hide both status bar and nav bar (nav bar will only hide on Android)
+          hidden: true,
         });
       }
       SystemNavigationBar.stickyImmersive();
@@ -259,15 +260,15 @@ const Watch = () => {
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE),
         FullscreenModule.enterFullscreen(),
       ]);
-      setIsFullscreen(true);
     } catch (err) {
       console.error('Failed to enter fullscreen:', err);
+      setIsFullscreen(false);
     }
   }, []);
 
   const exitFullscreen = useCallback(async () => {
     try {
-      // Replace the current SystemBars entry back to normal mode
+      setIsFullscreen(false);
       if (systemBarsStackEntry.current) {
         systemBarsStackEntry.current = SystemBars.replaceStackEntry(systemBarsStackEntry.current, {
           style: 'auto',
@@ -282,9 +283,9 @@ const Watch = () => {
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP),
         FullscreenModule.exitFullscreen(),
       ]);
-      setIsFullscreen(false);
     } catch (err) {
       console.error('Failed to exit fullscreen:', err);
+      setIsFullscreen(true);
     }
   }, [pureBlackBackground, currentTheme]);
 
@@ -340,7 +341,6 @@ const Watch = () => {
 
   const {
     doubleTapGesture,
-    isDoubleTap,
     doubleTapValue,
     backwardRippleRef,
     forwardRippleRef,
@@ -483,8 +483,8 @@ const Watch = () => {
           });
         }
       });
-      console.log('animepahe qualities:', tracks);
-      setVideoTracks(tracks);
+      setVideoTracks(tracks.sort((a, b) => (b.height || 0) - (a.height || 0)));
+      console.log('animepahe qualities:', tracks, data?.sources);
       return data?.sources?.[selectedVideoTrackIndex || 0]?.url;
     } else {
       // Prefer "default" or "auto", then "backup", then first available.
@@ -547,6 +547,19 @@ const Watch = () => {
   }, [data?.subtitles, externalSubtitles]);
 
   useEffect(() => {
+    // Set initial embed state based on provider capabilities
+    const currentProvider = PROVIDERS[mediaType].find((p) => p.value === getProvider(mediaType));
+    if (currentProvider) {
+      // If provider only supports one type, set accordingly
+      if (currentProvider.embed && !currentProvider.nonEmbed) {
+        setIsEmbed(true);
+      } else if (!currentProvider.embed && currentProvider.nonEmbed) {
+        setIsEmbed(false);
+      }
+    }
+  }, [getProvider(mediaType)]);
+
+  useEffect(() => {
     if (!isLoading && !source && isVideoReady) {
       toast.error('No video source found', { description: 'Please try changing servers or quality.' });
     }
@@ -562,7 +575,7 @@ const Watch = () => {
     }
   }, [source, isLoading, error, isVideoReady, isExternalSubtitlesError]);
 
-  if (isLoading || (mediaType === MediaType.MOVIE && !serverInitialized)) {
+  if (isLoading) {
     return (
       <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Spinner size="large" color="$color" />
