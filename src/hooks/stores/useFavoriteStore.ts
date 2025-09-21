@@ -17,14 +17,14 @@ export const useFavoriteStore = create<FavoriteState>()(
       favorites: [],
 
       addFavorite: (item: IAnimeResult | IMovieResult) => {
-        console.log('Adding favorite:', item);
+        //console.log('Adding favorite:', item);
         set((state) => ({
           favorites: [...state.favorites, item],
         }));
       },
 
       removeFavorite: (id) => {
-        console.log('Removing favorite:', id);
+        //console.log('Removing favorite:', id);
         set((state) => ({
           favorites: state.favorites.filter((item) => item.id !== id),
         }));
@@ -33,7 +33,7 @@ export const useFavoriteStore = create<FavoriteState>()(
       isFavorite: (id) => get().favorites.some((item) => item.id === id),
 
       clearAll: () => {
-        console.log('Clearing all favorites');
+        //console.log('Clearing all favorites');
         set({ favorites: [] });
       },
     }),

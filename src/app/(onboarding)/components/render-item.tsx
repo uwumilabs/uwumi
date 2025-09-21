@@ -90,7 +90,7 @@ const RenderItem = ({ index, x, item }: Props) => {
               {Object.keys(SUB_LANGUAGE).map((lang, index) => (
                 <RippleButton
                   onPress={() => {
-                    console.log(`Selected language: ${preferedLanguages} type of ${typeof preferedLanguages}`);
+                    //console.log(`Selected language: ${preferedLanguages} type of ${typeof preferedLanguages}`);
                     setPreferedLanguages([...(preferedLanguages || []), lang]);
                   }}
                   key={index}

@@ -22,13 +22,13 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 let version;
 if (process.argv.length > 2) {
   version = process.argv[2];
-  console.log(`Using provided version: ${version}`);
+  //console.log(`Using provided version: ${version}`);
 } else {
   try {
     // Read the version from package.json at project root
     const packageJson = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'));
     version = packageJson.version;
-    console.log(`Using version from package.json: ${version}`);
+    //console.log(`Using version from package.json: ${version}`);
   } catch (error) {
     console.error(`Error reading package.json: ${error.message}`);
     process.exit(1);
@@ -55,7 +55,7 @@ function updateBuildGradle() {
   const gradlePath = path.join(projectRoot, 'android/app/build.gradle');
 
   if (!fs.existsSync(gradlePath)) {
-    console.log('Android build.gradle not found. Skipping Android version update.');
+    //console.log('Android build.gradle not found. Skipping Android version update.');
     return;
   }
 
@@ -77,7 +77,7 @@ function updateBuildGradle() {
     gradleContent = gradleContent.replace(/versionCode\s+(\d+)/, `versionCode ${versionCode}`);
 
     fs.writeFileSync(gradlePath, gradleContent);
-    console.log(`Updated Android build.gradle: versionName="${version}", versionCode=${versionCode}`);
+    //console.log(`Updated Android build.gradle: versionName="${version}", versionCode=${versionCode}`);
   } catch (error) {
     console.error(`Error updating build.gradle: ${error.message}`);
   }
@@ -88,21 +88,21 @@ function updateInfoPlist() {
   try {
     const iosDir = path.join(projectRoot, 'ios');
     if (!fs.existsSync(iosDir)) {
-      console.log('iOS directory not found. Skipping iOS version update.');
+      //console.log('iOS directory not found. Skipping iOS version update.');
       return;
     }
 
     const xcodeproj = fs.readdirSync(iosDir).find((file) => file.endsWith('.xcodeproj') && !file.includes('Pods'));
 
     if (!xcodeproj) {
-      console.log('iOS .xcodeproj not found. Skipping iOS version update.');
+      //console.log('iOS .xcodeproj not found. Skipping iOS version update.');
       return;
     }
 
     const plistPath = path.join(iosDir, xcodeproj.replace('.xcodeproj', ''), 'Info.plist');
 
     if (!fs.existsSync(plistPath)) {
-      console.log('iOS Info.plist not found. Skipping iOS version update.');
+      //console.log('iOS Info.plist not found. Skipping iOS version update.');
       return;
     }
 
@@ -111,7 +111,7 @@ function updateInfoPlist() {
       stdio: 'inherit',
     });
     execSync(`/usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${versionCode}" "${plistPath}"`, { stdio: 'inherit' });
-    console.log(`Updated iOS Info.plist: CFBundleShortVersionString=${version}, CFBundleVersion=${versionCode}`);
+    //console.log(`Updated iOS Info.plist: CFBundleShortVersionString=${version}, CFBundleVersion=${versionCode}`);
   } catch (error) {
     console.error(`Error updating iOS Info.plist: ${error.message}`);
   }
@@ -122,7 +122,7 @@ function updateAppJson() {
   const appJsonPath = path.join(projectRoot, 'app.json');
 
   if (!fs.existsSync(appJsonPath)) {
-    console.log('app.json not found. Skipping Expo config update.');
+    //console.log('app.json not found. Skipping Expo config update.');
     return;
   }
 
@@ -148,7 +148,7 @@ function updateAppJson() {
       }
 
       fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2));
-      console.log(
+      //console.log(
         `Updated app.json: expo.version=${version}, android.versionCode=${versionCode}, ios.buildNumber=${versionCode}`,
       );
     }
@@ -162,4 +162,4 @@ updateBuildGradle();
 updateInfoPlist();
 updateAppJson();
 
-console.log('Version synchronization complete!');
+//console.log('Version synchronization complete!');

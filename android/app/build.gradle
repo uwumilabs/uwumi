@@ -111,7 +111,7 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
-            applicationIdSuffix ".debug"
+            // applicationIdSuffix ".debug"  // Commented out to match expo package name
             versionNameSuffix "-debug"
         }
         release {

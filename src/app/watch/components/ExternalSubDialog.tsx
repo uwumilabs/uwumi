@@ -178,7 +178,7 @@ const ExternalSubDialog: React.FC<ExternalSubDialogProps> = ({
                     onPress={() => {
                       if (externalSubtitleLanguage?.trim()) {
                         setShouldFetchExternalSubs(true);
-                        console.log('Fetching subtitles for language:', externalSubtitleLanguage);
+                        //console.log('Fetching subtitles for language:', externalSubtitleLanguage);
                         setOpenExternalSubtitleLanguageDialog(false);
                         setExternalSubtitleLanguage(externalSubtitleLanguage);
                       }

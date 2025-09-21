@@ -2,7 +2,7 @@ import React, { RefObject, useMemo } from 'react';
 import { ThemedView } from '@/components/ThemedView';
 import { Text, YStack, XStack, Separator } from 'tamagui';
 import { Route, useRouter } from 'expo-router';
-import { Settings, Palette, Info, Heart } from '@tamagui/lucide-icons';
+import { Settings, Palette, Info, Heart, Package } from '@tamagui/lucide-icons';
 import { Pressable, View } from 'react-native';
 
 const MenuItem = ({
@@ -22,7 +22,7 @@ const MenuItem = ({
   const router = useRouter();
 
   const handlePress = () => {
-    console.log(`Navigating to: ${href}`);
+    //console.log(`Navigating to: ${href}`);
     router.push(href);
   };
 
@@ -43,7 +43,8 @@ const More = () => {
   const menuItems = useMemo(() => {
     const baseItems = [
       { href: '/(settings)/appearance' as Route, icon: Palette, label: 'Appearance' },
-      { href: '/(settings)' as Route, icon: Settings, label: 'Settings' },
+      { href: '/(settings)/extensions' as Route, icon: Package, label: 'Extensions' },
+      // { href: '/(settings)' as Route, icon: Settings, label: 'Settings' },
       { href: '/(settings)/favorites' as Route, icon: Heart, label: 'Favorites' },
       { href: '/(settings)/about' as Route, icon: Info, label: 'About' },
     ];

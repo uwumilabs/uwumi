@@ -11,7 +11,6 @@
 //     };
 //   }
 // };
-
 export const formatTime = (seconds: number): string => {
   // Handle invalid inputs
   if (!Number.isFinite(seconds) || seconds < 0) {
@@ -82,3 +81,4 @@ export const compareVersions = (localVersion: string, remoteVersion: string) => 
 
   return 'No update available';
 };
+

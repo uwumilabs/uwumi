@@ -34,8 +34,8 @@ cd android
 # ./gradlew clean
 
 # Stop Gradle daemon
-print_step "STEP 4: STOPPING GRADLE DAEMON"
-./gradlew --stop
+# print_step "STEP 4: STOPPING GRADLE DAEMON"
+# ./gradlew --stop
 
 # Build release APK
 print_step "STEP 5: BUILDING RELEASE APK"

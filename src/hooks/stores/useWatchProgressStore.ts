@@ -36,14 +36,14 @@ export const useWatchProgressStore = create<WatchProgressState>()(
         return progress;
       },
       removeProgress: (episodeId) => {
-        console.log('Removing progress:', episodeId);
+        //console.log('Removing progress:', episodeId);
         set((state) => {
           const { [episodeId]: _, ...rest } = state.progresses;
           return { progresses: rest };
         });
       },
       clearAll: () => {
-        console.log('Clearing all progress');
+        //console.log('Clearing all progress');
         set({ progresses: {} });
       },
     }),

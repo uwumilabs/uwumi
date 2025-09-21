@@ -427,7 +427,7 @@ const EpisodeList = ({
                 }}
               />
             )}
-            {mediaType === MediaType.MOVIE && servers && servers.length > 0 && !swipeable && (
+            {servers && servers.length > 0 && !swipeable && (
               <CustomSelect
                 SelectItem={servers.map((server) => ({ name: server.name, value: server.name })) || []}
                 SelectLabel="Servers"

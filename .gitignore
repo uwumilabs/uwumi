@@ -42,3 +42,6 @@ app-example
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# ai slop
+GEMINI.md

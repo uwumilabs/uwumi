@@ -150,7 +150,7 @@ const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, mediaTyp
   }
 
   if (error) {
-    console.log(error);
+    //console.log(error);
     return (
       <YStack justifyContent="center" alignItems="center">
         <NoResults />

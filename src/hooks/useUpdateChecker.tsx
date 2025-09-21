@@ -68,7 +68,7 @@ export function useUpdateChecker(url?: string) {
   // Handle errors
   useEffect(() => {
     if (isError) {
-      console.log('Update check failed:', error);
+      //console.log('Update check failed:', error);
     }
   }, [isError, error]);
 

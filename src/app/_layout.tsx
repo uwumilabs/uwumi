@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
-import { TamaguiProvider, Theme, Dialog, Unspaced, XStack, Text, YStack, Button, Separator } from 'tamagui';
+import { TamaguiProvider, Theme, Dialog, Unspaced, XStack, Text, YStack, Button, Separator, View } from 'tamagui';
 import { X, Download, ArrowUpCircle } from '@tamagui/lucide-icons';
 import { PortalProvider } from '@tamagui/portal';
 import { Toaster } from 'sonner-native';
@@ -20,6 +20,8 @@ import * as WebBrowser from 'expo-web-browser';
 import { SystemBars } from 'react-native-edge-to-edge';
 import { LogBox } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
+import { useSegments } from 'expo-router';
+import { usePathname } from 'expo-router';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -136,6 +138,13 @@ const AppContent = () => {
   }, [loaded, isUpdateChecked]);
   const { hasCompletedOnboarding } = useOnboardingFlowStore();
 
+  if (__DEV__) {
+    const segments = useSegments();
+    const pathname = usePathname();
+    // console.log(`Current segments: ${segments.join('/')}`);
+    // console.log(`Current pathname: ${pathname}`);
+  }
+
   if (!loaded) {
     return null;
   }
@@ -145,7 +154,7 @@ const AppContent = () => {
       <PortalProvider>
         <Theme name={themeName}>
           <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
-            <Stack.Screen name="(onboarding)" />
+            {/* <Stack.Screen name="(onboarding)" /> */}
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="info/[mediaType]" />
             <Stack.Screen name="watch/[mediaType]" />

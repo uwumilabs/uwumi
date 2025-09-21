@@ -157,7 +157,7 @@ const Watch = () => {
   useEffect(() => {
     if (mediaType === MediaType.MOVIE && movieQuery.data && 'servers' in movieQuery.data) {
       const movieData = movieQuery.data as ISource & { servers: IEpisodeServer[] };
-      console.log('Setting servers:', movieData.servers);
+      //console.log('Setting servers:', movieData.servers);
       setServers(movieData.servers);
       if (movieData.servers.length > 0 && !currentServer) {
         setCurrentServer(movieData.servers[0].name);
@@ -371,7 +371,7 @@ const Watch = () => {
   const updateBrightness = useCallback(async (value: number) => {
     await Brightness.setBrightnessAsync(value);
     setBrightness(value);
-    console.log('bright:', value);
+    //console.log('bright:', value);
   }, []);
 
   useEffect(() => {
@@ -395,7 +395,7 @@ const Watch = () => {
     try {
       await VolumeManager.setVolume(value, { showUI: false });
       setVolume(value);
-      console.log('volume:', value * 100);
+      //console.log('volume:', value * 100);
     } catch (error) {
       console.error('Failed to update volume:', error);
     }
@@ -484,7 +484,7 @@ const Watch = () => {
         }
       });
       setVideoTracks(tracks.sort((a, b) => (b.height || 0) - (a.height || 0)));
-      console.log('animepahe qualities:', tracks, data?.sources);
+      //console.log('animepahe qualities:', tracks, data?.sources);
       return data?.sources?.[selectedVideoTrackIndex || 0]?.url;
     } else {
       // Prefer "default" or "auto", then "backup", then first available.
@@ -522,7 +522,7 @@ const Watch = () => {
             }
           }
 
-          console.log('Available qualities:', tracks);
+          //console.log('Available qualities:', tracks);
           setVideoTracks(tracks);
         } catch (error) {
           console.error('Failed to fetch quality:', error);
@@ -641,10 +641,10 @@ const Watch = () => {
                 onBuffer={({ isBuffering }) => setIsBuffering(isBuffering)}
                 onError={(error) => {
                   toast.error('Video Error', { description: 'Try changing servers' });
-                  console.log('Video Error:', error);
+                  //console.log('Video Error:', error);
                 }}
                 onLoad={(value) => {
-                  console.log(getProgress(uniqueId)?.currentTime, 'Video loaded:', value);
+                  //console.log(getProgress(uniqueId)?.currentTime, 'Video loaded:', value);
                   setIsVideoReady(true);
                   // to find how much of the textTracks have null language and title
                   const nullTextTrackCount =
