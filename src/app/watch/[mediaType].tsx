@@ -127,7 +127,12 @@ const Watch = () => {
 
   const animeQuery =
     mediaType === MediaType.ANIME
-      ? useWatchAnimeEpisodes({ episodeId: currentEpisodeId ?? episodeId, provider: getProvider(mediaType), dub })
+      ? useWatchAnimeEpisodes({
+          episodeId: currentEpisodeId ?? episodeId,
+          provider: getProvider(mediaType),
+          server: currentServer?.name!,
+          dub,
+        })
       : { data: undefined, isLoading: false, error: null };
 
   const movieQuery =
@@ -137,7 +142,7 @@ const Watch = () => {
           mediaId,
           type,
           provider: getProvider(mediaType),
-          server: currentServer?.name,
+          server: currentServer?.name!,
           embed: isEmbed,
         })
       : { data: undefined, isLoading: false, error: null };
@@ -155,16 +160,16 @@ const Watch = () => {
   //   : { data: undefined, isLoading: false, error: null };
 
   useEffect(() => {
-    if (mediaType === MediaType.MOVIE && movieQuery.data && 'servers' in movieQuery.data) {
-      const movieData = movieQuery.data as ISource & { servers: IEpisodeServer[] };
+    if (data && 'servers' in data && !serverInitialized) {
+      // const data = movieQuery.data as ISource & { servers: IEpisodeServer[] };
       //console.log('Setting servers:', movieData.servers);
-      setServers(movieData.servers);
-      if (movieData.servers.length > 0 && !currentServer) {
-        setCurrentServer(movieData.servers[0].name);
+      setServers(data.servers);
+      if (data.servers.length > 0 && !currentServer) {
+        setCurrentServer(data.servers[0].name);
       }
       setServerInitialized(true);
     }
-  }, [movieQuery.data, setCurrentServer, setServers, mediaType, provider, isEmbed, currentServer]);
+  }, [movieQuery.data, animeQuery.data, setCurrentServer, setServers, mediaType, provider, isEmbed, currentServer]);
 
   useEffect(() => {
     setServerInitialized(false);
@@ -502,8 +507,8 @@ const Watch = () => {
     if (source && provider !== 'animepahe') {
       const fetchQuality = async () => {
         try {
-          const { data } = await axios.get(`${source}`);
-
+          const res = await fetch(source);
+          const data = await res.text();
           // Extract resolutions using regex
           const regex =
             /^#EXT-X-STREAM-INF:.*?BANDWIDTH=(\d+),RESOLUTION=(\d+)x(\d+)(?:,FRAME-RATE=([\d.]+))?(?:,CODECS="([^"]+)")?/gm;

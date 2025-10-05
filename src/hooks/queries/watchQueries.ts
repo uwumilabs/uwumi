@@ -20,16 +20,18 @@ import { useConsumetExtensions } from '../stores';
 export function useWatchAnimeEpisodes({
   episodeId,
   provider = DEFAULT_PROVIDERS.anime,
+  server,
   dub = false,
 }: {
   episodeId: string;
   provider: string;
+  server: string;
   dub: boolean;
 }) {
   // console.log(episodeId, provider, dub);
   const { providerManager, readExtensionCode } = useConsumetExtensions();
-  return useQuery<ISource>({
-    queryKey: ['watch', episodeId, provider, dub],
+  return useQuery<ISource & { servers: IEpisodeServer[] }>({
+    queryKey: ['watch', episodeId, provider, dub, server],
     queryFn: async () => {
       try {
         // let url = `${getFetchUrl().apiUrl}/anime/${provider}/watch/${episodeId}?dub=${dub}`;
@@ -43,14 +45,17 @@ export function useWatchAnimeEpisodes({
           metadata.factoryName,
           metadata as typeof metadata & { id: AnimeProvider },
         );
-        const data = await animeProvider.fetchEpisodeSources(episodeId, undefined, dub ? SubOrDub.DUB : SubOrDub.SUB);
+        const data = (await animeProvider.fetchEpisodeSources(
+          episodeId,
+          server,
+          dub ? SubOrDub.DUB : SubOrDub.SUB,
+        )) as ISource;
         const servers = (await animeProvider.fetchEpisodeServers(
           episodeId,
           dub ? SubOrDub.DUB : SubOrDub.SUB,
         )) as IEpisodeServer[];
-        //console.log('useWatchAnimeEpisodes', { ...data, servers });
+        console.log('useWatchAnimeEpisodes', { ...data, servers });
         return { ...data, servers };
-        return data;
       } catch (error) {
         console.error('Error fetching episode sources:', error);
         throw error;
@@ -71,7 +76,7 @@ export function useWatchMoviesEpisodes({
   mediaId: string;
   type: string;
   provider: string;
-  server?: string;
+  server: string;
   embed: boolean;
 }) {
   console.log('from query', episodeId, mediaId, server, provider);

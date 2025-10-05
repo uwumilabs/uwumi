@@ -216,7 +216,7 @@ const EpisodeList = ({
   const ListPressable = memo(
     ({ item, children }: { item: IAnimeEpisode | IMovieEpisode; children: React.ReactNode }) => {
       const navigateToEpisode = () => {
-        router.push({
+        router.replace({
           pathname: '/watch/[mediaType]',
           params: {
             mediaType,

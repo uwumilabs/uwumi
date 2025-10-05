@@ -21,9 +21,7 @@ interface ProviderGroups {
 // Define all providers in one place
 const PROVIDERS: ProviderGroups = {
   [MediaType.ANIME]: [
-    // { name: 'Gogoanime', value: 'gogo', subbed: true, dubbed: true },
     { name: 'Zoro', value: 'zoro', subbed: true, dubbed: true },
-    { name: 'AnimeKai', value: 'animekai', subbed: true, dubbed: true },
     { name: 'AnimePahe', value: 'animepahe', subbed: true, dubbed: true },
   ],
   [MediaType.MANGA]: [
@@ -75,8 +73,7 @@ export function createProviderInstance(
   // Anime provider mapping
   if (mediaType === MediaType.ANIME) {
     const animeProviders: Record<string, () => AnimeProviderInstance> = {
-      zoro: () => new ANIME.Zoro('https://hianime.to'),
-      animekai: () => new ANIME.AnimeKai(),
+      zoro: () => new ANIME.Zoro(),
       animepahe: () => new ANIME.AnimePahe(),
       // Add new providers here in the future
     };

@@ -436,7 +436,7 @@ const ControlsOverlay = memo(
             <RippleButton
               onPress={() => {
                 if (prevEpisodeIndex >= 0) {
-                  router.push({
+                  router.replace({
                     pathname: '/watch/[mediaType]',
                     params: {
                       mediaType,
@@ -482,7 +482,7 @@ const ControlsOverlay = memo(
             <RippleButton
               onPress={() => {
                 if (nextEpisodeIndex >= 0) {
-                  router.push({
+                  router.replace({
                     pathname: '/watch/[mediaType]',
                     params: {
                       mediaType,
