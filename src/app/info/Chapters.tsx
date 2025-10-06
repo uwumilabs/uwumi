@@ -61,10 +61,7 @@ const Chapters = () => {
         }
         ListEmptyComponent={<NoResults />}
         ListFooterComponent={<View height={100} />}
-        estimatedItemSize={150}
         showsVerticalScrollIndicator={true}
-        estimatedFirstItemOffset={900}
-        drawDistance={500}
         renderItem={({ item }) => (
           <RippleButton
             onPress={() => {

@@ -1,15 +1,15 @@
 import React, { useEffect } from 'react';
 import { ThemedView } from '@/components/ThemedView';
 import { Text, YStack, XStack, Separator, Card, Theme, Spinner } from 'tamagui';
-import { Github, ExternalLink, CheckCircle2, AlertCircle } from '@tamagui/lucide-icons';
+import { Github, ExternalLink, CheckCircle2, AlertCircle, Globe, RefreshCw } from '@tamagui/lucide-icons';
 import CustomImage from '@/components/CustomImage';
 import { useUpdateChecker } from '@/hooks/useUpdateChecker';
 import RippleButton from '@/components/RippleButton';
 import { openBrowserAsync } from 'expo-web-browser';
 import { EXTERNAL_LINKS } from '@/constants/config';
-import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import { useCurrentTheme } from '@/hooks';
 import { toast } from 'sonner-native';
+import { DiscordIcon } from '@/svg';
 
 const About = () => {
   const { updateInfo, isLoading, isError, checkForUpdates } = useUpdateChecker(
@@ -117,7 +117,7 @@ const About = () => {
         <YStack gap="$4" alignItems="center" marginTop="$2">
           <RippleButton onPress={() => checkForUpdates()}>
             <XStack gap="$2" alignItems="center">
-              <Ionicons name="sync" size={20} color={currentTheme.color} />
+              <RefreshCw size={20} color={currentTheme.color} />
               <Text fontWeight="600">Check for Updates</Text>
             </XStack>
           </RippleButton>
@@ -132,14 +132,14 @@ const About = () => {
 
               <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.DISCORD_SERVER)}>
                 <XStack gap="$2" alignItems="center">
-                  <FontAwesome6 name="discord" size={20} color={currentTheme.color} />
+                  <DiscordIcon size={20} color={currentTheme.color} />
                   <Text fontWeight="600">Discord</Text>
                 </XStack>
               </RippleButton>
 
               <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.PROJECT_WEBSITE)}>
                 <XStack gap="$2" alignItems="center">
-                  <FontAwesome6 name="globe" size={20} color={currentTheme.color} />
+                  <Globe size={20} color={currentTheme.color} />
                   <Text fontWeight="600">Website</Text>
                 </XStack>
               </RippleButton>

@@ -20,8 +20,6 @@ import * as WebBrowser from 'expo-web-browser';
 import { SystemBars } from 'react-native-edge-to-edge';
 import { LogBox } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
-import { useSegments } from 'expo-router';
-import { usePathname } from 'expo-router';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -137,13 +135,6 @@ const AppContent = () => {
     }
   }, [loaded, isUpdateChecked]);
   const { hasCompletedOnboarding } = useOnboardingFlowStore();
-
-  if (__DEV__) {
-    const segments = useSegments();
-    const pathname = usePathname();
-    // console.log(`Current segments: ${segments.join('/')}`);
-    // console.log(`Current pathname: ${pathname}`);
-  }
 
   if (!loaded) {
     return null;

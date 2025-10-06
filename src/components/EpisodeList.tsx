@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { View, Text, YStack, XStack, Spinner, styled, Progress } from 'tamagui';
 import { Pressable, StyleSheet } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList, FlashListRef } from '@shopify/flash-list';
 import React, { useEffect, useRef, useMemo, useState, useCallback, memo } from 'react';
 import CustomImage from '@/components/CustomImage';
 import { useRouter } from 'expo-router';
@@ -60,7 +60,7 @@ const EpisodeList = ({
   const swipeableRefs = useRef<Map<string, SwipeableMethods>>(new Map());
   const router = useRouter();
   const currentTheme = useCurrentTheme();
-  const flashListRef = useRef<FlashList<IAnimeEpisode | IMovieEpisode>>(null);
+  const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
   const hasScrolledRef = useRef(false);
   const { setProvider, getProvider } = useProviderStore();
   useEffect(() => {
@@ -459,15 +459,11 @@ const EpisodeList = ({
         }
         ListEmptyComponent={<NoResults />}
         ListFooterComponent={<View height={100} />}
-        estimatedItemSize={150}
         showsVerticalScrollIndicator={true}
-        estimatedFirstItemOffset={900}
-        drawDistance={500}
-        maintainVisibleContentPosition={{
-          // Add this property
-          minIndexForVisible: 0,
-          autoscrollToTopThreshold: 10,
-        }}
+        // maintainVisibleContentPosition={{
+        //   minIndexForVisible: 0,
+        //   autoscrollToTopThreshold: 10,
+        // }}
         onLoad={(e) => {
           flashListRef?.current?.scrollToItem({ item: currentEpisode, animated: true, viewPosition: 0.1 });
         }}

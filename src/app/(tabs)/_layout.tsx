@@ -4,7 +4,7 @@ import { BookImage, Ellipsis, TvMinimalPlay } from '@tamagui/lucide-icons';
 import { View } from 'tamagui';
 import { useThemeStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import SystemNavigationBar from 'react-native-system-navigation-bar';
-import AnimeIcon from '@/components/SVG/AnimeIcon';
+import { AnimeIcon, MangaIcon } from '@/svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const unstable_settings = {
@@ -74,7 +74,7 @@ export default function TabLayout() {
           title: 'Manga',
           tabBarIcon: ({ focused, color }) => (
             <TabBarCapsule focused={focused}>
-              <BookImage color={color} />
+              <MangaIcon color={color} />
             </TabBarCapsule>
           ),
         }}

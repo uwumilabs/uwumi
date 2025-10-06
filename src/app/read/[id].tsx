@@ -38,7 +38,6 @@ const Read = () => {
           paddingVertical: 8,
         }}
         ListEmptyComponent={<NoResults />}
-        estimatedItemSize={width * 1.4}
         showsVerticalScrollIndicator={true}
         renderItem={({ item }) => (
           <View marginVertical="$2">

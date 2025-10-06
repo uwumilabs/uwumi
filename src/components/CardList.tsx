@@ -175,10 +175,7 @@ const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, mediaTyp
           </View>
         )}
         ListEmptyComponent={<NoResults />}
-        estimatedItemSize={150}
         showsVerticalScrollIndicator={true}
-        estimatedFirstItemOffset={900}
-        drawDistance={500}
         numColumns={3}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 4 }}
