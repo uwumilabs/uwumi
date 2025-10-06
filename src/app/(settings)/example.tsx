@@ -21,7 +21,7 @@ const Example = () => {
     keys.forEach((key) => {
       const value = storage.getString(key);
       const typeOfValue = typeof value;
-      //console.log(`Key: ${key}, Value: ${value}, Type: ${typeOfValue}`);
+      console.log(`Key: ${key}, Value: ${value}, Type: ${typeOfValue}`);
     });
   };
 

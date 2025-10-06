@@ -171,8 +171,10 @@ const AppContent = () => {
 };
 
 export default function RootLayout() {
-  //suppress edge-to-edge warning for status bar background color
-  LogBox.ignoreLogs(['StatusBar backgroundColor is not supported with edge-to-edge enabled']);
+  LogBox.ignoreLogs([
+    'StatusBar backgroundColor is not supported with edge-to-edge enabled',
+    /\[tamagui\] ⚠️ missing token/,
+  ]);
 
   const queryClient = new QueryClient({
     defaultOptions: {

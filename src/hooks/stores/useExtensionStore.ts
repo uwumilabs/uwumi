@@ -1,15 +1,15 @@
 import { create } from 'zustand';
 import { storage } from '@/hooks/stores/MMKV';
 import axios from 'axios';
-import * as FileSystem from 'expo-file-system';
+import { File, Directory, Paths } from 'expo-file-system';
 import { ExtractorManager, ProviderManager } from 'react-native-consumet';
 
 // UWUMI_DIR constant - adjust path as needed for your app
-const UWUMI_DIR = `${FileSystem.documentDirectory}uwumi`;
+const UWUMI_DIR = new Directory(Paths.document, 'uwumi');
 
 // Constants
-const EXTENSIONS_CACHE_DIR = `${UWUMI_DIR}/extensions`;
-const EXTRACTORS_CACHE_DIR = `${UWUMI_DIR}/extractors`;
+const EXTENSIONS_CACHE_DIR = new Directory(UWUMI_DIR, 'extensions');
+const EXTRACTORS_CACHE_DIR = new Directory(UWUMI_DIR, 'extractors');
 const REGISTRY_METADATA_KEY = 'extension_registry_metadata';
 const EXTENSION_PREFIX = 'ext_';
 const EXTRACTOR_PREFIX = 'extr_';
@@ -54,7 +54,7 @@ interface RegistryResponse {
 
 interface CachedItem {
   version: string;
-  filePath: string;
+  fileUri: string;
   downloadedAt: string;
   fileSize?: number;
 }
@@ -103,16 +103,15 @@ interface ExtensionStoreState {
 }
 
 // --- Utility Functions ---
-const ensureDirectoryExists = async (dirPath: string): Promise<boolean> => {
+const ensureDirectoryExists = async (directory: Directory): Promise<boolean> => {
   try {
-    const dirInfo = await FileSystem.getInfoAsync(dirPath);
-    if (!dirInfo.exists) {
-      //console.log(`📁 Creating directory: ${dirPath}`);
-      await FileSystem.makeDirectoryAsync(dirPath, { intermediates: true });
+    if (!directory.exists) {
+      //console.log(`📁 Creating directory: ${directory.uri}`);
+      directory.create({ intermediates: true });
     }
     return true;
   } catch (error) {
-    console.error(`❌ Failed to create directory ${dirPath}:`, error);
+    console.error(`❌ Failed to create directory ${directory.uri}:`, error);
     return false;
   }
 };
@@ -137,16 +136,37 @@ const saveJSONToStorage = (key: string, data: any): boolean => {
   }
 };
 
-const downloadFile = async (url: string, destinationPath: string): Promise<boolean> => {
+const downloadFile = async (url: string, destinationFile: File): Promise<boolean> => {
   try {
     //console.log(`⬇️ Downloading: ${url}`);
-    const downloadResult = await FileSystem.downloadAsync(url, destinationPath);
+    // Ensure parent directory exists
+    const parentDir = new Directory(destinationFile.uri.split('/').slice(0, -1).join('/'));
+    if (!parentDir.exists) {
+      parentDir.create({ intermediates: true });
+    }
 
-    if (downloadResult.status === 200) {
-      //console.log(`✅ Download completed: ${destinationPath}`);
+    // Remove existing file if it exists to avoid conflicts
+    if (destinationFile.exists) {
+      destinationFile.delete();
+    }
+
+    // Download to the parent directory with idempotent option
+    const downloadedFile = await File.downloadFileAsync(url, parentDir, { idempotent: true });
+
+    if (downloadedFile.exists) {
+      // If the downloaded file has a different name or location, move it to our desired location
+      const desiredPath = destinationFile.uri;
+      const downloadedPath = downloadedFile.uri;
+
+      if (downloadedPath !== desiredPath) {
+        // Move the downloaded file to the correct location
+        downloadedFile.move(destinationFile);
+      }
+
+      //console.log(`✅ Download completed: ${destinationFile.uri}`);
       return true;
     } else {
-      console.error(`❌ Download failed with status: ${downloadResult.status}`);
+      console.error(`❌ Download failed`);
       return false;
     }
   } catch (error) {
@@ -155,9 +175,9 @@ const downloadFile = async (url: string, destinationPath: string): Promise<boole
   }
 };
 
-const getFilePath = (type: 'extension' | 'extractor', id: string, version: string): string => {
+const getFilePath = (type: 'extension' | 'extractor', id: string, version: string): File => {
   const baseDir = type === 'extension' ? EXTENSIONS_CACHE_DIR : EXTRACTORS_CACHE_DIR;
-  return `${baseDir}/${id}_v${version}.js`;
+  return new File(baseDir, `${id}_v${version}.js`);
 };
 
 const getCacheKey = (type: 'extension' | 'extractor', id: string): string => {
@@ -264,7 +284,8 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       // Remove old version if exists
       if (cachedData) {
         try {
-          await FileSystem.deleteAsync(cachedData.filePath);
+          const oldFile = new File(cachedData.fileUri);
+          oldFile.delete();
           //console.log(`🗑️ Removed old version of ${extensionId}`);
         } catch (error) {
           console.warn(`⚠️ Failed to remove old version of ${extensionId}:`, error);
@@ -272,17 +293,15 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       }
 
       // Download new version
-      const filePath = getFilePath('extension', extensionId, extensionInfo.version);
-      const success = await downloadFile(extensionInfo.main, filePath);
+      const file = getFilePath('extension', extensionId, extensionInfo.version);
+      const success = await downloadFile(extensionInfo.main, file);
 
       if (success) {
-        // Get file size (note: FileInfo in expo-file-system uses different structure)
+        // Get file size
         let fileSize: number | undefined;
         try {
-          const fileInfo = await FileSystem.getInfoAsync(filePath);
-          // FileInfo has different properties in expo-file-system
-          if (fileInfo.exists && 'size' in fileInfo) {
-            fileSize = (fileInfo as any).size;
+          if (file.exists) {
+            fileSize = file.size;
           }
         } catch (error) {
           console.warn('Could not get file size:', error);
@@ -291,7 +310,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
         // Save cache metadata
         const cacheData: CachedItem = {
           version: extensionInfo.version,
-          filePath,
+          fileUri: file.uri,
           downloadedAt: new Date().toISOString(),
           fileSize,
         };
@@ -319,7 +338,8 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       }
 
       try {
-        await FileSystem.deleteAsync(cachedData.filePath);
+        const file = new File(cachedData.fileUri);
+        file.delete();
         storage.delete(cacheKey);
         //console.log(`🗑️ Extension ${extensionId} uninstalled successfully`);
         return true;
@@ -367,7 +387,8 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       // Remove old version if exists
       if (cachedData) {
         try {
-          await FileSystem.deleteAsync(cachedData.filePath);
+          const oldFile = new File(cachedData.fileUri);
+          oldFile.delete();
           //console.log(`🗑️ Removed old version of ${extractorName}`);
         } catch (error) {
           console.warn(`⚠️ Failed to remove old version of ${extractorName}:`, error);
@@ -375,16 +396,15 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       }
 
       // Download new version
-      const filePath = getFilePath('extractor', extractorName, extractorInfo.version);
-      const success = await downloadFile(extractorInfo.main, filePath);
+      const file = getFilePath('extractor', extractorName, extractorInfo.version);
+      const success = await downloadFile(extractorInfo.main, file);
 
       if (success) {
-        // Get file size (expo-file-system FileInfo structure)
+        // Get file size
         let fileSize: number | undefined;
         try {
-          const fileInfo = await FileSystem.getInfoAsync(filePath);
-          if (fileInfo.exists && 'size' in fileInfo) {
-            fileSize = (fileInfo as any).size;
+          if (file.exists) {
+            fileSize = file.size;
           }
         } catch (error) {
           console.warn('Could not get file size:', error);
@@ -393,7 +413,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
         // Save cache metadata
         const cacheData: CachedItem = {
           version: extractorInfo.version,
-          filePath,
+          fileUri: file.uri,
           downloadedAt: new Date().toISOString(),
           fileSize,
         };
@@ -421,7 +441,8 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       }
 
       try {
-        await FileSystem.deleteAsync(cachedData.filePath);
+        const file = new File(cachedData.fileUri);
+        file.delete();
         storage.delete(cacheKey);
         //console.log(`🗑️ Extractor ${extractorName} uninstalled successfully`);
         return true;
@@ -454,7 +475,8 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       }
 
       try {
-        const code = await FileSystem.readAsStringAsync(cachedData.filePath);
+        const file = new File(cachedData.fileUri);
+        const code = await file.text();
         return code;
       } catch (error) {
         console.error(`❌ Failed to read extension code for ${extensionId}:`, error);
@@ -472,7 +494,8 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       }
 
       try {
-        const code = await FileSystem.readAsStringAsync(cachedData.filePath);
+        const file = new File(cachedData.fileUri);
+        const code = await file.text();
         return code;
       } catch (error) {
         console.error(`❌ Failed to read extractor code for ${extractorName}:`, error);
@@ -540,8 +563,12 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
         //console.log('🧹 Clearing extension cache...');
 
         // Clear file storage
-        await FileSystem.deleteAsync(EXTENSIONS_CACHE_DIR, { idempotent: true });
-        await FileSystem.deleteAsync(EXTRACTORS_CACHE_DIR, { idempotent: true });
+        if (EXTENSIONS_CACHE_DIR.exists) {
+          EXTENSIONS_CACHE_DIR.delete();
+        }
+        if (EXTRACTORS_CACHE_DIR.exists) {
+          EXTRACTORS_CACHE_DIR.delete();
+        }
 
         // Clear MMKV storage
         const { registry } = get();
@@ -577,25 +604,21 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
         let totalSize = 0;
 
         // Get extensions directory size
-        const extensionsInfo = await FileSystem.getInfoAsync(EXTENSIONS_CACHE_DIR);
-        if (extensionsInfo.exists && extensionsInfo.isDirectory) {
-          const extensionFiles = await FileSystem.readDirectoryAsync(EXTENSIONS_CACHE_DIR);
-          for (const file of extensionFiles) {
-            const fileInfo = await FileSystem.getInfoAsync(`${EXTENSIONS_CACHE_DIR}/${file}`);
-            if (fileInfo.exists && 'size' in fileInfo) {
-              totalSize += (fileInfo as any).size || 0;
+        if (EXTENSIONS_CACHE_DIR.exists) {
+          const extensionFiles = EXTENSIONS_CACHE_DIR.list();
+          for (const item of extensionFiles) {
+            if (item instanceof File) {
+              totalSize += item.size || 0;
             }
           }
         }
 
         // Get extractors directory size
-        const extractorsInfo = await FileSystem.getInfoAsync(EXTRACTORS_CACHE_DIR);
-        if (extractorsInfo.exists && extractorsInfo.isDirectory) {
-          const extractorFiles = await FileSystem.readDirectoryAsync(EXTRACTORS_CACHE_DIR);
-          for (const file of extractorFiles) {
-            const fileInfo = await FileSystem.getInfoAsync(`${EXTRACTORS_CACHE_DIR}/${file}`);
-            if (fileInfo.exists && 'size' in fileInfo) {
-              totalSize += (fileInfo as any).size || 0;
+        if (EXTRACTORS_CACHE_DIR.exists) {
+          const extractorFiles = EXTRACTORS_CACHE_DIR.list();
+          for (const item of extractorFiles) {
+            if (item instanceof File) {
+              totalSize += item.size || 0;
             }
           }
         }

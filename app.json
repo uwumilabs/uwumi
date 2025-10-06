@@ -8,7 +8,6 @@
     "scheme": "uwumi",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "edgeToEdgeEnabled": true,
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
@@ -20,7 +19,10 @@
         "backgroundColor": "#000000"
       },
       "package": "com.x2004durgesh.uwumi",
-      "versionCode": 14
+      "versionCode": 14,
+    "edgeToEdgeEnabled": true,
+    "predictiveBackGestureEnabled": true
+
     },
     "web": {
       "bundler": "metro",
@@ -43,9 +45,9 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 34,
-            "buildToolsVersion": "34.0.0"
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0"
           },
           "ios": {
             "useFrameworks": "static",
@@ -80,10 +82,12 @@
             "enforceNavigationBarContrast": false
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "reactCompiler":true
     }
   }
 }
