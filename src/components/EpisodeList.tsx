@@ -57,7 +57,7 @@ const EpisodeList = ({
   type?: MediaFormat | TvType;
   swipeable?: boolean;
 }) => {
-  const swipeableRefs = useRef<Map<string, SwipeableMethods>>(new Map());
+  const swipeableRefs = useRef<Map<string, React.RefObject<SwipeableMethods>>>(new Map());
   const router = useRouter();
   const currentTheme = useCurrentTheme();
   const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
@@ -470,23 +470,24 @@ const EpisodeList = ({
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item, index }: { item: IAnimeEpisode | IMovieEpisode; index: number }) => {
           const itemKey = item?.id ?? item?.uniqueId;
+          // Get or create a stable ref object for this item
+          const itemRef =
+            swipeableRefs.current.get(itemKey) ??
+            (() => {
+              const newRef = React.createRef<SwipeableMethods | null>();
+              swipeableRefs.current.set(itemKey, newRef);
+              return newRef;
+            })();
+
           return swipeable ? (
             <ReanimatedSwipeable
-              ref={(ref) => {
-                if (ref) {
-                  swipeableRefs.current.set(itemKey, ref);
-                } else {
-                  swipeableRefs.current.delete(itemKey);
-                }
-              }}
+              ref={itemRef}
               friction={2}
               enableTrackpadTwoFingerGesture
               rightThreshold={40}
-              onSwipeableOpen={(e) => {
+              onSwipeableOpen={() => {
                 const currentRef = swipeableRefs.current.get(itemKey);
-                if (currentRef) {
-                  currentRef.close();
-                }
+                currentRef?.current?.close();
               }}
               onSwipeableWillOpen={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
               onSwipeableWillClose={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
@@ -501,4 +502,4 @@ const EpisodeList = ({
     </YStack>
   );
 };
-export default EpisodeList;
+export default memo(EpisodeList);

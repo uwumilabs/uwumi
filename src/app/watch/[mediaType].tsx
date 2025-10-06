@@ -623,15 +623,16 @@ const Watch = () => {
                     uri: ('url' in track ? track.url : track.uri) || '',
                     index,
                   })),
-                  // textTracks: [
-                  //   {
-                  //     title: 'English',
-                  //     language: 'en' as ISO639_1,
-                  //     type: TextTrackType.SUBRIP,
-                  //     uri: 'https://dl.opensubtitles.org/en/download/src-api/vrf-19bb0c55/file/1954463516',
-                  //   },
-                  // ],
                   textTracksAllowChunklessPreparation: false,
+                  bufferConfig: {
+                    minBufferMs: 50000, // 50s minimum buffer (VLC-like for smooth seeking)
+                    maxBufferMs: 120000, // 120s maximum buffer (prevents excessive memory usage)
+                    bufferForPlaybackMs: 2500, // 2.5s initial buffer before playback starts
+                    bufferForPlaybackAfterRebufferMs: 5000, // 5s buffer after rebuffering for stability
+                    backBufferDurationMs: 120000, // Keep 120s of back buffer for smooth seeking backwards
+                    maxHeapAllocationPercent: 0.25, // Use max 25% of heap for buffering
+                    cacheSizeMB: 512, // 512MB cache size for better performance
+                  },
                 }}
                 style={videoStyle}
                 resizeMode={'contain'}
@@ -644,6 +645,11 @@ const Watch = () => {
                   setPlayerDimensions({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height });
                 }}
                 onBuffer={({ isBuffering }) => setIsBuffering(isBuffering)}
+                reportBandwidth={true}
+                automaticallyWaitsToMinimizeStalling={true}
+                preventsDisplaySleepDuringVideoPlayback={true}
+                allowsExternalPlayback={true} 
+                mixWithOthers={'mix'}
                 onError={(error) => {
                   toast.error('Video Error', { description: 'Try changing servers' });
                   //console.log('Video Error:', error);
