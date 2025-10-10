@@ -2,7 +2,7 @@
   "expo": {
     "name": "uwumi",
     "slug": "uwumi",
-    "version": "2.7.0",
+    "version": "3.0.0-rc.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "uwumi",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
-      "buildNumber": "14"
+      "buildNumber": "15"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,10 +19,9 @@
         "backgroundColor": "#000000"
       },
       "package": "com.x2004durgesh.uwumi",
-      "versionCode": 14,
-    "edgeToEdgeEnabled": true,
-    "predictiveBackGestureEnabled": true
-
+      "versionCode": 15,
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": true
     },
     "web": {
       "bundler": "metro",
@@ -87,7 +86,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler":true
+      "reactCompiler": true
     }
   }
 }
