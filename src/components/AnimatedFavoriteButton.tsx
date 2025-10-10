@@ -8,7 +8,8 @@ import { MediaType, MetaProvider } from '@/constants/types';
 import { ITitle, MediaFormat, TvType } from 'react-native-consumet';
 import RippleButton from './RippleButton';
 import { useCurrentTheme, useFavoriteStore } from '@/hooks';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing, runOnJS } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
 
 interface AnimatedFavoriteButtonProps {
@@ -64,12 +65,12 @@ const AnimatedFavoriteButton: React.FC<AnimatedFavoriteButtonProps> = (props) =>
           easing: Easing.bezier(0.4, 0, 0.2, 1),
         },
         () => {
-          runOnJS(setIsAnimatingState)(false);
-          runOnJS(triggerHapticFeedback)();
+          scheduleOnRN(setIsAnimatingState, false);
+          scheduleOnRN(triggerHapticFeedback);
         },
       );
     } else {
-      runOnJS(setIsAnimatingState)(true);
+      scheduleOnRN(setIsAnimatingState, true);
       opacity.value = withTiming(
         1,
         {
@@ -77,8 +78,8 @@ const AnimatedFavoriteButton: React.FC<AnimatedFavoriteButtonProps> = (props) =>
           easing: Easing.bezier(0.4, 0, 0.2, 1),
         },
         () => {
-          runOnJS(playAnimation)();
-          runOnJS(triggerHapticFeedback)();
+          scheduleOnRN(playAnimation);
+          scheduleOnRN(triggerHapticFeedback);
         },
       );
       addFavorite({ id, ...itemData });
@@ -104,7 +105,7 @@ const AnimatedFavoriteButton: React.FC<AnimatedFavoriteButtonProps> = (props) =>
         easing: Easing.bezier(0.4, 0, 0.2, 1),
       },
       () => {
-        runOnJS(setIsAnimatingState)(false);
+        scheduleOnRN(setIsAnimatingState, false);
       },
     );
   }, [opacity, setIsAnimatingState]);

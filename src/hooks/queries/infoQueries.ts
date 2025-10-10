@@ -45,7 +45,6 @@ export function useInfo({
           data = (await new META.Anilist().fetchAnilistInfoById(id)) as unknown as IAnimeInfo;
         }
         if (metaProvider === 'tmdb') {
-          const movieProviderInitializer = createProviderInstance(MediaType.MOVIE, provider);
           const content = await readExtensionCode(provider);
           const metadata = providerManager.getExtensionMetadata(provider);
           //console.log('Extension metadata:', metadata);
@@ -81,7 +80,6 @@ export function useAnimeEpisodes({ id, provider = DEFAULT_PROVIDERS.anime }: { i
     queryKey: ['anime', 'episodes', id, provider],
     queryFn: async () => {
       try {
-        const animeProviderInitializer = createProviderInstance(MediaType.ANIME, provider);
         const content = await readExtensionCode(provider);
         const metadata = providerManager.getExtensionMetadata(provider);
         const animeProvider = await providerManager.executeProviderCode<AnimeProvider>(
@@ -101,7 +99,7 @@ export function useAnimeEpisodes({ id, provider = DEFAULT_PROVIDERS.anime }: { i
 }
 
 export function useMangaChapters({ id, provider = DEFAULT_PROVIDERS.manga }: { id: string; provider: string }) {
-  // console.log('useMangaEpisodes is called');
+  // console.log('useMangaEpisodes is called',provider);
 
   return useQuery<IMangaChapter[]>({
     queryKey: ['manga', 'chapters', id, provider],
@@ -135,7 +133,6 @@ export function useMoviesEpisodes({
       // let url = `${getFetchUrl().episodeApiUrl}/movies/tmdb/episodes/${id}?type=${type.split(' ')[0]}&provider=${provider}`;
       // console.log(url);
       // const { data } = await axios.get(url);
-      const movieProviderInitializer = createProviderInstance(MediaType.MOVIE, provider);
       const content = await readExtensionCode(provider);
       const metadata = providerManager.getExtensionMetadata(provider);
       const movieProvider = await providerManager.executeProviderCode<MovieProvider>(

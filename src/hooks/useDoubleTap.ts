@@ -4,14 +4,15 @@ import { Dimensions } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import Animated, {
   measure,
+  SharedValue,
   useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
   withSpring,
   withTiming,
-  runOnJS,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 interface UseDoubleTapGestureProps {
   videoRef: React.RefObject<any>;
@@ -92,7 +93,7 @@ export const useDoubleTapGesture = ({
       scaleValue.value = withSequence(withSpring(1.2), withSpring(1));
 
       animationTimeoutRef.current = setTimeout(() => {
-        runOnJS(resetConsecutiveCount)(direction);
+        scheduleOnRN(resetConsecutiveCount, direction);
       }, 1000);
     },
     [forwardOpacity, backwardOpacity, scaleValue, resetConsecutiveCount],
@@ -135,7 +136,7 @@ export const useDoubleTapGesture = ({
         consecutiveTapCount.current.lastDirection = direction;
         consecutiveTapCount.current.lastTapTime = now;
 
-        runOnJS(showTapAnimation)(direction);
+        scheduleOnRN(showTapAnimation, direction);
       } catch (error) {
         console.error('Seek failed:', error);
       }
@@ -159,9 +160,9 @@ export const useDoubleTapGesture = ({
             tapCount.value = 0;
           }
 
-          runOnJS(setIsDoubleTap)(true);
+          scheduleOnRN(setIsDoubleTap, true);
           if (onSeekStart) {
-            runOnJS(onSeekStart)();
+            scheduleOnRN(onSeekStart);
           }
 
           const touchX = event.absoluteX;
@@ -176,12 +177,12 @@ export const useDoubleTapGesture = ({
           rippleScale.value = withTiming(1, { duration: 500 });
           rippleOpacity.value = 0.4;
 
-          runOnJS(handleSeek)(direction);
+          scheduleOnRN(handleSeek, direction);
         })
         .onEnd(() => {
-          runOnJS(setIsDoubleTap)(false);
+          scheduleOnRN(setIsDoubleTap, false);
           if (onSeekEnd) {
-            runOnJS(onSeekEnd)();
+            scheduleOnRN(onSeekEnd);
           }
           rippleOpacity.value = withTiming(0, { duration: 500 });
           //console.log('double tap');
@@ -270,7 +271,7 @@ export const useDoubleTapGesture = ({
     };
   });
 
-  const createDirectionalStyle = (opacityValue: Animated.SharedValue<number>) =>
+  const createDirectionalStyle = (opacityValue: SharedValue<number>) =>
     useAnimatedStyle(() => ({
       opacity: opacityValue.value,
       transform: [{ scale: scaleValue.value }],

@@ -2,15 +2,8 @@ import React, { useCallback, useMemo, useEffect, memo } from 'react';
 import { View, StyleProp, ViewStyle } from 'react-native';
 import { Canvas, Circle, Path, SkFont, Text, useFont } from '@shopify/react-native-skia'; // Import Text and useFont
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import {
-  useSharedValue,
-  useDerivedValue,
-  runOnJS,
-  withTiming,
-  // Import Reanimated's clamp if available, otherwise use the custom worklet below
-  // clamp as reanimatedClamp,
-} from 'react-native-reanimated';
-
+import { useSharedValue, useDerivedValue, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 // Type definitions
 
 type Orientation = 'horizontal' | 'vertical';
@@ -165,7 +158,7 @@ const SkiaSlider: React.FC<SkiaSliderProps> = ({
       // Calculate the actual value at the start of the gesture using the worklet helper
       const actualValue = fromNormWorklet(normalized.value, minValue, maxValue);
       // Run the JS callback on the JS thread
-      runOnJS(onStartJS)(actualValue);
+      scheduleOnRN(onStartJS, actualValue);
     })
     .onUpdate((e) => {
       'worklet'; // This is the worklet context
@@ -200,7 +193,7 @@ const SkiaSlider: React.FC<SkiaSliderProps> = ({
         // Calculate the actual value to pass to the JS callback using the worklet helper
         const actualValue = fromNormWorklet(finalNorm, minValue, maxValue);
         // Run the JS callback on the JS thread with the actual value
-        runOnJS(onChangeJS)(actualValue);
+        scheduleOnRN(onChangeJS, actualValue);
       }
     })
     .onEnd(() => {
@@ -208,7 +201,7 @@ const SkiaSlider: React.FC<SkiaSliderProps> = ({
       // Calculate the actual value at the end of the gesture using the worklet helper
       const actualValue = fromNormWorklet(normalized.value, minValue, maxValue);
       // Run the JS callback on the JS thread
-      runOnJS(onCompleteJS)(actualValue);
+      scheduleOnRN(onCompleteJS, actualValue);
     });
 
   const tap = Gesture.Tap()
@@ -247,9 +240,9 @@ const SkiaSlider: React.FC<SkiaSliderProps> = ({
       // Run the JS callbacks on the JS thread immediately after the animation starts
       // Note: onCompleteJS is called after a timeout to simulate completion after animation.
       // A more robust solution might involve a withTiming callback if available/suitable.
-      runOnJS(onChangeJS)(actualValue);
-      // Use runOnJS for setTimeout as it's a JS function
-      runOnJS(setTimeout)(() => runOnJS(onCompleteJS)(actualValue), 150);
+      scheduleOnRN(onChangeJS, actualValue);
+      // Use scheduleOnRN  for setTimeout as it's a JS function
+      scheduleOnRN(setTimeout, () => scheduleOnRN(onCompleteJS, actualValue), 150);
     });
 
   // Combine Pan and Tap gestures

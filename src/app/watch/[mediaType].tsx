@@ -20,7 +20,8 @@ import { ISubtitle, ISource, IEpisodeServer } from 'react-native-consumet';
 import { ThemedView } from '@/components/ThemedView';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Animated, { runOnJS } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import * as Brightness from 'expo-brightness';
 import { VolumeManager } from 'react-native-volume-manager';
 import {
@@ -429,10 +430,10 @@ const Watch = () => {
           const delta = -event.translationY / 200;
           if (side === 'brightness') {
             const newBrightness = Math.max(0, Math.min(1, brightness + delta));
-            runOnJS(updateBrightness)(newBrightness);
+            scheduleOnRN(updateBrightness, newBrightness);
           } else {
             const newVolume = Math.max(0, Math.min(1, volume + delta));
-            runOnJS(updateVolume)(newVolume);
+            scheduleOnRN(updateVolume, newVolume);
           }
         }),
     [brightness, volume, dimensions.width, updateBrightness, updateVolume],
@@ -452,7 +453,7 @@ const Watch = () => {
   //         const scale = Math.min(absTranslation / dimensions.width, 1);
   //         const seekDelta = direction * scale * MAX_SEEK_SECONDS;
   //         const newTime = Math.max(0, Math.min(seekableDuration, currentTime + seekDelta));
-  //         runOnJS(handleSeek)(newTime);
+  //         scheduleOnRN (handleSeek)(newTime);
   //       }),
   //   [dimensions.width, seekableDuration, currentTime, handleSeek],
   // );
@@ -468,7 +469,7 @@ const Watch = () => {
         .numberOfTaps(1)
         .onEnd(() => {
           'worklet';
-          runOnJS(toggleControls)();
+          scheduleOnRN(toggleControls);
         }),
     [toggleControls],
   );

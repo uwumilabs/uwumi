@@ -2,10 +2,10 @@ import AnimatedCountdown from '@/components/AnimatedCountdown';
 import { AnimatedCustomImage } from '@/components/CustomImage';
 import IconTitle from '@/components/IconTitle';
 import { ThemedView } from '@/components/ThemedView';
-import { useCurrentTheme, useInfo, usePureBlackBackground } from '@/hooks';
-import { ArrowLeft, Clock, Star } from '@tamagui/lucide-icons';
+import { useCurrentTheme, useInfo, usePureBlackBackground, useExtensionStore } from '@/hooks';
+import { ArrowLeft, Clock, Globe, Star } from '@tamagui/lucide-icons';
 import { BlurView } from 'expo-blur';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { ImageBackground, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +22,8 @@ import AnimatedFavoriteButton from '@/components/AnimatedFavoriteButton';
 import RippleButton from '@/components/RippleButton';
 import { MediaFormat, TvType } from 'react-native-consumet';
 import { useProviderStore } from '@/constants/provider';
+import { openBrowserAsync } from 'expo-web-browser';
+import { get } from 'lodash';
 
 const Info = () => {
   const { mediaType, metaProvider, type, provider, id, image } = useLocalSearchParams<{
@@ -33,6 +35,7 @@ const Info = () => {
     image: string;
   }>();
   const { getProvider } = useProviderStore();
+  const { getExtensionInfo } = useExtensionStore();
   const insets = useSafeAreaInsets();
   const { data, isLoading } = useInfo({ mediaType, id, metaProvider, type, provider: getProvider(mediaType) });
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
@@ -125,8 +128,12 @@ const Info = () => {
                   {typeof data?.title === 'object' ? data?.title?.english || data?.title?.romaji : data?.title}
                 </Text>
 
-                <IconTitle icon={Clock} text={data?.status} />
-
+                <XStack alignItems="center" justifyContent="space-between">
+                  <IconTitle icon={Clock} text={data?.status} />
+                  <RippleButton onPress={() => openBrowserAsync(getExtensionInfo(getProvider(mediaType))?.baseUrl!)}>
+                    <IconTitle icon={Globe} text="Webview" color="$color" />
+                  </RippleButton>
+                </XStack>
                 <XStack justifyContent="space-between">
                   <IconTitle icon={Star} text={data?.rating} />
                   {(data?.nextAiringEpisode?.airingTime || data?.nextAiringEpisode?.releaseDate) && (
@@ -138,11 +145,6 @@ const Info = () => {
                 </XStack>
               </YStack>
             </XStack>
-            <View marginTop={20}>
-              <XStack>
-                <Text>Webview</Text>
-              </XStack>
-            </View>
           </View>
         </ZStack>
 
