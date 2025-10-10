@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { storage } from '@/hooks/stores/MMKV';
 import { MediaType } from '@/constants/types';
-import { ANIME, MANGA, MOVIES } from 'react-native-consumet';
+import { MANGA } from 'react-native-consumet';
 import { useExtensionStore } from '@/hooks/stores/useExtensionStore';
 
 interface Provider {
@@ -61,17 +61,11 @@ const META_PROVIDERS = {
   [MediaType.MOVIE]: 'tmdb',
 };
 
-
 type MangaProviderInstance = InstanceType<typeof MANGA.MangaDex> | InstanceType<typeof MANGA.MangaKakalot>;
 
 // Overloaded function signatures for type inference
 export function createProviderInstance(mediaType: MediaType.MANGA, providerValue: string): MangaProviderInstance;
-export function createProviderInstance(
-  mediaType: MediaType,
-  providerValue: string,
-):  MangaProviderInstance  {
-
-
+export function createProviderInstance(mediaType: MediaType, providerValue: string): MangaProviderInstance {
   // Manga provider mapping
   if (mediaType === MediaType.MANGA) {
     const mangaProviders: Record<string, () => MangaProviderInstance> = {

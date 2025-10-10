@@ -81,4 +81,3 @@ export const compareVersions = (localVersion: string, remoteVersion: string) => 
 
   return 'No update available';
 };
-

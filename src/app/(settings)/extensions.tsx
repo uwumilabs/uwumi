@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshControl } from 'react-native';
-import { useExtensionStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
+import { useExtensionStore, useCurrentTheme } from '@/hooks';
 import {
   Button,
   Text,
@@ -17,7 +17,6 @@ import {
   Paragraph,
   Circle,
   styled,
-  H2,
 } from 'tamagui';
 import {
   Puzzle,
@@ -450,14 +449,12 @@ export default function Extensions() {
             ? "You haven't installed any extensions yet"
             : 'Check your internet connection and try updating the registry'}
         </Text>
-        <Button onPress={onRefresh} icon={<RefreshCw size={16} color="gray"/>}>
+        <Button onPress={onRefresh} icon={<RefreshCw size={16} color="gray" />}>
           Refresh
         </Button>
       </YStack>
     );
   }
-
-
 
   // Debug logging for updates
   //console.log('Available updates array:', availableUpdates);

@@ -7,10 +7,7 @@
 import { ThemedView } from '@/components/ThemedView';
 import { Button } from 'tamagui';
 import { storage } from '@/hooks/stores/MMKV';
-import { useExtensionStore, useOnboardingFlowStore, useConsumetExtensions } from '@/hooks';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { AnimeProvider, ProviderManager, type ExtensionRegistry } from 'react-native-consumet';
+import { useConsumetExtensions } from '@/hooks';
 
 const Example = () => {
   const getAllMMKVKeys = () => {
@@ -32,8 +29,15 @@ const Example = () => {
       //console.log(`Deleted key: ${key}`);
     });
   };
-  const { updateRegistry, installExtension, readExtensionCode, readExtractorCode, providerManager, checkForUpdates,clearCache } =
-    useConsumetExtensions();
+  const {
+    updateRegistry,
+    installExtension,
+    readExtensionCode,
+    readExtractorCode,
+    providerManager,
+    checkForUpdates,
+    clearCache,
+  } = useConsumetExtensions();
 
   const fetchExtensionRegistry = async () => {
     try {
