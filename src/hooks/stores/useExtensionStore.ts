@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { storage } from '@/hooks/stores/MMKV';
 import axios from 'axios';
 import { File, Directory, Paths } from 'expo-file-system';
-import { ExtractorManager, ProviderManager } from 'react-native-consumet';
+import { ExtensionManifest, ExtractorInfo, ExtractorManager, ProviderManager } from 'react-native-consumet';
 
 // UWUMI_DIR constant - adjust path as needed for your app
 const UWUMI_DIR = new Directory(Paths.document, 'uwumi');
@@ -14,42 +14,9 @@ const REGISTRY_METADATA_KEY = 'extension_registry_metadata';
 const EXTENSION_PREFIX = 'ext_';
 const EXTRACTOR_PREFIX = 'extr_';
 
-// --- Types ---
-interface Author {
-  name: string;
-  url?: string;
-}
-
-interface ExtractorItem {
-  name: string;
-  version: string;
-  main: string;
-}
-
-interface ExtensionItem {
-  id: string;
-  name: string;
-  description?: string;
-  version: string;
-  author?: Author;
-  category?: string;
-  main: string;
-  factoryName?: string;
-  baseUrl?: string;
-  logo?: string;
-  languages?: string[];
-  nsfw?: boolean;
-  status?: 'stable' | 'beta' | 'alpha' | 'deprecated';
-  lastUpdated?: string;
-  extractors?: string[];
-  subbed?: boolean;
-  dubbed?: boolean;
-  isSourceEmbed?: boolean;
-}
-
 interface RegistryResponse {
-  extractors: ExtractorItem[];
-  extensions: ExtensionItem[];
+  extractors: ExtractorInfo[];
+  extensions: ExtensionManifest[];
 }
 
 interface CachedItem {
@@ -64,8 +31,8 @@ interface RegistryMetadata {
   registryUrl: string;
   totalExtensions: number;
   totalExtractors: number;
-  extensions: ExtensionItem[];
-  extractors: ExtractorItem[];
+  extensions: ExtensionManifest[];
+  extractors: ExtractorInfo[];
 }
 
 interface ExtensionStoreState {
@@ -81,22 +48,22 @@ interface ExtensionStoreState {
   updateExtension: (extensionId: string) => Promise<boolean>;
   uninstallExtension: (extensionId: string) => Promise<boolean>;
   isExtensionInstalled: (extensionId: string) => boolean;
-  getInstalledExtensions: () => ExtensionItem[];
+  getInstalledExtensions: () => ExtensionManifest[];
 
   // Extractor management (internal - automatically handled)
   installExtractor: (extractorName: string) => Promise<boolean>;
   updateExtractor: (extractorName: string) => Promise<boolean>;
   uninstallExtractor: (extractorName: string) => Promise<boolean>;
   isExtractorInstalled: (extractorName: string) => boolean;
-  getInstalledExtractors: () => ExtractorItem[];
+  getInstalledExtractors: () => ExtractorInfo[];
 
   // File operations
   readExtensionCode: (extensionId: string) => Promise<string | null>;
   readExtractorCode: (extractorName: string) => Promise<string | null>;
 
   // Utility methods
-  getExtensionInfo: (extensionId: string) => ExtensionItem | null;
-  getExtractorInfo: (extractorName: string) => ExtractorItem | null;
+  getExtensionInfo: (extensionId: string) => ExtensionManifest | null;
+  getExtractorInfo: (extractorName: string) => ExtractorInfo | null;
   checkForUpdates: () => Promise<{ extensions: string[]; extractors: string[] }>;
   clearCache: () => Promise<void>;
   getStorageSize: () => Promise<number>;
@@ -268,7 +235,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       if (extensionInfo.extractors && extensionInfo.extractors.length > 0) {
         //console.log(`🔧 Installing required extractors for ${extensionId}: ${extensionInfo.extractors.join(', ')}`);
         for (const extractorName of extensionInfo.extractors) {
-          await get().installExtractor(extractorName);
+          await get().installExtractor(extractorName.toLowerCase());
         }
       }
 
@@ -369,7 +336,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
         return false;
       }
 
-      const extractorInfo = registry.extractors.find((extr) => extr.name === extractorName);
+      const extractorInfo = registry.extractors.find((extr) => extr.name.toLowerCase() === extractorName.toLowerCase());
       if (!extractorInfo) {
         console.error(`❌ Extractor not found in registry: ${extractorName}`);
         return false;
@@ -466,7 +433,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
     },
 
     readExtensionCode: async (extensionId: string) => {
-      const cacheKey = getCacheKey('extension', extensionId);
+      const cacheKey = getCacheKey('extension', extensionId.toLowerCase());
       const cachedData = loadJSONFromStorage<CachedItem>(cacheKey);
 
       if (!cachedData) {
@@ -527,7 +494,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
         const cacheKey = getCacheKey('extension', extension.id);
         const cachedData = loadJSONFromStorage<CachedItem>(cacheKey);
 
-        //console.log(`Extension ${extension.id}:`, {
+        // console.log(`Extension ${extension.id}:`, {
         //   registryVersion: extension.version,
         //   cachedVersion: cachedData?.version,
         //   isInstalled: cachedData !== null,
@@ -536,7 +503,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
 
         if (cachedData && cachedData.version !== extension.version) {
           extensionUpdates.push(extension.id);
-          //console.log(`🔄 Update available for ${extension.id}: ${cachedData.version} → ${extension.version}`);
+          console.log(`🔄 Update available for ${extension.id}: ${cachedData.version} → ${extension.version}`);
         }
       }
 
@@ -550,10 +517,10 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
         }
       }
 
-      //console.log(
+      // console.log(
       //   `📊 Updates available - Extensions: ${extensionUpdates.length}, Extractors: ${extractorUpdates.length}`,
       // );
-      //console.log('Extension updates:', extensionUpdates);
+      // console.log('Extension updates:', extensionUpdates);
 
       return { extensions: extensionUpdates, extractors: extractorUpdates };
     },

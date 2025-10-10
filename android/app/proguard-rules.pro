@@ -12,23 +12,3 @@
 -keep class com.facebook.react.turbomodule.** { *; }
 
 # Add any project specific keep options here:
--keep class com.facebook.react.** { *; }
--keep class com.facebook.soloader.** { *; }
-
-# Keep React Native classes
--keep class com.facebook.hermes.** { *; }
--keep class com.facebook.jni.** { *; }
-
-# Keep your app's classes
--keep class com.x2004durgesh.uwumi.** { *; }
-
-# Hermes optimization
--keep class com.facebook.hermes.unicode.** { *; }
-
-
-# Remove debug logs in release
--assumenosideeffects class android.util.Log {
-    public static *** d(...);
-    public static *** v(...);
-    public static *** i(...);
-}

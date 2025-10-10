@@ -37,7 +37,6 @@ import {
   useCustomBackHandler,
 } from '@/hooks';
 import { toast } from 'sonner-native';
-import axios from 'axios';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import FullscreenModule from '../../../modules/fullscreen-module';
 import EpisodeList from '@/components/EpisodeList';
@@ -130,7 +129,7 @@ const Watch = () => {
       ? useWatchAnimeEpisodes({
           episodeId: currentEpisodeId ?? episodeId,
           provider: getProvider(mediaType),
-          server: currentServer?.name!,
+          server: currentServer!,
           dub,
         })
       : { data: undefined, isLoading: false, error: null };
@@ -142,12 +141,16 @@ const Watch = () => {
           mediaId,
           type,
           provider: getProvider(mediaType),
-          server: currentServer?.name!,
+          server: currentServer!,
           embed: isEmbed,
         })
       : { data: undefined, isLoading: false, error: null };
 
   const { data, isLoading, error } = mediaType === MediaType.ANIME ? animeQuery : movieQuery;
+
+  // Track the current provider to detect changes
+  const currentProvider = getProvider(mediaType);
+
   /**
    * keep it for future reference
    */
@@ -160,21 +163,30 @@ const Watch = () => {
   //   : { data: undefined, isLoading: false, error: null };
 
   useEffect(() => {
-    if (data && 'servers' in data && !serverInitialized) {
-      // const data = movieQuery.data as ISource & { servers: IEpisodeServer[] };
-      //console.log('Setting servers:', movieData.servers);
-      setServers(data.servers);
-      if (data.servers.length > 0 && !currentServer) {
-        setCurrentServer(data.servers[0].name);
-      }
-      setServerInitialized(true);
-    }
-  }, [movieQuery.data, animeQuery.data, setCurrentServer, setServers, mediaType, provider, isEmbed, currentServer]);
-
-  useEffect(() => {
+    // Reset server initialization when provider/embed changes
     setServerInitialized(false);
     clearServers();
-  }, [isEmbed, provider, clearServers]);
+  }, [isEmbed, currentProvider, clearServers]);
+
+  useEffect(() => {
+    // Always process server data when it changes, regardless of serverInitialized
+    // This ensures switching providers properly updates the server list
+    if (data && 'servers' in data) {
+      if (data?.servers && data.servers.length > 0) {
+        // Provider has servers - set them
+        setServers(data.servers);
+        if (!currentServer) {
+          setCurrentServer(data.servers[0].name);
+        }
+        setServerInitialized(true);
+      } else if (!serverInitialized) {
+        // Provider has no servers (empty array or undefined) - clear them
+        // Only do this once to avoid infinite loops
+        clearServers();
+        setServerInitialized(true);
+      }
+    }
+  }, [data, serverInitialized, setCurrentServer, setServers, clearServers, currentServer, currentProvider]);
 
   const [subtitleTracks, setSubtitleTracks] = useState<(SubtitleTrack | ISubtitle)[] | undefined>([]);
   const [nullSubtitleIndex, setNullSubtitleIndex] = useState<number | undefined>(0);
@@ -648,7 +660,7 @@ const Watch = () => {
                 reportBandwidth={true}
                 automaticallyWaitsToMinimizeStalling={true}
                 preventsDisplaySleepDuringVideoPlayback={true}
-                allowsExternalPlayback={true} 
+                allowsExternalPlayback={true}
                 mixWithOthers={'mix'}
                 onError={(error) => {
                   toast.error('Video Error', { description: 'Try changing servers' });

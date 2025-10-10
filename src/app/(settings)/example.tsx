@@ -32,10 +32,8 @@ const Example = () => {
       //console.log(`Deleted key: ${key}`);
     });
   };
-  const { updateRegistry, installExtension, readExtensionCode, readExtractorCode, providerManager } =
+  const { updateRegistry, installExtension, readExtensionCode, readExtractorCode, providerManager, checkForUpdates,clearCache } =
     useConsumetExtensions();
-  const { setHasCompletedOnboarding } = useOnboardingFlowStore();
-  const router = useRouter();
 
   const fetchExtensionRegistry = async () => {
     try {
@@ -95,6 +93,18 @@ const Example = () => {
         }}
         themeInverse>
         Get Extension File
+      </Button>
+      <Button
+        onPress={() => {
+          checkForUpdates();
+        }}>
+        checkForUpdates
+      </Button>
+      <Button
+        onPress={() => {
+          clearCache();
+        }}>
+        clearCache
       </Button>
     </ThemedView>
   );
