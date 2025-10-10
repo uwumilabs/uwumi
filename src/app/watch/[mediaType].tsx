@@ -488,67 +488,35 @@ const Watch = () => {
   );
 
   const source = useMemo(() => {
-    const currentProvider = getProvider(mediaType);
-    if (currentProvider === 'animepahe') {
+    // Build video quality tracks from data.sources
+    if (data?.sources && data.sources.length > 0) {
       const tracks: VideoTrack[] = [];
-      data?.sources?.forEach((track, index) => {
-        // Use forEach for side effects
+      data.sources.forEach((track, index) => {
         if (track?.url) {
+          // Extract height from quality string (e.g., "1080p" -> 1080)
+          // For "auto" or "default", use a very high value (9999) to sort it to the top
+          const qualityStr = track.quality?.toLowerCase() || '';
+          const match = qualityStr.match(/(\d{3,4})p/);
+          const height = match ? Number(match[1]) : qualityStr === 'auto' || qualityStr === 'default' ? 9999 : 0;
+
           tracks.push({
             width: undefined,
-            height: Number((track.quality!.match(/(\d{3,4})p/) || [])[1]?.trim() || 0),
+            height,
             index,
           });
         }
       });
       setVideoTracks(tracks.sort((a, b) => (b.height || 0) - (a.height || 0)));
-      //console.log('animepahe qualities:', tracks, data?.sources);
-      return data?.sources?.[selectedVideoTrackIndex || 0]?.url;
-    } else {
-      // Prefer "default" or "auto", then "backup", then first available.
-      return (
-        data?.sources?.find((s) => s.quality === 'default' || s.quality === 'auto')?.url ||
-        data?.sources?.find((s) => s.quality === 'backup')?.url ||
-        data?.sources?.[0]?.url ||
-        (Array.isArray(data) ? data[0]?.sources?.[0]?.url : '') || // Handle cases where data might be an array
-        ''
-      );
     }
-  }, [data, getProvider, mediaType, selectedVideoTrackIndex]);
 
-  useEffect(() => {
-    if (source && provider !== 'animepahe') {
-      const fetchQuality = async () => {
-        try {
-          const res = await fetch(source);
-          const data = await res.text();
-          // Extract resolutions using regex
-          const regex =
-            /^#EXT-X-STREAM-INF:.*?BANDWIDTH=(\d+),RESOLUTION=(\d+)x(\d+)(?:,FRAME-RATE=([\d.]+))?(?:,CODECS="([^"]+)")?/gm;
-          const lines = data.split('\n');
-          const tracks = [];
-          for (const line of lines) {
-            const match = regex.exec(line);
-            if (match) {
-              tracks.push({
-                bitrate: parseInt(match[1]),
-                width: parseInt(match[2]),
-                height: parseInt(match[3]),
-                codecs: match[5],
-                index: tracks.length,
-              });
-            }
-          }
-
-          //console.log('Available qualities:', tracks);
-          setVideoTracks(tracks);
-        } catch (error) {
-          console.error('Failed to fetch quality:', error);
-        }
-      };
-      fetchQuality();
-    }
-  }, [provider, source]);
+    // Return the selected quality URL or default to 'auto' or first available
+    return (
+      data?.sources?.[selectedVideoTrackIndex ?? 0]?.url ||
+      data?.sources?.find((s) => s.quality === 'auto' || s.quality === 'default')?.url ||
+      data?.sources?.[0]?.url ||
+      ''
+    );
+  }, [data, selectedVideoTrackIndex]);
 
   const gestures = Gesture.Exclusive(doubleTapGesture, brightnessVolumeGesture, singleTapGesture);
 

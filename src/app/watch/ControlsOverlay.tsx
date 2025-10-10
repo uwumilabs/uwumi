@@ -196,7 +196,9 @@ const ControlsOverlay = memo(
                   setSelectedVideoTrackIndex(track.index);
                   setOpenSettings(false);
                 }}>
-                <Text color={selectedVideoTrackIndex === track.index ? '$color' : '$color1'}>{track.height}p</Text>
+                <Text color={selectedVideoTrackIndex === track.index ? '$color' : '$color1'}>
+                  {track.height === 9999 ? 'Auto' : `${track.height}p`}
+                </Text>
               </RippleButton>
             ))}
           </YStack>
