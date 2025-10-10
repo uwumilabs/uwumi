@@ -1,8 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { createProviderInstance, DEFAULT_PROVIDERS } from '@/constants/provider';
+import { DEFAULT_PROVIDERS } from '@/constants/provider';
 import {
   AnimeProvider,
-  defaultExtractorContext,
   IEpisodeServer,
   ISource,
   MediaFormat,
@@ -14,7 +13,7 @@ import {
 } from 'react-native-consumet';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ExternalSubtitleData, MediaType } from '@/constants/types';
+import { ExternalSubtitleData } from '@/constants/types';
 import { TextTrackType } from 'react-native-video/lib/types/video';
 import { SubtitleTrack } from '@/constants/types';
 import { useConsumetExtensions } from '../stores';
@@ -59,10 +58,10 @@ export function useWatchAnimeEpisodes({
           try {
             data = (await extractor.extract(new PolyURL(server?.url!), animeProviderMetadata.baseUrl)) as ISource;
           } catch {
-            data = (await movieProvider.fetchEpisodeSources(
+            data = (await animeProvider.fetchEpisodeSources(
               episodeId,
-              mediaId,
               server?.name as StreamingServers,
+              dub ? SubOrDub.DUB : SubOrDub.SUB,
             )) as ISource;
           }
         } else {

@@ -148,7 +148,7 @@ function updateAppJson() {
       }
 
       fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2));
-      //console.log(
+      console.log(
         `Updated app.json: expo.version=${version}, android.versionCode=${versionCode}, ios.buildNumber=${versionCode}`,
       );
     }
