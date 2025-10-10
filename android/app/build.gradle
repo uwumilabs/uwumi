@@ -92,8 +92,8 @@ android {
         applicationId 'com.x2004durgesh.uwumi'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 14
-        versionName "2.7.0"
+        versionCode 15
+        versionName "3.0.0-rc.1"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
@@ -108,6 +108,7 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            versionNameSuffix "-debug"
         }
         release {
             // Caution! In production, you need to generate your own keystore file.
@@ -129,6 +130,31 @@ android {
     }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+
+     splits {
+        abi {
+            enable true
+            reset()
+            include 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
+            universalApk true
+        }
+    }
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            // Get the version name from defaultConfig
+            def versionName = variant.versionName
+            
+            // Get ABI name if it exists (like arm64-v8a)
+            def abiName = output.getFilter(com.android.build.OutputFile.ABI)
+            
+            // Set the filename to uwumi-archname-versionname.apk format
+            if (abiName != null) {
+                outputFileName = "uwumi-${abiName}-v${versionName}.apk"
+            } else {
+                outputFileName = "uwumi-universal-v${versionName}.apk"
+            }
+        }
     }
 }
 
