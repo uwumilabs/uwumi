@@ -31,7 +31,7 @@ export default function SettingsLayout() {
                 <XStack alignItems="center" flex={1}>
                   {canGoBack && (
                     // a small delay to ensure the back navigation is smooth
-                    <RippleButton onPress={() => setTimeout(() => props.navigation.goBack(), 300)}>
+                    <RippleButton onPress={() => props.navigation.goBack()}>
                       <ArrowLeft size={24} color={currentTheme?.color1} />
                     </RippleButton>
                   )}

@@ -14,7 +14,7 @@ const RippleButton: FC<RippleButtonProps> = ({ onPress, children, ...props }) =>
   return (
     <Ripple
       onPress={(e) => {
-        onPress();
+        setTimeout(() => onPress(), 300);
         // e.preventDefault();
         // e.stopPropagation();
       }}

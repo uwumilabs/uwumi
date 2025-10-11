@@ -10,10 +10,10 @@ import { IAnimeResult, IMovieResult, ISearch } from 'react-native-consumet';
 import { RefreshControl } from 'react-native';
 import { InfiniteData } from '@tanstack/react-query';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { FlashList } from '@shopify/flash-list';
 import NoResults from './NoResults';
 import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch, useSearchStore } from '@/hooks';
 import { DEFAULT_PROVIDERS, useProviderStore } from '@/constants/provider';
+import CustomFlashlist from './CustomFlashlist';
 
 export interface CardListProps {
   staticData?: (IAnimeResult | IMovieResult)[] | undefined;
@@ -31,7 +31,7 @@ interface CardProps {
 
 const StyledCard = styled(Card, {
   width: '100%',
-  height: 190,
+  aspectRatio: 2 / 3,
   variants: { isHovered: { true: { scale: 0.95, borderColor: '$color' } } },
 });
 
@@ -76,7 +76,7 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
               fontSize="$3"
               fontWeight="500"
               margin={0}
-              width={100}
+              // width={100}
               color="#ffffff">
               {typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english}
             </Text>
@@ -86,13 +86,12 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
               <AnimatedCustomImage
                 source={{ uri: item.image }}
                 style={{ borderRadius: 10 }}
-                width={'100%'}
-                height={190}
-                contentFit="cover"
+                width="100%"
+                height="100%"
                 sharedTransitionTag="shared-image"
               />
               <LinearGradient
-                width={'100%'}
+                width="100%"
                 height="100%"
                 colors={['rgba(0,0,0,0.8)', 'transparent']}
                 start={[0, 1]}
@@ -162,41 +161,37 @@ const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, mediaTyp
   }
 
   return (
-    <YStack flex={1}>
-      <FlashList
-        data={
-          getItems?.filter(
-            (item) => item.image && !item.image.includes('/originalundefined') && !item.image.includes('/originalnull'),
-          ) || []
+    <CustomFlashlist<IAnimeResult | IMovieResult>
+      data={
+        getItems?.filter(
+          (item) => item.image && !item.image.includes('/originalundefined') && !item.image.includes('/originalnull'),
+        ) || []
+      }
+      renderItem={({ item, index }) => (
+        <View flex={1} paddingVertical={4} paddingHorizontal={4}>
+          <CustomCard item={item} index={index} mediaType={mediaType} metaProvider={metaProvider} />
+        </View>
+      )}
+      numColumns={3}
+      keyExtractor={(item) => item.id.toString()}
+      contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 4 }}
+      refreshControl={<RefreshControl refreshing={!!isLoading} onRefresh={refetch} />}
+      onEndReached={() => {
+        if (hasNextPage) {
+          fetchNextPage?.();
         }
-        renderItem={({ item, index }: { item: IAnimeResult | IMovieResult; index: number }) => (
-          <View flex={1} paddingVertical={4} paddingHorizontal={4}>
-            <CustomCard item={item} index={index} mediaType={mediaType} metaProvider={metaProvider} />
-          </View>
-        )}
-        ListEmptyComponent={<NoResults />}
-        showsVerticalScrollIndicator={true}
-        numColumns={3}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 4 }}
-        refreshControl={<RefreshControl refreshing={!!isLoading} onRefresh={refetch} />}
-        onEndReached={() => {
-          if (hasNextPage) {
-            fetchNextPage?.();
-          }
-        }}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={
-          hasNextPage ? (
-            <XStack padding="$4" justifyContent="center">
-              <Spinner size="small" color="$color" />
-            </XStack>
-          ) : (
-            <View height={100} />
-          )
-        }
-      />
-    </YStack>
+      }}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={
+        hasNextPage ? (
+          <XStack padding="$4" justifyContent="center">
+            <Spinner size="small" color="$color" />
+          </XStack>
+        ) : (
+          <View height={100} />
+        )
+      }
+    />
   );
 };
 

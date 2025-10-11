@@ -6,7 +6,7 @@ import { ChartNoAxesCombined, Heart, Search } from '@tamagui/lucide-icons';
 import { useCurrentTheme, useTabsStore } from '@/hooks';
 import IconTitle from '@/components/IconTitle';
 import SearchBar from '@/components/SearchBar';
-import { MediaType } from '@/constants/types';
+import { MediaFeedType, MediaType } from '@/constants/types';
 
 interface MediaBrowserProps {
   mediaType: MediaType;
@@ -23,13 +23,19 @@ const TabIconStyle = {
   // color: '$color2',
 };
 
-const TABS = [
-  { id: 'tab1', icon: ChartNoAxesCombined, text: 'Trending', mediaFeedType: 'trending' },
-  { id: 'tab2', icon: Heart, text: 'Popular', mediaFeedType: 'popular' },
-  { id: 'tab3', icon: Search, text: 'Search', mediaFeedType: 'search' },
-] as const;
-
 const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
+  const TABS = [
+    { id: 'tab1', icon: ChartNoAxesCombined, text: 'Trending', mediaFeedType: 'trending' },
+    (mediaType === MediaType.ANIME || mediaType === MediaType.MANGA) && {
+      id: 'tab2',
+      icon: Heart,
+      text: 'Popular',
+      mediaFeedType: 'popular',
+    },
+    { id: 'tab3', icon: Search, text: 'Search', mediaFeedType: 'search' },
+  ].filter((tab): tab is { id: string; icon: typeof ChartNoAxesCombined; text: string; mediaFeedType: MediaFeedType } =>
+    Boolean(tab),
+  );
   const currentTab = useTabsStore((state) => state.currentTab);
   const setCurrentTab = useTabsStore((state) => state.setCurrentTab);
   const currentTheme = useCurrentTheme();

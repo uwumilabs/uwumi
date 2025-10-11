@@ -5,7 +5,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { useCurrentTheme, useInfo, usePureBlackBackground, useExtensionStore } from '@/hooks';
 import { ArrowLeft, Clock, Globe, Star } from '@tamagui/lucide-icons';
 import { BlurView } from 'expo-blur';
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { ImageBackground, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,7 +23,6 @@ import RippleButton from '@/components/RippleButton';
 import { MediaFormat, TvType } from 'react-native-consumet';
 import { useProviderStore } from '@/constants/provider';
 import { openBrowserAsync } from 'expo-web-browser';
-import { get } from 'lodash';
 
 const Info = () => {
   const { mediaType, metaProvider, type, provider, id, image } = useLocalSearchParams<{
@@ -102,7 +101,7 @@ const Info = () => {
           <View padding={10} marginTop={insets.top}>
             <XStack alignItems="center" justifyContent="space-between" marginBlockEnd={20}>
               {/* a small delay to ensure the back navigation is smooth  */}
-              <RippleButton onPress={() => setTimeout(() => router.back(), 300)}>
+              <RippleButton onPress={() => router.back()}>
                 <ArrowLeft />
               </RippleButton>
 

@@ -1,3 +1,4 @@
+import { Link } from 'expo-router';
 import React from 'react';
 import { Text, YStack } from 'tamagui';
 
@@ -24,6 +25,14 @@ const NoResults = () => {
       </Text>
       <Text fontSize={16} color="$color">
         No results found
+      </Text>
+      <Text fontSize={14} color="$color1" textAlign="center">
+        Haven't installed extensions yet? Install them from{' '}
+        <Link href="/(settings)/extensions">
+          <Text fontSize={14} color="$color" textDecorationLine="underline">
+            here
+          </Text>
+        </Link>
       </Text>
     </YStack>
   );

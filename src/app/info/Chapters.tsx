@@ -1,15 +1,14 @@
+import CustomFlashlist from '@/components/CustomFlashlist';
 import CustomSelect from '@/components/CustomSelect';
 import IconTitle from '@/components/IconTitle';
-import NoResults from '@/components/NoResults';
 import RippleButton from '@/components/RippleButton';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import { MediaType } from '@/constants/types';
 import { useMangaChapters, usePureBlackBackground } from '@/hooks';
-import { FlashList } from '@shopify/flash-list';
 import { Album, Library, ScrollText } from '@tamagui/lucide-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback } from 'react';
-import { Spinner, Text, View, XStack, YStack } from 'tamagui';
+import { Spinner, Text, XStack, YStack } from 'tamagui';
 
 const Chapters = () => {
   const { mediaType, provider, id } = useLocalSearchParams<{
@@ -41,61 +40,58 @@ const Chapters = () => {
     );
   }
   return (
-    <View height="100%">
-      <FlashList
-        data={data}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-        }}
-        ListHeaderComponent={
-          <XStack paddingHorizontal={16} padding={8} gap="$5" alignItems="center" justifyContent="center">
-            <CustomSelect
-              SelectItem={PROVIDERS.manga}
-              SelectLabel="Provider"
-              value={getProvider(mediaType)}
-              onValueChange={handleProviderChange}
-            />
-          </XStack>
-        }
-        ListEmptyComponent={<NoResults />}
-        ListFooterComponent={<View height={100} />}
-        showsVerticalScrollIndicator={true}
-        renderItem={({ item }) => (
-          <RippleButton
-            onPress={() => {
-              router.push({
-                pathname: '/read/[id]',
-                params: {
-                  id: item?.id,
-                },
-              });
-            }}>
-            <YStack gap={'$4'} padding={2} backgroundColor={pureBlackBackground ? '#000' : 'transparent'}>
-              <XStack gap={'$4'}>
-                <YStack padding={2} flex={1} justifyContent="space-between">
-                  <YStack>
-                    <XStack alignItems="center" justifyContent="space-between" gap={2}>
-                      <Text fontSize="$3" fontWeight="700" numberOfLines={1} flex={1} color="$color">
-                        {item.title}
-                      </Text>
-                      <XStack alignItems="center" gap={2}>
-                        <IconTitle text={item.volumeNumber} icon={Library} iconProps={IconProps} />
-                      </XStack>
+    //<YStack flex={1}>
+    <CustomFlashlist
+      data={data}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={{
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+      }}
+      ListHeaderComponent={
+        <XStack paddingHorizontal={16} padding={8} gap="$5" alignItems="center" justifyContent="center">
+          <CustomSelect
+            SelectItem={PROVIDERS.manga}
+            SelectLabel="Provider"
+            value={getProvider(mediaType)}
+            onValueChange={handleProviderChange}
+          />
+        </XStack>
+      }
+      renderItem={({ item }) => (
+        <RippleButton
+          onPress={() => {
+            router.push({
+              pathname: '/read/[id]',
+              params: {
+                id: item?.id,
+              },
+            });
+          }}>
+          <YStack gap={'$4'} padding={2} backgroundColor={pureBlackBackground ? '#000' : 'transparent'}>
+            <XStack gap={'$4'}>
+              <YStack padding={2} flex={1} justifyContent="space-between">
+                <YStack>
+                  <XStack alignItems="center" justifyContent="space-between" gap={2}>
+                    <Text fontSize="$3" fontWeight="700" numberOfLines={1} flex={1} color="$color">
+                      {item.title}
+                    </Text>
+                    <XStack alignItems="center" gap={2}>
+                      <IconTitle text={item.volumeNumber} icon={Library} iconProps={IconProps} />
                     </XStack>
-                  </YStack>
-                  <XStack justifyContent="space-between" alignItems="center">
-                    <IconTitle text={item.chapterNumber} icon={Album} iconProps={IconProps} />
-                    <IconTitle text={item.pages} icon={ScrollText} iconProps={IconProps} />
                   </XStack>
                 </YStack>
-              </XStack>
-            </YStack>
-          </RippleButton>
-        )}
-      />
-    </View>
+                <XStack justifyContent="space-between" alignItems="center">
+                  <IconTitle text={item.chapterNumber} icon={Album} iconProps={IconProps} />
+                  <IconTitle text={item.pages} icon={ScrollText} iconProps={IconProps} />
+                </XStack>
+              </YStack>
+            </XStack>
+          </YStack>
+        </RippleButton>
+      )}
+    />
+    //</YStack>
   );
 };
 

@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { View, Text, YStack, XStack, Spinner, styled, Progress } from 'tamagui';
 import { Pressable, StyleSheet } from 'react-native';
-import { FlashList, FlashListRef } from '@shopify/flash-list';
+import { FlashListRef } from '@shopify/flash-list';
 import React, { useEffect, useRef, useMemo, useState, useCallback, memo } from 'react';
 import CustomImage from '@/components/CustomImage';
 import { useRouter } from 'expo-router';
@@ -31,10 +31,10 @@ import {
 import WavyAnimation from './WavyAnimation';
 import { EpisodeDisplayMode, MediaType } from '@/constants/types';
 import { IAnimeEpisode, IMovieSeason, IMovieEpisode, MediaFormat, TvType } from 'react-native-consumet';
-import NoResults from './NoResults';
 import { formatTime } from '@/constants/utils';
 import CustomSelect from './CustomSelect';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
+import CustomFlashlist from './CustomFlashlist';
 
 const LoadingState = () => (
   <YStack justifyContent="center" alignItems="center" minHeight={300}>
@@ -57,7 +57,7 @@ const EpisodeList = ({
   type?: MediaFormat | TvType;
   swipeable?: boolean;
 }) => {
-  const swipeableRefs = useRef<Map<string, React.RefObject<SwipeableMethods>>>(new Map());
+  const swipeableRefs = useRef<Map<string, React.RefObject<SwipeableMethods | null>>>(new Map());
   const router = useRouter();
   const currentTheme = useCurrentTheme();
   const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
@@ -216,8 +216,8 @@ const EpisodeList = ({
   const ListPressable = memo(
     ({ item, children }: { item: IAnimeEpisode | IMovieEpisode; children: React.ReactNode }) => {
       const navigateToEpisode = () => {
-        router.replace({
-          pathname: '/watch/[mediaType]',
+        const routerParams = {
+          pathname: '/watch/[mediaType]' as const,
           params: {
             mediaType,
             provider: getProvider(mediaType),
@@ -235,7 +235,12 @@ const EpisodeList = ({
             mappings: JSON.stringify(episodeData?.mappings),
             type,
           },
-        });
+        };
+        if (swipeable) {
+          router.push(routerParams);
+        } else {
+          router.replace(routerParams);
+        }
       };
 
       return (
@@ -395,111 +400,102 @@ const EpisodeList = ({
   }
 
   return (
-    <YStack flex={1} gap={2}>
-      <FlashList
-        key={listKey}
-        ref={flashListRef}
-        data={episodes}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
-        ListHeaderComponent={
-          <XStack paddingHorizontal={16} padding={8} gap="$5" alignItems="center" justifyContent="center">
-            {swipeable && (
-              <CustomSelect
-                SelectItem={mediaType === MediaType.ANIME ? PROVIDERS.anime : PROVIDERS.movie}
-                SelectLabel="Provider"
-                value={getProvider(mediaType)}
-                onValueChange={handleProviderChange}
-              />
-            )}
-            {movieSeasons && type !== TvType.MOVIE && (
-              <CustomSelect
-                SelectItem={
-                  movieSeasons?.map((_: any, index: number): { name: string; value: string } => ({
-                    name: `Season ${index + 1}`,
-                    value: String(index),
-                  })) || []
-                }
-                SelectLabel="Season"
-                value={String(seasonNumber)}
-                onValueChange={(value: string) => {
-                  setSeasonNumber(Number(value));
-                  setEpisodes(movieSeasons[Number(value)].episodes);
-                }}
-              />
-            )}
-            {servers && servers.length > 0 && !swipeable && (
-              <CustomSelect
-                SelectItem={servers.map((server) => ({ name: server.name, value: server.name })) || []}
-                SelectLabel="Servers"
-                value={getCurrentServer()?.name!}
-                onValueChange={(value: string) => setCurrentServer(value || servers[0].name)}
-              />
-            )}
-            {swipeable && (
-              <Pressable
-                onPress={() => {
-                  setDisplayMode(
-                    displayMode === EpisodeDisplayMode.FullMetadata
-                      ? EpisodeDisplayMode.TitleOnly
-                      : displayMode === EpisodeDisplayMode.TitleOnly
-                        ? EpisodeDisplayMode.NumberOnly
-                        : EpisodeDisplayMode.FullMetadata,
-                  );
-                }}>
-                {displayMode === EpisodeDisplayMode.FullMetadata ? (
-                  <TableProperties color="$color" />
-                ) : displayMode === EpisodeDisplayMode.TitleOnly ? (
-                  <ListOrdered color="$color" />
-                ) : (
-                  <Images color="$color" />
-                )}
-              </Pressable>
-            )}
-          </XStack>
-        }
-        ListEmptyComponent={<NoResults />}
-        ListFooterComponent={<View height={100} />}
-        showsVerticalScrollIndicator={true}
-        // maintainVisibleContentPosition={{
-        //   minIndexForVisible: 0,
-        //   autoscrollToTopThreshold: 10,
-        // }}
-        onLoad={(e) => {
-          flashListRef?.current?.scrollToItem({ item: currentEpisode, animated: true, viewPosition: 0.1 });
-        }}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item, index }: { item: IAnimeEpisode | IMovieEpisode; index: number }) => {
-          const itemKey = item?.id ?? item?.uniqueId;
-          // Get or create a stable ref object for this item
-          const itemRef =
-            swipeableRefs.current.get(itemKey) ??
-            (() => {
-              const newRef = React.createRef<SwipeableMethods | null>();
-              swipeableRefs.current.set(itemKey, newRef);
-              return newRef;
-            })();
-
-          return swipeable ? (
-            <ReanimatedSwipeable
-              ref={itemRef}
-              friction={2}
-              enableTrackpadTwoFingerGesture
-              rightThreshold={40}
-              onSwipeableOpen={() => {
-                const currentRef = swipeableRefs.current.get(itemKey);
-                currentRef?.current?.close();
+    <CustomFlashlist<IAnimeEpisode | IMovieEpisode>
+      key={listKey}
+      ref={flashListRef}
+      data={episodes}
+      contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
+      ListHeaderComponent={
+        <XStack paddingHorizontal={16} padding={8} gap="$5" alignItems="center" justifyContent="center">
+          {swipeable && (
+            <CustomSelect
+              SelectItem={mediaType === MediaType.ANIME ? PROVIDERS.anime : PROVIDERS.movie}
+              SelectLabel="Provider"
+              value={getProvider(mediaType)}
+              onValueChange={handleProviderChange}
+            />
+          )}
+          {movieSeasons && type !== TvType.MOVIE && (
+            <CustomSelect
+              SelectItem={
+                movieSeasons?.map((_: any, index: number): { name: string; value: string } => ({
+                  name: `Season ${index + 1}`,
+                  value: String(index),
+                })) || []
+              }
+              SelectLabel="Season"
+              value={String(seasonNumber)}
+              onValueChange={(value: string) => {
+                setSeasonNumber(Number(value));
+                setEpisodes(movieSeasons[Number(value)].episodes);
               }}
-              onSwipeableWillOpen={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-              onSwipeableWillClose={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-              renderRightActions={rightActions}>
-              <ListPressable item={item}>{renderItemContent(item)}</ListPressable>
-            </ReanimatedSwipeable>
-          ) : (
+            />
+          )}
+          {servers && servers.length > 0 && !swipeable && (
+            <CustomSelect
+              SelectItem={servers.map((server) => ({ name: server.name, value: server.name })) || []}
+              SelectLabel="Servers"
+              value={getCurrentServer()?.name!}
+              onValueChange={(value: string) => setCurrentServer(value || servers[0].name)}
+            />
+          )}
+          {swipeable && (
+            <Pressable
+              onPress={() => {
+                setDisplayMode(
+                  displayMode === EpisodeDisplayMode.FullMetadata
+                    ? EpisodeDisplayMode.TitleOnly
+                    : displayMode === EpisodeDisplayMode.TitleOnly
+                      ? EpisodeDisplayMode.NumberOnly
+                      : EpisodeDisplayMode.FullMetadata,
+                );
+              }}>
+              {displayMode === EpisodeDisplayMode.FullMetadata ? (
+                <TableProperties color="$color" />
+              ) : displayMode === EpisodeDisplayMode.TitleOnly ? (
+                <ListOrdered color="$color" />
+              ) : (
+                <Images color="$color" />
+              )}
+            </Pressable>
+          )}
+        </XStack>
+      }
+      onLoad={(e) => {
+        flashListRef?.current?.scrollToItem({ item: currentEpisode, animated: true, viewPosition: 0.1 });
+      }}
+      keyExtractor={(item, index) => index.toString()}
+      renderItem={({ item }) => {
+        const itemKey = item?.id ?? item?.uniqueId;
+        // Get or create a stable ref object for this item
+        const itemRef =
+          swipeableRefs.current.get(itemKey) ??
+          (() => {
+            const newRef = React.createRef<SwipeableMethods | null>();
+            swipeableRefs.current.set(itemKey, newRef);
+            return newRef;
+          })();
+
+        return swipeable ? (
+          <ReanimatedSwipeable
+            ref={itemRef}
+            friction={2}
+            enableTrackpadTwoFingerGesture
+            rightThreshold={40}
+            onSwipeableOpen={() => {
+              const currentRef = swipeableRefs.current.get(itemKey);
+              currentRef?.current?.close();
+            }}
+            onSwipeableWillOpen={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+            onSwipeableWillClose={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+            renderRightActions={rightActions}>
             <ListPressable item={item}>{renderItemContent(item)}</ListPressable>
-          );
-        }}
-      />
-    </YStack>
+          </ReanimatedSwipeable>
+        ) : (
+          <ListPressable item={item}>{renderItemContent(item)}</ListPressable>
+        );
+      }}
+    />
   );
 };
 export default memo(EpisodeList);
