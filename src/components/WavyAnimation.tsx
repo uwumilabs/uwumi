@@ -1,40 +1,39 @@
-import { useCurrentTheme } from '@/hooks';
-import React, { memo, useEffect } from 'react';
-import Animated, { withRepeat, withTiming, useAnimatedStyle, useSharedValue, withDelay } from 'react-native-reanimated';
-import { XStack } from 'tamagui';
+import { memo } from 'react';
+import { cubicBezier, createAnimatedComponent, CSSAnimationKeyframes } from 'react-native-reanimated';
+import { View, XStack } from 'tamagui';
+const keyframes: CSSAnimationKeyframes = {
+  '0%': { transform: [{ scaleY: 1.0 }] },
+  '50%': { transform: [{ scaleY: 0.4 }] },
+  '100%': { transform: [{ scaleY: 1.0 }] },
+};
 
-const AnimatedBar = memo(({ delay }: { delay: number }) => {
-  const height = useSharedValue(3);
-  const currentTheme = useCurrentTheme();
+const AnimatedView = createAnimatedComponent(View);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    width: 2,
-    height: height.value,
-    backgroundColor: currentTheme?.color4,
-    borderRadius: 1,
-  }));
-
-  useEffect(() => {
-    const randomDuration = Math.floor(400 + Math.random() * 200);
-
-    height.value = withDelay(delay, withRepeat(withTiming(12, { duration: randomDuration }), -1, true));
-  }, [delay, height]);
-
-  return <Animated.View style={animatedStyle} />;
-});
-AnimatedBar.displayName = 'AnimatedBar';
-
-const WavyAnimation = memo(() => {
-  const bars = [0, 50, 75, 100, 0]; // Different delays for each bar
-
+const WavyAnimation = () => {
   return (
-    <XStack height={12} gap={2} alignItems="center">
-      {bars.map((delay, index) => (
-        <AnimatedBar key={index} delay={delay} />
+    <XStack height={12} gap={2}>
+      {[1, 2, 3, 4, 5].map((i, idx) => (
+        <AnimatedView
+          key={idx}
+          backgroundColor="$color4"
+          height="100%"
+          width={2}
+          borderRadius={4}
+          style={{
+            animationName: keyframes,
+            animationDuration: '0.9s',
+            animationTimingFunction: cubicBezier(0.85, 0.25, 0.37, 0.85),
+            animationIterationCount: 'infinite',
+            animationDelay: (() => {
+              if (idx === 2 || idx === 4) return '0.2s';
+              if (idx === 1 || idx === 5) return '0.4s';
+              return '0s';
+            })(),
+          }}
+        />
       ))}
     </XStack>
   );
-});
-WavyAnimation.displayName = 'WavyAnimation';
+};
 
-export default WavyAnimation;
+export default memo(WavyAnimation);
