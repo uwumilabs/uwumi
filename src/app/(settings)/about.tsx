@@ -1,10 +1,9 @@
 import React, { useEffect } from 'react';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView } from '@/components/ui-primitives';
 import { Text, YStack, XStack, Separator, Card, Theme, Spinner } from 'tamagui';
 import { Github, ExternalLink, CheckCircle2, AlertCircle, Globe, RefreshCw } from '@tamagui/lucide-icons';
-import CustomImage from '@/components/CustomImage';
+import { CustomImage, RippleButton } from '@/components';
 import { useUpdateChecker } from '@/hooks/useUpdateChecker';
-import RippleButton from '@/components/RippleButton';
 import { openBrowserAsync } from 'expo-web-browser';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import { useCurrentTheme } from '@/hooks';

@@ -1,5 +1,4 @@
-import MediaBrowser from '@/components/MediaBrowser';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView, MediaBrowser } from '@/components';
 import { MediaType } from '@/constants/types';
 import React from 'react';
 

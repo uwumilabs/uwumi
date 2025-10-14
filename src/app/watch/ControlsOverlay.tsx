@@ -22,8 +22,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCurrentTheme, useEpisodesIdStore, useEpisodesStore, useThemeStore } from '@/hooks';
 import { formatTime } from '@/constants/utils';
 import { VideoTrack, AudioTrack, WatchSearchParams, SubtitleTrack } from '@/constants/types';
-import RippleButton from '@/components/RippleButton';
-import HorizontalTabs, { TabItem } from '@/components/HorizontalTabs';
+import { RippleButton, HorizontalTabs, TabItem } from '@/components';
 import SkiaSlider from './SkiaSlider';
 import ExternalSubDialog from './components/ExternalSubDialog';
 

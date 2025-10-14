@@ -10,7 +10,7 @@ import { IAnimeResult, IMovieResult, ISearch } from 'react-native-consumet';
 import { RefreshControl } from 'react-native';
 import { InfiniteData } from '@tanstack/react-query';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import NoResults from './NoResults';
+import { NoResults } from './ui-primitives';
 import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch, useSearchStore } from '@/hooks';
 import { DEFAULT_PROVIDERS, useProviderStore } from '@/constants/provider';
 import CustomFlashlist from './CustomFlashlist';
@@ -107,7 +107,7 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
   );
 });
 
-const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, mediaType, metaProvider }) => {
+export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, mediaType, metaProvider }) => {
   const debouncedQuery = useSearchStore((state) => state.debouncedQuery);
 
   const {

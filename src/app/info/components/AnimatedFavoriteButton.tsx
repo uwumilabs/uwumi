@@ -2,11 +2,11 @@ import { StyleSheet } from 'react-native';
 import React, { useCallback, useRef, useState } from 'react';
 import Lottie from 'lottie-react-native';
 import { Heart } from '@tamagui/lucide-icons';
-import favoriteAnimation from '../../assets/animations/like.json';
+import favoriteAnimation from '../../../../assets/animations/like.json';
 import { View } from 'tamagui';
 import { MediaType, MetaProvider } from '@/constants/types';
 import { ITitle, MediaFormat, TvType } from 'react-native-consumet';
-import RippleButton from './RippleButton';
+import { RippleButton } from '../../../components/ui-primitives';
 import { useCurrentTheme, useFavoriteStore } from '@/hooks';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -22,7 +22,7 @@ interface AnimatedFavoriteButtonProps {
   metaProvider: MetaProvider;
 }
 
-const AnimatedFavoriteButton: React.FC<AnimatedFavoriteButtonProps> = (props) => {
+export const AnimatedFavoriteButton: React.FC<AnimatedFavoriteButtonProps> = (props) => {
   const { id, ...itemData } = props;
   const lottieRef = useRef<Lottie>(null);
   const { isFavorite, addFavorite, removeFavorite } = useFavoriteStore();

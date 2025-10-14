@@ -1,6 +1,4 @@
-import CardList from '@/components/CardList';
-import HorizontalTabs from '@/components/HorizontalTabs';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView, CardList, HorizontalTabs } from '@/components';
 import { MediaType } from '@/constants/types';
 import { useFavoriteStore } from '@/hooks';
 import React from 'react';

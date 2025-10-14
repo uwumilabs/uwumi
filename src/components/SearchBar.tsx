@@ -4,7 +4,7 @@ import React, { useCallback, useRef } from 'react';
 import { TextInput } from 'react-native';
 import { Button, View, XStack } from 'tamagui';
 
-const SearchBar: React.FC = () => {
+export const SearchBar: React.FC = () => {
   const searchQuery = useSearchStore((state) => state.searchQuery);
   const setSearchQuery = useSearchStore((state) => state.setSearchQuery);
   const setDebouncedQuery = useSearchStore((state) => state.setDebouncedQuery);

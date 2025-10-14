@@ -1,7 +1,7 @@
 import { Circle, Separator, Switch, Text, View, XStack, YStack } from 'tamagui';
 import React, { memo, useCallback, useMemo } from 'react';
 import { useThemeStore, useAccentStore, usePureBlackBackground, useCurrentTheme, AccentName } from '@/hooks';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView } from '@/components';
 import { Pressable, StyleProp, ViewStyle } from 'react-native';
 import { themes } from '@/constants/Theme';
 import { FlatList } from 'react-native';

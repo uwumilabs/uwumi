@@ -6,7 +6,7 @@ type CountdownProps = {
   targetDate: number | string;
 };
 
-const AnimatedCountdown: React.FC<CountdownProps> = ({ targetDate }) => {
+export const AnimatedCountdown: React.FC<CountdownProps> = ({ targetDate }) => {
   const [timeLeft, setTimeLeft] = useState({
     d: 0,
     h: 0,

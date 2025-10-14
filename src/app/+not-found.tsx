@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView } from '@/components/ui-primitives';
 import { Text } from 'tamagui';
 import React from 'react';
 

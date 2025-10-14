@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ControlsOverlay from './ControlsOverlay';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
 import { ISubtitle } from 'react-native-consumet';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView, EpisodeList } from '@/components';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
@@ -40,7 +40,6 @@ import {
 import { toast } from 'sonner-native';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import FullscreenModule from '../../../modules/fullscreen-module';
-import EpisodeList from '@/components/EpisodeList';
 import { Check } from '@tamagui/lucide-icons';
 import { SystemBars, SystemBarsEntry } from 'react-native-edge-to-edge';
 import { SUB_LANGUAGE } from '@/constants/config';
@@ -530,18 +529,18 @@ const Watch = () => {
       // If no external subtitles, just set the internal ones
       else setSubtitleTracks(data?.subtitles);
     }
-    console.log(
-      subtitleTracks,
-      'subtitleTracks',
-      subtitleTracks?.map((track, index) => ({
-        title:
-          ('title' in track ? track.title : undefined) || ('lang' in track ? track.lang : track.language) || 'Untitled',
-        language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
-        type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : TextTrackType.VTT,
-        uri: ('url' in track ? track.url : track.uri) || '',
-        index,
-      })),
-    );
+    // console.log(
+    //   subtitleTracks,
+    //   'subtitleTracks',
+    //   subtitleTracks?.map((track, index) => ({
+    //     title:
+    //       ('title' in track ? track.title : undefined) || ('lang' in track ? track.lang : track.language) || 'Untitled',
+    //     language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
+    //     type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : TextTrackType.VTT,
+    //     uri: ('url' in track ? track.url : track.uri) || '',
+    //     index,
+    //   })),
+    // );
   }, [data?.subtitles, externalSubtitles]);
 
   useEffect(() => {

@@ -1,11 +1,9 @@
 import React from 'react';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView, NoResults, CustomImage } from '@/components';
 import { Spinner, View } from 'tamagui';
 import { useLocalSearchParams } from 'expo-router';
 import { useMangaChapterRead } from '@/hooks';
 import { FlashList } from '@shopify/flash-list';
-import NoResults from '@/components/NoResults';
-import CustomImage from '@/components/CustomImage';
 import { Dimensions } from 'react-native';
 import { MediaType } from '@/constants/types';
 import { useProviderStore } from '@/constants/provider';

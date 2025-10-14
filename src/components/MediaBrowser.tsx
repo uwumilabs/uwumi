@@ -1,10 +1,10 @@
 /* eslint-disable react/display-name */
-import React, { memo } from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { YStack, Tabs, View } from 'tamagui';
 import CardList from '@/components/CardList';
 import { ChartNoAxesCombined, Heart, Search } from '@tamagui/lucide-icons';
 import { useCurrentTheme, useTabsStore } from '@/hooks';
-import IconTitle from '@/components/IconTitle';
+import { IconTitle } from '@/components/ui-primitives';
 import SearchBar from '@/components/SearchBar';
 import { MediaFeedType, MediaType } from '@/constants/types';
 
@@ -23,26 +23,44 @@ const TabIconStyle = {
   // color: '$color2',
 };
 
-const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
-  const TABS = [
-    { id: 'tab1', icon: ChartNoAxesCombined, text: 'Trending', mediaFeedType: 'trending' },
-    (mediaType === MediaType.ANIME || mediaType === MediaType.MANGA) && {
-      id: 'tab2',
-      icon: Heart,
-      text: 'Popular',
-      mediaFeedType: 'popular',
-    },
-    { id: 'tab3', icon: Search, text: 'Search', mediaFeedType: 'search' },
-  ].filter((tab): tab is { id: string; icon: typeof ChartNoAxesCombined; text: string; mediaFeedType: MediaFeedType } =>
-    Boolean(tab),
+export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
+  const TABS = useMemo(
+    () =>
+      [
+        { id: 'tab1', icon: ChartNoAxesCombined, text: 'Trending', mediaFeedType: 'trending' },
+        (mediaType === MediaType.ANIME || mediaType === MediaType.MANGA) && {
+          id: 'tab2',
+          icon: Heart,
+          text: 'Popular',
+          mediaFeedType: 'popular',
+        },
+        { id: 'tab3', icon: Search, text: 'Search', mediaFeedType: 'search' },
+      ].filter(
+        (tab): tab is { id: string; icon: typeof ChartNoAxesCombined; text: string; mediaFeedType: MediaFeedType } =>
+          Boolean(tab),
+      ),
+    [mediaType],
   );
   const currentTab = useTabsStore((state) => state.currentTab);
   const setCurrentTab = useTabsStore((state) => state.setCurrentTab);
   const currentTheme = useCurrentTheme();
-  const TabList = memo(() => {
+
+  const handleTabChange = useCallback(
+    (value: string) => {
+      setCurrentTab(value);
+    },
+    [setCurrentTab],
+  );
+
+  const metaProvider = useMemo(
+    () => (mediaType === MediaType.ANIME ? 'anilist' : mediaType === MediaType.MANGA ? 'anilist-manga' : 'tmdb'),
+    [mediaType],
+  );
+
+  const TabList = useMemo(() => {
     return (
       <Tabs.List disablePassBorderRadius width="65%" marginVertical="$2" marginHorizontal="$4" gap="$2">
-        {TABS.map(({ id, icon, text }, index) => {
+        {TABS.map(({ id, icon, text }) => {
           const isActive = currentTab === id;
           const bgColor = isActive ? currentTheme?.color4 : 'transparent';
 
@@ -64,9 +82,19 @@ const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
         })}
       </Tabs.List>
     );
-  });
-  const metaProvider =
-    mediaType === MediaType.ANIME ? 'anilist' : mediaType === MediaType.MANGA ? 'anilist-manga' : 'tmdb';
+  }, [currentTab, currentTheme, TABS]);
+
+  const tabsContent = useMemo(
+    () =>
+      TABS.map(({ id, mediaFeedType }) => (
+        <Tabs.Content value={id} key={id}>
+          <View height="100%">
+            <CardList mediaFeedType={mediaFeedType} mediaType={mediaType} metaProvider={metaProvider} />
+          </View>
+        </Tabs.Content>
+      )),
+    [TABS, mediaType, metaProvider],
+  );
 
   return (
     <YStack gap="$2">
@@ -77,15 +105,9 @@ const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
         flexDirection="column"
         width="100%"
         value={currentTab}
-        onValueChange={(value) => setCurrentTab(value)}>
-        <TabList />
-        {TABS.map(({ id, mediaFeedType }) => (
-          <Tabs.Content value={id} key={id}>
-            <View height="100%">
-              <CardList mediaFeedType={mediaFeedType} mediaType={mediaType} metaProvider={metaProvider} />
-            </View>
-          </Tabs.Content>
-        ))}
+        onValueChange={handleTabChange}>
+        {TabList}
+        {tabsContent}
       </Tabs>
     </YStack>
   );

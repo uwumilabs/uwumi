@@ -32,9 +32,9 @@ import WavyAnimation from './WavyAnimation';
 import { EpisodeDisplayMode, MediaType } from '@/constants/types';
 import { IAnimeEpisode, IMovieSeason, IMovieEpisode, MediaFormat, TvType } from 'react-native-consumet';
 import { formatTime } from '@/constants/utils';
-import CustomSelect from './CustomSelect';
+import CustomSelect from '../CustomSelect';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
-import CustomFlashlist from './CustomFlashlist';
+import CustomFlashlist from '../CustomFlashlist';
 
 const LoadingState = () => (
   <YStack justifyContent="center" alignItems="center" minHeight={300}>
@@ -44,7 +44,7 @@ const LoadingState = () => (
 
 const StyledText = styled(Text, { fontWeight: '500', color: '$color1', fontSize: '$2.5', opacity: 0.7 });
 
-const EpisodeList = ({
+export const EpisodeList = ({
   mediaType,
   provider,
   id,

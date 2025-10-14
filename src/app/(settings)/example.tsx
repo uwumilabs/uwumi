@@ -4,7 +4,7 @@
  * This file doesnt get bundled in the production build.(may be😁)
  * It is used to test the functionality of library, stores,hooks other screens etc.
  */
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView } from '@/components';
 import { Button } from 'tamagui';
 import { storage } from '@/hooks/stores/MMKV';
 import { useConsumetExtensions } from '@/hooks';

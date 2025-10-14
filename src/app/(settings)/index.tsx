@@ -1,5 +1,5 @@
 import React from 'react';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView } from '@/components/ui-primitives';
 import { Text } from 'tamagui';
 
 const Settings = () => {

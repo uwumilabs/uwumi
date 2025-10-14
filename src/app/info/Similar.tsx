@@ -1,7 +1,7 @@
 import { View } from 'tamagui';
 import React from 'react';
 import { MediaType, MetaProvider } from '@/constants/types';
-import CardList from '@/components/CardList';
+import { CardList } from '@/components';
 import { IAnimeInfo, IMovieInfo } from 'react-native-consumet';
 
 const Similar = ({

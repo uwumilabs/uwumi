@@ -1,9 +1,9 @@
 import React, { forwardRef } from 'react';
 import { FlashList, FlashListProps, type FlashListRef } from '@shopify/flash-list';
 import { View } from 'tamagui';
-import NoResults from './NoResults';
+import { NoResults } from './ui-primitives';
 
-const CustomFlashlist = forwardRef(<T,>(props: FlashListProps<T>, ref: React.Ref<FlashListRef<T>>) => {
+export const CustomFlashlist = forwardRef(<T,>(props: FlashListProps<T>, ref: React.Ref<FlashListRef<T>>) => {
   return (
     <View height="100%">
       <FlashList

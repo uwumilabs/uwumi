@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, XStack } from 'tamagui';
 import { ArrowLeft } from '@tamagui/lucide-icons';
-import RippleButton from '@/components/RippleButton';
+import { RippleButton } from '@/components/ui-primitives';
 
 export default function SettingsLayout() {
   const currentTheme = useCurrentTheme();

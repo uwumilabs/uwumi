@@ -2,7 +2,7 @@ import React, { memo, useState } from 'react';
 import { Check, ChevronDown, X } from '@tamagui/lucide-icons';
 import { Adapt, Select, Sheet } from 'tamagui';
 import { usePureBlackBackground } from '@/hooks';
-import RippleButton from './RippleButton';
+import { RippleButton } from './ui-primitives';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type SelectOption = {
@@ -10,7 +10,7 @@ type SelectOption = {
   value: string;
 };
 
-const CustomSelect = ({
+export const CustomSelect = ({
   SelectItem,
   SelectLabel,
   value,

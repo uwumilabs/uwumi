@@ -6,8 +6,8 @@ import { OnboardingData } from '../assets/data';
 import LottieView from 'lottie-react-native';
 import { SUB_LANGUAGE } from '@/constants/config';
 import { Heart } from '@tamagui/lucide-icons';
-import RippleButton from '@/components/RippleButton';
-import { ThemedView } from '@/components/ThemedView';
+import { RippleButton } from '@/components/ui-primitives';
+import { ThemedView } from '@/components/ui-primitives';
 import { useExternalSubtitleStore } from '@/hooks';
 
 type Props = {

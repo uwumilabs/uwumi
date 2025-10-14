@@ -1,7 +1,4 @@
-import CustomFlashlist from '@/components/CustomFlashlist';
-import CustomSelect from '@/components/CustomSelect';
-import IconTitle from '@/components/IconTitle';
-import RippleButton from '@/components/RippleButton';
+import { IconTitle, RippleButton, CustomSelect, CustomFlashlist } from '@/components';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import { MediaType } from '@/constants/types';
 import { useMangaChapters, usePureBlackBackground } from '@/hooks';

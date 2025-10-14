@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { WebView } from 'react-native-webview';
 import { hexToRGB } from '@/constants/utils';
 import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
-import RippleButton from '@/components/RippleButton';
+import { RippleButton } from '@/components';
 import { IAnimeInfo, IMovieInfo } from 'react-native-consumet';
 
 type DetailsProps = {

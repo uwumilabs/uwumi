@@ -1,8 +1,8 @@
 import React, { RefObject, useMemo } from 'react';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView } from '@/components';
 import { Text, YStack, XStack, Separator } from 'tamagui';
 import { Route, useRouter } from 'expo-router';
-import { Settings, Palette, Info, Heart, Package } from '@tamagui/lucide-icons';
+import { Palette, Info, Heart, Package } from '@tamagui/lucide-icons';
 import { Pressable, View } from 'react-native';
 
 const MenuItem = ({

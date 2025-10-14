@@ -51,7 +51,7 @@ const TabsRovingIndicator = ({ active, ...props }: { active?: boolean } & StackP
   />
 );
 
-const HorizontalTabs: React.FC<HorizontalTabsProps> = ({ items, initialTab }) => {
+export const HorizontalTabs: React.FC<HorizontalTabsProps> = ({ items, initialTab }) => {
   const [tabState, setTabState] = useState<{
     currentTab: string;
     intentAt: TabLayout | null;

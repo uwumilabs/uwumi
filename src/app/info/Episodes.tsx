@@ -1,7 +1,7 @@
-import EpisodeList from '@/components/EpisodeList';
+import { EpisodeList } from '@/components';
 import { MediaType } from '@/constants/types';
 import { useLocalSearchParams } from 'expo-router';
-import { IAnimeInfo, IMovieInfo, MediaFormat, TvType } from 'react-native-consumet';
+import { MediaFormat, TvType } from 'react-native-consumet';
 import { View } from 'tamagui';
 
 const Episodes = () => {

@@ -9,7 +9,7 @@ const keyframes: CSSAnimationKeyframes = {
 
 const AnimatedView = createAnimatedComponent(View);
 
-const WavyAnimation = () => {
+export const WavyAnimation = () => {
   return (
     <XStack height={12} gap={2}>
       {[1, 2, 3, 4, 5].map((i, idx) => (

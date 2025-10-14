@@ -1,6 +1,5 @@
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView, MediaBrowser } from '@/components';
 import React from 'react';
-import MediaBrowser from '@/components/MediaBrowser';
 import { MediaType } from '@/constants/types';
 
 const Movies = () => {

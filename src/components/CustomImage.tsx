@@ -8,11 +8,20 @@ type CustomImageProps = {
   [key: string]: any;
 };
 
-const CustomImage = forwardRef<Image, CustomImageProps>((props, ref) => {
-  const { source, style, ...rest } = props;
+export const CustomImage = forwardRef<Image, CustomImageProps>((props, ref) => {
+  const { source, style, cachePolicy = 'memory-disk', ...rest } = props;
   const imageSource = typeof source === 'string' ? { uri: source } : source;
 
-  return <Image ref={ref} source={imageSource} transition={1000} style={[{ overflow: 'hidden' }, style]} {...rest} />;
+  return (
+    <Image
+      ref={ref}
+      source={imageSource}
+      cachePolicy="memory-disk"
+      transition={1000}
+      style={[{ overflow: 'hidden' }, style]}
+      {...rest}
+    />
+  );
 });
 
 CustomImage.displayName = 'CustomImage';

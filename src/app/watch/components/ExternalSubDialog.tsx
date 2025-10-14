@@ -1,7 +1,7 @@
 import { FlatList } from 'react-native';
 import React, { useCallback, useMemo } from 'react';
 import { Button, Dialog, Input, Spinner, XStack, Text, View } from 'tamagui';
-import RippleButton from '@/components/RippleButton';
+import { RippleButton } from '@/components/ui-primitives';
 import { Search, X } from '@tamagui/lucide-icons';
 import { SUB_LANGUAGE } from '@/constants/config';
 import Animated, { LinearTransition, FadeInDown, FadeOutUp, Easing } from 'react-native-reanimated';

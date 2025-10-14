@@ -71,7 +71,7 @@ export function useWatchAnimeEpisodes({
             dub ? SubOrDub.DUB : SubOrDub.SUB,
           )) as ISource;
         }
-        console.log('useWatchAnimeEpisodes', { ...data, servers });
+        // console.log('useWatchAnimeEpisodes', { ...data, servers });
         return { ...data, servers };
       } catch (error) {
         console.error('Error fetching episode sources:', error);
@@ -96,7 +96,7 @@ export function useWatchMoviesEpisodes({
   server?: IEpisodeServer;
   embed: boolean;
 }) {
-  console.log('from query', episodeId, mediaId, server, provider);
+  // console.log('from query', episodeId, mediaId, server, provider);
   const { providerManager, extractorManager, readExtensionCode, readExtractorCode } = useConsumetExtensions();
   return useQuery<ISource & { servers: IEpisodeServer[] }>({
     queryKey: ['watch', episodeId, mediaId, server, provider, embed],
@@ -132,7 +132,7 @@ export function useWatchMoviesEpisodes({
             server?.name as StreamingServers,
           )) as ISource;
         }
-        console.log('useWatchAnimeEpisodes', { ...data, servers });
+        // console.log('useWatchMovieEpisodes', { ...data, servers });
         return { ...data, servers };
       } catch (error) {
         throw new Error(`Error fetching movies episode sources: ${error}`);
