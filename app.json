@@ -65,7 +65,7 @@
           "enableAndroidPictureInPicture": true,
           "enableNotificationControls": false,
           "androidExtensions": {
-            "useExoplayerRtsp": false,
+            "useExoplayerRtsp": true,
             "useExoplayerSmoothStreaming": true,
             "useExoplayerHls": true,
             "useExoplayerDash": false

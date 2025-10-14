@@ -16,7 +16,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ControlsOverlay from './ControlsOverlay';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
-import { ISubtitle, ISource, IEpisodeServer } from 'react-native-consumet';
+import { ISubtitle } from 'react-native-consumet';
 import { ThemedView } from '@/components/ThemedView';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
@@ -530,6 +530,18 @@ const Watch = () => {
       // If no external subtitles, just set the internal ones
       else setSubtitleTracks(data?.subtitles);
     }
+    console.log(
+      subtitleTracks,
+      'subtitleTracks',
+      subtitleTracks?.map((track, index) => ({
+        title:
+          ('title' in track ? track.title : undefined) || ('lang' in track ? track.lang : track.language) || 'Untitled',
+        language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
+        type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : TextTrackType.VTT,
+        uri: ('url' in track ? track.url : track.uri) || '',
+        index,
+      })),
+    );
   }, [data?.subtitles, externalSubtitles]);
 
   useEffect(() => {
@@ -606,7 +618,7 @@ const Watch = () => {
                   })),
                   textTracksAllowChunklessPreparation: false,
                   bufferConfig: {
-                    minBufferMs: 50000, // 50s minimum buffer (VLC-like for smooth seeking)
+                    minBufferMs: 85000, // 85s minimum buffer (VLC-like for smooth seeking)
                     maxBufferMs: 120000, // 120s maximum buffer (prevents excessive memory usage)
                     bufferForPlaybackMs: 2500, // 2.5s initial buffer before playback starts
                     bufferForPlaybackAfterRebufferMs: 5000, // 5s buffer after rebuffering for stability
@@ -636,7 +648,7 @@ const Watch = () => {
                   //console.log('Video Error:', error);
                 }}
                 onLoad={(value) => {
-                  //console.log(getProgress(uniqueId)?.currentTime, 'Video loaded:', value);
+                  console.log(getProgress(uniqueId)?.currentTime, 'Video loaded:', value);
                   setIsVideoReady(true);
                   // to find how much of the textTracks have null language and title
                   const nullTextTrackCount =
@@ -654,8 +666,9 @@ const Watch = () => {
                     return acc;
                   }, [] as AudioTrack[]);
                   setNullSubtitleIndex(nullTextTrackCount);
+                  console.log('nullTextTrackCount:', nullTextTrackCount);
                   setNullAudioTrackIndex(nullAudioTrackCount);
-                  // console.log('nullAudioTrackCount:', nullAudioTrackCount, uniqueAudioTrack);
+                  console.log('nullAudioTrackCount:', nullAudioTrackCount, uniqueAudioTrack);
                   setAudioTracks(uniqueAudioTrack);
                   videoRef?.current?.seek(getProgress(uniqueId)?.currentTime || 0);
                   // videoRef?.current?.resume();
@@ -677,9 +690,9 @@ const Watch = () => {
                 // onVideoTracks={(tracks) => {
                 //   console.log('Video Tracks:', tracks);
                 // }}
-                // onTextTracks={(tracks) => {
-                //   console.log('Text Tracks:', tracks);
-                // }}
+                onTextTracks={(tracks) => {
+                  console.log('Text Tracks:', tracks);
+                }}
                 subtitleStyle={{ paddingBottom: 50, fontSize: 20, opacity: 0.8 }}
               />
 
