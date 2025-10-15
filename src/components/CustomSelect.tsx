@@ -1,7 +1,6 @@
 import React, { memo, useState } from 'react';
 import { Check, ChevronDown, X } from '@tamagui/lucide-icons';
-import { Adapt, Select, Sheet, useTheme } from 'tamagui';
-import { useCurrentTheme, usePureBlackBackground, useThemeStore } from '@/hooks';
+import { Adapt, Select, Sheet } from 'tamagui';
 import { RippleButton } from './ui-primitives';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SHEET_COLOR } from '@/constants/config';

@@ -19,7 +19,7 @@ import {
 import Animated, { FadeIn, FadeOut, Easing, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { ISubtitle, TvType } from 'react-native-consumet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCurrentTheme, useEpisodesIdStore, useEpisodesStore, useThemeStore } from '@/hooks';
+import { useCurrentTheme, useEpisodesIdStore, useEpisodesStore } from '@/hooks';
 import { formatTime } from '@/constants/utils';
 import { VideoTrack, AudioTrack, WatchSearchParams, SubtitleTrack } from '@/constants/types';
 import { RippleButton, HorizontalTabs, TabItem } from '@/components';

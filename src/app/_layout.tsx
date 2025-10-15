@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
-import { TamaguiProvider, Theme, Dialog, Unspaced, XStack, Text, YStack, Button, Separator, View } from 'tamagui';
+import { TamaguiProvider, Theme, Dialog, Unspaced, XStack, Text, YStack, Button, Separator } from 'tamagui';
 import { X, Download, ArrowUpCircle } from '@tamagui/lucide-icons';
 import { PortalProvider } from '@tamagui/portal';
 import { Toaster } from 'sonner-native';

@@ -31,7 +31,7 @@ export function useWatchAnimeEpisodes({
   dub: boolean;
   enabled?: boolean;
 }) {
-   console.log('from anime watch query', episodeId, server, provider);
+  console.log('from anime watch query', episodeId, server, provider);
   const { providerManager, readExtensionCode, extractorManager, readExtractorCode } = useConsumetExtensions();
   return useQuery<ISource & { servers?: IEpisodeServer[] }>({
     queryKey: ['watch', episodeId, provider, dub, server],

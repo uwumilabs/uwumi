@@ -123,7 +123,7 @@ const Watch = () => {
     height: Dimensions.get('screen').height,
   });
   const [wrapperDimensions, setWrapperDimensions] = useState({ width: 0, height: 0 }); // Not actively used
-// console.log({currentEpisodeId , episodeId})
+  // console.log({currentEpisodeId , episodeId})
   const animeQuery =
     mediaType === MediaType.ANIME
       ? useWatchAnimeEpisodes({

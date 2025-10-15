@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React, { useCallback } from 'react';
-import { BookImage, Ellipsis, TvMinimalPlay } from '@tamagui/lucide-icons';
+import { Ellipsis, TvMinimalPlay } from '@tamagui/lucide-icons';
 import { View } from 'tamagui';
 import { useThemeStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import SystemNavigationBar from 'react-native-system-navigation-bar';

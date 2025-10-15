@@ -1,5 +1,5 @@
 import * as React from 'react';
-import Svg, { SvgProps, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 export const MangaIcon = ({ size = 25, color }: { size?: number; color: string }) => (
   <Svg width={size} height={size} viewBox="0 0 32 32" stroke={color}>

@@ -1,15 +1,9 @@
 import React, { memo, useCallback, useState, useEffect } from 'react';
 import { Sheet, YStack, Text, XStack, Separator, Spinner } from 'tamagui';
-import { Pressable, Linking, Platform, ScrollView } from 'react-native';
+import { Linking, Platform, ScrollView } from 'react-native';
 import { IAnimeEpisode, IMovieEpisode, IEpisodeServer } from 'react-native-consumet';
 import { Check, X, Play, ChevronRight, Server, ChevronLeft } from '@tamagui/lucide-icons';
-import {
-  useWatchProgressStore,
-  useCurrentTheme,
-  useWatchAnimeEpisodes,
-  useWatchMoviesEpisodes,
-  useServerStore,
-} from '@/hooks';
+import { useWatchProgressStore, useWatchAnimeEpisodes, useWatchMoviesEpisodes, useServerStore } from '@/hooks';
 import { toast } from 'sonner-native';
 import * as Haptics from 'expo-haptics';
 import { MediaType } from '@/constants/types';
@@ -221,7 +215,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
     const videoSources = data?.sources || [];
     const availableServers = data?.servers || [];
-    
+
     // console.log({ showQualitySelection, showServerSelection });
     // Determine current view title
     const getHeaderTitle = () => {

@@ -11,7 +11,6 @@ import {
   IMangaChapter,
   MovieProvider,
   AnimeProvider,
-  ANIME,
 } from 'react-native-consumet';
 import { useConsumetExtensions } from '../stores';
 
