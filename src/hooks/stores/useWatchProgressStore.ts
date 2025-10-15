@@ -6,13 +6,16 @@ interface WatchProgress {
   currentTime: number;
   duration: number;
   progress: number;
+  isCompleted?: boolean;
 }
 
 interface WatchProgressState {
   progresses: Record<string, WatchProgress>;
-  setProgress: (episodeId: string, progress: WatchProgress) => void;
-  getProgress: (episodeId: string) => WatchProgress | null;
-  removeProgress: (episodeId: string) => void;
+  setProgress: (uniqueId: string, progress: WatchProgress) => void;
+  getProgress: (uniqueId: string) => WatchProgress | null;
+  markAsCompleted: (uniqueId: string) => void;
+  markAsIncomplete: (uniqueId: string) => void;
+  removeProgress: (uniqueId: string) => void;
   clearAll: () => void;
 }
 
@@ -20,25 +23,85 @@ export const useWatchProgressStore = create<WatchProgressState>()(
   persist(
     (set, get) => ({
       progresses: {},
-      setProgress: (episodeId, progress) => {
-        // console.log('Setting progress:', { episodeId, progress });
+      setProgress: (uniqueId, progress) => {
+        // console.log('Setting progress:', { uniqueId, progress });
+        const currentProgress = get().progresses[uniqueId];
+
+        // Determine completion status:
+        // 1. If explicitly set in the progress object, use that value
+        // 2. Otherwise, auto-mark as completed if progress reaches 90%+
+        // 3. Preserve existing completed status if already marked
+        const isCompleted =
+          progress.isCompleted !== undefined
+            ? progress.isCompleted
+            : progress.progress >= 90 || currentProgress?.isCompleted || false;
+
         set((state) => ({
           progresses: {
             ...state.progresses,
-            [episodeId]: progress,
+            [uniqueId]: {
+              ...progress,
+              isCompleted,
+            },
           },
         }));
         // console.log('New state:', get().progresses);
       },
-      getProgress: (episodeId) => {
-        const progress = get().progresses[episodeId] || null;
-        // console.log('Getting progress:', { episodeId, progress });
+      getProgress: (uniqueId) => {
+        const progress = get().progresses[uniqueId] || null;
+        // console.log('Getting progress:', { uniqueId, progress });
         return progress;
       },
-      removeProgress: (episodeId) => {
-        //console.log('Removing progress:', episodeId);
+      markAsCompleted: (uniqueId) => {
         set((state) => {
-          const { [episodeId]: _, ...rest } = state.progresses;
+          const existing = state.progresses[uniqueId];
+          if (!existing) {
+            // Create new progress entry if doesn't exist
+            return {
+              progresses: {
+                ...state.progresses,
+                [uniqueId]: {
+                  currentTime: 0,
+                  duration: 0,
+                  progress: 100,
+                  isCompleted: true,
+                },
+              },
+            };
+          }
+          return {
+            progresses: {
+              ...state.progresses,
+              [uniqueId]: {
+                ...existing,
+                isCompleted: true,
+              },
+            },
+          };
+        });
+      },
+      markAsIncomplete: (uniqueId) => {
+        set((state) => {
+          const existing = state.progresses[uniqueId];
+          if (!existing) return state;
+
+          return {
+            progresses: {
+              ...state.progresses,
+              [uniqueId]: {
+                ...existing,
+                currentTime: 0,
+                progress: 0,
+                isCompleted: false,
+              },
+            },
+          };
+        });
+      },
+      removeProgress: (uniqueId) => {
+        //console.log('Removing progress:', uniqueId);
+        set((state) => {
+          const { [uniqueId]: _, ...rest } = state.progresses;
           return { progresses: rest };
         });
       },

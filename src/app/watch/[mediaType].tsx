@@ -123,7 +123,7 @@ const Watch = () => {
     height: Dimensions.get('screen').height,
   });
   const [wrapperDimensions, setWrapperDimensions] = useState({ width: 0, height: 0 }); // Not actively used
-
+// console.log({currentEpisodeId , episodeId})
   const animeQuery =
     mediaType === MediaType.ANIME
       ? useWatchAnimeEpisodes({
@@ -647,7 +647,7 @@ const Watch = () => {
                   //console.log('Video Error:', error);
                 }}
                 onLoad={(value) => {
-                  console.log(getProgress(uniqueId)?.currentTime, 'Video loaded:', value);
+                  // console.log(getProgress(uniqueId)?.currentTime, 'Video loaded:', value);
                   setIsVideoReady(true);
                   // to find how much of the textTracks have null language and title
                   const nullTextTrackCount =
@@ -665,9 +665,9 @@ const Watch = () => {
                     return acc;
                   }, [] as AudioTrack[]);
                   setNullSubtitleIndex(nullTextTrackCount);
-                  console.log('nullTextTrackCount:', nullTextTrackCount);
+                  // console.log('nullTextTrackCount:', nullTextTrackCount);
                   setNullAudioTrackIndex(nullAudioTrackCount);
-                  console.log('nullAudioTrackCount:', nullAudioTrackCount, uniqueAudioTrack);
+                  // console.log('nullAudioTrackCount:', nullAudioTrackCount, uniqueAudioTrack);
                   setAudioTracks(uniqueAudioTrack);
                   videoRef?.current?.seek(getProgress(uniqueId)?.currentTime || 0);
                   // videoRef?.current?.resume();
@@ -689,9 +689,9 @@ const Watch = () => {
                 // onVideoTracks={(tracks) => {
                 //   console.log('Video Tracks:', tracks);
                 // }}
-                onTextTracks={(tracks) => {
-                  console.log('Text Tracks:', tracks);
-                }}
+                // onTextTracks={(tracks) => {
+                //   console.log('Text Tracks:', tracks);
+                // }}
                 subtitleStyle={{ paddingBottom: 50, fontSize: 20, opacity: 0.8 }}
               />
 

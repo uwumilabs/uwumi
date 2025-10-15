@@ -23,16 +23,19 @@ export function useWatchAnimeEpisodes({
   provider = DEFAULT_PROVIDERS.anime,
   server,
   dub = false,
+  enabled = true,
 }: {
   episodeId: string;
   provider: string;
   server?: IEpisodeServer;
   dub: boolean;
+  enabled?: boolean;
 }) {
-  // console.log(episodeId, provider, dub);
+   console.log('from anime watch query', episodeId, server, provider);
   const { providerManager, readExtensionCode, extractorManager, readExtractorCode } = useConsumetExtensions();
   return useQuery<ISource & { servers?: IEpisodeServer[] }>({
     queryKey: ['watch', episodeId, provider, dub, server],
+    enabled: enabled && !!episodeId,
     queryFn: async () => {
       try {
         // let url = `${getFetchUrl().apiUrl}/anime/${provider}/watch/${episodeId}?dub=${dub}`;
@@ -49,6 +52,12 @@ export function useWatchAnimeEpisodes({
           episodeId,
           dub ? SubOrDub.DUB : SubOrDub.SUB,
         )) as IEpisodeServer[];
+
+        // Check if servers exist before accessing
+        if (!servers || servers.length === 0) {
+          throw new Error('No servers available for this episode');
+        }
+
         const baseExtractorName = extractorManager.extractBaseExtractorName(servers[0].name ?? server?.name!);
         const extractorCode = await readExtractorCode(baseExtractorName!);
         const metadata = extractorManager.getExtractorMetadata(baseExtractorName!);
@@ -88,6 +97,7 @@ export function useWatchMoviesEpisodes({
   provider = DEFAULT_PROVIDERS.movie,
   server,
   embed,
+  enabled = true,
 }: {
   episodeId: string;
   mediaId: string;
@@ -95,11 +105,13 @@ export function useWatchMoviesEpisodes({
   provider: string;
   server?: IEpisodeServer;
   embed: boolean;
+  enabled?: boolean;
 }) {
-  // console.log('from query', episodeId, mediaId, server, provider);
+  console.log('from movie watch query', episodeId, mediaId, server, provider);
   const { providerManager, extractorManager, readExtensionCode, readExtractorCode } = useConsumetExtensions();
   return useQuery<ISource & { servers: IEpisodeServer[] }>({
     queryKey: ['watch', episodeId, mediaId, server, provider, embed],
+    enabled: enabled && !!episodeId,
     queryFn: async () => {
       try {
         const extensionCode = await readExtensionCode(provider);

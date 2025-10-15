@@ -4,7 +4,7 @@ export { IconTitle, RippleButton, NoResults, ThemedView } from './ui-primitives'
 // Media Components
 export { CardList } from './CardList';
 export { MediaBrowser } from './MediaBrowser';
-export { EpisodeList, WavyAnimation } from './episode-list.tsx';
+export { EpisodeList, WavyAnimation } from './episode-list';
 
 // UI Components
 export { CustomImage, AnimatedCustomImage } from './CustomImage';

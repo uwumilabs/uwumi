@@ -1,9 +1,10 @@
 import React, { memo, useState } from 'react';
 import { Check, ChevronDown, X } from '@tamagui/lucide-icons';
-import { Adapt, Select, Sheet } from 'tamagui';
-import { usePureBlackBackground } from '@/hooks';
+import { Adapt, Select, Sheet, useTheme } from 'tamagui';
+import { useCurrentTheme, usePureBlackBackground, useThemeStore } from '@/hooks';
 import { RippleButton } from './ui-primitives';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SHEET_COLOR } from '@/constants/config';
 
 type SelectOption = {
   name: string;
@@ -21,8 +22,6 @@ export const CustomSelect = ({
   value: string;
   onValueChange: (value: string) => void;
 }) => {
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
-  const bgColor = pureBlackBackground ? '$color3' : 'black';
   const [openSelect, setOpenSelect] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -33,7 +32,7 @@ export const CustomSelect = ({
 
   return (
     <Select open={openSelect} value={value} onValueChange={handleValueChange} onOpenChange={setOpenSelect}>
-      <Select.Trigger backgroundColor={bgColor} width={150} iconAfter={ChevronDown}>
+      <Select.Trigger backgroundColor={SHEET_COLOR} width={150} iconAfter={ChevronDown}>
         <Select.Value width={90}>{SelectItem.find((opt) => opt.value === value)?.name || SelectLabel}</Select.Value>
       </Select.Trigger>
 
@@ -45,8 +44,13 @@ export const CustomSelect = ({
           snapPoints={[40]}
           dismissOnSnapToBottom
           animation="quick">
-          <Sheet.Overlay backgroundColor="transparent" />
-          <Sheet.Frame paddingBottom={insets.bottom} backgroundColor={bgColor}>
+          <Sheet.Overlay
+            backgroundColor="rgba(0,0,0,0.5)"
+            animation="quick"
+            enterStyle={{ opacity: 0 }}
+            exitStyle={{ opacity: 0 }}
+          />
+          <Sheet.Frame paddingBottom={insets.bottom} backgroundColor={SHEET_COLOR}>
             <Sheet.ScrollView showsVerticalScrollIndicator>
               <Adapt.Contents />
             </Sheet.ScrollView>
@@ -62,7 +66,7 @@ export const CustomSelect = ({
           exitStyle={{ x: 0, y: 10 }}
           minWidth={200}>
           <Select.Group>
-            <Select.Label backgroundColor={bgColor} width={'100%'}>
+            <Select.Label backgroundColor={SHEET_COLOR} width={'100%'}>
               {SelectLabel}{' '}
               <RippleButton onPress={() => setOpenSelect(false)}>
                 <X />
@@ -70,7 +74,7 @@ export const CustomSelect = ({
             </Select.Label>
 
             {SelectItem.map((item, index) => (
-              <Select.Item backgroundColor={bgColor} key={item.value} index={index} value={item.value}>
+              <Select.Item backgroundColor={SHEET_COLOR} key={item.value} index={index} value={item.value}>
                 <Select.ItemText>{item.name}</Select.ItemText>
                 <Select.ItemIndicator marginLeft="auto">
                   <Check size={16} />

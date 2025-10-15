@@ -1,3 +1,5 @@
+import { useCurrentTheme, usePureBlackBackground, useThemeStore } from '@/hooks';
+
 export const EXTERNAL_LINKS = {
   GITHUB_REPOSITORY_API: 'https://api.github.com/repos/uwumilabs/uwumi',
   GITHUB_RELEASES_API: 'https://api.github.com/repos/uwumilabs/uwumi/releases',
@@ -118,3 +120,13 @@ export const SUB_LANGUAGE = {
   Vietnamese: 'vie',
   Welsh: 'wel',
 } as const;
+
+const themeName = useThemeStore((state) => state.themeName);
+const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+const currentTheme = useCurrentTheme();
+export const SHEET_COLOR =
+  themeName === 'dark' && pureBlackBackground
+    ? currentTheme.color5
+    : themeName === 'dark' && !pureBlackBackground
+      ? currentTheme.color3
+      : currentTheme.background;

@@ -19,6 +19,7 @@ export const WavyAnimation = () => {
           height="100%"
           width={2}
           borderRadius={4}
+          // @ts-ignore
           style={{
             animationName: keyframes,
             animationDuration: '0.9s',

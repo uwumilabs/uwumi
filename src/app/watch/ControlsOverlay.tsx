@@ -25,6 +25,7 @@ import { VideoTrack, AudioTrack, WatchSearchParams, SubtitleTrack } from '@/cons
 import { RippleButton, HorizontalTabs, TabItem } from '@/components';
 import SkiaSlider from './SkiaSlider';
 import ExternalSubDialog from './components/ExternalSubDialog';
+import { SHEET_COLOR } from '@/constants/config';
 
 interface ControlsOverlayProps {
   showControls: boolean;
@@ -164,7 +165,6 @@ const ControlsOverlay = memo(
     const prevId = currentEpisodeIndex > 0 ? String(episodes[currentEpisodeIndex - 1].uniqueId) : null;
     const nextId =
       currentEpisodeIndex < episodes.length - 1 ? String(episodes[currentEpisodeIndex + 1].uniqueId) : null;
-    const themeName = useThemeStore((state) => state.themeName);
 
     // console.log({
     //   prevUniqueId,
@@ -177,7 +177,6 @@ const ControlsOverlay = memo(
     //   prevId,
     //   nextId,
     // });
-    const SHEET_THEME_COLOR = themeName === 'light' ? '#ebeaf1' : '#0e0f15';
     // console.log('selectedSubtitleIndex', selectedSubtitleIndex, subtitleTracks![selectedSubtitleIndex!]);
     const tabItems = [
       {
@@ -189,7 +188,7 @@ const ControlsOverlay = memo(
               <RippleButton
                 key={index}
                 style={{
-                  backgroundColor: SHEET_THEME_COLOR,
+                  backgroundColor: SHEET_COLOR,
                 }}
                 onPress={() => {
                   setSelectedVideoTrackIndex(track.index);
@@ -227,7 +226,7 @@ const ControlsOverlay = memo(
               <RippleButton
                 key={index}
                 style={{
-                  backgroundColor: SHEET_THEME_COLOR,
+                  backgroundColor: SHEET_COLOR,
                 }}
                 onPress={() => {
                   setSelectedSubtitleIndex(index);
@@ -254,7 +253,7 @@ const ControlsOverlay = memo(
                     <RippleButton
                       key={index}
                       style={{
-                        backgroundColor: SHEET_THEME_COLOR,
+                        backgroundColor: SHEET_COLOR,
                       }}
                       onPress={() => {
                         setSelectedAudioTrackIndex(index);
@@ -272,7 +271,8 @@ const ControlsOverlay = memo(
         : []),
     ];
     useEffect(() => {
-      if (prevId || nextId) {
+      // Check if currentEpisodeIndex is valid before accessing episodes array
+      if ((prevId || nextId) && currentEpisodeIndex >= 0 && episodes[currentEpisodeIndex]) {
         setEpisodeIds(episodes[currentEpisodeIndex].id, currentUniqueId!, prevId, nextId);
       }
     }, [currentUniqueId, prevId, nextId, setEpisodeIds, episodes, currentEpisodeIndex]);
@@ -381,10 +381,7 @@ const ControlsOverlay = memo(
                   enterStyle={{ opacity: 0 }}
                   exitStyle={{ opacity: 0 }}
                 />
-                <Sheet.Frame
-                  backgroundColor={SHEET_THEME_COLOR}
-                  marginHorizontal="auto"
-                  width={isFullscreen ? '50%' : '90%'}>
+                <Sheet.Frame backgroundColor={SHEET_COLOR} marginHorizontal="auto" width={isFullscreen ? '50%' : '90%'}>
                   <Sheet.ScrollView>
                     <HorizontalTabs items={tabItems as TabItem[]} initialTab="tab1" />
                   </Sheet.ScrollView>
