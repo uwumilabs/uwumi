@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.0.0-rc.2 (2025-10-15)
+
+* refactor: clean up imports and improve code consistency across components ([ccf37d7](https://github.com/uwumilabs/uwumi/commit/ccf37d7))
+* refactor: components and consolidate ui primitives ([637b3bb](https://github.com/uwumilabs/uwumi/commit/637b3bb))
+* refactor: improve server handling and extension logic ([2ac407f](https://github.com/uwumilabs/uwumi/commit/2ac407f))
+* refactor: introduce custom-flashlist and improve ui ([2a63adb](https://github.com/uwumilabs/uwumi/commit/2a63adb))
+* refactor: use extensions for providers and schedule-on-rn for worklets ([2f2733f](https://github.com/uwumilabs/uwumi/commit/2f2733f))
+* refactor(wavy-animation): use new css animation ([1426b34](https://github.com/uwumilabs/uwumi/commit/1426b34))
+* feat: add episode actions sheet and external player support ([6adaab9](https://github.com/uwumilabs/uwumi/commit/6adaab9))
+* feat: introduce extension architecture with streamlined playback and state management ([f698aa4](https://github.com/uwumilabs/uwumi/commit/f698aa4))
+* feat: upgrade app to expo v54 and new file-system ([25899be](https://github.com/uwumilabs/uwumi/commit/25899be))
+* feat(player): add server selection and improve navigation ([1529c89](https://github.com/uwumilabs/uwumi/commit/1529c89))
+* feat(player): improve video buffering and fix episode-list refs & re-renders ([aa72c8f](https://github.com/uwumilabs/uwumi/commit/aa72c8f))
+* feat(ui): add new icons and optimize layout performance ([354abd3](https://github.com/uwumilabs/uwumi/commit/354abd3))
+* feat(video): enhance video quality selection and display 'auto' for automatic resolution ([f3bba6b](https://github.com/uwumilabs/uwumi/commit/f3bba6b))
+* chore: config changes ([b288968](https://github.com/uwumilabs/uwumi/commit/b288968))
+* chore: format and lint ([aa6faea](https://github.com/uwumilabs/uwumi/commit/aa6faea))
+* fix: sync-versions and watch-query ([1272d3c](https://github.com/uwumilabs/uwumi/commit/1272d3c))
+
 ## 3.0.0-rc.1 (2025-10-10)
 
 * chore: format and lint ([aa6faea](https://github.com/uwumilabs/uwumi/commit/aa6faea))
