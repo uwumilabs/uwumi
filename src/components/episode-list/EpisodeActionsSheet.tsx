@@ -5,7 +5,6 @@ import { IAnimeEpisode, IMovieEpisode, IEpisodeServer } from 'react-native-consu
 import { Check, X, Play, ChevronRight, Server, ChevronLeft } from '@tamagui/lucide-icons';
 import { useWatchProgressStore, useWatchAnimeEpisodes, useWatchMoviesEpisodes, useServerStore } from '@/hooks';
 import { toast } from 'sonner-native';
-import * as Haptics from 'expo-haptics';
 import { MediaType } from '@/constants/types';
 import { useProviderStore } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
@@ -83,8 +82,6 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         setShowQualitySelection(true);
         setShowServerSelection(false);
       }
-
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }, [shouldFetchSources, data, selectedServer]);
 
     const handleMarkComplete = useCallback(() => {
@@ -102,7 +99,6 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
       setProgress(episode.uniqueId, newProgress);
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       toast.success(isCompleted ? 'Marked as incomplete' : 'Marked as complete');
       onOpenChange(false);
     }, [episode, getProgress, setProgress, onOpenChange]);
@@ -111,7 +107,6 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
       if (!episode?.id) return;
       // Trigger the query to fetch sources
       setShouldFetchSources(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     };
 
     const handleServerSelect = useCallback((server: IEpisodeServer) => {
@@ -126,21 +121,20 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
       requestAnimationFrame(() => {
         setShouldFetchSources(true);
       });
-
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }, []);
 
     const handleOpenWithQuality = useCallback(
-      async (videoUrl: string, quality: string) => {
+      async (videoUrl: string) => {
         try {
           if (Platform.OS === 'android') {
             // Get subtitles if available
             const subtitles = data?.subtitles || [];
             const hasSubtitles = subtitles.length > 0;
-
+            const progress = getProgress(episode?.uniqueId!);
             // Prepare extras for external players
             const extras: Record<string, any> = {
               title: episode?.title || `Episode ${episode?.number ?? episode?.episode}`,
+              position: progress ? Math.floor(progress.currentTime * 1000) : 0, // in ms
             };
 
             // Add subtitle URLs if available (for MX Player, VLC, etc.)
@@ -161,27 +155,46 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
             }
 
             // Use IntentLauncher to open video in external player apps (VLC, MX Player, etc.)
-            await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+            // This returns a Promise with the result when the user returns to the app
+            const result = await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
               data: videoUrl,
               type: 'video/*',
               flags: 1,
               extra: extras,
             });
 
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            const subMessage = hasSubtitles
-              ? ` with ${subtitles.length} subtitle${subtitles.length > 1 ? 's' : ''}`
-              : '';
-            toast.success(`Opening ${quality}${subMessage}`);
+            // Check if player returned any useful data
+            if (result.extra) {
+              console.log(result.extra);
+
+              // @ts-ignore
+              const position = result.extra.extra_position ?? result.extra.position;
+              // @ts-ignore
+              const duration = result.extra.extra_duration ?? result.extra.duration;
+
+              console.log('🎥 Playback Info from External Player:');
+              if (position !== undefined) console.log('  ⏱️  Position:', position / 1000, 's');
+              if (duration !== undefined) console.log('  ⏱️  Duration:', duration / 1000, 's');
+
+              // You can use this data to update watch progress
+              // Example: if position and duration are available, update progress store
+              if (position && duration && episode?.uniqueId) {
+                setProgress(episode.uniqueId, {
+                  currentTime: position / 1000, // Convert ms to seconds
+                  duration: duration / 1000,
+                  progress: (position / duration) * 100,
+                  isCompleted: position / duration >= 90,
+                });
+              }
+            } else {
+              console.log('No extras returned from external player');
+            }
           } else if (Platform.OS === 'ios') {
             await Linking.openURL(videoUrl);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            toast.success(`Opening ${quality} in external player`);
           }
-
           onOpenChange(false);
         } catch (error) {
-          console.error('Error opening external player:', error);
+          console.error('❌ Error opening external player:', error);
           toast.error('Failed to open external player', {
             description: error instanceof Error ? error.message : 'Unknown error',
           });
@@ -206,7 +219,6 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         setShowServerSelection(false);
         setShouldFetchSources(false);
       }
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }, [showQualitySelection, showServerSelection, selectedServer]);
 
     // Subscribe to progress changes - this will cause re-render when progress updates
@@ -391,7 +403,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                           borderRadius="$3"
                           backgroundColor="$color4"
                           marginBottom="$1"
-                          onPress={() => handleOpenWithQuality(url, quality)}
+                          onPress={() => handleOpenWithQuality(url)}
                           cursor="pointer">
                           <XStack alignItems="center" gap="$3">
                             <Play size={18} color="$color" />

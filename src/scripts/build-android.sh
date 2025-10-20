@@ -33,9 +33,9 @@ cd android
 # print_step "STEP 3: CLEANING PREVIOUS BUILD"
 # ./gradlew clean
 
-# Stop Gradle daemon
-# print_step "STEP 4: STOPPING GRADLE DAEMON"
-# ./gradlew --stop
+# Generate FFMPEG AAR
+print_step "STEP 4: GENERATING FFMPEG AAR"
+./gradlew :app:downloadAar
 
 # Build release APK
 print_step "STEP 5: BUILDING RELEASE APK"
