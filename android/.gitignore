@@ -14,3 +14,6 @@ local.properties
 
 # Bundle artifacts
 *.jsbundle
+
+# FFmpeg AAR (generated via postinstall script)
+libs/*.aar
