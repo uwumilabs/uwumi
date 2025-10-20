@@ -4,10 +4,11 @@
  * This file doesnt get bundled in the production build.(may be😁)
  * It is used to test the functionality of library, stores,hooks other screens etc.
  */
+import React, { useState } from 'react';
 import { ThemedView } from '@/components';
-import { Button } from 'tamagui';
+import { Button, Text, ScrollView, YStack } from 'tamagui';
 import { storage } from '@/hooks/stores/MMKV';
-import { useConsumetExtensions } from '@/hooks';
+import { useDownloadStore } from '@/hooks/stores/useDownloadStore';
 
 const Example = () => {
   const getAllMMKVKeys = () => {
@@ -29,87 +30,136 @@ const Example = () => {
       //console.log(`Deleted key: ${key}`);
     });
   };
-  const {
-    updateRegistry,
-    installExtension,
-    readExtensionCode,
-    readExtractorCode,
-    providerManager,
-    checkForUpdates,
-    clearCache,
-  } = useConsumetExtensions();
 
-  const fetchExtensionRegistry = async () => {
-    try {
-      updateRegistry(
-        'https://raw.githubusercontent.com/uwumilabs/react-native-consumet/refs/heads/main/src/extension-registry.json',
-      );
-    } catch (error) {
-      console.error('Error fetching extension registry:', error);
-    }
-  };
-  readExtractorCode;
+  const [lastDownloadId, setLastDownloadId] = useState<string | null>(null);
 
-  const getExtensionCode = async (extensionId: string) => {
-    try {
-      const extension = await installExtension(extensionId);
-      const content = await readExtensionCode(extensionId);
-      const metadata = providerManager.getExtensionMetadata(extensionId);
-      //console.log('Extension metadata:', metadata);
-      // @ts-ignore
-      const zoro = providerManager.executeProviderCode(content!, metadata.factoryName, metadata);
-      const search = await (await zoro).search('One');
-      //console.log('Search results:', search);
-      // const extractorCode = await readExtractorCode('MegaCloud');
-      // console.log('Extension file content:', extractorCode);
-    } catch (error) {
-      console.error('Error reading extension file:', error);
-    }
-  };
+  const { downloads, initialize, addDownload, startDownload, getStreamInfo, getStorageInfo } = useDownloadStore();
 
   return (
     <ThemedView>
-      <Button
-        onPress={() => {
-          getAllMMKVKeys();
-        }}
-        themeInverse>
-        Get All MMKV Keys
-      </Button>
-      <Button
-        onPress={() => {
-          deleteAllMMKVKeys();
-        }}
-        themeInverse>
-        delete All MMKV Keys
-      </Button>
+      <ScrollView>
+        <YStack padding="$4" space="$3">
+          <Button
+            onPress={() => {
+              getAllMMKVKeys();
+            }}
+            themeInverse>
+            Get All MMKV Keys
+          </Button>
+          <Button
+            onPress={() => {
+              deleteAllMMKVKeys();
+            }}
+            themeInverse>
+            delete All MMKV Keys
+          </Button>
 
-      <Button
-        onPress={() => {
-          fetchExtensionRegistry();
-        }}
-        themeInverse>
-        load Extension Registry
-      </Button>
-      <Button
-        onPress={() => {
-          getExtensionCode('himovies');
-        }}
-        themeInverse>
-        Get Extension File
-      </Button>
-      <Button
-        onPress={() => {
-          checkForUpdates();
-        }}>
-        checkForUpdates
-      </Button>
-      <Button
-        onPress={() => {
-          clearCache();
-        }}>
-        clearCache
-      </Button>
+          {/* Download Store Examples */}
+          <Text fontSize="$7" fontWeight="bold" color="$color" marginTop="$4">
+            Download Store Demo
+          </Text>
+
+          <Button
+            onPress={async () => {
+              await initialize();
+            }}
+            themeInverse>
+            Init Download Store
+          </Button>
+
+          <Button
+            onPress={async () => {
+              const HLS_URL = 'https://bitmovin-a.akamaihd.net/content/sintel/hls/playlist.m3u8';
+              const VTT_URL =
+                'https://raw.githubusercontent.com/1c7/vtt-test-file/refs/heads/master/vtt%20files/4.%20No%20Hour.vtt';
+
+              const id = addDownload({
+                url: HLS_URL,
+                animeName: 'Sintel',
+                episode: 1,
+                externalSubtitles: [{ url: VTT_URL, language: 'en', title: 'English External' }],
+              });
+              setLastDownloadId(id);
+
+              await startDownload(id, (p) => {
+                console.log(`Download progress: ${p.percentage}%`);
+              });
+            }}
+            themeInverse>
+            Download with External Subs
+          </Button>
+
+          {/* Progress Display */}
+          {lastDownloadId && downloads[lastDownloadId] ? (
+            <YStack
+              backgroundColor="$color3"
+              padding="$4"
+              borderRadius="$4"
+              space="$2"
+              marginTop="$3"
+              borderWidth={2}
+              borderColor="$color4">
+              <Text fontSize="$6" fontWeight="bold" color="$color">
+                Status: {downloads[lastDownloadId].status.toUpperCase()}
+              </Text>
+              <Text fontSize="$5" color="$color1" marginTop="$2">
+                Progress: {downloads[lastDownloadId].progress?.percentage ?? 0}%
+              </Text>
+              {downloads[lastDownloadId].progress ? (
+                <>
+                  <Text fontSize="$4" color="$color1">
+                    Time: {Math.floor(downloads[lastDownloadId].progress!.currentTime / 60)}:
+                    {Math.floor(downloads[lastDownloadId].progress!.currentTime % 60)
+                      .toString()
+                      .padStart(2, '0')}{' '}
+                    / {Math.floor(downloads[lastDownloadId].progress!.totalDuration / 60)}:
+                    {Math.floor(downloads[lastDownloadId].progress!.totalDuration % 60)
+                      .toString()
+                      .padStart(2, '0')}
+                  </Text>
+                  <Text fontSize="$4" color="$color1">
+                    Speed: {downloads[lastDownloadId].progress!.speed.toFixed(2)}x | Bitrate:{' '}
+                    {(downloads[lastDownloadId].progress!.bitrate / 1000).toFixed(0)} kbps
+                  </Text>
+                  <Text fontSize="$4" color="$color1">
+                    Size: {(downloads[lastDownloadId].progress!.size / 1024 / 1024).toFixed(2)} MB
+                  </Text>
+                </>
+              ) : null}
+            </YStack>
+          ) : null}
+
+          <Button
+            onPress={async () => {
+              const HLS_URL = 'https://bitmovin-a.akamaihd.net/content/sintel/hls/playlist.m3u8';
+              const info = await getStreamInfo(HLS_URL);
+              console.log('Stream Info:', {
+                duration: `${Math.floor(info.duration / 60)}m ${Math.floor(info.duration % 60)}s`,
+                videoTracks: info.videoTracks.length,
+                audioTracks: info.audioTracks.length,
+                textTracks: info.textTracks.length,
+                totalStreams: info.totalStreams,
+              });
+            }}
+            themeInverse>
+            Get Stream Info
+          </Button>
+
+          <Button
+            onPress={() => {
+              const storageInfo = getStorageInfo();
+              console.log('Storage Info:', {
+                downloadsPath: storageInfo.downloadsPath,
+                tempPath: storageInfo.tempPath,
+                downloadsSize: `${(storageInfo.downloadsSize / 1024 / 1024).toFixed(2)} MB`,
+                totalDownloads: storageInfo.totalDownloads,
+              });
+            }}
+            themeInverse>
+            Get Storage Info
+          </Button>
+        </YStack>
+      </ScrollView>
     </ThemedView>
   );
 };

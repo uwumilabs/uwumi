@@ -2,7 +2,7 @@
 # . "$(dirname -- "$0")/_/husky.sh"
 
 # First run lint-staged
-npx lint-staged && npm run format
+npm run lint && npm run format
 
 # Then check versions
 echo "⚡ Checking version consistency..."
@@ -44,5 +44,7 @@ if [ "$PACKAGE_CHANGED" = true ] || [ "$GRADLE_CHANGED" = true ]; then
     fi
 fi
 echo "✅ Version consistency checks passed!"
+
+git add .
 # Exit successfully
 exit 0
