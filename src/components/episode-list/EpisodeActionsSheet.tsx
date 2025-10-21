@@ -3,13 +3,18 @@ import { Sheet, YStack, Text, XStack, Separator, Spinner } from 'tamagui';
 import { Linking, Platform, ScrollView } from 'react-native';
 import { IAnimeEpisode, IMovieEpisode, IEpisodeServer } from 'react-native-consumet';
 import { Check, X, Play, ChevronRight, Server, ChevronLeft } from '@tamagui/lucide-icons';
-import { useWatchProgressStore, useWatchAnimeEpisodes, useWatchMoviesEpisodes, useServerStore } from '@/hooks';
+import {
+  useWatchProgressStore,
+  useWatchAnimeEpisodes,
+  useWatchMoviesEpisodes,
+  useServerStore,
+  useSheetColor,
+} from '@/hooks';
 import { toast } from 'sonner-native';
 import { MediaType } from '@/constants/types';
 import { useProviderStore } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { RippleButton } from '../ui-primitives';
-import { SHEET_COLOR } from '@/constants/config';
 
 interface EpisodeActionsSheetProps {
   open: boolean;
@@ -26,6 +31,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const { setProgress, getProgress, progresses } = useWatchProgressStore();
     const { getCurrentServer } = useServerStore();
     const { getProvider } = useProviderStore();
+    const sheetColor = useSheetColor();
 
     const [showQualitySelection, setShowQualitySelection] = useState(false);
     const [showServerSelection, setShowServerSelection] = useState(false);
@@ -258,7 +264,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
           enterStyle={{ opacity: 0 }}
           exitStyle={{ opacity: 0 }}
         />
-        <Sheet.Frame backgroundColor={SHEET_COLOR} borderTopLeftRadius={20} borderTopRightRadius={20}>
+        <Sheet.Frame backgroundColor={sheetColor} borderTopLeftRadius={20} borderTopRightRadius={20}>
           <YStack padding="$4" gap="$2" minHeight={200}>
             {/* Header */}
             <XStack justifyContent="space-between" alignItems="center" marginBottom="$2">

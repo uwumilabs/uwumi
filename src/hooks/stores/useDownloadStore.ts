@@ -1,16 +1,13 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { File, Directory, Paths } from 'expo-file-system';
+import * as RNFS from '@dr.pogodin/react-native-fs';
 import { FFmpegKit, FFmpegKitConfig, FFprobeKit, Log, ReturnCode } from 'react-native-ffmpeg-kit';
-import type { VideoTrack, AudioTrack, TextTrack } from 'react-native-video';
+import type { VideoTrack, AudioTrack, TextTrack, TextTracks } from 'react-native-video';
 import { storage } from './MMKV';
+import { UWUMI_DIR } from '@/constants/config';
 
-// Constants - Internal Storage Structure
-// Android: /data/data/<app-id>/files/uwumi/
-// iOS: App's Documents directory/uwumi/
-const UWUMI_DIR = new Directory(Paths.document, 'uwumi');
-const DOWNLOADS_DIR = new Directory(UWUMI_DIR, 'downloads'); // Downloaded episodes
-const TEMP_DIR = new Directory(Paths.cache, 'ffmpeg_temp'); // Temporary FFmpeg files
+const DOWNLOADS_DIR = `${UWUMI_DIR}/downloads`; // Downloaded episodes
+const TEMP_DIR = `${RNFS.CachesDirectoryPath}/ffmpeg_temp`; // Temporary FFmpeg files
 
 // Types
 interface ExternalSubtitle {
@@ -42,10 +39,10 @@ interface EpisodeDownload {
   url: string;
   animeName: string;
   episode: number;
-  externalSubtitles?: ExternalSubtitle[];
+  externalSubtitles?: TextTracks;
   status: 'pending' | 'downloading' | 'completed' | 'failed' | 'cancelled';
   progress?: DownloadProgress;
-  outputFile?: File;
+  outputFile?: string; // Changed from File to string (file path)
   fileSize?: number;
   sessionId?: number;
   error?: string;
@@ -83,14 +80,15 @@ interface DownloadState {
 }
 
 // Helper Functions
-const ensureDir = (directory: Directory): boolean => {
+const ensureDir = async (directory: string): Promise<boolean> => {
   try {
-    if (!directory.exists) {
-      directory.create({ intermediates: true });
+    const exists = await RNFS.exists(directory);
+    if (!exists) {
+      await RNFS.mkdir(directory, { NSURLIsExcludedFromBackupKey: true });
     }
     return true;
   } catch (error) {
-    console.error(`❌ Failed to create directory ${directory.uri}:`, error);
+    console.error(`❌ Failed to create directory ${directory}:`, error);
     return false;
   }
 };
@@ -120,9 +118,9 @@ export const useDownloadStore = create<DownloadState>()(
 
         try {
           // Create directories in internal storage
-          ensureDir(UWUMI_DIR);
-          ensureDir(DOWNLOADS_DIR);
-          ensureDir(TEMP_DIR);
+          await ensureDir(UWUMI_DIR);
+          await ensureDir(DOWNLOADS_DIR);
+          await ensureDir(TEMP_DIR);
 
           // Configure FFmpeg logging (basic)
           FFmpegKitConfig.enableLogCallback((log: Log) => {
@@ -132,8 +130,8 @@ export const useDownloadStore = create<DownloadState>()(
           set({ isInitialized: true });
           console.log('✅ FFmpeg Kit initialized');
           console.log('📁 Storage locations:');
-          console.log('   Downloads:', DOWNLOADS_DIR.uri);
-          console.log('   Temp:', TEMP_DIR.uri);
+          console.log('   Downloads:', DOWNLOADS_DIR);
+          console.log('   Temp:', TEMP_DIR);
           return true;
         } catch (error) {
           console.error('❌ FFmpeg init failed:', error);
@@ -178,11 +176,27 @@ export const useDownloadStore = create<DownloadState>()(
           }));
 
           // Get stream info
-          const streamInfo = await get().getStreamInfo(download.url);
+          let streamInfo;
+          try {
+            streamInfo = await get().getStreamInfo(download.url);
+          } catch (streamError) {
+            console.error(`❌ FFprobe failed for: ${download.animeName} E${download.episode}`, streamError);
+            set((state) => ({
+              downloads: {
+                ...state.downloads,
+                [downloadId]: {
+                  ...state.downloads[downloadId],
+                  status: 'failed',
+                  error: streamError instanceof Error ? streamError.message : 'FFprobe failed to analyze video stream',
+                },
+              },
+            }));
+            return;
+          }
 
-          // Prepare output file
+          // Prepare output file path
           const filename = `${download.animeName.replace(/[^a-zA-Z0-9]/g, '_')}_E${download.episode}.mp4`;
-          const outputFile = new File(DOWNLOADS_DIR, filename);
+          const outputFile = `${DOWNLOADS_DIR}/${filename}`;
 
           // Build FFmpeg command - Download ALL tracks with best subtitle codec
           // -map 0:v:0 = First video track
@@ -196,7 +210,7 @@ export const useDownloadStore = create<DownloadState>()(
           // Add external subtitle inputs
           if (download.externalSubtitles && download.externalSubtitles.length > 0) {
             download.externalSubtitles.forEach((sub) => {
-              commandParts.push('-i', sub.url);
+              commandParts.push('-i', sub.uri);
             });
           }
 
@@ -235,7 +249,7 @@ export const useDownloadStore = create<DownloadState>()(
             });
           }
 
-          commandParts.push('-threads', '4', '-y', outputFile.uri);
+          commandParts.push('-threads', '4', '-y', outputFile);
 
           // Join command parts - wrap items with spaces in quotes
           const command = commandParts
@@ -320,8 +334,74 @@ export const useDownloadStore = create<DownloadState>()(
             }
           });
 
-          // Execute asynchronously to obtain sessionId for mapping logs to this download
-          const session = await FFmpegKit.executeAsync(command);
+          // Execute asynchronously with completion callback for real-time progress
+          console.log(command);
+          const session = await FFmpegKit.executeAsync(command, async (completedSession) => {
+            const returnCode = await completedSession.getReturnCode();
+            const sessionId = completedSession.getSessionId();
+
+            // Check result
+            if (ReturnCode.isSuccess(returnCode)) {
+              const fileExists = await RNFS.exists(outputFile);
+              if (fileExists) {
+                const fileStat = await RNFS.stat(outputFile);
+                console.log(`✅ Download completed: ${download.animeName} E${download.episode}`);
+                set((state) => ({
+                  downloads: {
+                    ...state.downloads,
+                    [downloadId]: {
+                      ...state.downloads[downloadId],
+                      status: 'completed',
+                      outputFile,
+                      fileSize: Number(fileStat.size),
+                      completedAt: Date.now(),
+                    },
+                  },
+                  activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
+                }));
+              } else {
+                console.error(`❌ Output file not found: ${outputFile}`);
+                set((state) => ({
+                  downloads: {
+                    ...state.downloads,
+                    [downloadId]: {
+                      ...state.downloads[downloadId],
+                      status: 'failed',
+                      error: 'Download completed but output file not found',
+                    },
+                  },
+                  activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
+                }));
+              }
+            } else if (ReturnCode.isCancel(returnCode)) {
+              console.log(`🚫 Download cancelled: ${download.animeName} E${download.episode}`);
+              set((state) => ({
+                downloads: {
+                  ...state.downloads,
+                  [downloadId]: {
+                    ...state.downloads[downloadId],
+                    status: 'cancelled',
+                  },
+                },
+                activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
+              }));
+            } else {
+              // Failed
+              console.error(`❌ FFmpeg failed with return code: ${returnCode}`);
+              set((state) => ({
+                downloads: {
+                  ...state.downloads,
+                  [downloadId]: {
+                    ...state.downloads[downloadId],
+                    status: 'failed',
+                    error: `FFmpeg failed with return code: ${returnCode}`,
+                  },
+                },
+                activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
+              }));
+            }
+          });
+
           const sessionId = session.getSessionId();
 
           // Track session immediately for cancel support and progress mapping
@@ -332,73 +412,6 @@ export const useDownloadStore = create<DownloadState>()(
               [downloadId]: { ...state.downloads[downloadId], sessionId },
             },
           }));
-
-          // Wait for completion
-          const returnCode = await session.getReturnCode();
-
-          // Check result
-          if (ReturnCode.isSuccess(returnCode)) {
-            if (outputFile.exists) {
-              console.log(`✅ Download completed: ${download.animeName} E${download.episode}`);
-              set((state) => ({
-                downloads: {
-                  ...state.downloads,
-                  [downloadId]: {
-                    ...state.downloads[downloadId],
-                    status: 'completed',
-                    outputFile,
-                    fileSize: outputFile.size,
-                    completedAt: Date.now(),
-                  },
-                },
-                activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
-              }));
-            } else {
-              console.error(`❌ Output file not found: ${outputFile.uri}`);
-              set((state) => ({
-                downloads: {
-                  ...state.downloads,
-                  [downloadId]: {
-                    ...state.downloads[downloadId],
-                    status: 'failed',
-                    error: 'Download completed but output file not found',
-                  },
-                },
-                activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
-              }));
-            }
-          } else if (ReturnCode.isCancel(returnCode)) {
-            console.log(`🚫 Download cancelled: ${download.animeName} E${download.episode}`);
-            set((state) => ({
-              downloads: {
-                ...state.downloads,
-                [downloadId]: {
-                  ...state.downloads[downloadId],
-                  status: 'cancelled',
-                },
-              },
-              activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
-            }));
-          } else {
-            // Failed - get error information
-            const logs = await session.getLogs();
-            const lastLog = logs.length > 0 ? String(logs[logs.length - 1].getMessage()) : 'No error details';
-
-            console.error('❌ FFmpeg failed with return code:', returnCode);
-            console.error('Last log message:', lastLog);
-
-            set((state) => ({
-              downloads: {
-                ...state.downloads,
-                [downloadId]: {
-                  ...state.downloads[downloadId],
-                  status: 'failed',
-                  error: lastLog,
-                },
-              },
-              activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
-            }));
-          }
         } catch (error) {
           set((state) => ({
             downloads: {
@@ -549,14 +562,8 @@ export const useDownloadStore = create<DownloadState>()(
 
           throw new Error('FFprobe failed');
         } catch (error) {
-          console.warn('Stream info failed:', error);
-          return {
-            duration: 0,
-            videoTracks: [],
-            audioTracks: [],
-            textTracks: [],
-            totalStreams: 0,
-          };
+          console.error('FFprobe execution failed:', error);
+          throw error instanceof Error ? error : new Error('FFprobe failed to analyze stream');
         }
       },
 
@@ -608,8 +615,8 @@ export const useDownloadStore = create<DownloadState>()(
           .reduce((sum, d) => sum + (d.fileSize || 0), 0);
 
         return {
-          downloadsPath: DOWNLOADS_DIR.uri,
-          tempPath: TEMP_DIR.uri,
+          downloadsPath: DOWNLOADS_DIR,
+          tempPath: TEMP_DIR,
           downloadsSize: totalSize,
           totalDownloads: downloads.filter((d) => d.status === 'completed').length,
         };
@@ -618,9 +625,10 @@ export const useDownloadStore = create<DownloadState>()(
       // Cleanup temporary files
       cleanupTempFiles: async () => {
         try {
-          if (TEMP_DIR.exists) {
-            TEMP_DIR.delete();
-            ensureDir(TEMP_DIR);
+          const exists = await RNFS.exists(TEMP_DIR);
+          if (exists) {
+            await RNFS.unlink(TEMP_DIR);
+            await ensureDir(TEMP_DIR);
             console.log('✅ Temp files cleaned up');
           }
         } catch (error) {
@@ -641,7 +649,7 @@ export const useDownloadStore = create<DownloadState>()(
             id,
             {
               ...download,
-              outputFile: download.outputFile ? { uri: download.outputFile.uri } : undefined,
+              outputFile: download.outputFile || undefined,
             },
           ]),
         ),

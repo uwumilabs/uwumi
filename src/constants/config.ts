@@ -1,4 +1,4 @@
-import { useCurrentTheme, usePureBlackBackground, useThemeStore } from '@/hooks';
+import * as RNFS from '@dr.pogodin/react-native-fs';
 
 export const EXTERNAL_LINKS = {
   GITHUB_REPOSITORY_API: 'https://api.github.com/repos/uwumilabs/uwumi',
@@ -121,12 +121,4 @@ export const SUB_LANGUAGE = {
   Welsh: 'wel',
 } as const;
 
-const themeName = useThemeStore((state) => state.themeName);
-const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
-const currentTheme = useCurrentTheme();
-export const SHEET_COLOR =
-  themeName === 'dark' && pureBlackBackground
-    ? currentTheme.color5
-    : themeName === 'dark' && !pureBlackBackground
-      ? currentTheme.color3
-      : currentTheme.background;
+export const UWUMI_DIR = `${RNFS.ExternalStorageDirectoryPath}/uwumi`;

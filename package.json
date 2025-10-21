@@ -53,6 +53,7 @@
   },
   "dependencies": {
     "@bottom-tabs/react-navigation": "^0.7.8",
+    "@dr.pogodin/react-native-fs": "^2.36.0",
     "@expo-google-fonts/inter": "^0.2.3",
     "@react-navigation/bottom-tabs": "^7.0.0",
     "@react-navigation/native": "^7.0.0",

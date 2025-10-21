@@ -1,15 +1,15 @@
 import { create } from 'zustand';
 import { storage } from '@/hooks/stores/MMKV';
 import axios from 'axios';
-import { File, Directory, Paths } from 'expo-file-system';
+import * as RNFS from '@dr.pogodin/react-native-fs';
 import { ExtensionManifest, ExtractorInfo, ExtractorManager, ProviderManager } from 'react-native-consumet';
+import { UWUMI_DIR } from '@/constants/config';
 
-// UWUMI_DIR constant - adjust path as needed for your app
-const UWUMI_DIR = new Directory(Paths.document, 'uwumi');
+// --- Constants ---
 
-// Constants
-const EXTENSIONS_CACHE_DIR = new Directory(UWUMI_DIR, 'extensions');
-const EXTRACTORS_CACHE_DIR = new Directory(UWUMI_DIR, 'extractors');
+const EXTENSIONS_CACHE_DIR = `${UWUMI_DIR}/extensions`;
+const EXTRACTORS_CACHE_DIR = `${UWUMI_DIR}/extractors`;
+
 const REGISTRY_METADATA_KEY = 'extension_registry_metadata';
 const EXTENSION_PREFIX = 'ext_';
 const EXTRACTOR_PREFIX = 'extr_';
@@ -70,15 +70,17 @@ interface ExtensionStoreState {
 }
 
 // --- Utility Functions ---
-const ensureDirectoryExists = async (directory: Directory): Promise<boolean> => {
+
+const ensureDirectoryExists = async (path: string): Promise<boolean> => {
   try {
-    if (!directory.exists) {
-      //console.log(`📁 Creating directory: ${directory.uri}`);
-      directory.create({ intermediates: true });
+    const exists = await RNFS.exists(path);
+    if (!exists) {
+      await RNFS.mkdir(path);
+      console.log('✅ Created directory:', path);
     }
     return true;
   } catch (error) {
-    console.error(`❌ Failed to create directory ${directory.uri}:`, error);
+    console.error(`❌ Failed to ensure directory: ${path}`, error);
     return false;
   }
 };
@@ -88,7 +90,7 @@ const loadJSONFromStorage = <T>(key: string): T | null => {
     const value = storage.getString(key);
     return value ? JSON.parse(value) : null;
   } catch (error) {
-    console.error(`❌ Failed to load JSON for key ${key}:`, error);
+    console.error(`❌ Failed to parse storage for key ${key}`, error);
     return null;
   }
 };
@@ -103,58 +105,53 @@ const saveJSONToStorage = (key: string, data: any): boolean => {
   }
 };
 
-const downloadFile = async (url: string, destinationFile: File): Promise<boolean> => {
+const downloadFile = async (url: string, destination: string): Promise<boolean> => {
   try {
-    //console.log(`⬇️ Downloading: ${url}`);
-    // Ensure parent directory exists
-    const parentDir = new Directory(destinationFile.uri.split('/').slice(0, -1).join('/'));
-    if (!parentDir.exists) {
-      parentDir.create({ intermediates: true });
+    const parentDir = destination.substring(0, destination.lastIndexOf('/'));
+    await ensureDirectoryExists(parentDir);
+
+    if (await RNFS.exists(destination)) {
+      await RNFS.unlink(destination);
     }
 
-    // Remove existing file if it exists to avoid conflicts
-    if (destinationFile.exists) {
-      destinationFile.delete();
-    }
-
-    // Download to the parent directory with idempotent option
-    const downloadedFile = await File.downloadFileAsync(url, parentDir, { idempotent: true });
-
-    if (downloadedFile.exists) {
-      // If the downloaded file has a different name or location, move it to our desired location
-      const desiredPath = destinationFile.uri;
-      const downloadedPath = downloadedFile.uri;
-
-      if (downloadedPath !== desiredPath) {
-        // Move the downloaded file to the correct location
-        downloadedFile.move(destinationFile);
-      }
-
-      //console.log(`✅ Download completed: ${destinationFile.uri}`);
-      return true;
-    } else {
-      console.error(`❌ Download failed`);
-      return false;
-    }
+    const { statusCode } = await RNFS.downloadFile({ fromUrl: url, toFile: destination }).promise;
+    return statusCode === 200;
   } catch (error) {
-    console.error(`❌ Download error:`, error);
+    console.error(`❌ Failed to download file from ${url}:`, error);
     return false;
   }
 };
 
-const getFilePath = (type: 'extension' | 'extractor', id: string, version: string): File => {
-  const baseDir = type === 'extension' ? EXTENSIONS_CACHE_DIR : EXTRACTORS_CACHE_DIR;
-  return new File(baseDir, `${id}_v${version}.js`);
+const getFilePath = (type: 'extension' | 'extractor', id: string, version: string): string => {
+  const base = type === 'extension' ? EXTENSIONS_CACHE_DIR : EXTRACTORS_CACHE_DIR;
+  return `${base}/${id}_v${version}.js`;
+};
+
+const getFileSize = async (path: string): Promise<number | undefined> => {
+  try {
+    const stat = await RNFS.stat(path);
+    return stat.size;
+  } catch {
+    return undefined;
+  }
+};
+
+const deleteFile = async (path: string): Promise<void> => {
+  try {
+    if (await RNFS.exists(path)) {
+      await RNFS.unlink(path);
+    }
+  } catch (err) {
+    console.warn(`⚠️ Failed to delete ${path}:`, err);
+  }
 };
 
 const getCacheKey = (type: 'extension' | 'extractor', id: string): string => {
-  const prefix = type === 'extension' ? EXTENSION_PREFIX : EXTRACTOR_PREFIX;
-  return `${prefix}${id}`;
+  return `${type === 'extension' ? EXTENSION_PREFIX : EXTRACTOR_PREFIX}${id}`;
 };
 
-// --- Store Implementation ---
+// --- Zustand Store ---
 export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
-  // Load initial state from storage
   const initialRegistry = loadJSONFromStorage<RegistryMetadata>(REGISTRY_METADATA_KEY);
 
   return {
@@ -163,454 +160,220 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
     error: null,
 
     initializeDirectories: async () => {
-      //console.log('🚀 Initializing extension manager directories...');
-      const extensionsCreated = await ensureDirectoryExists(EXTENSIONS_CACHE_DIR);
-      const extractorsCreated = await ensureDirectoryExists(EXTRACTORS_CACHE_DIR);
-
-      const success = extensionsCreated && extractorsCreated;
-      if (success) {
-        //console.log('✅ Directories initialized successfully');
-      } else {
-        console.error('❌ Failed to initialize some directories');
-      }
-      return success;
+      const a = await ensureDirectoryExists(EXTENSIONS_CACHE_DIR);
+      const b = await ensureDirectoryExists(EXTRACTORS_CACHE_DIR);
+      return a && b;
     },
 
     updateRegistry: async (registryUrl: string) => {
       set({ isLoading: true, error: null });
       try {
-        //console.log(`🔄 Updating registry from: ${registryUrl}`);
-        // Ensure directories exist
         await get().initializeDirectories();
+        const { data } = await axios.get<RegistryResponse>(registryUrl);
 
-        // Fetch registry data
-        const response = await axios.get<RegistryResponse>(registryUrl);
-        const { extractors, extensions } = response.data;
-
-        //console.log(`📊 Registry fetched: ${extensions.length} extensions, ${extractors.length} extractors`);
-
-        // Save registry metadata
         const registryMetadata: RegistryMetadata = {
           updatedAt: new Date().toISOString(),
           registryUrl,
-          totalExtensions: extensions.length,
-          totalExtractors: extractors.length,
-          extensions,
-          extractors,
+          totalExtensions: data.extensions.length,
+          totalExtractors: data.extractors.length,
+          extensions: data.extensions,
+          extractors: data.extractors,
         };
 
         saveJSONToStorage(REGISTRY_METADATA_KEY, registryMetadata);
-
-        set({
-          registry: registryMetadata,
-          isLoading: false,
-          error: null,
-        });
-
-        //console.log('✅ Registry updated successfully');
+        set({ registry: registryMetadata, isLoading: false });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error('❌ Failed to update registry:', errorMessage);
-        set({
-          isLoading: false,
-          error: `Failed to update registry: ${errorMessage}`,
-        });
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        console.error('❌ Registry update failed:', msg);
+        set({ isLoading: false, error: msg });
       }
     },
 
     installExtension: async (extensionId: string) => {
       const { registry } = get();
-      if (!registry) {
-        console.error('❌ No registry available');
-        return false;
-      }
+      if (!registry) return false;
 
-      const extensionInfo = registry.extensions.find((ext) => ext.id === extensionId);
-      if (!extensionInfo) {
-        console.error(`❌ Extension not found in registry: ${extensionId}`);
-        return false;
-      }
+      const extension = registry.extensions.find((e) => e.id === extensionId);
+      if (!extension) return false;
 
-      // Auto-install required extractors for this extension
-      if (extensionInfo.extractors && extensionInfo.extractors.length > 0) {
-        //console.log(`🔧 Installing required extractors for ${extensionId}: ${extensionInfo.extractors.join(', ')}`);
-        for (const extractorName of extensionInfo.extractors) {
-          await get().installExtractor(extractorName.toLowerCase());
+      if (extension.extractors?.length) {
+        for (const extractor of extension.extractors) {
+          await get().installExtractor(extractor.toLowerCase());
         }
       }
 
       const cacheKey = getCacheKey('extension', extensionId);
-      const cachedData = loadJSONFromStorage<CachedItem>(cacheKey);
+      const cached = loadJSONFromStorage<CachedItem>(cacheKey);
 
-      // Check if already installed and up-to-date
-      if (cachedData && cachedData.version === extensionInfo.version) {
-        //console.log(`✅ Extension ${extensionId} is already up-to-date`);
-        return true;
-      }
+      if (cached?.version === extension.version) return true;
 
-      // Remove old version if exists
-      if (cachedData) {
-        try {
-          const oldFile = new File(cachedData.fileUri);
-          oldFile.delete();
-          //console.log(`🗑️ Removed old version of ${extensionId}`);
-        } catch (error) {
-          console.warn(`⚠️ Failed to remove old version of ${extensionId}:`, error);
-        }
-      }
+      if (cached) await deleteFile(cached.fileUri);
 
-      // Download new version
-      const file = getFilePath('extension', extensionId, extensionInfo.version);
-      const success = await downloadFile(extensionInfo.main, file);
+      const filePath = getFilePath('extension', extensionId, extension.version);
+      const success = await downloadFile(extension.main, filePath);
 
       if (success) {
-        // Get file size
-        let fileSize: number | undefined;
-        try {
-          if (file.exists) {
-            fileSize = file.size;
-          }
-        } catch (error) {
-          console.warn('Could not get file size:', error);
-        }
-
-        // Save cache metadata
-        const cacheData: CachedItem = {
-          version: extensionInfo.version,
-          fileUri: file.uri,
+        const fileSize = await getFileSize(filePath);
+        const cache: CachedItem = {
+          version: extension.version,
+          fileUri: filePath,
           downloadedAt: new Date().toISOString(),
           fileSize,
         };
-
-        saveJSONToStorage(cacheKey, cacheData);
-        //console.log(`✅ Extension ${extensionId}@${extensionInfo.version} installed successfully`);
-        return true;
+        saveJSONToStorage(cacheKey, cache);
       }
-
-      return false;
+      return success;
     },
 
-    updateExtension: async (extensionId: string) => {
-      //console.log(`🔄 Updating extension: ${extensionId}`);
-      return await get().installExtension(extensionId);
+    updateExtension: async (id) => get().installExtension(id),
+
+    uninstallExtension: async (id) => {
+      const key = getCacheKey('extension', id);
+      const cached = loadJSONFromStorage<CachedItem>(key);
+      if (cached) await deleteFile(cached.fileUri);
+      storage.delete(key);
+      return true;
     },
 
-    uninstallExtension: async (extensionId: string) => {
-      const cacheKey = getCacheKey('extension', extensionId);
-      const cachedData = loadJSONFromStorage<CachedItem>(cacheKey);
-
-      if (!cachedData) {
-        //console.log(`ℹ️ Extension ${extensionId} is not installed`);
-        return true;
-      }
-
-      try {
-        const file = new File(cachedData.fileUri);
-        file.delete();
-        storage.delete(cacheKey);
-        //console.log(`🗑️ Extension ${extensionId} uninstalled successfully`);
-        return true;
-      } catch (error) {
-        console.error(`❌ Failed to uninstall extension ${extensionId}:`, error);
-        return false;
-      }
-    },
-
-    isExtensionInstalled: (extensionId: string) => {
-      const cacheKey = getCacheKey('extension', extensionId);
-      const cachedData = loadJSONFromStorage<CachedItem>(cacheKey);
-      return cachedData !== null;
-    },
+    isExtensionInstalled: (id) => !!loadJSONFromStorage<CachedItem>(getCacheKey('extension', id)),
 
     getInstalledExtensions: () => {
       const { registry } = get();
       if (!registry) return [];
-
-      return registry.extensions.filter((ext) => get().isExtensionInstalled(ext.id));
+      return registry.extensions.filter((e) => get().isExtensionInstalled(e.id));
     },
 
-    installExtractor: async (extractorName: string) => {
+    installExtractor: async (name) => {
       const { registry } = get();
-      if (!registry) {
-        console.error('❌ No registry available');
-        return false;
-      }
+      if (!registry) return false;
 
-      const extractorInfo = registry.extractors.find((extr) => extr.name.toLowerCase() === extractorName.toLowerCase());
-      if (!extractorInfo) {
-        console.error(`❌ Extractor not found in registry: ${extractorName}`);
-        return false;
-      }
+      const extractor = registry.extractors.find((e) => e.name.toLowerCase() === name.toLowerCase());
+      if (!extractor) return false;
 
-      const cacheKey = getCacheKey('extractor', extractorName);
-      const cachedData = loadJSONFromStorage<CachedItem>(cacheKey);
+      const cacheKey = getCacheKey('extractor', name);
+      const cached = loadJSONFromStorage<CachedItem>(cacheKey);
+      if (cached?.version === extractor.version) return true;
 
-      // Check if already installed and up-to-date
-      if (cachedData && cachedData.version === extractorInfo.version) {
-        //console.log(`✅ Extractor ${extractorName} is already up-to-date`);
-        return true;
-      }
+      if (cached) await deleteFile(cached.fileUri);
 
-      // Remove old version if exists
-      if (cachedData) {
-        try {
-          const oldFile = new File(cachedData.fileUri);
-          oldFile.delete();
-          //console.log(`🗑️ Removed old version of ${extractorName}`);
-        } catch (error) {
-          console.warn(`⚠️ Failed to remove old version of ${extractorName}:`, error);
-        }
-      }
-
-      // Download new version
-      const file = getFilePath('extractor', extractorName, extractorInfo.version);
-      const success = await downloadFile(extractorInfo.main, file);
+      const path = getFilePath('extractor', name, extractor.version);
+      const success = await downloadFile(extractor.main, path);
 
       if (success) {
-        // Get file size
-        let fileSize: number | undefined;
-        try {
-          if (file.exists) {
-            fileSize = file.size;
-          }
-        } catch (error) {
-          console.warn('Could not get file size:', error);
-        }
-
-        // Save cache metadata
-        const cacheData: CachedItem = {
-          version: extractorInfo.version,
-          fileUri: file.uri,
+        const fileSize = await getFileSize(path);
+        const cache: CachedItem = {
+          version: extractor.version,
+          fileUri: path,
           downloadedAt: new Date().toISOString(),
           fileSize,
         };
-
-        saveJSONToStorage(cacheKey, cacheData);
-        //console.log(`✅ Extractor ${extractorName}@${extractorInfo.version} installed successfully`);
-        return true;
+        saveJSONToStorage(cacheKey, cache);
       }
-
-      return false;
+      return success;
     },
 
-    updateExtractor: async (extractorName: string) => {
-      //console.log(`🔄 Updating extractor: ${extractorName}`);
-      return await get().installExtractor(extractorName);
+    updateExtractor: async (name) => get().installExtractor(name),
+
+    uninstallExtractor: async (name) => {
+      const key = getCacheKey('extractor', name);
+      const cached = loadJSONFromStorage<CachedItem>(key);
+      if (cached) await deleteFile(cached.fileUri);
+      storage.delete(key);
+      return true;
     },
 
-    uninstallExtractor: async (extractorName: string) => {
-      const cacheKey = getCacheKey('extractor', extractorName);
-      const cachedData = loadJSONFromStorage<CachedItem>(cacheKey);
-
-      if (!cachedData) {
-        //console.log(`ℹ️ Extractor ${extractorName} is not installed`);
-        return true;
-      }
-
-      try {
-        const file = new File(cachedData.fileUri);
-        file.delete();
-        storage.delete(cacheKey);
-        //console.log(`🗑️ Extractor ${extractorName} uninstalled successfully`);
-        return true;
-      } catch (error) {
-        console.error(`❌ Failed to uninstall extractor ${extractorName}:`, error);
-        return false;
-      }
-    },
-
-    isExtractorInstalled: (extractorName: string) => {
-      const cacheKey = getCacheKey('extractor', extractorName);
-      const cachedData = loadJSONFromStorage<CachedItem>(cacheKey);
-      return cachedData !== null;
-    },
+    isExtractorInstalled: (name) => !!loadJSONFromStorage<CachedItem>(getCacheKey('extractor', name)),
 
     getInstalledExtractors: () => {
       const { registry } = get();
       if (!registry) return [];
-
-      return registry.extractors.filter((extr) => get().isExtractorInstalled(extr.name));
+      return registry.extractors.filter((e) => get().isExtractorInstalled(e.name));
     },
 
-    readExtensionCode: async (extensionId: string) => {
-      const cacheKey = getCacheKey('extension', extensionId.toLowerCase());
-      const cachedData = loadJSONFromStorage<CachedItem>(cacheKey);
-
-      if (!cachedData) {
-        console.error(`❌ Extension ${extensionId} is not installed`);
-        return null;
-      }
-
+    readExtensionCode: async (id) => {
+      const cache = loadJSONFromStorage<CachedItem>(getCacheKey('extension', id));
+      if (!cache) return null;
       try {
-        const file = new File(cachedData.fileUri);
-        const code = await file.text();
-        return code;
-      } catch (error) {
-        console.error(`❌ Failed to read extension code for ${extensionId}:`, error);
+        return await RNFS.readFile(cache.fileUri, 'utf8');
+      } catch {
         return null;
       }
     },
 
-    readExtractorCode: async (extractorName: string) => {
-      const cacheKey = getCacheKey('extractor', extractorName);
-      const cachedData = loadJSONFromStorage<CachedItem>(cacheKey);
-
-      if (!cachedData) {
-        console.error(`❌ Extractor ${extractorName} is not installed`);
-        return null;
-      }
-
+    readExtractorCode: async (name) => {
+      const cache = loadJSONFromStorage<CachedItem>(getCacheKey('extractor', name));
+      if (!cache) return null;
       try {
-        const file = new File(cachedData.fileUri);
-        const code = await file.text();
-        return code;
-      } catch (error) {
-        console.error(`❌ Failed to read extractor code for ${extractorName}:`, error);
+        return await RNFS.readFile(cache.fileUri, 'utf8');
+      } catch {
         return null;
       }
     },
 
-    getExtensionInfo: (extensionId: string) => {
-      const { registry } = get();
-      return registry?.extensions.find((ext) => ext.id === extensionId) || null;
-    },
-
-    getExtractorInfo: (extractorName: string) => {
-      const { registry } = get();
-      return registry?.extractors.find((extr) => extr.name === extractorName) || null;
-    },
+    getExtensionInfo: (id) => get().registry?.extensions.find((e) => e.id === id) || null,
+    getExtractorInfo: (name) => get().registry?.extractors.find((e) => e.name === name) || null,
 
     checkForUpdates: async () => {
       const { registry } = get();
       if (!registry) return { extensions: [], extractors: [] };
+      const extUpdates: string[] = [];
+      const extrUpdates: string[] = [];
 
-      const extensionUpdates: string[] = [];
-      const extractorUpdates: string[] = [];
-
-      //console.log('🔍 Checking for updates...');
-
-      // Check extensions for updates
-      for (const extension of registry.extensions) {
-        const cacheKey = getCacheKey('extension', extension.id);
-        const cachedData = loadJSONFromStorage<CachedItem>(cacheKey);
-
-        // console.log(`Extension ${extension.id}:`, {
-        //   registryVersion: extension.version,
-        //   cachedVersion: cachedData?.version,
-        //   isInstalled: cachedData !== null,
-        //   needsUpdate: cachedData && cachedData.version !== extension.version,
-        // });
-
-        if (cachedData && cachedData.version !== extension.version) {
-          extensionUpdates.push(extension.id);
-          console.log(`🔄 Update available for ${extension.id}: ${cachedData.version} → ${extension.version}`);
-        }
+      for (const ext of registry.extensions) {
+        const cached = loadJSONFromStorage<CachedItem>(getCacheKey('extension', ext.id));
+        if (cached && cached.version !== ext.version) extUpdates.push(ext.id);
       }
 
-      // Check extractors for updates
-      for (const extractor of registry.extractors) {
-        const cacheKey = getCacheKey('extractor', extractor.name);
-        const cachedData = loadJSONFromStorage<CachedItem>(cacheKey);
-
-        if (cachedData && cachedData.version !== extractor.version) {
-          extractorUpdates.push(extractor.name);
-        }
+      for (const extr of registry.extractors) {
+        const cached = loadJSONFromStorage<CachedItem>(getCacheKey('extractor', extr.name));
+        if (cached && cached.version !== extr.version) extrUpdates.push(extr.name);
       }
 
-      // console.log(
-      //   `📊 Updates available - Extensions: ${extensionUpdates.length}, Extractors: ${extractorUpdates.length}`,
-      // );
-      // console.log('Extension updates:', extensionUpdates);
-
-      return { extensions: extensionUpdates, extractors: extractorUpdates };
+      return { extensions: extUpdates, extractors: extrUpdates };
     },
 
     clearCache: async () => {
       try {
-        //console.log('🧹 Clearing extension cache...');
+        if (await RNFS.exists(EXTENSIONS_CACHE_DIR)) await RNFS.unlink(EXTENSIONS_CACHE_DIR);
+        if (await RNFS.exists(EXTRACTORS_CACHE_DIR)) await RNFS.unlink(EXTRACTORS_CACHE_DIR);
 
-        // Clear file storage
-        if (EXTENSIONS_CACHE_DIR.exists) {
-          EXTENSIONS_CACHE_DIR.delete();
-        }
-        if (EXTRACTORS_CACHE_DIR.exists) {
-          EXTRACTORS_CACHE_DIR.delete();
-        }
-
-        // Clear MMKV storage
         const { registry } = get();
         if (registry) {
-          // Clear extension cache keys
-          for (const extension of registry.extensions) {
-            const cacheKey = getCacheKey('extension', extension.id);
-            storage.delete(cacheKey);
-          }
-
-          // Clear extractor cache keys
-          for (const extractor of registry.extractors) {
-            const cacheKey = getCacheKey('extractor', extractor.name);
-            storage.delete(cacheKey);
-          }
+          for (const e of registry.extensions) storage.delete(getCacheKey('extension', e.id));
+          for (const x of registry.extractors) storage.delete(getCacheKey('extractor', x.name));
         }
-
-        // Clear registry metadata
         storage.delete(REGISTRY_METADATA_KEY);
-
-        // Reset state
         set({ registry: null, error: null });
-
-        //console.log('✅ Cache cleared successfully');
-      } catch (error) {
-        console.error('❌ Failed to clear cache:', error);
-        throw error;
+      } catch (err) {
+        console.error('❌ Failed to clear cache:', err);
       }
     },
 
     getStorageSize: async () => {
+      let total = 0;
       try {
-        let totalSize = 0;
-
-        // Get extensions directory size
-        if (EXTENSIONS_CACHE_DIR.exists) {
-          const extensionFiles = EXTENSIONS_CACHE_DIR.list();
-          for (const item of extensionFiles) {
-            if (item instanceof File) {
-              totalSize += item.size || 0;
+        for (const dir of [EXTENSIONS_CACHE_DIR, EXTRACTORS_CACHE_DIR]) {
+          if (await RNFS.exists(dir)) {
+            const items = await RNFS.readDir(dir);
+            for (const item of items) {
+              if (item.isFile()) total += (await RNFS.stat(item.path)).size;
             }
           }
         }
-
-        // Get extractors directory size
-        if (EXTRACTORS_CACHE_DIR.exists) {
-          const extractorFiles = EXTRACTORS_CACHE_DIR.list();
-          for (const item of extractorFiles) {
-            if (item instanceof File) {
-              totalSize += item.size || 0;
-            }
-          }
-        }
-
-        return totalSize;
-      } catch (error) {
-        console.error('❌ Failed to calculate storage size:', error);
-        return 0;
+      } catch (err) {
+        console.error('❌ Failed to get storage size:', err);
       }
+      return total;
     },
   };
 });
 
-// --- Helper Hooks ---
-
+// --- Helper Hook ---
 export const useConsumetExtensions = () => {
   const ExtensionStore = useExtensionStore();
   const providerManager = new ProviderManager(ExtensionStore.registry);
   const extractorManager = new ExtractorManager(ExtensionStore.registry);
-
-  return {
-    ...ExtensionStore,
-    providerManager,
-    extractorManager,
-  };
+  return { ...ExtensionStore, providerManager, extractorManager };
 };
 
 export default useExtensionStore;

@@ -19,13 +19,12 @@ import {
 import Animated, { FadeIn, FadeOut, Easing, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { ISubtitle, TvType } from 'react-native-consumet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCurrentTheme, useEpisodesIdStore, useEpisodesStore } from '@/hooks';
+import { useCurrentTheme, useEpisodesIdStore, useEpisodesStore, useSheetColor } from '@/hooks';
 import { formatTime } from '@/constants/utils';
 import { VideoTrack, AudioTrack, WatchSearchParams, SubtitleTrack } from '@/constants/types';
 import { RippleButton, HorizontalTabs, TabItem } from '@/components';
 import SkiaSlider from './SkiaSlider';
 import ExternalSubDialog from './components/ExternalSubDialog';
-import { SHEET_COLOR } from '@/constants/config';
 
 interface ControlsOverlayProps {
   showControls: boolean;
@@ -98,6 +97,7 @@ const ControlsOverlay = memo(
     const inactivityTimerRef = useRef<number | null>(null);
     const lastActivityTimeRef = useRef(Date.now());
     const controlsTimeoutDuration = 5000;
+    const sheetColor = useSheetColor();
 
     const currentTheme = useCurrentTheme();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -188,7 +188,7 @@ const ControlsOverlay = memo(
               <RippleButton
                 key={index}
                 style={{
-                  backgroundColor: SHEET_COLOR,
+                  backgroundColor: sheetColor,
                 }}
                 onPress={() => {
                   setSelectedVideoTrackIndex(track.index);
@@ -226,7 +226,7 @@ const ControlsOverlay = memo(
               <RippleButton
                 key={index}
                 style={{
-                  backgroundColor: SHEET_COLOR,
+                  backgroundColor: sheetColor,
                 }}
                 onPress={() => {
                   setSelectedSubtitleIndex(index);
@@ -253,7 +253,7 @@ const ControlsOverlay = memo(
                     <RippleButton
                       key={index}
                       style={{
-                        backgroundColor: SHEET_COLOR,
+                        backgroundColor: sheetColor,
                       }}
                       onPress={() => {
                         setSelectedAudioTrackIndex(index);
@@ -381,7 +381,7 @@ const ControlsOverlay = memo(
                   enterStyle={{ opacity: 0 }}
                   exitStyle={{ opacity: 0 }}
                 />
-                <Sheet.Frame backgroundColor={SHEET_COLOR} marginHorizontal="auto" width={isFullscreen ? '50%' : '90%'}>
+                <Sheet.Frame backgroundColor={sheetColor} marginHorizontal="auto" width={isFullscreen ? '50%' : '90%'}>
                   <Sheet.ScrollView>
                     <HorizontalTabs items={tabItems as TabItem[]} initialTab="tab1" />
                   </Sheet.ScrollView>

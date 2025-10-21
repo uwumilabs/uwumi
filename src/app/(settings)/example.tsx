@@ -9,6 +9,7 @@ import { ThemedView } from '@/components';
 import { Button, Text, ScrollView, YStack } from 'tamagui';
 import { storage } from '@/hooks/stores/MMKV';
 import { useDownloadStore } from '@/hooks/stores/useDownloadStore';
+import { TextTrackType } from 'react-native-video';
 
 const Example = () => {
   const getAllMMKVKeys = () => {
@@ -38,7 +39,7 @@ const Example = () => {
   return (
     <ThemedView>
       <ScrollView>
-        <YStack padding="$4" space="$3">
+        <YStack padding="$4" gap="$3">
           <Button
             onPress={() => {
               getAllMMKVKeys();
@@ -69,7 +70,8 @@ const Example = () => {
 
           <Button
             onPress={async () => {
-              const HLS_URL = 'https://bitmovin-a.akamaihd.net/content/sintel/hls/playlist.m3u8';
+              const HLS_URL =
+                'http://cdnapi.kaltura.com/p/1878761/sp/187876100/playManifest/entryId/1_2xvajead/flavorIds/1_tl01409m,1_kptb3ez8,1_re3akioy,1_wuylsxwp/format/applehttp/protocol/http/a.m3u8';
               const VTT_URL =
                 'https://raw.githubusercontent.com/1c7/vtt-test-file/refs/heads/master/vtt%20files/4.%20No%20Hour.vtt';
 
@@ -77,7 +79,9 @@ const Example = () => {
                 url: HLS_URL,
                 animeName: 'Sintel',
                 episode: 1,
-                externalSubtitles: [{ url: VTT_URL, language: 'en', title: 'English External' }],
+                externalSubtitles: [
+                  { uri: VTT_URL, language: 'en', title: 'English External', type: TextTrackType.VTT },
+                ],
               });
               setLastDownloadId(id);
 
@@ -95,7 +99,7 @@ const Example = () => {
               backgroundColor="$color3"
               padding="$4"
               borderRadius="$4"
-              space="$2"
+              gap="$2"
               marginTop="$3"
               borderWidth={2}
               borderColor="$color4">

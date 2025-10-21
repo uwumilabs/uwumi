@@ -15,14 +15,57 @@ import {
   Inter_800ExtraBold as InterBold,
 } from '@expo-google-fonts/inter';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useThemeStore, useAccentStore, useUpdateChecker, useOnboardingFlowStore } from '@/hooks';
+import { useThemeStore, useAccentStore, useUpdateChecker } from '@/hooks';
 import * as WebBrowser from 'expo-web-browser';
 import { SystemBars } from 'react-native-edge-to-edge';
-import { LogBox } from 'react-native';
+import { LogBox, Platform } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
+import StoragePermissionModule from '../../modules/storage-permission-module';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+// Storage Permission Utility using native module
+export const requestStoragePermission = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android') return true;
+
+  try {
+    console.log('📱 Requesting storage permission via native module...');
+
+    // Check if we already have permission
+    const hasPermission = await StoragePermissionModule.hasStoragePermission();
+    if (hasPermission) {
+      console.log('✅ Storage permission already granted');
+      return true;
+    }
+
+    // Get Android version for logging
+    const androidVersion = StoragePermissionModule.getAndroidVersion();
+    console.log(`📱 Android API Level: ${androidVersion}`);
+
+    // Request permission
+    const result = await StoragePermissionModule.requestStoragePermission();
+    console.log('🔐 Permission result:', result);
+
+    if (result.status === 'needs_settings') {
+      console.log('⚠️ Need to open settings for MANAGE_EXTERNAL_STORAGE');
+      // Optionally open settings automatically or show a dialog
+      await StoragePermissionModule.openAppSettings();
+      return false;
+    }
+
+    if (result.granted) {
+      console.log('✅ Storage permission granted');
+      return true;
+    } else {
+      console.log(`❌ Storage permission denied (status: ${result.status})`);
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Error requesting storage permission:', error);
+    return false;
+  }
+};
 
 interface DownloadDialogProps {
   currentVersion: string;
@@ -129,12 +172,26 @@ const AppContent = () => {
   });
 
   const themeName = useThemeStore((state) => state.themeName);
+
+  // Request storage permissions on app startup
+  useEffect(() => {
+    const requestPermissions = async () => {
+      const granted = await requestStoragePermission();
+      if (granted) {
+        console.log('✅ Storage permissions granted');
+      } else {
+        console.warn('⚠️ Storage permissions denied');
+      }
+    };
+
+    requestPermissions();
+  }, []);
+
   useEffect(() => {
     if (loaded && isUpdateChecked) {
       SplashScreen.hideAsync();
     }
   }, [loaded, isUpdateChecked]);
-  const { hasCompletedOnboarding } = useOnboardingFlowStore();
 
   if (!loaded) {
     return null;

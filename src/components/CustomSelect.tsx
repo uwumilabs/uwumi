@@ -3,7 +3,7 @@ import { Check, ChevronDown, X } from '@tamagui/lucide-icons';
 import { Adapt, Select, Sheet } from 'tamagui';
 import { RippleButton } from './ui-primitives';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SHEET_COLOR } from '@/constants/config';
+import { useSheetColor } from '@/hooks';
 
 type SelectOption = {
   name: string;
@@ -23,6 +23,7 @@ export const CustomSelect = ({
 }) => {
   const [openSelect, setOpenSelect] = useState(false);
   const insets = useSafeAreaInsets();
+  const sheetColor = useSheetColor();
 
   const handleValueChange = (newValue: string) => {
     onValueChange(newValue);
@@ -31,7 +32,7 @@ export const CustomSelect = ({
 
   return (
     <Select open={openSelect} value={value} onValueChange={handleValueChange} onOpenChange={setOpenSelect}>
-      <Select.Trigger backgroundColor={SHEET_COLOR} width={150} iconAfter={ChevronDown}>
+      <Select.Trigger backgroundColor={sheetColor} width={150} iconAfter={ChevronDown}>
         <Select.Value width={90}>{SelectItem.find((opt) => opt.value === value)?.name || SelectLabel}</Select.Value>
       </Select.Trigger>
 
@@ -49,7 +50,7 @@ export const CustomSelect = ({
             enterStyle={{ opacity: 0 }}
             exitStyle={{ opacity: 0 }}
           />
-          <Sheet.Frame paddingBottom={insets.bottom} backgroundColor={SHEET_COLOR}>
+          <Sheet.Frame paddingBottom={insets.bottom} backgroundColor={sheetColor}>
             <Sheet.ScrollView showsVerticalScrollIndicator>
               <Adapt.Contents />
             </Sheet.ScrollView>
@@ -65,7 +66,7 @@ export const CustomSelect = ({
           exitStyle={{ x: 0, y: 10 }}
           minWidth={200}>
           <Select.Group>
-            <Select.Label backgroundColor={SHEET_COLOR} width={'100%'}>
+            <Select.Label backgroundColor={sheetColor} width={'100%'}>
               {SelectLabel}{' '}
               <RippleButton onPress={() => setOpenSelect(false)}>
                 <X />
@@ -73,7 +74,7 @@ export const CustomSelect = ({
             </Select.Label>
 
             {SelectItem.map((item, index) => (
-              <Select.Item backgroundColor={SHEET_COLOR} key={item.value} index={index} value={item.value}>
+              <Select.Item backgroundColor={sheetColor} key={item.value} index={index} value={item.value}>
                 <Select.ItemText>{item.name}</Select.ItemText>
                 <Select.ItemIndicator marginLeft="auto">
                   <Check size={16} />
