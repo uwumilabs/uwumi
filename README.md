@@ -7,6 +7,12 @@
 <p align="center">
   A feature-rich anime, manga and movie streaming app built with React Native and Expo
 </p>
+<a href="https://discord.gg/n7xVPxbG4R">
+  <img
+    src="https://img.shields.io/discord/1387063063223599265?color=7289da&label=discord&logo=discord&logoColor=7289d"
+    alt="discord"
+  />
+</a>
 
 ## ✨ Features
 
