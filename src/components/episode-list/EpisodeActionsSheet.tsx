@@ -2,13 +2,15 @@ import React, { memo, useCallback, useState, useEffect } from 'react';
 import { Sheet, YStack, Text, XStack, Separator, Spinner } from 'tamagui';
 import { Linking, Platform, ScrollView } from 'react-native';
 import { IAnimeEpisode, IMovieEpisode, IEpisodeServer } from 'react-native-consumet';
-import { Check, X, Play, ChevronRight, Server, ChevronLeft } from '@tamagui/lucide-icons';
+import { Check, X, Play, ChevronRight, Server, ChevronLeft, Download } from '@tamagui/lucide-icons';
 import {
   useWatchProgressStore,
   useWatchAnimeEpisodes,
   useWatchMoviesEpisodes,
   useServerStore,
   useSheetColor,
+  useDownloadStore,
+  useMediaInfoStore,
 } from '@/hooks';
 import { toast } from 'sonner-native';
 import { MediaType } from '@/constants/types';
@@ -31,12 +33,15 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const { setProgress, getProgress, progresses } = useWatchProgressStore();
     const { getCurrentServer } = useServerStore();
     const { getProvider } = useProviderStore();
+    const { addDownload, startDownload } = useDownloadStore();
+    const mediaInfo = useMediaInfoStore((state) => state.mediaInfo);
     const sheetColor = useSheetColor();
 
     const [showQualitySelection, setShowQualitySelection] = useState(false);
     const [showServerSelection, setShowServerSelection] = useState(false);
     const [shouldFetchSources, setShouldFetchSources] = useState(false);
     const [selectedServer, setSelectedServer] = useState<IEpisodeServer | null>(null);
+    const [actionMode, setActionMode] = useState<'external-player' | 'download'>('external-player');
 
     // Only fetch when user explicitly requests it
     const shouldEnableQuery = shouldFetchSources && !!episode?.id;
@@ -70,6 +75,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         setShowServerSelection(false);
         setSelectedServer(null);
         setShouldFetchSources(false);
+        setActionMode('external-player');
       }
     }, [open]);
 
@@ -109,8 +115,9 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
       onOpenChange(false);
     }, [episode, getProgress, setProgress, onOpenChange]);
 
-    const handleShowQualityOptions = () => {
+    const handleShowQualityOptions = (mode: 'external-player' | 'download') => {
       if (!episode?.id) return;
+      setActionMode(mode);
       // Trigger the query to fetch sources
       setShouldFetchSources(true);
     };
@@ -207,6 +214,75 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         }
       },
       [onOpenChange, data?.subtitles, episode],
+    );
+
+    const handleDownloadWithQuality = useCallback(
+      async (videoUrl: string) => {
+        try {
+          if (!episode) return;
+
+          // Extract episode number and title
+          const episodeNumber = Number(episode.number ?? episode.episode ?? 1);
+          const episodeName = episode.title || `Episode ${episodeNumber}`;
+
+          // Get show name from media info store
+          let showName: string | undefined;
+          if (mediaInfo?.title) {
+            showName =
+              typeof mediaInfo.title === 'object'
+                ? mediaInfo.title.english || mediaInfo.title.romaji || mediaInfo.title.native
+                : mediaInfo.title;
+          }
+
+          // Get season from episode or media info
+          // @ts-ignore - Some episode objects may have season property
+          const seasonFromEpisode = episode.season;
+          // @ts-ignore - Some media info objects may have season property
+          const seasonFromMedia = mediaInfo?.season;
+          const season =
+            seasonFromEpisode !== undefined
+              ? Number(seasonFromEpisode)
+              : seasonFromMedia !== undefined
+                ? Number(seasonFromMedia)
+                : undefined;
+
+          // Get subtitles if available
+          const subtitles = data?.subtitles || [];
+
+          // Convert subtitles to TextTracks format for download
+          const externalSubtitles = subtitles.map((sub) => ({
+            title: sub.lang || 'Unknown',
+            language: (sub.lang || 'en') as any, // Cast to avoid ISO639_1 type issues
+            type: 'application/x-subrip' as any,
+            uri: sub.url,
+          }));
+
+          // Add download to queue
+          const downloadId = addDownload({
+            url: videoUrl,
+            name: episodeName,
+            showName: showName,
+            season: season,
+            episode: episodeNumber,
+            externalSubtitles: externalSubtitles.length > 0 ? (externalSubtitles as any) : undefined,
+          });
+
+          // Start download immediately
+          await startDownload(downloadId);
+
+          toast.success('Download started', {
+            description: showName ? `${showName} - ${episodeName}` : `${episodeName} - Episode ${episodeNumber}`,
+          });
+
+          onOpenChange(false);
+        } catch (error) {
+          console.error('❌ Error starting download:', error);
+          toast.error('Failed to start download', {
+            description: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      },
+      [episode, data?.subtitles, mediaInfo, addDownload, startDownload, onOpenChange],
     );
 
     const handleBackToMainMenu = useCallback(() => {
@@ -312,7 +388,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                   justifyContent="space-between"
                   borderRadius="$3"
                   backgroundColor="$color4"
-                  onPress={handleShowQualityOptions}
+                  onPress={() => handleShowQualityOptions('external-player')}
                   cursor="pointer">
                   <XStack alignItems="center" gap="$3" flex={1}>
                     <Play size={20} color="$color" />
@@ -322,6 +398,29 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                       </Text>
                       <Text fontSize="$2.5" color="$color1" opacity={0.7}>
                         Choose quality
+                      </Text>
+                    </YStack>
+                  </XStack>
+                  <ChevronRight size={20} color="$color1" />
+                </XStack>
+
+                {/* Download */}
+                <XStack
+                  padding="$3.5"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  borderRadius="$3"
+                  backgroundColor="$color4"
+                  onPress={() => handleShowQualityOptions('download')}
+                  cursor="pointer">
+                  <XStack alignItems="center" gap="$3" flex={1}>
+                    <Download size={20} color="$color" />
+                    <YStack flex={1}>
+                      <Text fontSize="$4" fontWeight="500" color="$color">
+                        Download
+                      </Text>
+                      <Text fontSize="$2.5" color="$color1" opacity={0.7}>
+                        Save for offline viewing
                       </Text>
                     </YStack>
                   </XStack>
@@ -409,10 +508,16 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                           borderRadius="$3"
                           backgroundColor="$color4"
                           marginBottom="$1"
-                          onPress={() => handleOpenWithQuality(url)}
+                          onPress={() =>
+                            actionMode === 'download' ? handleDownloadWithQuality(url) : handleOpenWithQuality(url)
+                          }
                           cursor="pointer">
                           <XStack alignItems="center" gap="$3">
-                            <Play size={18} color="$color" />
+                            {actionMode === 'download' ? (
+                              <Download size={18} color="$color" />
+                            ) : (
+                              <Play size={18} color="$color" />
+                            )}
                             <YStack>
                               <Text fontSize="$4" fontWeight="500" color="$color">
                                 {quality}

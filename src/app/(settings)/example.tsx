@@ -34,8 +34,16 @@ const Example = () => {
 
   const [lastDownloadId, setLastDownloadId] = useState<string | null>(null);
 
-  const { downloads, initialize, addDownload, startDownload, getStreamInfo, getStorageInfo } = useDownloadStore();
+  // Subscribe to store methods (stable references)
+  const { initialize, addDownload, startDownload, getStreamInfo, getStorageInfo } = useDownloadStore();
 
+  // Subscribe to downloads object (will re-render on changes)
+  const downloads = useDownloadStore((state) => state.downloads);
+
+  // Get the specific download (will re-render when this download changes)
+  const currentDownload = lastDownloadId ? downloads[lastDownloadId] : null;
+
+  // console.log('Current Download:', currentDownload);
   return (
     <ThemedView>
       <ScrollView>
@@ -71,13 +79,15 @@ const Example = () => {
           <Button
             onPress={async () => {
               const HLS_URL =
-                'http://cdnapi.kaltura.com/p/1878761/sp/187876100/playManifest/entryId/1_2xvajead/flavorIds/1_tl01409m,1_kptb3ez8,1_re3akioy,1_wuylsxwp/format/applehttp/protocol/http/a.m3u8';
+                'https://vault-14.owocdn.top/stream/14/11/f42e0b2853302a6b2df351bde169e0e7c4294664c9f6b48ddff0201f6bc70afc/uwu.m3u8';
               const VTT_URL =
                 'https://raw.githubusercontent.com/1c7/vtt-test-file/refs/heads/master/vtt%20files/4.%20No%20Hour.vtt';
 
               const id = addDownload({
                 url: HLS_URL,
-                animeName: 'Sintel',
+                name: 'Big Buck Bunny',
+                showName: 'Test Series',
+                season: 1,
                 episode: 1,
                 externalSubtitles: [
                   { uri: VTT_URL, language: 'en', title: 'English External', type: TextTrackType.VTT },
@@ -90,11 +100,11 @@ const Example = () => {
               });
             }}
             themeInverse>
-            Download with External Subs
+            Download with Show Directory
           </Button>
 
           {/* Progress Display */}
-          {lastDownloadId && downloads[lastDownloadId] ? (
+          {currentDownload ? (
             <YStack
               backgroundColor="$color3"
               padding="$4"
@@ -104,29 +114,29 @@ const Example = () => {
               borderWidth={2}
               borderColor="$color4">
               <Text fontSize="$6" fontWeight="bold" color="$color">
-                Status: {downloads[lastDownloadId].status.toUpperCase()}
+                Status: {currentDownload.status.toUpperCase()}
               </Text>
               <Text fontSize="$5" color="$color1" marginTop="$2">
-                Progress: {downloads[lastDownloadId].progress?.percentage ?? 0}%
+                Progress: {currentDownload.progress?.percentage ?? 0}%
               </Text>
-              {downloads[lastDownloadId].progress ? (
+              {currentDownload.progress ? (
                 <>
                   <Text fontSize="$4" color="$color1">
-                    Time: {Math.floor(downloads[lastDownloadId].progress!.currentTime / 60)}:
-                    {Math.floor(downloads[lastDownloadId].progress!.currentTime % 60)
+                    Time: {Math.floor(currentDownload.progress.currentTime / 60)}:
+                    {Math.floor(currentDownload.progress.currentTime % 60)
                       .toString()
                       .padStart(2, '0')}{' '}
-                    / {Math.floor(downloads[lastDownloadId].progress!.totalDuration / 60)}:
-                    {Math.floor(downloads[lastDownloadId].progress!.totalDuration % 60)
+                    / {Math.floor(currentDownload.progress.totalDuration / 60)}:
+                    {Math.floor(currentDownload.progress.totalDuration % 60)
                       .toString()
                       .padStart(2, '0')}
                   </Text>
                   <Text fontSize="$4" color="$color1">
-                    Speed: {downloads[lastDownloadId].progress!.speed.toFixed(2)}x | Bitrate:{' '}
-                    {(downloads[lastDownloadId].progress!.bitrate / 1000).toFixed(0)} kbps
+                    Speed: {currentDownload.progress.speed.toFixed(2)}x | Bitrate:{' '}
+                    {(currentDownload.progress.bitrate / 1000).toFixed(0)} kbps
                   </Text>
                   <Text fontSize="$4" color="$color1">
-                    Size: {(downloads[lastDownloadId].progress!.size / 1024 / 1024).toFixed(2)} MB
+                    Size: {(currentDownload.progress.size / 1024 / 1024).toFixed(2)} MB
                   </Text>
                 </>
               ) : null}

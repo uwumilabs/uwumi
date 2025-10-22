@@ -18,7 +18,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useThemeStore, useAccentStore, useUpdateChecker } from '@/hooks';
 import * as WebBrowser from 'expo-web-browser';
 import { SystemBars } from 'react-native-edge-to-edge';
-import { LogBox, Platform } from 'react-native';
+import { LogBox, Platform, PermissionsAndroid } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import StoragePermissionModule from '../../modules/storage-permission-module';
 
@@ -31,7 +31,7 @@ export const requestStoragePermission = async (): Promise<boolean> => {
 
   try {
     console.log('📱 Requesting storage permission via native module...');
-
+    await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
     // Check if we already have permission
     const hasPermission = await StoragePermissionModule.hasStoragePermission();
     if (hasPermission) {

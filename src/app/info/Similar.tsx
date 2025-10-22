@@ -2,17 +2,15 @@ import { View } from 'tamagui';
 import React from 'react';
 import { MediaType, MetaProvider } from '@/constants/types';
 import { CardList } from '@/components';
-import { IAnimeInfo, IMovieInfo } from 'react-native-consumet';
+import { useLocalSearchParams } from 'expo-router';
+import { useMediaInfoStore } from '@/hooks';
 
-const Similar = ({
-  data,
-  mediaType,
-  metaProvider,
-}: {
-  data?: IAnimeInfo | IMovieInfo;
-  mediaType: MediaType;
-  metaProvider: MetaProvider;
-}) => {
+const Similar = () => {
+  const data = useMediaInfoStore((state) => state.mediaInfo);
+  const { mediaType, metaProvider } = useLocalSearchParams<{
+    mediaType: MediaType;
+    metaProvider: MetaProvider;
+  }>();
   return (
     <View height="100%">
       {/* @ts-ignore */}

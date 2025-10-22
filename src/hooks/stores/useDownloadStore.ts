@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import * as RNFS from '@dr.pogodin/react-native-fs';
 import { FFmpegKit, FFmpegKitConfig, FFprobeKit, Log, ReturnCode } from 'react-native-ffmpeg-kit';
 import type { VideoTrack, AudioTrack, TextTrack, TextTracks } from 'react-native-video';
+import BackgroundService from 'react-native-background-actions';
 import { storage } from './MMKV';
 import { UWUMI_DIR } from '@/constants/config';
 
@@ -10,11 +11,6 @@ const DOWNLOADS_DIR = `${UWUMI_DIR}/downloads`; // Downloaded episodes
 const TEMP_DIR = `${RNFS.CachesDirectoryPath}/ffmpeg_temp`; // Temporary FFmpeg files
 
 // Types
-interface ExternalSubtitle {
-  url: string;
-  language: string;
-  title: string;
-}
 
 interface StreamInfo {
   duration: number;
@@ -37,12 +33,14 @@ interface DownloadProgress {
 interface EpisodeDownload {
   id: string;
   url: string;
-  animeName: string;
+  name: string;
+  showName?: string;
   episode: number;
+  season?: number;
   externalSubtitles?: TextTracks;
   status: 'pending' | 'downloading' | 'completed' | 'failed' | 'cancelled';
   progress?: DownloadProgress;
-  outputFile?: string; // Changed from File to string (file path)
+  outputFile?: string;
   fileSize?: number;
   sessionId?: number;
   error?: string;
@@ -55,6 +53,7 @@ interface DownloadState {
   isInitialized: boolean;
   downloads: Record<string, EpisodeDownload>;
   activeSessionIds: Set<number>;
+  isBackgroundServiceRunning: boolean;
 
   // Actions
   initialize: () => Promise<boolean>;
@@ -77,6 +76,9 @@ interface DownloadState {
     totalDownloads: number;
   };
   cleanupTempFiles: () => Promise<void>;
+  startBackgroundService: () => Promise<void>;
+  stopBackgroundService: () => Promise<void>;
+  updateBackgroundNotification: (downloadId: string) => Promise<void>;
 }
 
 // Helper Functions
@@ -110,6 +112,7 @@ export const useDownloadStore = create<DownloadState>()(
       isInitialized: false,
       downloads: {},
       activeSessionIds: new Set(),
+      isBackgroundServiceRunning: false,
 
       // Initialize FFmpeg Kit and directories
       initialize: async () => {
@@ -141,7 +144,7 @@ export const useDownloadStore = create<DownloadState>()(
 
       // Add download to queue
       addDownload: (episode) => {
-        const downloadId = `${episode.animeName.replace(/[^a-zA-Z0-9]/g, '_')}_E${episode.episode}_${Date.now()}`;
+        const downloadId = `${episode.name.replace(/[^a-zA-Z0-9]/g, '_')}_E${episode.episode}_${Date.now()}`;
         const download: EpisodeDownload = {
           ...episode,
           id: downloadId,
@@ -167,20 +170,40 @@ export const useDownloadStore = create<DownloadState>()(
         if (!download || download.status === 'downloading') return;
 
         try {
-          // Update status
+          // Start background service if not already running
+          await get().startBackgroundService();
+
+          // Update status with initial progress
           set((state) => ({
             downloads: {
               ...state.downloads,
-              [downloadId]: { ...download, status: 'downloading' },
+              [downloadId]: {
+                ...download,
+                status: 'downloading',
+                progress: {
+                  percentage: 0,
+                  currentTime: 0,
+                  totalDuration: 0,
+                  speed: 0,
+                  bitrate: 0,
+                  size: 0,
+                },
+              },
             },
           }));
+
+          // Update notification
+          await get().updateBackgroundNotification(downloadId);
 
           // Get stream info
           let streamInfo;
           try {
             streamInfo = await get().getStreamInfo(download.url);
           } catch (streamError) {
-            console.error(`❌ FFprobe failed for: ${download.animeName} E${download.episode}`, streamError);
+            console.error(
+              `❌ FFprobe failed for: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
+              streamError,
+            );
             set((state) => ({
               downloads: {
                 ...state.downloads,
@@ -191,12 +214,29 @@ export const useDownloadStore = create<DownloadState>()(
                 },
               },
             }));
+
+            // Stop background service if no more downloads
+            const hasActiveDownloads = Object.values(get().downloads).some((d) => d.status === 'downloading');
+            if (!hasActiveDownloads) {
+              await get().stopBackgroundService();
+            }
             return;
           }
 
-          // Prepare output file path
-          const filename = `${download.animeName.replace(/[^a-zA-Z0-9]/g, '_')}_E${download.episode}.mp4`;
-          const outputFile = `${DOWNLOADS_DIR}/${filename}`;
+          // Prepare output file path with show directory structure
+          let showDir = DOWNLOADS_DIR;
+
+          // Create show-specific directory if showName is provided
+          if (download.showName) {
+            const sanitizedShowName = download.showName.replace(/[^a-zA-Z0-9]/g, '_');
+            showDir = `${DOWNLOADS_DIR}/${sanitizedShowName}`;
+            await ensureDir(showDir);
+          }
+
+          const filename = `${download.name.replace(/[^a-zA-Z0-9]/g, '_')}${
+            download.season ? `_S${download.season}` : ''
+          }_E${download.episode}.mp4`;
+          const outputFile = `${showDir}/${filename}`;
 
           // Build FFmpeg command - Download ALL tracks with best subtitle codec
           // -map 0:v:0 = First video track
@@ -315,16 +355,22 @@ export const useDownloadStore = create<DownloadState>()(
                 const bitrateStr = `${(progress.bitrate / 1000).toFixed(0)} kbps`;
 
                 console.log(
-                  `📥 ${dl.animeName} E${dl.episode} | ${percentage}% | ${timeStr}/${totalStr} | ${sizeStr} | ${bitrateStr} | Speed: ${progress.speed.toFixed(2)}x`,
+                  `📥 ${dl.name}${dl.season ? ` S${dl.season}` : ''} E${dl.episode} | ${percentage}% | ${timeStr}/${totalStr} | ${sizeStr} | ${bitrateStr} | Speed: ${progress.speed.toFixed(2)}x`,
                 );
 
-                // Update state
-                set((state) => ({
+                // Update state with new object to ensure re-render
+                set(() => ({
                   downloads: {
-                    ...state.downloads,
-                    [dlId]: { ...state.downloads[dlId], progress },
+                    ...get().downloads,
+                    [dlId]: {
+                      ...get().downloads[dlId],
+                      progress: { ...progress }, // Create new progress object reference
+                    },
                   },
                 }));
+
+                // Update background notification
+                get().updateBackgroundNotification(dlId);
 
                 // Call callback for THIS download
                 if (dlId === downloadId && onProgress) {
@@ -345,7 +391,9 @@ export const useDownloadStore = create<DownloadState>()(
               const fileExists = await RNFS.exists(outputFile);
               if (fileExists) {
                 const fileStat = await RNFS.stat(outputFile);
-                console.log(`✅ Download completed: ${download.animeName} E${download.episode}`);
+                console.log(
+                  `✅ Download completed: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
+                );
                 set((state) => ({
                   downloads: {
                     ...state.downloads,
@@ -374,7 +422,9 @@ export const useDownloadStore = create<DownloadState>()(
                 }));
               }
             } else if (ReturnCode.isCancel(returnCode)) {
-              console.log(`🚫 Download cancelled: ${download.animeName} E${download.episode}`);
+              console.log(
+                `🚫 Download cancelled: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
+              );
               set((state) => ({
                 downloads: {
                   ...state.downloads,
@@ -385,7 +435,7 @@ export const useDownloadStore = create<DownloadState>()(
                 },
                 activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
               }));
-            } else {
+            } /*else {
               // Failed
               console.error(`❌ FFmpeg failed with return code: ${returnCode}`);
               set((state) => ({
@@ -399,6 +449,12 @@ export const useDownloadStore = create<DownloadState>()(
                 },
                 activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
               }));
+            }*/
+
+            // Stop background service if no more active downloads
+            const hasActiveDownloads = Object.values(get().downloads).some((d) => d.status === 'downloading');
+            if (!hasActiveDownloads) {
+              await get().stopBackgroundService();
             }
           });
 
@@ -445,6 +501,12 @@ export const useDownloadStore = create<DownloadState>()(
             activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== download.sessionId)),
           }));
 
+          // Stop background service if no more downloads
+          const hasActiveDownloads = Object.values(get().downloads).some((d) => d.status === 'downloading');
+          if (!hasActiveDownloads) {
+            await get().stopBackgroundService();
+          }
+
           return true;
         } catch (error) {
           console.error('Cancel failed:', error);
@@ -471,6 +533,9 @@ export const useDownloadStore = create<DownloadState>()(
             ),
             activeSessionIds: new Set(),
           }));
+
+          // Stop background service since all downloads are cancelled
+          await get().stopBackgroundService();
         } catch (error) {
           console.error('Cancel all failed:', error);
         }
@@ -584,7 +649,7 @@ export const useDownloadStore = create<DownloadState>()(
                   totalEpisodes: episodes.length,
                   episodeProgress: progress,
                   overallProgress: Math.round(((i + progress.percentage / 100) / episodes.length) * 100),
-                  currentEpisodeName: `${episode.animeName} Episode ${episode.episode}`,
+                  currentEpisodeName: `${episode.name} Episode ${episode.episode}`,
                 });
               }
             });
@@ -635,6 +700,103 @@ export const useDownloadStore = create<DownloadState>()(
           console.error('❌ Failed to cleanup temp files:', error);
         }
       },
+
+      // Start background service for downloads
+      startBackgroundService: async () => {
+        const state = get();
+        if (state.isBackgroundServiceRunning) return;
+
+        try {
+          const backgroundTask = async (taskDataArguments: any) => {
+            // Keep-alive task - just keeps the service running
+            await new Promise(async (resolve) => {
+              while (BackgroundService.isRunning()) {
+                // Check if there are active downloads
+                const currentState = get();
+                const hasActiveDownloads = Object.values(currentState.downloads).some(
+                  (d) => d.status === 'downloading',
+                );
+
+                if (!hasActiveDownloads) {
+                  // No more downloads, stop service
+                  console.log('📱 No active downloads, stopping background service');
+                  break;
+                }
+
+                // Wait before checking again
+                await new Promise((r) => setTimeout(r, 2000));
+              }
+              resolve(undefined);
+            });
+          };
+
+          const options = {
+            taskName: 'DownloadTask',
+            taskTitle: 'Downloading Episodes',
+            taskDesc: 'Preparing download...',
+            taskIcon: {
+              name: 'ic_launcher',
+              type: 'mipmap',
+            },
+            color: '#8b5cf6',
+            linkingURI: 'uwumi://(tabs)/more',
+            parameters: {},
+          };
+
+          await BackgroundService.start(backgroundTask, options);
+          set({ isBackgroundServiceRunning: true });
+          console.log('✅ Background service started');
+        } catch (error) {
+          console.error('❌ Failed to start background service:', error);
+        }
+      },
+
+      // Stop background service
+      stopBackgroundService: async () => {
+        const state = get();
+        if (!state.isBackgroundServiceRunning) return;
+
+        try {
+          await BackgroundService.stop();
+          set({ isBackgroundServiceRunning: false });
+          console.log('✅ Background service stopped');
+        } catch (error) {
+          console.error('❌ Failed to stop background service:', error);
+        }
+      },
+
+      // Update background notification with current download progress
+      updateBackgroundNotification: async (downloadId: string) => {
+        const state = get();
+        const download = state.downloads[downloadId];
+
+        if (!download || !state.isBackgroundServiceRunning) return;
+
+        try {
+          const progress = download.progress;
+          const progressText = progress
+            ? `${progress.percentage.toFixed(1)}% • ${(progress.speed * 1024).toFixed(1)} KB/s`
+            : 'Starting...';
+
+          await BackgroundService.updateNotification({
+            taskTitle: `${download.name}${download.season ? ` Season ${download.season}` : ''} - Episode ${download.episode}`,
+            taskDesc: progressText,
+            progressBar: progress
+              ? {
+                  max: 100,
+                  value: Math.round(progress.percentage),
+                  indeterminate: false,
+                }
+              : {
+                  max: 100,
+                  value: 0,
+                  indeterminate: true,
+                },
+          });
+        } catch (error) {
+          console.error('❌ Failed to update notification:', error);
+        }
+      },
     }),
     {
       name: 'download-storage',
@@ -645,14 +807,20 @@ export const useDownloadStore = create<DownloadState>()(
       })),
       partialize: (state) => ({
         downloads: Object.fromEntries(
-          Object.entries(state.downloads).map(([id, download]) => [
-            id,
-            {
-              ...download,
-              outputFile: download.outputFile || undefined,
-            },
-          ]),
+          Object.entries(state.downloads).map(([id, download]) => {
+            // Exclude transient fields from persistence
+            const { progress, sessionId, ...persistableDownload } = download;
+            return [
+              id,
+              {
+                ...persistableDownload,
+                outputFile: download.outputFile || undefined,
+              },
+            ];
+          }),
         ),
+        // Don't persist these runtime-only fields
+        // isInitialized, activeSessionIds, isBackgroundServiceRunning will reset on restart
       }),
     },
   ),
@@ -664,23 +832,36 @@ export const useDownloadStore = create<DownloadState>()(
  * // Initialize
  * await useDownloadStore.getState().initialize();
  *
- * // Add and start download (automatically downloads ALL audio and subtitle tracks)
+ * // Single episode download (no show directory)
  * const downloadId = useDownloadStore.getState().addDownload({
- *   url: 'https://example.com/episode.m3u8',
- *   animeName: 'Attack on Titan',
+ *   url: 'https://example.com/movie.m3u8',
+ *   name: 'Spirited Away',
  *   episode: 1,
  * });
+ * // Creates: /downloads/Spirited_Away_E1.mp4
  *
- * // With external subtitles (if stream doesn't have any)
+ * // TV series download with show directory and season
  * const downloadId = useDownloadStore.getState().addDownload({
  *   url: 'https://example.com/episode.m3u8',
- *   animeName: 'Attack on Titan',
+ *   name: 'The Final Season',
+ *   showName: 'Attack on Titan',
+ *   season: 4,
  *   episode: 1,
+ * });
+ * // Creates: /downloads/Attack_on_Titan/The_Final_Season_S4_E1.mp4
+ *
+ * // With external subtitles
+ * const downloadId = useDownloadStore.getState().addDownload({
+ *   url: 'https://example.com/episode.m3u8',
+ *   name: 'Season 1',
+ *   showName: 'Demon Slayer',
+ *   season: 1,
+ *   episode: 5,
  *   externalSubtitles: [
- *     { url: 'https://example.com/subs/en.vtt', language: 'en', title: 'English' },
- *     { url: 'https://example.com/subs/ja.vtt', language: 'ja', title: 'Japanese' },
+ *     { uri: 'https://example.com/subs/en.vtt', language: 'en', title: 'English', type: 'text/vtt' },
  *   ],
  * });
+ * // Creates: /downloads/Demon_Slayer/Season_1_S1_E5.mp4
  *
  * await useDownloadStore.getState().startDownload(downloadId, (progress) => {
  *   console.log(`Progress: ${progress.percentage}% - Speed: ${progress.speed}x`);
@@ -692,10 +873,10 @@ export const useDownloadStore = create<DownloadState>()(
  *
  * // Download queue
  * const episodes = [
- *   { url: 'url1', animeName: 'AOT', episode: 1 },
+ *   { url: 'url1', name: 'AOT', episode: 1 },
  *   {
  *     url: 'url2',
- *     animeName: 'AOT',
+ *     name: 'AOT',
  *     episode: 2,
  *     externalSubtitles: [{ url: 'sub.vtt', language: 'en', title: 'English' }]
  *   },

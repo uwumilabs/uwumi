@@ -8,3 +8,5 @@ export * from './useFavoriteStore';
 export * from './useOnboardingFlowStore';
 export * from './useExternalSubtitleStore';
 export * from './useExtensionStore';
+export * from './useDownloadStore';
+export * from './useMediaInfoStore';

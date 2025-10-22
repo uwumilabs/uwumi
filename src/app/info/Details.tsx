@@ -5,14 +5,8 @@ import { ChevronDown } from '@tamagui/lucide-icons';
 import React, { useState } from 'react';
 import { WebView } from 'react-native-webview';
 import { hexToRGB } from '@/constants/utils';
-import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
+import { useCurrentTheme, usePureBlackBackground, useMediaInfoStore } from '@/hooks';
 import { RippleButton } from '@/components';
-import { IAnimeInfo, IMovieInfo } from 'react-native-consumet';
-
-type DetailsProps = {
-  data?: IAnimeInfo | IMovieInfo | undefined;
-  lineHeight?: number;
-};
 
 const StatisticsXStack = styled(XStack, {
   flex: 1,
@@ -34,7 +28,8 @@ const StatisticItem = ({ label, value }: { label: string; value: string }) => (
   </StatisticsXStack>
 );
 
-const Details: React.FC<DetailsProps> = ({ data, lineHeight = 20 }) => {
+const Details = () => {
+  const data = useMediaInfoStore((state) => state.mediaInfo);
   const [isExpanded, setIsExpanded] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const currentTheme = useCurrentTheme();
@@ -94,7 +89,7 @@ const Details: React.FC<DetailsProps> = ({ data, lineHeight = 20 }) => {
                   translateY: -contentHeight,
                 }}
                 animate={{
-                  translateY: isExpanded ? 0 : -contentHeight + lineHeight,
+                  translateY: isExpanded ? 0 : -contentHeight + 20,
                 }}
                 transition={{
                   type: 'timing',

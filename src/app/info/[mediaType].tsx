@@ -1,10 +1,10 @@
 import { AnimatedCountdown, AnimatedFavoriteButton } from './components';
 import { IconTitle, ThemedView, RippleButton, AnimatedCustomImage, HorizontalTabs } from '@/components';
-import { useCurrentTheme, useInfo, usePureBlackBackground, useExtensionStore } from '@/hooks';
+import { useCurrentTheme, useInfo, usePureBlackBackground, useExtensionStore, useMediaInfoStore } from '@/hooks';
 import { ArrowLeft, Clock, Globe, Star } from '@tamagui/lucide-icons';
 import { BlurView } from 'expo-blur';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ImageBackground, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Spinner, Text, View, XStack, YStack, ZStack } from 'tamagui';
@@ -30,11 +30,24 @@ const Info = () => {
   }>();
   const { getProvider } = useProviderStore();
   const { getExtensionInfo } = useExtensionStore();
+  const { setMediaInfo, clearMediaInfo } = useMediaInfoStore();
   const insets = useSafeAreaInsets();
   const { data, isLoading } = useInfo({ mediaType, id, metaProvider, type, provider: getProvider(mediaType) });
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const currentTheme = useCurrentTheme();
   const router = useRouter();
+
+  // Update store when data changes
+  useEffect(() => {
+    if (data && id) {
+      setMediaInfo(data, id);
+    }
+
+    // Clear store on unmount
+    return () => {
+      clearMediaInfo();
+    };
+  }, [data, mediaType, id, metaProvider, setMediaInfo, clearMediaInfo]);
 
   const tabItems = [
     {
@@ -45,12 +58,12 @@ const Info = () => {
     {
       key: 'tab2',
       label: 'Details',
-      content: <Details data={data} />,
+      content: <Details />,
     },
     {
       key: 'tab3',
       label: 'Similar',
-      content: <Similar data={data} mediaType={mediaType} metaProvider={metaProvider} />,
+      content: <Similar />,
     },
   ];
   // console.log(data);
