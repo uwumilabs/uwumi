@@ -93,8 +93,8 @@ android {
         applicationId 'com.x2004durgesh.uwumi'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 17
-        versionName "3.0.0-rc.3"
+        versionCode 18
+        versionName "3.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
