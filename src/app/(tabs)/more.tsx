@@ -2,7 +2,7 @@ import React, { RefObject, useMemo } from 'react';
 import { ThemedView } from '@/components';
 import { Text, YStack, XStack, Separator } from 'tamagui';
 import { Route, useRouter } from 'expo-router';
-import { Palette, Info, Heart, Package } from '@tamagui/lucide-icons';
+import { Palette, Info, Heart, Package, Download } from '@tamagui/lucide-icons';
 import { Pressable, View } from 'react-native';
 
 const MenuItem = ({
@@ -46,6 +46,7 @@ const More = () => {
       { href: '/(settings)/extensions' as Route, icon: Package, label: 'Extensions' },
       // { href: '/(settings)' as Route, icon: Settings, label: 'Settings' },
       { href: '/(settings)/favorites' as Route, icon: Heart, label: 'Favorites' },
+      { href: '/(settings)/downloads' as Route, icon: Download, label: 'Downloads' },
       { href: '/(settings)/about' as Route, icon: Info, label: 'About' },
     ];
 

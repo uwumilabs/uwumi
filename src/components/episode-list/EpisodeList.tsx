@@ -88,7 +88,7 @@ export const EpisodeList = ({
   // console.log('episodes', episodes);
 
   const { currentUniqueId } = useEpisodesIdStore();
-  const progresses = useWatchProgressStore((state) => state.progresses);
+  const { progresses, setProgress } = useWatchProgressStore();
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const { displayMode, setDisplayMode } = useEpisodeDisplayStore();
   const { setCurrentServer, getCurrentServer, servers } = useServerStore();
@@ -146,51 +146,87 @@ export const EpisodeList = ({
     [mediaType, setProvider],
   );
 
-  const rightActions = (_prog: SharedValue<number>, drag: SharedValue<number>) => {
-    const THRESHOLD = 100;
+  const handleToggleComplete = useCallback(
+    (item: IAnimeEpisode | IMovieEpisode) => {
+      if (!item?.uniqueId) return;
 
-    const animatedStyle = useAnimatedStyle(() => {
-      const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
-      return {
-        transform: [{ scale: withSpring(0.9 + progress * 0.1, { mass: 0.5, damping: 20, stiffness: 200 }) }],
-        opacity: withSpring(progress > 0 ? 1 : 0.7),
+      const progress = progresses[item.uniqueId];
+      const isCompleted = progress?.isCompleted ?? false;
+
+      const newProgress = {
+        currentTime: isCompleted ? 0 : (progress?.duration ?? 0),
+        duration: progress?.duration ?? 0,
+        progress: isCompleted ? 0 : 100,
+        isCompleted: !isCompleted,
       };
-    });
 
-    const eyeIconStyle = useAnimatedStyle(() => {
-      const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
-      // Interpolate icon opacity based on progress
-      const opacity = interpolate(progress, [0.5, 1], [1, 0], Extrapolation.CLAMP);
-      return { opacity };
-    });
+      setProgress(item.uniqueId, newProgress);
 
-    const eyeOffIconStyle = useAnimatedStyle(() => {
-      const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
-      const opacity = interpolate(progress, [0.5, 1], [0, 1], Extrapolation.CLAMP);
-      return { opacity };
-    });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    [progresses, setProgress],
+  );
 
-    return (
-      <Animated.View
-        style={[
-          animatedStyle,
-          { width: 100, justifyContent: 'center', alignItems: 'center', backgroundColor: currentTheme?.color4 },
-        ]}>
-        <Animated.View
-          style={[{ ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' }, eyeIconStyle]}>
-          <Eye color="white" size={24} />
-        </Animated.View>
+  const rightActions = useCallback(
+    (item: IAnimeEpisode | IMovieEpisode) => {
+      return (_prog: SharedValue<number>, drag: SharedValue<number>) => {
+        const THRESHOLD = 100;
 
-        <Animated.View
-          style={[
-            { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
-            eyeOffIconStyle,
-          ]}>
-          <EyeOff color="white" size={24} />
-        </Animated.View>
-      </Animated.View>
-    );
-  };
+        // Check if episode is already completed
+        const progress = progresses[item?.uniqueId as string];
+        const isCompleted = progress?.isCompleted ?? false;
+
+        const animatedStyle = useAnimatedStyle(() => {
+          const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
+          return {
+            transform: [{ scale: withSpring(0.9 + progress * 0.1, { mass: 0.5, damping: 20, stiffness: 200 }) }],
+            opacity: withSpring(progress > 0 ? 1 : 0.7),
+          };
+        });
+
+        const firstIconStyle = useAnimatedStyle(() => {
+          const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
+          // If completed: show EyeOff first (fade out), else show Eye first (fade out)
+          const opacity = interpolate(progress, [0, 0.5], [1, 0], Extrapolation.CLAMP);
+          return { opacity };
+        });
+
+        const secondIconStyle = useAnimatedStyle(() => {
+          const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
+          // If completed: show Eye after (fade in), else show EyeOff after (fade in)
+          const opacity = interpolate(progress, [0.5, 1], [0, 1], Extrapolation.CLAMP);
+          return { opacity };
+        });
+
+        return (
+          <Animated.View
+            style={[
+              animatedStyle,
+              { width: 100, justifyContent: 'center', alignItems: 'center', backgroundColor: currentTheme?.color4 },
+            ]}>
+            {/* Show current state icon (fades out) */}
+            <Animated.View
+              style={[
+                { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+                firstIconStyle,
+              ]}>
+              {isCompleted ? <EyeOff color="white" size={24} /> : <Eye color="white" size={24} />}
+            </Animated.View>
+
+            {/* Show new state icon (fades in) */}
+            <Animated.View
+              style={[
+                { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+                secondIconStyle,
+              ]}>
+              {isCompleted ? <Eye color="white" size={24} /> : <EyeOff color="white" size={24} />}
+            </Animated.View>
+          </Animated.View>
+        );
+      };
+    },
+    [progresses, currentTheme],
+  );
 
   const renderEpisodeProgress = useMemo(
     () => (item: IAnimeEpisode | IMovieEpisode) => {
@@ -497,12 +533,15 @@ export const EpisodeList = ({
               enableTrackpadTwoFingerGesture
               rightThreshold={40}
               onSwipeableOpen={() => {
+                // Toggle completion status
+                handleToggleComplete(item);
+                // Close the swipeable
                 const currentRef = swipeableRefs.current.get(itemKey);
                 currentRef?.current?.close();
               }}
               onSwipeableWillOpen={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
               onSwipeableWillClose={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-              renderRightActions={rightActions}>
+              renderRightActions={rightActions(item)}>
               <ListPressable item={item}>{renderItemContent(item)}</ListPressable>
             </ReanimatedSwipeable>
           ) : (

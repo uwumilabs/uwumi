@@ -30,35 +30,28 @@ export const requestStoragePermission = async (): Promise<boolean> => {
   if (Platform.OS !== 'android') return true;
 
   try {
-    console.log('📱 Requesting storage permission via native module...');
     await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
     // Check if we already have permission
     const hasPermission = await StoragePermissionModule.hasStoragePermission();
     if (hasPermission) {
-      console.log('✅ Storage permission already granted');
       return true;
     }
 
     // Get Android version for logging
     const androidVersion = StoragePermissionModule.getAndroidVersion();
-    console.log(`📱 Android API Level: ${androidVersion}`);
 
     // Request permission
     const result = await StoragePermissionModule.requestStoragePermission();
-    console.log('🔐 Permission result:', result);
 
     if (result.status === 'needs_settings') {
-      console.log('⚠️ Need to open settings for MANAGE_EXTERNAL_STORAGE');
       // Optionally open settings automatically or show a dialog
       await StoragePermissionModule.openAppSettings();
       return false;
     }
 
     if (result.granted) {
-      console.log('✅ Storage permission granted');
       return true;
     } else {
-      console.log(`❌ Storage permission denied (status: ${result.status})`);
       return false;
     }
   } catch (error) {
@@ -178,7 +171,6 @@ const AppContent = () => {
     const requestPermissions = async () => {
       const granted = await requestStoragePermission();
       if (granted) {
-        console.log('✅ Storage permissions granted');
       } else {
         console.warn('⚠️ Storage permissions denied');
       }
@@ -202,7 +194,6 @@ const AppContent = () => {
       <PortalProvider>
         <Theme name={themeName}>
           <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
-            {/* <Stack.Screen name="(onboarding)" /> */}
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="info/[mediaType]" />
             <Stack.Screen name="watch/[mediaType]" />

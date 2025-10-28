@@ -60,6 +60,7 @@ export default function SettingsLayout() {
       <Stack.Screen name="about" options={{ title: 'About' }} />
       <Stack.Screen name="appearance" options={{ title: 'Appearance' }} />
       <Stack.Screen name="favorites" options={{ title: 'Favorites' }} />
+      <Stack.Screen name="downloads" options={{ title: 'Downloads' }} />
       <Stack.Screen name="example" options={{ title: 'Example' }} />
       <Stack.Screen name="extensions" options={{ title: 'Extensions' }} />
     </Stack>

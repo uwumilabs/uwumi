@@ -148,6 +148,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
             const extras: Record<string, any> = {
               title: episode?.title || `Episode ${episode?.number ?? episode?.episode}`,
               position: progress ? Math.floor(progress.currentTime * 1000) : 0, // in ms
+              return_result: true,
             };
 
             // Add subtitle URLs if available (for MX Player, VLC, etc.)
@@ -175,19 +176,16 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
               flags: 1,
               extra: extras,
             });
-
             // Check if player returned any useful data
             if (result.extra) {
-              console.log(result.extra);
-
               // @ts-ignore
               const position = result.extra.extra_position ?? result.extra.position;
               // @ts-ignore
               const duration = result.extra.extra_duration ?? result.extra.duration;
 
-              console.log('🎥 Playback Info from External Player:');
-              if (position !== undefined) console.log('  ⏱️  Position:', position / 1000, 's');
-              if (duration !== undefined) console.log('  ⏱️  Duration:', duration / 1000, 's');
+              // console.log('🎥 Playback Info from External Player:');
+              // if (position !== undefined) console.log('  ⏱️  Position:', position / 1000, 's');
+              // if (duration !== undefined) console.log('  ⏱️  Duration:', duration / 1000, 's');
 
               // You can use this data to update watch progress
               // Example: if position and duration are available, update progress store
@@ -264,6 +262,8 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
             showName: showName,
             season: season,
             episode: episodeNumber,
+            uniqueId: episode.uniqueId,
+            episodeId: episode.id,
             externalSubtitles: externalSubtitles.length > 0 ? (externalSubtitles as any) : undefined,
           });
 
@@ -329,7 +329,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         modal
         open={open}
         onOpenChange={onOpenChange}
-        snapPoints={showQualitySelection || showServerSelection ? [70] : [35]}
+        snapPoints={showQualitySelection || showServerSelection ? [70] : [40]}
         snapPointsMode="percent"
         dismissOnSnapToBottom
         zIndex={100_000}
@@ -433,7 +433,23 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
             {showServerSelection && (
               <ScrollView style={{ maxHeight: 400 }}>
                 <YStack gap="$1" marginTop="$2">
-                  {availableServers.length === 0 ? (
+                  {isLoading ? (
+                    <YStack alignItems="center" justifyContent="center" padding="$4">
+                      <Spinner size="large" color="$color" />
+                      <Text fontSize="$3" color="$color1" marginTop="$2">
+                        Loading servers...
+                      </Text>
+                    </YStack>
+                  ) : error ? (
+                    <YStack alignItems="center" padding="$4">
+                      <Text fontSize="$4" color="$red10" textAlign="center">
+                        Failed to load servers
+                      </Text>
+                      <Text fontSize="$3" color="$color1" textAlign="center" marginTop="$2">
+                        Please try again
+                      </Text>
+                    </YStack>
+                  ) : availableServers.length === 0 ? (
                     <YStack alignItems="center" padding="$4">
                       <Text fontSize="$4" color="$color1" textAlign="center">
                         No servers available

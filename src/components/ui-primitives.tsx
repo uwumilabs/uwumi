@@ -52,9 +52,10 @@ export const IconTitle = ({ icon: Icon, text, color, iconProps, textProps }: Ico
 interface RippleButtonProps extends TouchableWithoutFeedbackProps {
   onPress: () => void;
   children?: React.ReactNode;
+  containerStyle?: GetProps<typeof View>;
 }
 
-export const RippleButton: FC<RippleButtonProps> = ({ onPress, children, ...props }) => {
+export const RippleButton: FC<RippleButtonProps> = ({ onPress, children, containerStyle, ...props }) => {
   const themeName = useThemeStore((state) => state.themeName);
   return (
     <Ripple
@@ -66,7 +67,9 @@ export const RippleButton: FC<RippleButtonProps> = ({ onPress, children, ...prop
       rippleContainerBorderRadius={50}
       rippleOpacity={1}
       {...props}>
-      <View padding={10}>{children}</View>
+      <View padding={10} {...containerStyle}>
+        {children}
+      </View>
     </Ripple>
   );
 };

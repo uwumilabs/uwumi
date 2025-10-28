@@ -1,6 +1,13 @@
 import { AnimatedCountdown, AnimatedFavoriteButton } from './components';
 import { IconTitle, ThemedView, RippleButton, AnimatedCustomImage, HorizontalTabs } from '@/components';
-import { useCurrentTheme, useInfo, usePureBlackBackground, useExtensionStore, useMediaInfoStore } from '@/hooks';
+import {
+  useCurrentTheme,
+  useInfo,
+  usePureBlackBackground,
+  useExtensionStore,
+  useMediaInfoStore,
+  useEpisodesStore,
+} from '@/hooks';
 import { ArrowLeft, Clock, Globe, Star } from '@tamagui/lucide-icons';
 import { BlurView } from 'expo-blur';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -30,13 +37,13 @@ const Info = () => {
   }>();
   const { getProvider } = useProviderStore();
   const { getExtensionInfo } = useExtensionStore();
+  const { episodes } = useEpisodesStore();
   const { setMediaInfo, clearMediaInfo } = useMediaInfoStore();
   const insets = useSafeAreaInsets();
   const { data, isLoading } = useInfo({ mediaType, id, metaProvider, type, provider: getProvider(mediaType) });
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const currentTheme = useCurrentTheme();
   const router = useRouter();
-
   // Update store when data changes
   useEffect(() => {
     if (data && id) {
@@ -67,93 +74,96 @@ const Info = () => {
     },
   ];
   // console.log(data);
-  if (isLoading) {
-    return (
-      <ThemedView>
-        <YStack flex={1} justifyContent="center" alignItems="center">
-          <Spinner size="large" color="$color" />
-        </YStack>
-      </ThemedView>
-    );
-  }
+
   return (
     <>
       <ThemedView useSafeArea statusBarProps={{ translucent: true, backgroundColor: 'transparent' }}>
-        <ZStack height={300}>
-          <ImageBackground source={{ uri: data?.cover }} style={{ width: '100%', height: 300 }} />
-          <BlurView
-            style={{
-              ...StyleSheet.absoluteFillObject,
-            }}
-            intensity={20}
-            tint="dark"
-          />
-          <View height={300}>
-            <LinearGradient
-              width="100%"
-              height="300"
-              colors={
-                pureBlackBackground
-                  ? [hexToRGB('#000000', 1), hexToRGB('#000000', 0.7), hexToRGB('#000000', 0.4)]
-                  : [
-                      hexToRGB(currentTheme?.background, 1),
-                      hexToRGB(currentTheme?.background, 0.7),
-                      hexToRGB(currentTheme?.background, 0.4),
-                    ]
-              }
-              start={[0, 1]}
-              end={[0, 0.5]}
-              flex={1}
+        {isLoading ? (
+          <YStack height={300} justifyContent="center" alignItems="center">
+            <Spinner size="large" color="$color" />
+          </YStack>
+        ) : (
+          <ZStack height={300}>
+            <ImageBackground source={{ uri: data?.cover }} style={{ width: '100%', height: 300 }} />
+            <BlurView
+              style={{
+                ...StyleSheet.absoluteFillObject,
+              }}
+              intensity={20}
+              tint="dark"
             />
-          </View>
-          <View padding={10} marginTop={insets.top}>
-            <XStack alignItems="center" justifyContent="space-between" marginBlockEnd={20}>
-              {/* a small delay to ensure the back navigation is smooth  */}
-              <RippleButton onPress={() => router.back()}>
-                <ArrowLeft />
-              </RippleButton>
-
-              <AnimatedFavoriteButton
-                id={id}
-                title={data?.title!}
-                image={image || data?.image!}
-                type={type}
-                mediaType={mediaType}
-                provider={provider}
-                metaProvider={metaProvider}
+            <View height={300}>
+              <LinearGradient
+                width="100%"
+                height="300"
+                colors={
+                  pureBlackBackground
+                    ? [hexToRGB('#000000', 1), hexToRGB('#000000', 0.7), hexToRGB('#000000', 0.4)]
+                    : [
+                        hexToRGB(currentTheme?.background, 1),
+                        hexToRGB(currentTheme?.background, 0.7),
+                        hexToRGB(currentTheme?.background, 0.4),
+                      ]
+                }
+                start={[0, 1]}
+                end={[0, 0.5]}
+                flex={1}
               />
-            </XStack>
+            </View>
+            <View padding={10} marginTop={insets.top}>
+              <XStack alignItems="center" justifyContent="space-between" marginBlockEnd={20}>
+                {/* a small delay to ensure the back navigation is smooth  */}
+                <RippleButton onPress={() => router.back()}>
+                  <ArrowLeft />
+                </RippleButton>
 
-            <XStack gap={10} alignItems="center">
-              <AnimatedCustomImage
-                sharedTransitionTag="shared-image"
-                source={{ uri: image }}
-                style={{ width: 115, height: 163 }}
-              />
-              <YStack gap={8} flex={1}>
-                <Text numberOfLines={3} color="$color1" fontSize="$5" fontWeight="700">
-                  {typeof data?.title === 'object' ? data?.title?.english || data?.title?.romaji : data?.title}
-                </Text>
+                <AnimatedFavoriteButton
+                  id={id}
+                  title={data?.title!}
+                  image={image || data?.image!}
+                  type={type}
+                  mediaType={mediaType}
+                  provider={provider}
+                  metaProvider={metaProvider}
+                />
+              </XStack>
 
-                <XStack alignItems="center" justifyContent="space-between">
-                  <IconTitle icon={Clock} text={data?.status} />
-                  <RippleButton onPress={() => openBrowserAsync(getExtensionInfo(getProvider(mediaType))?.baseUrl!)}>
-                    <IconTitle icon={Globe} text="Webview" color="$color" />
-                  </RippleButton>
-                </XStack>
-                <XStack justifyContent="space-between">
-                  <IconTitle icon={Star} text={data?.rating} />
-                  {(data?.nextAiringEpisode?.airingTime || data?.nextAiringEpisode?.releaseDate) && (
-                    <AnimatedCountdown
-                      targetDate={data.nextAiringEpisode.airingTime || data?.nextAiringEpisode?.releaseDate}
-                    />
-                  )}
-                  <IconTitle text={data?.type} />
-                </XStack>
-              </YStack>
-            </XStack>
-          </View>
-        </ZStack>
+              <XStack gap={10} alignItems="center">
+                <AnimatedCustomImage
+                  sharedTransitionTag="shared-image"
+                  source={{ uri: image }}
+                  style={{ width: 115, height: 163 }}
+                />
+                <YStack gap={8} flex={1}>
+                  <Text numberOfLines={3} color="$color1" fontSize="$5" fontWeight="700">
+                    {typeof data?.title === 'object' ? data?.title?.english || data?.title?.romaji : data?.title}
+                  </Text>
+
+                  <XStack alignItems="center" justifyContent="space-between">
+                    <IconTitle icon={Clock} text={data?.status} />
+                    {episodes.length > 0 && (
+                      <RippleButton
+                        onPress={() =>
+                          openBrowserAsync(episodes[0].url! || getExtensionInfo(getProvider(mediaType))?.baseUrl!)
+                        }>
+                        <IconTitle icon={Globe} text="Webview" color="$color" />
+                      </RippleButton>
+                    )}
+                  </XStack>
+                  <XStack justifyContent="space-between">
+                    <IconTitle icon={Star} text={data?.rating} />
+                    {(data?.nextAiringEpisode?.airingTime || data?.nextAiringEpisode?.releaseDate) && (
+                      <AnimatedCountdown
+                        targetDate={data.nextAiringEpisode.airingTime || data?.nextAiringEpisode?.releaseDate}
+                      />
+                    )}
+                    <IconTitle text={data?.type} />
+                  </XStack>
+                </YStack>
+              </XStack>
+            </View>
+          </ZStack>
+        )}
 
         <YStack alignItems="center" marginTop={20} flex={1}>
           <HorizontalTabs items={tabItems} initialTab="tab1" />

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import * as RNFS from '@dr.pogodin/react-native-fs';
-import { FFmpegKit, FFmpegKitConfig, FFprobeKit, Log, ReturnCode } from 'react-native-ffmpeg-kit';
+import { FFmpegKit, FFprobeKit, Log, ReturnCode } from 'react-native-ffmpeg-kit';
 import type { VideoTrack, AudioTrack, TextTrack, TextTracks } from 'react-native-video';
 import BackgroundService from 'react-native-background-actions';
 import { storage } from './MMKV';
@@ -37,6 +37,8 @@ interface EpisodeDownload {
   showName?: string;
   episode: number;
   season?: number;
+  uniqueId?: string; // Episode unique ID from provider
+  episodeId?: string; // Fallback episode ID
   externalSubtitles?: TextTracks;
   status: 'pending' | 'downloading' | 'completed' | 'failed' | 'cancelled';
   progress?: DownloadProgress;
@@ -61,20 +63,20 @@ interface DownloadState {
   startDownload: (downloadId: string, onProgress?: (progress: DownloadProgress) => void) => Promise<void>;
   cancelDownload: (downloadId: string) => Promise<boolean>;
   cancelAllDownloads: () => Promise<void>;
-  removeDownload: (downloadId: string) => void;
-  clearCompleted: () => void;
-  clearAll: () => void;
+  removeDownload: (downloadId: string) => Promise<void>;
+  clearCompleted: () => Promise<void>;
+  clearAll: () => Promise<void>;
   getStreamInfo: (url: string) => Promise<StreamInfo>;
   downloadQueue: (
     episodes: Omit<EpisodeDownload, 'id' | 'status' | 'createdAt'>[],
     onQueueProgress?: (progress: any) => void,
   ) => Promise<void>;
-  getStorageInfo: () => {
+  getStorageInfo: () => Promise<{
     downloadsPath: string;
     tempPath: string;
     downloadsSize: number;
     totalDownloads: number;
-  };
+  }>;
   cleanupTempFiles: () => Promise<void>;
   startBackgroundService: () => Promise<void>;
   stopBackgroundService: () => Promise<void>;
@@ -125,16 +127,11 @@ export const useDownloadStore = create<DownloadState>()(
           await ensureDir(DOWNLOADS_DIR);
           await ensureDir(TEMP_DIR);
 
-          // Configure FFmpeg logging (basic)
-          FFmpegKitConfig.enableLogCallback((log: Log) => {
-            console.log('FFmpeg:', log.getMessage());
-          });
-
           set({ isInitialized: true });
-          console.log('✅ FFmpeg Kit initialized');
-          console.log('📁 Storage locations:');
-          console.log('   Downloads:', DOWNLOADS_DIR);
-          console.log('   Temp:', TEMP_DIR);
+          // console.log('✅ FFmpeg Kit initialized');
+          // console.log('📁 Storage locations:');
+          // console.log('   Downloads:', DOWNLOADS_DIR);
+          // console.log('   Temp:', TEMP_DIR);
           return true;
         } catch (error) {
           console.error('❌ FFmpeg init failed:', error);
@@ -144,7 +141,48 @@ export const useDownloadStore = create<DownloadState>()(
 
       // Add download to queue
       addDownload: (episode) => {
-        const downloadId = `${episode.name.replace(/[^a-zA-Z0-9]/g, '_')}_E${episode.episode}_${Date.now()}`;
+        const state = get();
+
+        // Use uniqueId or episodeId as the download ID, fallback to generated ID
+        const downloadId =
+          episode.uniqueId ||
+          episode.episodeId ||
+          `${episode.name.replace(/[^a-zA-Z0-9]/g, '_')}_E${episode.episode}_${Date.now()}`;
+
+        // Check if this episode already exists (by ID)
+        const existingDownload = state.downloads[downloadId];
+
+        if (existingDownload) {
+          // If already downloading or pending, return existing ID
+          if (existingDownload.status === 'downloading' || existingDownload.status === 'pending') {
+            // console.log(
+            //   `⚠️ Episode already in queue: ${episode.name}${episode.season ? ` S${episode.season}` : ''} E${episode.episode}`,
+            // );
+            return existingDownload.id;
+          }
+
+          // If failed/cancelled/completed, update it to pending (re-download)
+          // console.log(
+          //   `♻️ Re-queueing episode: ${episode.name}${episode.season ? ` S${episode.season}` : ''} E${episode.episode}`,
+          // );
+          set((state) => ({
+            downloads: {
+              ...state.downloads,
+              [downloadId]: {
+                ...episode,
+                id: downloadId,
+                status: 'pending',
+                createdAt: Date.now(),
+                error: undefined,
+                progress: undefined,
+                sessionId: undefined,
+              },
+            },
+          }));
+          return downloadId;
+        }
+
+        // New download
         const download: EpisodeDownload = {
           ...episode,
           id: downloadId,
@@ -304,8 +342,7 @@ export const useDownloadStore = create<DownloadState>()(
           // Total duration for percentage calc
           const totalDuration = streamInfo.duration;
 
-          // Setup log callback to parse progress from FFmpeg output (overrides simple logger)
-          FFmpegKitConfig.enableLogCallback((log: Log) => {
+          const handleSessionLog = (log: Log) => {
             const logSessionId = log.getSessionId?.();
             const message = log.getMessage();
 
@@ -354,9 +391,9 @@ export const useDownloadStore = create<DownloadState>()(
                 const sizeStr = `${(progress.size / 1024 / 1024).toFixed(2)} MB`;
                 const bitrateStr = `${(progress.bitrate / 1000).toFixed(0)} kbps`;
 
-                console.log(
-                  `📥 ${dl.name}${dl.season ? ` S${dl.season}` : ''} E${dl.episode} | ${percentage}% | ${timeStr}/${totalStr} | ${sizeStr} | ${bitrateStr} | Speed: ${progress.speed.toFixed(2)}x`,
-                );
+                // console.log(
+                //   `📥 ${dl.name}${dl.season ? ` S${dl.season}` : ''} E${dl.episode} | ${percentage}% | ${timeStr}/${totalStr} | ${sizeStr} | ${bitrateStr} | Speed: ${progress.speed.toFixed(2)}x`,
+                // );
 
                 // Update state with new object to ensure re-render
                 set(() => ({
@@ -378,85 +415,88 @@ export const useDownloadStore = create<DownloadState>()(
                 }
               }
             }
-          });
+          };
 
           // Execute asynchronously with completion callback for real-time progress
-          console.log(command);
-          const session = await FFmpegKit.executeAsync(command, async (completedSession) => {
-            const returnCode = await completedSession.getReturnCode();
-            const sessionId = completedSession.getSessionId();
+          const session = await FFmpegKit.executeAsync(
+            command,
+            async (completedSession) => {
+              const returnCode = await completedSession.getReturnCode();
+              const sessionId = completedSession.getSessionId();
 
-            // Check result
-            if (ReturnCode.isSuccess(returnCode)) {
-              const fileExists = await RNFS.exists(outputFile);
-              if (fileExists) {
-                const fileStat = await RNFS.stat(outputFile);
-                console.log(
-                  `✅ Download completed: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
-                );
+              // Check result
+              if (ReturnCode.isSuccess(returnCode)) {
+                const fileExists = await RNFS.exists(outputFile);
+                if (fileExists) {
+                  const fileStat = await RNFS.stat(outputFile);
+                  // console.log(
+                  //   `✅ Download completed: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
+                  // );
+                  set((state) => ({
+                    downloads: {
+                      ...state.downloads,
+                      [downloadId]: {
+                        ...state.downloads[downloadId],
+                        status: 'completed',
+                        outputFile,
+                        fileSize: Number(fileStat.size),
+                        completedAt: Date.now(),
+                      },
+                    },
+                    activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
+                  }));
+                } else {
+                  console.error(`❌ Output file not found: ${outputFile}`);
+                  set((state) => ({
+                    downloads: {
+                      ...state.downloads,
+                      [downloadId]: {
+                        ...state.downloads[downloadId],
+                        status: 'failed',
+                        error: 'Download completed but output file not found',
+                      },
+                    },
+                    activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
+                  }));
+                }
+              } else if (ReturnCode.isCancel(returnCode)) {
+                // console.log(
+                //   `🚫 Download cancelled: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
+                // );
                 set((state) => ({
                   downloads: {
                     ...state.downloads,
                     [downloadId]: {
                       ...state.downloads[downloadId],
-                      status: 'completed',
-                      outputFile,
-                      fileSize: Number(fileStat.size),
-                      completedAt: Date.now(),
+                      status: 'cancelled',
                     },
                   },
                   activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
                 }));
-              } else {
-                console.error(`❌ Output file not found: ${outputFile}`);
+              } /*else {
+                // Failed
+                console.error(`❌ FFmpeg failed with return code: ${returnCode}`);
                 set((state) => ({
                   downloads: {
                     ...state.downloads,
                     [downloadId]: {
                       ...state.downloads[downloadId],
                       status: 'failed',
-                      error: 'Download completed but output file not found',
+                      error: `FFmpeg failed with return code: ${returnCode}`,
                     },
                   },
                   activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
                 }));
-              }
-            } else if (ReturnCode.isCancel(returnCode)) {
-              console.log(
-                `🚫 Download cancelled: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
-              );
-              set((state) => ({
-                downloads: {
-                  ...state.downloads,
-                  [downloadId]: {
-                    ...state.downloads[downloadId],
-                    status: 'cancelled',
-                  },
-                },
-                activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
-              }));
-            } /*else {
-              // Failed
-              console.error(`❌ FFmpeg failed with return code: ${returnCode}`);
-              set((state) => ({
-                downloads: {
-                  ...state.downloads,
-                  [downloadId]: {
-                    ...state.downloads[downloadId],
-                    status: 'failed',
-                    error: `FFmpeg failed with return code: ${returnCode}`,
-                  },
-                },
-                activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
-              }));
-            }*/
+              }*/
 
-            // Stop background service if no more active downloads
-            const hasActiveDownloads = Object.values(get().downloads).some((d) => d.status === 'downloading');
-            if (!hasActiveDownloads) {
-              await get().stopBackgroundService();
-            }
-          });
+              // Stop background service if no more active downloads
+              const hasActiveDownloads = Object.values(get().downloads).some((d) => d.status === 'downloading');
+              if (!hasActiveDownloads) {
+                await get().stopBackgroundService();
+              }
+            },
+            handleSessionLog,
+          );
 
           const sessionId = session.getSessionId();
 
@@ -479,6 +519,12 @@ export const useDownloadStore = create<DownloadState>()(
               },
             },
           }));
+
+          const hasActiveDownloads = Object.values(get().downloads).some((d) => d.status === 'downloading');
+          if (!hasActiveDownloads) {
+            await get().stopBackgroundService();
+          }
+
           throw error;
         }
       },
@@ -542,7 +588,24 @@ export const useDownloadStore = create<DownloadState>()(
       },
 
       // Remove download
-      removeDownload: (downloadId) => {
+      removeDownload: async (downloadId) => {
+        const state = get();
+        const download = state.downloads[downloadId];
+
+        // Delete the file from filesystem if it exists
+        if (download?.outputFile) {
+          try {
+            const exists = await RNFS.exists(download.outputFile);
+            if (exists) {
+              await RNFS.unlink(download.outputFile);
+              // console.log(`🗑️ Deleted file: ${download.outputFile}`);
+            }
+          } catch (error) {
+            console.error(`❌ Failed to delete file: ${download.outputFile}`, error);
+          }
+        }
+
+        // Remove from state
         set((state) => {
           const { [downloadId]: _, ...rest } = state.downloads;
           return { downloads: rest };
@@ -550,7 +613,26 @@ export const useDownloadStore = create<DownloadState>()(
       },
 
       // Clear completed downloads
-      clearCompleted: () => {
+      clearCompleted: async () => {
+        const state = get();
+        const completedDownloads = Object.values(state.downloads).filter((d) => d.status === 'completed');
+
+        // Delete all completed files from filesystem
+        for (const download of completedDownloads) {
+          if (download.outputFile) {
+            try {
+              const exists = await RNFS.exists(download.outputFile);
+              if (exists) {
+                await RNFS.unlink(download.outputFile);
+                // console.log(`🗑️ Deleted file: ${download.outputFile}`);
+              }
+            } catch (error) {
+              console.error(`❌ Failed to delete file: ${download.outputFile}`, error);
+            }
+          }
+        }
+
+        // Remove from state
         set((state) => ({
           downloads: Object.fromEntries(
             Object.entries(state.downloads).filter(([_, download]) => download.status !== 'completed'),
@@ -559,7 +641,26 @@ export const useDownloadStore = create<DownloadState>()(
       },
 
       // Clear all downloads
-      clearAll: () => {
+      clearAll: async () => {
+        const state = get();
+        const allDownloads = Object.values(state.downloads);
+
+        // Delete all files from filesystem
+        for (const download of allDownloads) {
+          if (download.outputFile) {
+            try {
+              const exists = await RNFS.exists(download.outputFile);
+              if (exists) {
+                await RNFS.unlink(download.outputFile);
+                // console.log(`🗑️ Deleted file: ${download.outputFile}`);
+              }
+            } catch (error) {
+              console.error(`❌ Failed to delete file: ${download.outputFile}`, error);
+            }
+          }
+        }
+
+        // Clear all from state
         set({ downloads: {} });
       },
 
@@ -672,17 +773,43 @@ export const useDownloadStore = create<DownloadState>()(
       },
 
       // Get storage information
-      getStorageInfo: () => {
+      getStorageInfo: async () => {
         const state = get();
         const downloads = Object.values(state.downloads);
-        const totalSize = downloads
-          .filter((d) => d.status === 'completed')
-          .reduce((sum, d) => sum + (d.fileSize || 0), 0);
+
+        // Calculate actual storage size from downloads directory
+        let actualSize = 0;
+        try {
+          const exists = await RNFS.exists(DOWNLOADS_DIR);
+          if (exists) {
+            const dirItems = await RNFS.readDir(DOWNLOADS_DIR);
+
+            // Recursively calculate size of all files and subdirectories
+            const calculateDirSize = async (items: any[]): Promise<number> => {
+              let size = 0;
+              for (const item of items) {
+                if (item.isFile()) {
+                  size += Number(item.size) || 0;
+                } else if (item.isDirectory()) {
+                  const subItems = await RNFS.readDir(item.path);
+                  size += await calculateDirSize(subItems);
+                }
+              }
+              return size;
+            };
+
+            actualSize = await calculateDirSize(dirItems);
+          }
+        } catch (error) {
+          console.error('❌ Failed to calculate storage size:', error);
+          // Fallback to calculating from download records
+          actualSize = downloads.filter((d) => d.status === 'completed').reduce((sum, d) => sum + (d.fileSize || 0), 0);
+        }
 
         return {
           downloadsPath: DOWNLOADS_DIR,
           tempPath: TEMP_DIR,
-          downloadsSize: totalSize,
+          downloadsSize: actualSize,
           totalDownloads: downloads.filter((d) => d.status === 'completed').length,
         };
       },
@@ -694,7 +821,7 @@ export const useDownloadStore = create<DownloadState>()(
           if (exists) {
             await RNFS.unlink(TEMP_DIR);
             await ensureDir(TEMP_DIR);
-            console.log('✅ Temp files cleaned up');
+            // console.log('✅ Temp files cleaned up');
           }
         } catch (error) {
           console.error('❌ Failed to cleanup temp files:', error);
@@ -719,7 +846,7 @@ export const useDownloadStore = create<DownloadState>()(
 
                 if (!hasActiveDownloads) {
                   // No more downloads, stop service
-                  console.log('📱 No active downloads, stopping background service');
+                  // console.log('📱 No active downloads, stopping background service');
                   break;
                 }
 
@@ -738,14 +865,14 @@ export const useDownloadStore = create<DownloadState>()(
               name: 'ic_launcher',
               type: 'mipmap',
             },
-            color: '#8b5cf6',
-            linkingURI: 'uwumi://(tabs)/more',
+            color: '#000',
+            linkingURI: 'uwumi://(settings)/downloads',
             parameters: {},
           };
 
           await BackgroundService.start(backgroundTask, options);
           set({ isBackgroundServiceRunning: true });
-          console.log('✅ Background service started');
+          // console.log('✅ Background service started');
         } catch (error) {
           console.error('❌ Failed to start background service:', error);
         }
@@ -759,7 +886,7 @@ export const useDownloadStore = create<DownloadState>()(
         try {
           await BackgroundService.stop();
           set({ isBackgroundServiceRunning: false });
-          console.log('✅ Background service stopped');
+          // console.log('✅ Background service stopped');
         } catch (error) {
           console.error('❌ Failed to stop background service:', error);
         }
