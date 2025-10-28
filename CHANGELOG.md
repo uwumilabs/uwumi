@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.0.0 (2025-10-28)
+
+* feat: add download management screen with ffmpeg and filesystem cleanup ([075bd3a](https://github.com/uwumilabs/uwumi/commit/075bd3a))
+* feat: add download store and integrate with example component ([c84803c](https://github.com/uwumilabs/uwumi/commit/c84803c))
+* feat(download): migrate file system from expo to rnfs and add native permissions ([1714299](https://github.com/uwumilabs/uwumi/commit/1714299))
+* feat(downloads): add background download support with media info store ([acc44a4](https://github.com/uwumilabs/uwumi/commit/acc44a4))
+* feat(player): add external player watch progress sync ([af85cb7](https://github.com/uwumilabs/uwumi/commit/af85cb7))
+* chore: release 3.0.0-rc.3 ([fad07d0](https://github.com/uwumilabs/uwumi/commit/fad07d0))
+* chore: update .gitignore to include ffmpeg aar ([cb33968](https://github.com/uwumilabs/uwumi/commit/cb33968))
+* chore(docs): update readme ([4d237a1](https://github.com/uwumilabs/uwumi/commit/4d237a1))
+* test: temporary backup before amend ([176f5df](https://github.com/uwumilabs/uwumi/commit/176f5df))
+
 ## 3.0.0-rc.3 (2025-10-22)
 
 * feat: add download store and integrate with example component ([c84803c](https://github.com/uwumilabs/uwumi/commit/c84803c))
