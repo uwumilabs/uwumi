@@ -88,7 +88,6 @@ export function useAnimeEpisodes({ id, provider = DEFAULT_PROVIDERS.anime }: { i
         );
         // Object.setPrototypeOf(animeProvider, AnimePahe.prototype);
         const data = (await new META.Anilist(animeProvider).fetchEpisodesListById(id)) as unknown as IAnimeEpisode;
-        // console.log(data, animeProvider, animeProvider instanceof ANIME.AnimePahe, animeProviderInitializer);
         return data;
       } catch (error) {
         throw new Error(`Error fetching episodes: ${error}`);

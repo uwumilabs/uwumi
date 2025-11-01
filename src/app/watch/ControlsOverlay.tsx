@@ -269,7 +269,7 @@ const ControlsOverlay = memo(
             },
           ]
         : []),
-    ];
+    ].filter(Boolean) as TabItem[];
     useEffect(() => {
       // Check if currentEpisodeIndex is valid before accessing episodes array
       if ((prevId || nextId) && currentEpisodeIndex >= 0 && episodes[currentEpisodeIndex]) {

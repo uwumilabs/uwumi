@@ -31,7 +31,7 @@ export function useWatchAnimeEpisodes({
   dub: boolean;
   enabled?: boolean;
 }) {
-  console.log('from anime watch query', episodeId, server, provider);
+  // console.log('from anime watch query', episodeId, server, provider);
   const { providerManager, readExtensionCode, extractorManager, readExtractorCode } = useConsumetExtensions();
   return useQuery<ISource & { servers?: IEpisodeServer[] }>({
     queryKey: ['watch', episodeId, provider, dub, server],
@@ -52,7 +52,6 @@ export function useWatchAnimeEpisodes({
           episodeId,
           dub ? SubOrDub.DUB : SubOrDub.SUB,
         )) as IEpisodeServer[];
-
         // Check if servers exist before accessing
         if (!servers || servers.length === 0) {
           throw new Error('No servers available for this episode');
@@ -107,7 +106,7 @@ export function useWatchMoviesEpisodes({
   embed: boolean;
   enabled?: boolean;
 }) {
-  console.log('from movie watch query', episodeId, mediaId, server, provider);
+  // console.log('from movie watch query', episodeId, mediaId, server, provider);
   const { providerManager, extractorManager, readExtensionCode, readExtractorCode } = useConsumetExtensions();
   return useQuery<ISource & { servers: IEpisodeServer[] }>({
     queryKey: ['watch', episodeId, mediaId, server, provider, embed],
