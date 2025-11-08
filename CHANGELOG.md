@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.2.0 (2025-11-08)
+
+* feat: add notification support and improve episode list ([646acf8](https://github.com/uwumilabs/uwumi/commit/646acf8))
+* feat: improve downloads and ui ([ddac04d](https://github.com/uwumilabs/uwumi/commit/ddac04d))
+* chore: improve release-it configuration with clean working dir checks ([3ffee84](https://github.com/uwumilabs/uwumi/commit/3ffee84))
+
 ## 3.1.0 (2025-11-01)
 
 * chore: update react-native-consumet to version 1.2.0 ([9f70c73](https://github.com/uwumilabs/uwumi/commit/9f70c73))
