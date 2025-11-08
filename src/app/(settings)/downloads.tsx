@@ -376,7 +376,7 @@ const Downloads = () => {
                   {item.showName}
                 </Text>
               )}
-              <Text fontSize="$4" fontWeight="600" color="$color" numberOfLines={2}>
+              <Text fontSize="$4" fontWeight="600" color="$color" width={'90%'} numberOfLines={1}>
                 {item.name}
               </Text>
               <XStack gap="$2" alignItems="center">

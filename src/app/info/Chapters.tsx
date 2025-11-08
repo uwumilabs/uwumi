@@ -13,8 +13,9 @@ const Chapters = () => {
     provider: string;
     id: string;
   }>();
-  const { getProvider, setProvider } = useProviderStore();
-  const { data, isLoading } = useMangaChapters({ id, provider: getProvider(mediaType) });
+  const { setProvider } = useProviderStore();
+  const currentProvider = useProviderStore((state) => state.getProvider(mediaType));
+  const { data, isLoading } = useMangaChapters({ id, provider: currentProvider });
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const IconProps = {
     size: 20,
@@ -50,7 +51,7 @@ const Chapters = () => {
           <CustomSelect
             SelectItem={PROVIDERS.manga}
             SelectLabel="Provider"
-            value={getProvider(mediaType)}
+            value={currentProvider}
             onValueChange={handleProviderChange}
           />
         </XStack>

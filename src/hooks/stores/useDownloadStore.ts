@@ -266,14 +266,12 @@ export const useDownloadStore = create<DownloadState>()(
 
           // Create show-specific directory if showName is provided
           if (download.showName) {
-            const sanitizedShowName = download.showName.replace(/[^a-zA-Z0-9]/g, '_');
+            const sanitizedShowName = download.showName;
             showDir = `${DOWNLOADS_DIR}/${sanitizedShowName}`;
             await ensureDir(showDir);
           }
 
-          const filename = `${download.name.replace(/[^a-zA-Z0-9]/g, '_')}${
-            download.season ? `_S${download.season}` : ''
-          }_E${download.episode}.mp4`;
+          const filename = `${download.name}${download.season ? `_S${download.season}` : ''}_E${download.episode}.mp4`;
           const outputFile = `${showDir}/${filename}`;
 
           // Build FFmpeg command - Download ALL tracks with best subtitle codec

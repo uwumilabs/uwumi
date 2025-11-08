@@ -74,12 +74,17 @@ export const CustomSelect = ({
             </Select.Label>
 
             {SelectItem.map((item, index) => (
-              <Select.Item backgroundColor={sheetColor} key={item.value} index={index} value={item.value}>
-                <Select.ItemText>{item.name}</Select.ItemText>
-                <Select.ItemIndicator marginLeft="auto">
-                  <Check size={16} />
-                </Select.ItemIndicator>
-              </Select.Item>
+              <RippleButton
+                containerStyle={{ padding: 0 }}
+                onPress={() => handleValueChange(item.value)}
+                key={item.value}>
+                <Select.Item backgroundColor={sheetColor} index={index} value={item.value}>
+                  <Select.ItemText>{item.name}</Select.ItemText>
+                  <Select.ItemIndicator marginLeft="auto">
+                    <Check size={16} />
+                  </Select.ItemIndicator>
+                </Select.Item>
+              </RippleButton>
             ))}
           </Select.Group>
         </Select.Viewport>

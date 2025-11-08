@@ -121,4 +121,6 @@ export const SUB_LANGUAGE = {
   Welsh: 'wel',
 } as const;
 
-export const UWUMI_DIR = `${RNFS.ExternalStorageDirectoryPath}/uwumi`;
+export const UWUMI_DIR = __DEV__
+  ? `${RNFS.ExternalStorageDirectoryPath}/uwumi-dev`
+  : `${RNFS.ExternalStorageDirectoryPath}/uwumi`;
