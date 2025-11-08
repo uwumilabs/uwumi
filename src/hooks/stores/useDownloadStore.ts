@@ -860,8 +860,8 @@ export const useDownloadStore = create<DownloadState>()(
             taskTitle: 'Downloading Episodes',
             taskDesc: 'Preparing download...',
             taskIcon: {
-              name: 'ic_launcher',
-              type: 'mipmap',
+              name: 'notification_icon',
+              type: 'drawable',
             },
             color: '#000',
             linkingURI: 'uwumi://(settings)/downloads',

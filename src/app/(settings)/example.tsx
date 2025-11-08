@@ -4,14 +4,31 @@
  * This file doesnt get bundled in the production build.(may be😁)
  * It is used to test the functionality of library, stores,hooks other screens etc.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { ThemedView } from '@/components';
-import { Button, Text, ScrollView, YStack } from 'tamagui';
+import { Button, Text, ScrollView, YStack, XStack } from 'tamagui';
 import { storage } from '@/hooks/stores/MMKV';
-import { useDownloadStore } from '@/hooks/stores/useDownloadStore';
-import { TextTrackType } from 'react-native-video';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import * as Notifications from 'expo-notifications';
 
 const Example = () => {
+  // Set up notification channel for Android
+  React.useEffect(() => {
+    const setupNotificationChannel = async () => {
+      if (Notifications.AndroidImportance) {
+        await Notifications.setNotificationChannelAsync('downloads', {
+          name: 'Downloads',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+          showBadge: true,
+          sound: null, // No sound for progress updates
+        });
+      }
+    };
+    setupNotificationChannel();
+  }, []);
+
   const getAllMMKVKeys = () => {
     const keys = storage.getAllKeys();
     //console.log('All MMKV Keys:', keys);
@@ -31,23 +48,157 @@ const Example = () => {
       //console.log(`Deleted key: ${key}`);
     });
   };
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldPlaySound: true, // No sound for progress updates
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+  const setPortrait = async () => {
+    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+  };
 
-  const [lastDownloadId, setLastDownloadId] = useState<string | null>(null);
+  const setLandscape = async () => {
+    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+  };
 
-  // Subscribe to store methods (stable references)
-  const { initialize, addDownload, startDownload, getStreamInfo, getStorageInfo } = useDownloadStore();
+  const showNotification = async () => {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Test Notification 📬',
+        body: 'This is a sample notification from Uwumi!',
+        data: { data: 'goes here' },
+      },
+      trigger: null, // Show immediately
+    });
+  };
 
-  // Subscribe to downloads object (will re-render on changes)
-  const downloads = useDownloadStore((state) => state.downloads);
+  // Simulate a download notification with proper progress updates
+  const showDownloadNotification = async () => {
+    try {
+      // Request permissions first
+      const permission = await Notifications.requestPermissionsAsync();
+      const granted = (permission as any)?.status === 'granted' || (permission as any)?.granted;
+      if (!granted) {
+        console.warn('Notification permission not granted');
+        return;
+      }
 
-  // Get the specific download (will re-render when this download changes)
-  const currentDownload = lastDownloadId ? downloads[lastDownloadId] : null;
+      const notificationId = 'download-progress';
 
-  // console.log('Current Download:', currentDownload);
+      // Create initial notification with progress bar
+      await Notifications.scheduleNotificationAsync({
+        identifier: notificationId,
+        content: {
+          title: 'Downloading Episode',
+          body: 'Starting download...',
+          data: { type: 'download', progress: 0 },
+          // Android-specific progress notification
+          ...(Notifications.AndroidImportance && {
+            android: {
+              channelId: 'downloads',
+              priority: Notifications.AndroidNotificationPriority.HIGH,
+              progress: {
+                max: 100,
+                current: 0,
+                indeterminate: false,
+              },
+            },
+          }),
+        } as any,
+        trigger: null,
+      });
+
+      // Simulate download progress
+      const steps = [10, 25, 40, 55, 70, 85, 100];
+      for (const progress of steps) {
+        // Wait to simulate download time
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        if (progress < 100) {
+          // Update notification with new progress
+          await Notifications.scheduleNotificationAsync({
+            identifier: notificationId,
+            content: {
+              title: 'Downloading Episode',
+              body: `${progress}% complete`,
+              data: { type: 'download', progress },
+              ...(Notifications.AndroidImportance && {
+                android: {
+                  channelId: 'downloads',
+                  priority: Notifications.AndroidNotificationPriority.HIGH,
+                  progress: {
+                    max: 100,
+                    current: progress,
+                    indeterminate: false,
+                  },
+                },
+              }),
+            } as any,
+            trigger: null,
+          });
+        } else {
+          // Final completion notification
+          await Notifications.scheduleNotificationAsync({
+            identifier: notificationId,
+            content: {
+              title: 'Download Complete',
+              body: 'Episode downloaded successfully',
+              data: { type: 'download', progress: 100 },
+              ...(Notifications.AndroidImportance && {
+                android: {
+                  channelId: 'downloads',
+                  priority: Notifications.AndroidNotificationPriority.HIGH,
+                },
+              }),
+            } as any,
+            trigger: null,
+          });
+
+          // Auto-dismiss after 3 seconds
+          setTimeout(async () => {
+            await Notifications.dismissNotificationAsync(notificationId);
+          }, 3000);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to show download notification', err);
+    }
+  };
+
   return (
     <ThemedView>
       <ScrollView>
         <YStack padding="$4" gap="$3">
+          <Text fontSize="$7" fontWeight="bold" color="$color">
+            Screen Orientation
+          </Text>
+          <XStack gap="$3">
+            <Button flex={1} onPress={setPortrait} themeInverse>
+              Portrait
+            </Button>
+            <Button flex={1} onPress={setLandscape} themeInverse>
+              Landscape
+            </Button>
+          </XStack>
+
+          <Text fontSize="$7" fontWeight="bold" color="$color" marginTop="$4">
+            Notifications
+          </Text>
+          <XStack gap="$3">
+            <Button onPress={showNotification} flex={1} themeInverse>
+              Show Sample Notification
+            </Button>
+            <Button onPress={showDownloadNotification} flex={1} themeInverse>
+              Show Download Notification
+            </Button>
+          </XStack>
+
+          <Text fontSize="$7" fontWeight="bold" color="$color" marginTop="$4">
+            MMKV Storage
+          </Text>
           <Button
             onPress={() => {
               getAllMMKVKeys();
@@ -61,116 +212,6 @@ const Example = () => {
             }}
             themeInverse>
             delete All MMKV Keys
-          </Button>
-
-          {/* Download Store Examples */}
-          <Text fontSize="$7" fontWeight="bold" color="$color" marginTop="$4">
-            Download Store Demo
-          </Text>
-
-          <Button
-            onPress={async () => {
-              await initialize();
-            }}
-            themeInverse>
-            Init Download Store
-          </Button>
-
-          <Button
-            onPress={async () => {
-              const HLS_URL =
-                'https://vault-14.owocdn.top/stream/14/11/f42e0b2853302a6b2df351bde169e0e7c4294664c9f6b48ddff0201f6bc70afc/uwu.m3u8';
-              const VTT_URL =
-                'https://raw.githubusercontent.com/1c7/vtt-test-file/refs/heads/master/vtt%20files/4.%20No%20Hour.vtt';
-
-              const id = addDownload({
-                url: HLS_URL,
-                name: 'Big Buck Bunny',
-                showName: 'Test Series',
-                season: 1,
-                episode: 1,
-                externalSubtitles: [
-                  { uri: VTT_URL, language: 'en', title: 'English External', type: TextTrackType.VTT },
-                ],
-              });
-              setLastDownloadId(id);
-
-              await startDownload(id, (p) => {
-                console.log(`Download progress: ${p.percentage}%`);
-              });
-            }}
-            themeInverse>
-            Download with Show Directory
-          </Button>
-
-          {/* Progress Display */}
-          {currentDownload ? (
-            <YStack
-              backgroundColor="$color3"
-              padding="$4"
-              borderRadius="$4"
-              gap="$2"
-              marginTop="$3"
-              borderWidth={2}
-              borderColor="$color4">
-              <Text fontSize="$6" fontWeight="bold" color="$color">
-                Status: {currentDownload.status.toUpperCase()}
-              </Text>
-              <Text fontSize="$5" color="$color1" marginTop="$2">
-                Progress: {currentDownload.progress?.percentage ?? 0}%
-              </Text>
-              {currentDownload.progress ? (
-                <>
-                  <Text fontSize="$4" color="$color1">
-                    Time: {Math.floor(currentDownload.progress.currentTime / 60)}:
-                    {Math.floor(currentDownload.progress.currentTime % 60)
-                      .toString()
-                      .padStart(2, '0')}{' '}
-                    / {Math.floor(currentDownload.progress.totalDuration / 60)}:
-                    {Math.floor(currentDownload.progress.totalDuration % 60)
-                      .toString()
-                      .padStart(2, '0')}
-                  </Text>
-                  <Text fontSize="$4" color="$color1">
-                    Speed: {currentDownload.progress.speed.toFixed(2)}x | Bitrate:{' '}
-                    {(currentDownload.progress.bitrate / 1000).toFixed(0)} kbps
-                  </Text>
-                  <Text fontSize="$4" color="$color1">
-                    Size: {(currentDownload.progress.size / 1024 / 1024).toFixed(2)} MB
-                  </Text>
-                </>
-              ) : null}
-            </YStack>
-          ) : null}
-
-          <Button
-            onPress={async () => {
-              const HLS_URL = 'https://bitmovin-a.akamaihd.net/content/sintel/hls/playlist.m3u8';
-              const info = await getStreamInfo(HLS_URL);
-              console.log('Stream Info:', {
-                duration: `${Math.floor(info.duration / 60)}m ${Math.floor(info.duration % 60)}s`,
-                videoTracks: info.videoTracks.length,
-                audioTracks: info.audioTracks.length,
-                textTracks: info.textTracks.length,
-                totalStreams: info.totalStreams,
-              });
-            }}
-            themeInverse>
-            Get Stream Info
-          </Button>
-
-          <Button
-            onPress={() => {
-              const storageInfo = getStorageInfo();
-              console.log('Storage Info:', {
-                downloadsPath: storageInfo.downloadsPath,
-                tempPath: storageInfo.tempPath,
-                downloadsSize: `${(storageInfo.downloadsSize / 1024 / 1024).toFixed(2)} MB`,
-                totalDownloads: storageInfo.totalDownloads,
-              });
-            }}
-            themeInverse>
-            Get Storage Info
           </Button>
         </YStack>
       </ScrollView>

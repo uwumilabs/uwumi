@@ -81,7 +81,16 @@
           }
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification.png",
+          "color": "#000",
+          "defaultChannel": "default",
+          "enableBackgroundRemoteNotifications": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

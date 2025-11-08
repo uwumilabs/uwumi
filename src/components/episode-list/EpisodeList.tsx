@@ -62,7 +62,6 @@ export const EpisodeList = ({
   const router = useRouter();
   const currentTheme = useCurrentTheme();
   const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
-  const hasScrolledRef = useRef(false);
   const { setProvider, getProvider } = useProviderStore();
   useEffect(() => {
     setProvider(mediaType, getProvider(mediaType) ?? provider);
@@ -123,21 +122,9 @@ export const EpisodeList = ({
     }
   }, [episodeData, movieSeasons, seasonNumber, resetSeasonNumber]);
   // console.log('episodes', episodeData);
-  const currentEpisode = episodes.find((episode: IAnimeEpisode | IMovieEpisode) => episode.id === currentUniqueId);
-  // console.log('currentUniqueId', currentUniqueId, currentEpisode);
-
-  useEffect(() => {
-    return () => {
-      hasScrolledRef.current = false;
-    };
-  }, [currentUniqueId]);
-
-  const totalEpisodesRef = useRef(0);
-
-  // Update the ref whenever episodes change
-  useEffect(() => {
-    totalEpisodesRef.current = episodes.length;
-  }, [episodes]);
+  const currentEpisodeIndex = useCallback(() => {
+    return episodes.findIndex((episode: IAnimeEpisode | IMovieEpisode) => episode.uniqueId === currentUniqueId);
+  }, [episodes, currentUniqueId]);
 
   const handleProviderChange = useCallback(
     (value: string) => {
@@ -444,6 +431,47 @@ export const EpisodeList = ({
     [renderFullMetadataPressableItem, renderTitleOnlyPressableItem, renderNumberOnlyPressableItem, displayMode],
   );
 
+  const getItemKey = useCallback((item: IAnimeEpisode | IMovieEpisode) => {
+    return item?.id ?? item?.uniqueId;
+  }, []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
+      const itemKey = getItemKey(item);
+      // Get or create a stable ref object for this item
+      const itemRef =
+        swipeableRefs.current.get(itemKey) ??
+        (() => {
+          const newRef = React.createRef<SwipeableMethods | null>();
+          swipeableRefs.current.set(itemKey, newRef);
+          return newRef;
+        })();
+
+      return swipeable ? (
+        <ReanimatedSwipeable
+          ref={itemRef}
+          friction={2}
+          enableTrackpadTwoFingerGesture
+          rightThreshold={40}
+          onSwipeableOpen={() => {
+            // Toggle completion status
+            handleToggleComplete(item);
+            // Close the swipeable
+            const currentRef = swipeableRefs.current.get(itemKey);
+            currentRef?.current?.close();
+          }}
+          onSwipeableWillOpen={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+          onSwipeableWillClose={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+          renderRightActions={rightActions(item)}>
+          <ListPressable item={item}>{renderItemContent(item)}</ListPressable>
+        </ReanimatedSwipeable>
+      ) : (
+        <ListPressable item={item}>{renderItemContent(item)}</ListPressable>
+      );
+    },
+    [swipeable, getItemKey, handleToggleComplete, rightActions, renderItemContent],
+  );
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -511,43 +539,16 @@ export const EpisodeList = ({
             )}
           </XStack>
         }
-        onLoad={(e) => {
-          flashListRef?.current?.scrollToItem({ item: currentEpisode, animated: true, viewPosition: 0.1 });
+        onLoad={() => {
+          flashListRef?.current?.scrollToIndex({
+            index: currentEpisodeIndex(),
+            animated: true,
+            viewPosition: 1,
+            viewOffset: 200,
+          });
         }}
         keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => {
-          const itemKey = item?.id ?? item?.uniqueId;
-          // Get or create a stable ref object for this item
-          const itemRef =
-            swipeableRefs.current.get(itemKey) ??
-            (() => {
-              const newRef = React.createRef<SwipeableMethods | null>();
-              swipeableRefs.current.set(itemKey, newRef);
-              return newRef;
-            })();
-
-          return swipeable ? (
-            <ReanimatedSwipeable
-              ref={itemRef}
-              friction={2}
-              enableTrackpadTwoFingerGesture
-              rightThreshold={40}
-              onSwipeableOpen={() => {
-                // Toggle completion status
-                handleToggleComplete(item);
-                // Close the swipeable
-                const currentRef = swipeableRefs.current.get(itemKey);
-                currentRef?.current?.close();
-              }}
-              onSwipeableWillOpen={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-              onSwipeableWillClose={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-              renderRightActions={rightActions(item)}>
-              <ListPressable item={item}>{renderItemContent(item)}</ListPressable>
-            </ReanimatedSwipeable>
-          ) : (
-            <ListPressable item={item}>{renderItemContent(item)}</ListPressable>
-          );
-        }}
+        renderItem={renderItem}
       />
       {swipeable && sheetOpen && (
         <EpisodeActionsSheet
