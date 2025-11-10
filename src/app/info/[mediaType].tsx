@@ -140,7 +140,7 @@ const Info = () => {
                   </Text>
 
                   <XStack alignItems="center" justifyContent="space-between">
-                    <IconTitle icon={Clock} text={data?.status} />
+                    {data?.status && <IconTitle icon={Clock} text={data?.status} />}
                     {episodes.length > 0 && (
                       <RippleButton
                         onPress={() =>

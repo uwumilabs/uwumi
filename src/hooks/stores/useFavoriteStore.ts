@@ -19,7 +19,7 @@ export const useFavoriteStore = create<FavoriteState>()(
       addFavorite: (item: IAnimeResult | IMovieResult) => {
         //console.log('Adding favorite:', item);
         set((state) => ({
-          favorites: [...state.favorites, item],
+          favorites: [...state.favorites, item].filter(Boolean),
         }));
       },
 

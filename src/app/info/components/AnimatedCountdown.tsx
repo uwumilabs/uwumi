@@ -1,6 +1,5 @@
-import { Text, XStack } from 'tamagui';
+import { Text, View, XStack } from 'tamagui';
 import React, { useEffect, useState } from 'react';
-import { MotiView } from 'moti';
 
 type CountdownProps = {
   targetDate: number | string;
@@ -41,18 +40,28 @@ export const AnimatedCountdown: React.FC<CountdownProps> = ({ targetDate }) => {
     return () => clearInterval(timer);
   }, [targetDate]);
 
+  // Determine which units to show based on time left
+  const unitsToShow = Object.entries(timeLeft).filter(([key, value]) => {
+    // Always show days if present
+    if (key === 'd' && value > 0) return true;
+    // Always show hours if days are present or hours > 0
+    if (key === 'h' && (timeLeft.d > 0 || value > 0)) return true;
+    // Always show minutes if days/hours present or minutes > 0
+    if (key === 'm' && (timeLeft.d > 0 || timeLeft.h > 0 || value > 0)) return true;
+    // Only show seconds if less than 1 hour left
+    if (key === 's' && timeLeft.d === 0 && timeLeft.h === 0) return true;
+    return false;
+  });
+
   return (
     <XStack gap="$2" alignItems="center">
-      {Object.entries(timeLeft).map(([key, value]) => (
+      {unitsToShow.map(([key, value]) => (
         <XStack key={key} alignItems="center" gap="$1">
-          <MotiView
-            from={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'timing', duration: 300 }}>
+          <View>
             <Text color="$color" fontSize="$3" fontWeight="700">
               {value.toString().padStart(2, '0')}
             </Text>
-          </MotiView>
+          </View>
           <Text color="$color1" fontSize="$3" fontWeight="700">
             {key}
           </Text>

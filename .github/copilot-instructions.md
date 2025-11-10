@@ -15,7 +15,7 @@ Uwumi is a React Native media streaming application built with Expo, supporting 
 - **Video Player**: react-native-video (6.12.0)
 - **Storage**: react-native-mmkv (3.1.0) - high-performance key-value storage
 - **Media Provider**: react-native-consumet (1.1.0) - extensible media provider system
-- **Animations**: react-native-reanimated (4.1.1), Moti (0.29.0)
+- **Animations**: react-native-reanimated (4.1.1)
 - **Gestures**: react-native-gesture-handler (2.28.0)
 
 ## Architecture Patterns

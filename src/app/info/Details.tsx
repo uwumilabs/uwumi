@@ -1,4 +1,4 @@
-import { MotiView } from 'moti';
+import Animated, { useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'tamagui/linear-gradient';
 import { Text, View, YStack, XStack, styled, ZStack, ScrollView } from 'tamagui';
 import { ChevronDown } from '@tamagui/lucide-icons';
@@ -35,6 +35,34 @@ const Details = () => {
   const currentTheme = useCurrentTheme();
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
 
+  // Animated style for description collapse/expand
+  const descriptionAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateY: withTiming(isExpanded ? 0 : -contentHeight + 20, {
+            duration: 500,
+            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+          }),
+        },
+      ],
+    };
+  }, [isExpanded, contentHeight]);
+
+  // Animated style for chevron rotation
+  const chevronAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          rotate: withTiming(isExpanded ? '180deg' : '0deg', {
+            duration: 500,
+            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+          }),
+        },
+      ],
+    };
+  }, [isExpanded]);
+
   return (
     <YStack gap={2}>
       <ScrollView
@@ -47,7 +75,11 @@ const Details = () => {
           <View>
             <View position="relative" marginTop="$2">
               <View position="absolute" onLayout={(event) => setContentHeight(event.nativeEvent.layout.height)}>
-                <Text color="transparent" paddingHorizontal="$2" lineHeight="$3.5" textAlign="justify">
+                <Text
+                  color={pureBlackBackground ? '#000' : '$background'}
+                  paddingHorizontal="$2"
+                  lineHeight="$3.5"
+                  textAlign="justify">
                   {data?.description}
                 </Text>
               </View>
@@ -84,22 +116,15 @@ const Details = () => {
             </View>
             <View height="100%">
               {/* Animated description view */}
-              <MotiView
-                from={{
-                  translateY: -contentHeight,
-                }}
-                animate={{
-                  translateY: isExpanded ? 0 : -contentHeight + 20,
-                }}
-                transition={{
-                  type: 'timing',
-                  duration: 500,
-                }}
-                style={{
-                  overflow: 'hidden',
-                  borderBottomLeftRadius: 16,
-                  borderBottomRightRadius: 16,
-                }}>
+              <Animated.View
+                style={[
+                  {
+                    overflow: 'hidden',
+                    borderBottomLeftRadius: 16,
+                    borderBottomRightRadius: 16,
+                  },
+                  descriptionAnimatedStyle,
+                ]}>
                 <LinearGradient
                   locations={[0, 0.05, 0.1]}
                   colors={
@@ -116,24 +141,11 @@ const Details = () => {
                   style={{ height: '100%', width: '100%' }}>
                   <View>
                     {/* Animated icon rotation */}
-                    <MotiView
-                      style={{ alignItems: 'center', padding: 8 }}
-                      from={{
-                        rotate: '180deg',
-                      }}
-                      animate={{
-                        rotate: isExpanded ? '180deg' : '0deg',
-                      }}
-                      transition={{
-                        type: 'timing',
-                        duration: 500,
-                      }}>
-                      <RippleButton
-                        style={{ width: '100%', height: 25, alignItems: 'center' }}
-                        onPress={() => setIsExpanded(!isExpanded)}>
+                    <Animated.View style={[{ alignItems: 'center', padding: 8 }, chevronAnimatedStyle]}>
+                      <RippleButton style={{ alignItems: 'center' }} onPress={() => setIsExpanded(!isExpanded)}>
                         <ChevronDown size={24} color="$color" />
                       </RippleButton>
-                    </MotiView>
+                    </Animated.View>
                     <YStack flex={1} height="100%" width="100%" gap="$2">
                       <StatisticItem label="Type" value={data?.type || ''} />
                       <StatisticItem label="Country" value={String(data?.countryOfOrigin || '')} />
@@ -177,7 +189,7 @@ const Details = () => {
                     </YStack>
                   </View>
                 </LinearGradient>
-              </MotiView>
+              </Animated.View>
             </View>
           </View>
         </View>

@@ -532,10 +532,13 @@ export const useDownloadStore = create<DownloadState>()(
         const state = get();
         const download = state.downloads[downloadId];
 
-        if (!download || !download.sessionId) return false;
+        if (!download) return false;
 
         try {
-          await FFmpegKit.cancel(download.sessionId);
+          // Cancel FFmpeg session if it exists
+          if (download.sessionId) {
+            await FFmpegKit.cancel(download.sessionId);
+          }
 
           set((state) => ({
             downloads: {
@@ -545,8 +548,10 @@ export const useDownloadStore = create<DownloadState>()(
             activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== download.sessionId)),
           }));
 
-          // Stop background service if no more downloads
-          const hasActiveDownloads = Object.values(get().downloads).some((d) => d.status === 'downloading');
+          // Stop background service if no more active downloads
+          const hasActiveDownloads = Object.values(get().downloads).some(
+            (d) => d.status === 'downloading' || d.status === 'pending',
+          );
           if (!hasActiveDownloads) {
             await get().stopBackgroundService();
           }
@@ -636,12 +641,26 @@ export const useDownloadStore = create<DownloadState>()(
             Object.entries(state.downloads).filter(([_, download]) => download.status !== 'completed'),
           ),
         }));
+
+        // Stop background service if no more active downloads remain
+        const hasActiveDownloads = Object.values(get().downloads).some(
+          (d) => d.status === 'downloading' || d.status === 'pending',
+        );
+        if (!hasActiveDownloads) {
+          await get().stopBackgroundService();
+        }
       },
 
       // Clear all downloads
       clearAll: async () => {
         const state = get();
         const allDownloads = Object.values(state.downloads);
+
+        // Cancel all active downloads first
+        const cancelPromises = Array.from(state.activeSessionIds).map((sessionId) =>
+          FFmpegKit.cancel(sessionId).catch((err) => console.error(`Failed to cancel session ${sessionId}:`, err)),
+        );
+        await Promise.all(cancelPromises);
 
         // Delete all files from filesystem
         for (const download of allDownloads) {
@@ -659,7 +678,10 @@ export const useDownloadStore = create<DownloadState>()(
         }
 
         // Clear all from state
-        set({ downloads: {} });
+        set({ downloads: {}, activeSessionIds: new Set() });
+
+        // Stop background service since all downloads are cleared
+        await get().stopBackgroundService();
       },
 
       // Get stream info

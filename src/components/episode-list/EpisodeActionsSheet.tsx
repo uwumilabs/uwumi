@@ -35,6 +35,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const { getProvider } = useProviderStore();
     const { addDownload, startDownload } = useDownloadStore();
     const mediaInfo = useMediaInfoStore((state) => state.mediaInfo);
+    console.log(mediaInfo);
     const sheetColor = useSheetColor();
 
     const [showQualitySelection, setShowQualitySelection] = useState(false);
@@ -81,7 +82,19 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
     // Handle successful data fetch - show appropriate menu
     useEffect(() => {
-      if (!shouldFetchSources || !data) return;
+      if (!shouldFetchSources) return;
+
+      // Show loading immediately - server selection screen ONLY if not already in quality view
+      if (!data && !error) {
+        // If we're already showing quality selection (e.g., after selecting a server), keep it
+        if (!showQualitySelection) {
+          setShowServerSelection(true);
+          setShowQualitySelection(false);
+        }
+        return;
+      }
+
+      if (!data) return;
 
       const availableServers = data?.servers || [];
 
@@ -94,7 +107,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         setShowQualitySelection(true);
         setShowServerSelection(false);
       }
-    }, [shouldFetchSources, data, selectedServer]);
+    }, [shouldFetchSources, data, selectedServer, error, showQualitySelection]);
 
     const handleMarkComplete = useCallback(() => {
       if (!episode?.uniqueId) return;
@@ -149,6 +162,8 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
               title: episode?.title || `Episode ${episode?.number ?? episode?.episode}`,
               position: progress ? Math.floor(progress.currentTime * 1000) : 0, // in ms
               return_result: true,
+              filename:
+                episode?.title?.toLowerCase().replace(/\s/g, ' ') || `Episode ${episode?.number ?? episode?.episode}`,
             };
 
             // Add subtitle URLs if available (for MX Player, VLC, etc.)
@@ -289,8 +304,14 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
       if (showQualitySelection) {
         // If in quality view and server was selected, go back to server selection
         if (selectedServer) {
+          // Reset selected server and stop fetching to show server list
+          setSelectedServer(null);
           setShowQualitySelection(false);
-          setShowServerSelection(true);
+          setShouldFetchSources(false);
+          // Trigger new fetch to show server selection
+          requestAnimationFrame(() => {
+            setShouldFetchSources(true);
+          });
         } else {
           // Go back to main menu
           setShowQualitySelection(false);
