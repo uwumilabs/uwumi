@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.0 (2025-11-12)
+
+* feat: add new icons for anime, manga, movies, and more; update tab layout to use drawable resources ([dec7f79](https://github.com/uwumilabs/uwumi/commit/dec7f79))
+* feat: refactor tab layout and add new icons for navigation ([829ccaf](https://github.com/uwumilabs/uwumi/commit/829ccaf))
+* feat(app): refactor animations and improve downloads ([0ce6db0](https://github.com/uwumilabs/uwumi/commit/0ce6db0))
+
 ## 3.2.0 (2025-11-08)
 
 * feat: add notification support and improve episode list ([646acf8](https://github.com/uwumilabs/uwumi/commit/646acf8))
