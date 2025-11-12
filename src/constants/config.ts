@@ -124,3 +124,7 @@ export const SUB_LANGUAGE = {
 export const UWUMI_DIR = __DEV__
   ? `${RNFS.ExternalStorageDirectoryPath}/uwumi-dev`
   : `${RNFS.ExternalStorageDirectoryPath}/uwumi`;
+
+export const constants = {
+  PROGRESS_COMPLETION_PERCENTAGE: 85,
+} as const;

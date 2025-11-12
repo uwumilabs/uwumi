@@ -35,7 +35,6 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const { getProvider } = useProviderStore();
     const { addDownload, startDownload } = useDownloadStore();
     const mediaInfo = useMediaInfoStore((state) => state.mediaInfo);
-    console.log(mediaInfo);
     const sheetColor = useSheetColor();
 
     const [showQualitySelection, setShowQualitySelection] = useState(false);
