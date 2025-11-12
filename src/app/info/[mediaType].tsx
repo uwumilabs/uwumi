@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Spinner, Text, View, XStack, YStack, ZStack } from 'tamagui';
 import { LinearGradient } from 'tamagui/linear-gradient';
 import { MediaType, MetaProvider } from '@/constants/types';
-import { hexToRGB } from '@/constants/utils';
+import { hexToRGB, normalizeRating } from '@/constants/utils';
 import Episodes from './Episodes';
 import Chapters from './Chapters';
 import Details from './Details';
@@ -151,7 +151,7 @@ const Info = () => {
                     )}
                   </XStack>
                   <XStack justifyContent="space-between">
-                    <IconTitle icon={Star} text={data?.rating} />
+                    <IconTitle icon={Star} text={normalizeRating(data?.rating)} />
                     {(data?.nextAiringEpisode?.airingTime || data?.nextAiringEpisode?.releaseDate) && (
                       <AnimatedCountdown
                         targetDate={data.nextAiringEpisode.airingTime || data?.nextAiringEpisode?.releaseDate}

@@ -81,3 +81,8 @@ export const compareVersions = (localVersion: string, remoteVersion: string) => 
 
   return 'No update available';
 };
+
+export const normalizeRating = (rating?: number) => {
+  if (!rating) return 0; // handle undefined/null
+  return rating <= 10 ? rating.toFixed(2) : (rating / 10).toFixed(2);
+};
