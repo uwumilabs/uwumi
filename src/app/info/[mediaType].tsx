@@ -9,10 +9,9 @@ import {
   useEpisodesStore,
 } from '@/hooks';
 import { ArrowLeft, Clock, Globe, Star } from '@tamagui/lucide-icons';
-import { BlurView } from 'expo-blur';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { ImageBackground, StyleSheet } from 'react-native';
+import { ImageBackground } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Spinner, Text, View, XStack, YStack, ZStack } from 'tamagui';
 import { LinearGradient } from 'tamagui/linear-gradient';
@@ -85,13 +84,6 @@ const Info = () => {
         ) : (
           <ZStack height={300}>
             <ImageBackground source={{ uri: data?.cover }} style={{ width: '100%', height: 300 }} />
-            <BlurView
-              style={{
-                ...StyleSheet.absoluteFillObject,
-              }}
-              intensity={20}
-              tint="dark"
-            />
             <View height={300}>
               <LinearGradient
                 width="100%"
