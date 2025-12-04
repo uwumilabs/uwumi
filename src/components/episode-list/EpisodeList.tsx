@@ -232,7 +232,7 @@ export const EpisodeList = ({
       if (progress?.currentTime && progress?.progress > 0) {
         return (
           <StyledText>
-            Progress: {formatTime(progress.currentTime)}/{formatTime(progress.duration)}
+            {formatTime(progress.currentTime)}/{formatTime(progress.duration)}
           </StyledText>
         );
       }
@@ -484,7 +484,7 @@ export const EpisodeList = ({
         data={episodes}
         contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
         ListHeaderComponent={
-          <XStack paddingHorizontal={16} padding={8} gap="$5" alignItems="center" justifyContent="center">
+          <XStack padding={8} paddingHorizontal={16} width="100%" gap="$5" alignItems="center" justifyContent="center">
             {swipeable && (
               <CustomSelect
                 SelectItem={mediaType === MediaType.ANIME ? PROVIDERS.anime : PROVIDERS.movie}

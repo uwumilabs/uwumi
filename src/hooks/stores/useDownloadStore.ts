@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import * as RNFS from '@dr.pogodin/react-native-fs';
 import { FFmpegKit, FFprobeKit, Log, ReturnCode } from 'react-native-ffmpeg-kit';
-import type { VideoTrack, AudioTrack, TextTrack, TextTracks } from 'react-native-video';
+import type { VideoTrack, AudioTrack, TextTrack, TextTracks } from 'react-native-video/src';
 import BackgroundService from 'react-native-background-actions';
 import { storage } from './MMKV';
 import { UWUMI_DIR } from '@/constants/config';

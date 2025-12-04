@@ -60,19 +60,6 @@
         }
       ],
       [
-        "react-native-video",
-        {
-          "enableAndroidPictureInPicture": true,
-          "enableNotificationControls": false,
-          "androidExtensions": {
-            "useExoplayerRtsp": true,
-            "useExoplayerSmoothStreaming": true,
-            "useExoplayerHls": true,
-            "useExoplayerDash": false
-          }
-        }
-      ],
-      [
         "react-native-edge-to-edge",
         {
           "android": {

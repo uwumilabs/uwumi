@@ -9,7 +9,7 @@ import Video, {
   type VideoRef,
   VideoTrack,
   AudioTrack,
-} from 'react-native-video';
+} from 'react-native-video/src';
 import SystemNavigationBar from 'react-native-system-navigation-bar';
 import { Button, Spinner, Text, View, XStack, YStack, styled } from 'tamagui';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -650,9 +650,9 @@ const Watch = () => {
                   setIsVideoReady(true);
                   // to find how much of the textTracks have null language and title
                   const nullTextTrackCount =
-                    value.textTracks?.filter((track) => !track.language && !track.title).length || 0;
+                    value.textTracks?.filter((track) => !track.language || !track.title).length || 0;
                   const nullAudioTrackCount =
-                    value.audioTracks?.filter((track) => !track.language && !track.title).length || 0;
+                    value.audioTracks?.filter((track) => !track.language || !track.title).length || 0;
                   const uniqueAudioTrack = value.audioTracks.slice(nullAudioTrackCount)?.reduce((acc, track) => {
                     const exists = acc.some(
                       (existingTrack) =>
@@ -671,6 +671,7 @@ const Watch = () => {
                   videoRef?.current?.seek(getProgress(uniqueId)?.currentTime || 0);
                   // videoRef?.current?.resume();
                   setIsPlaying(true);
+                  // console.log("selected text tracks index is: ",(selectedSubtitleIndex ?? 0) + nullSubtitleIndex!)
                 }}
                 selectedVideoTrack={{ type: SelectedVideoTrackType.INDEX, value: selectedVideoTrackIndex ?? 0 }}
                 selectedTextTrack={{
@@ -774,8 +775,8 @@ const Watch = () => {
                                 setProvider(mediaType, value);
                               }}
                               backgroundColor={isSelected ? '$color' : '$color3'}
-                              flex={1}
-                              minWidth={150}
+                              flexBasis="48%"
+                              flexGrow={1}
                               justifyContent="center">
                               <XStack alignItems="center">
                                 {isSelected && <Check color="$color4" />}
@@ -822,8 +823,8 @@ const Watch = () => {
                               setIsEmbed(key === 'embed');
                             }}
                             backgroundColor={isSelected ? '$color' : '$color3'}
-                            flex={1}
-                            minWidth={150}
+                            flexBasis="48%"
+                            flexGrow={1}
                             justifyContent="center">
                             <XStack alignItems="center">
                               {isSelected && <Check color="$color4" />}

@@ -14,7 +14,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { ExternalSubtitleData } from '@/constants/types';
-import { TextTrackType } from 'react-native-video/lib/types/video';
+import { TextTrackType } from 'react-native-video/src/types/video';
 import { SubtitleTrack } from '@/constants/types';
 import { useConsumetExtensions } from '../stores';
 

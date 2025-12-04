@@ -227,7 +227,7 @@ export default function RootLayout() {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        retry: 3,
+        retry: 1,
         staleTime: 10 * 60 * 1000, // 10 minutes
         gcTime: 60 * 60 * 1000, // 1 hour
         refetchOnWindowFocus: false,

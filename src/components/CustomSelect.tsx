@@ -32,7 +32,7 @@ export const CustomSelect = ({
 
   return (
     <Select open={openSelect} value={value} onValueChange={handleValueChange} onOpenChange={setOpenSelect}>
-      <Select.Trigger backgroundColor={sheetColor} width={150} iconAfter={ChevronDown}>
+      <Select.Trigger backgroundColor={sheetColor} flex={1} maxWidth={150} iconAfter={ChevronDown}>
         <Select.Value width={90}>{SelectItem.find((opt) => opt.value === value)?.name || SelectLabel}</Select.Value>
       </Select.Trigger>
 

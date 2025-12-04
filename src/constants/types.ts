@@ -1,5 +1,5 @@
 import { MediaFormat, TvType } from 'react-native-consumet';
-import { TextTrackType } from 'react-native-video';
+import { TextTrackType } from 'react-native-video/src';
 
 export enum MediaType {
   ANIME = 'anime',
