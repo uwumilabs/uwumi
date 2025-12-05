@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.4.0 (2025-12-05)
+
+* refactor: upgrade deps and improve components ([7fe7ce9](https://github.com/uwumilabs/uwumi/commit/7fe7ce9))
+* feat(android): migrate to vector drawables and update assets ([df0f786](https://github.com/uwumilabs/uwumi/commit/df0f786))
+
 ## 3.3.0 (2025-11-12)
 
 * feat: add new icons for anime, manga, movies, and more; update tab layout to use drawable resources ([dec7f79](https://github.com/uwumilabs/uwumi/commit/dec7f79))
