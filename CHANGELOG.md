@@ -1,5 +1,9 @@
 # Changelog
 
+## <small>3.4.1 (2025-12-12)</small>
+
+* fix(ui): improve touch handling and watch controls ([869c798](https://github.com/uwumilabs/uwumi/commit/869c798))
+
 ## 3.4.0 (2025-12-05)
 
 * refactor: upgrade deps and improve components ([7fe7ce9](https://github.com/uwumilabs/uwumi/commit/7fe7ce9))
