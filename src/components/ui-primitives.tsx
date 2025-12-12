@@ -8,8 +8,7 @@ import { View, Theme, ViewProps, Text, XStack, YStack, styled, GetProps } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore, useAccentStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { StatusBar, StatusBarProps } from 'expo-status-bar';
-import { TouchableWithoutFeedbackProps } from 'react-native';
-import Ripple from 'react-native-material-ripple';
+import { Platform, Pressable, PressableProps } from 'react-native';
 import { Link } from 'expo-router';
 
 /* ============================================
@@ -49,28 +48,31 @@ export const IconTitle = ({ icon: Icon, text, color, iconProps, textProps }: Ico
  * RippleButton - Material ripple effect button
  * ============================================ */
 
-interface RippleButtonProps extends TouchableWithoutFeedbackProps {
-  onPress: () => void;
+type RippleButtonProps = Omit<PressableProps, 'onPress'> & {
+  onPress?: () => void;
   children?: React.ReactNode;
   containerStyle?: GetProps<typeof View>;
-}
+};
 
-export const RippleButton: FC<RippleButtonProps> = ({ onPress, children, containerStyle, ...props }) => {
+export const RippleButton: FC<RippleButtonProps> = ({ onPress, children, containerStyle, style, ...props }) => {
   const themeName = useThemeStore((state) => state.themeName);
+
+  const androidRippleColor = themeName === 'light' ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.20)';
+
   return (
-    <Ripple
-      onPress={(e) => {
-        setTimeout(() => onPress(), 300);
-      }}
-      rippleColor={themeName === 'light' ? 'black' : 'white'}
-      rippleDuration={300}
-      rippleContainerBorderRadius={50}
-      rippleOpacity={1}
+    <Pressable
+      android_ripple={{ color: androidRippleColor, borderless: false, radius: 500, foreground: true }}
+      onPress={() => onPress?.()}
+      style={(state) => [
+        { borderRadius: 50, overflow: 'hidden' },
+        Platform.OS !== 'android' ? { opacity: state.pressed ? 0.7 : 1 } : null,
+        typeof style === 'function' ? style(state) : style,
+      ]}
       {...props}>
       <View padding={10} {...containerStyle}>
         {children}
       </View>
-    </Ripple>
+    </Pressable>
   );
 };
 

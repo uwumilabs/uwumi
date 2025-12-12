@@ -370,23 +370,26 @@ const Watch = () => {
   });
 
   useEffect(() => {
+    const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
+
     const initBrightness = async () => {
       const result = await Brightness.getBrightnessAsync();
-      setBrightness(result);
+      setBrightness(clamp01(result));
     };
 
     initBrightness();
 
     const brightnessListener = Brightness.addBrightnessListener((result) => {
-      setVolume(result.brightness);
+      setBrightness(clamp01(result.brightness));
     });
 
     return () => brightnessListener.remove();
   }, []);
 
   const updateBrightness = useCallback(async (value: number) => {
-    await Brightness.setBrightnessAsync(value);
-    setBrightness(value);
+    const clamped = Math.max(0, Math.min(1, value));
+    await Brightness.setBrightnessAsync(clamped);
+    setBrightness(clamped);
     //console.log('bright:', value);
   }, []);
 
@@ -775,8 +778,9 @@ const Watch = () => {
                                 setProvider(mediaType, value);
                               }}
                               backgroundColor={isSelected ? '$color' : '$color3'}
-                              flexBasis="48%"
+                              width="48%"
                               flexGrow={1}
+                              flexShrink={0}
                               justifyContent="center">
                               <XStack alignItems="center">
                                 {isSelected && <Check color="$color4" />}
@@ -823,8 +827,9 @@ const Watch = () => {
                               setIsEmbed(key === 'embed');
                             }}
                             backgroundColor={isSelected ? '$color' : '$color3'}
-                            flexBasis="48%"
+                            width="48%"
                             flexGrow={1}
+                            flexShrink={0}
                             justifyContent="center">
                             <XStack alignItems="center">
                               {isSelected && <Check color="$color4" />}

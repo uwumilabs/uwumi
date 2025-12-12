@@ -1,6 +1,6 @@
 import React, { memo, useState } from 'react';
 import { Check, ChevronDown, X } from '@tamagui/lucide-icons';
-import { Adapt, Select, Sheet } from 'tamagui';
+import { Adapt, Select, Sheet, View } from 'tamagui';
 import { RippleButton } from './ui-primitives';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSheetColor } from '@/hooks';
@@ -74,17 +74,31 @@ export const CustomSelect = ({
             </Select.Label>
 
             {SelectItem.map((item, index) => (
-              <RippleButton
-                containerStyle={{ padding: 0 }}
-                onPress={() => handleValueChange(item.value)}
-                key={item.value}>
-                <Select.Item backgroundColor={sheetColor} index={index} value={item.value}>
+              <Select.Item
+                backgroundColor={sheetColor}
+                index={index}
+                value={item.value}
+                key={item.value}
+                paddingVertical={4}
+                // onPress={() => handleValueChange(item.value)}
+              >
+                <RippleButton
+                  onPressIn={() => handleValueChange(item.value)}
+                  // onPress={() => handleValueChange(item.value)}
+                  containerStyle={{
+                    padding: 12,
+                    justifyContent: 'space-between',
+                    flexDirection: 'row',
+                    width: '100%',
+                    // backgroundColor:"red"
+                  }}>
                   <Select.ItemText>{item.name}</Select.ItemText>
                   <Select.ItemIndicator marginLeft="auto">
                     <Check size={16} />
                   </Select.ItemIndicator>
-                </Select.Item>
-              </RippleButton>
+                  <View />
+                </RippleButton>
+              </Select.Item>
             ))}
           </Select.Group>
         </Select.Viewport>

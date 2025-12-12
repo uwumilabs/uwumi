@@ -69,7 +69,7 @@
     "@tamagui/theme-builder": "^1.138.6",
     "@tanstack/react-query": "^5.66.0",
     "axios": "^1.7.9",
-    "expo": "54.0.23",
+    "expo": "^54.0.23",
     "expo-brightness": "~14.0.7",
     "expo-build-properties": "~1.0.9",
     "expo-constants": "~18.0.10",

@@ -1,4 +1,37 @@
-# GitHub Copilot Instructions for Uwumi
+# Copilot instructions (Uwumi)
+
+## Project map
+- Expo + Expo Router app: screens live in `src/app/**` (route groups like `(tabs)` / `(settings)` and dynamic routes like `[mediaType].tsx`).
+- UI is Tamagui-first: prefer `View`, `Text`, `YStack`, `XStack`, `Sheet`, `Tabs`, etc. over React Native primitives.
+- Shared UI components: `src/components/**` (examples: `HorizontalTabs.tsx`, `CustomSelect.tsx`, `ui-primitives.tsx`).
+- “Server state” lives in React Query hooks: `src/hooks/queries/**`.
+- “App state” lives in Zustand stores (often MMKV-backed): `src/hooks/stores/**` and re-exported via `src/hooks/stores/index.ts` + `src/hooks/index.ts`.
+
+## Data flow & providers (important)
+- Providers are extension-driven for anime/movies: `useConsumetExtensions()` (see `src/hooks/stores/useExtensionStore.ts`) builds a `ProviderManager/ExtractorManager` to execute installed extension code.
+- Provider selection + persistence is centralized in `src/constants/provider.ts` (`useProviderStore`, `DEFAULT_PROVIDERS`, `PROVIDERS`). `PROVIDERS` is derived from installed extensions at runtime.
+- Manga providers are currently hard-mapped via `createProviderInstance()` in `src/constants/provider.ts`.
+- Example query keys: `['anime','episodes',id,provider]`, `[mediaType,'info',id,metaProvider,type,provider]` (see `src/hooks/queries/infoQueries.ts`).
+
+## Styling conventions
+- Use theme tokens (`$color`, `$color1`, `$color2`, spacing `$1..$10`) and Tamagui animations (`animation="quick"` etc.). Config lives in `tamagui.config.ts`; generated themes in `src/constants/theme-out.ts`.
+- Prefer absolute imports via `@/…` (repo uses module-resolver).
+
+## Gesture + Sheet gotcha (Android)
+- In `Sheet` UIs, keep interactive headers (e.g., `Tabs.List`) OUTSIDE any `Sheet.ScrollView` to avoid pan/scroll gestures stealing taps.
+- Put scrolling on the body only: `Sheet.Frame` → header → `Sheet.ScrollView` for the content.
+
+## Workflows (scripts)
+- Dev: `npm run start` (uses `expo start --localhost`).
+- Native: `npm run android` / `npm run ios`; for adb reverse + run use `npm run android:reverse`.
+- Lint/format: `npm run lint`, `npm run format`.
+- Tests: `npm run test` (Jest Expo).
+- Theme generation: `npm run generate-themes`.
+- Note: `postinstall` runs an Android Gradle task to download an AAR (`android/:app:downloadAar`).
+
+## When editing
+- Match existing patterns: memoized components (`memo`, `useCallback`, `useMemo`) are common in UI-heavy components.
+- Prefer updating existing stores/hooks over inventing new state paths; keep query keys stable.# GitHub Copilot Instructions for Uwumi
 
 ## Project Overview
 

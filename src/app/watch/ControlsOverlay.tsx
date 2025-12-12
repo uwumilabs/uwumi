@@ -22,9 +22,30 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCurrentTheme, useEpisodesIdStore, useEpisodesStore, useSheetColor } from '@/hooks';
 import { formatTime } from '@/constants/utils';
 import { VideoTrack, AudioTrack, WatchSearchParams, SubtitleTrack } from '@/constants/types';
-import { RippleButton, HorizontalTabs, TabItem } from '@/components';
+import type { FlashListProps } from '@shopify/flash-list';
+import { CustomFlashlist, HorizontalTabs, RippleButton, TabItem } from '@/components';
 import SkiaSlider from './SkiaSlider';
 import ExternalSubDialog from './components/ExternalSubDialog';
+
+type SheetSettingsListProps<T> = Pick<
+  FlashListProps<T>,
+  'data' | 'keyExtractor' | 'renderItem' | 'ListHeaderComponent'
+>;
+
+function SheetSettingsList<T>({ data, keyExtractor, renderItem, ListHeaderComponent }: SheetSettingsListProps<T>) {
+  return (
+    <YStack width="100%" alignSelf="flex-start" paddingHorizontal="$4" paddingVertical="$3">
+      <CustomFlashlist
+        data={data}
+        keyExtractor={keyExtractor}
+        nestedScrollEnabled
+        showsVerticalScrollIndicator
+        ListHeaderComponent={ListHeaderComponent}
+        renderItem={renderItem}
+      />
+    </YStack>
+  );
+}
 
 interface ControlsOverlayProps {
   showControls: boolean;
@@ -183,48 +204,55 @@ const ControlsOverlay = memo(
         key: 'tab1',
         label: 'Quality',
         content: (
-          <YStack flex={1} width="100%" gap="$2" alignSelf="flex-start" paddingHorizontal="$4">
-            {videoTracks?.map((track, index) => (
+          <SheetSettingsList<VideoTrack>
+            data={videoTracks ?? []}
+            keyExtractor={(item, index) => String(item?.index ?? index)}
+            renderItem={({ item }) => (
               <RippleButton
-                key={index}
                 style={{
                   backgroundColor: sheetColor,
                 }}
                 onPress={() => {
-                  setSelectedVideoTrackIndex(track.index);
+                  setSelectedVideoTrackIndex(item.index);
                   setOpenSettings(false);
                 }}>
-                <Text color={selectedVideoTrackIndex === track.index ? '$color' : '$color1'}>
-                  {track.height === 9999 ? 'Auto' : `${track.height}p`}
+                <Text color={selectedVideoTrackIndex === item.index ? '$color' : '$color1'}>
+                  {item.height === 9999 ? 'Auto' : `${item.height}p`}
                 </Text>
               </RippleButton>
-            ))}
-          </YStack>
+            )}
+          />
         ),
       },
       {
         key: 'tab2',
         label: 'Subtitle',
         content: (
-          <YStack flex={1} width="100%" gap="$2" alignSelf="flex-start" paddingHorizontal="$4">
-            <RippleButton
-              onPress={() => {
-                setOpenExternalSubtitleLanguageDialog(true);
-                setOpenSettings(false);
-              }}>
-              {parsedMappings && (
-                <XStack alignItems="center" justifyContent="center" gap="$3">
-                  <ListFilterPlus color="$color1" size={16} />
-                  <Text color="$color1" fontSize="$3" fontWeight="600">
-                    Add External Subtitle
-                  </Text>
-                </XStack>
-              )}
-            </RippleButton>
-
-            {subtitleTracks?.map((track, index) => (
+          <SheetSettingsList<SubtitleTrack | ISubtitle>
+            data={subtitleTracks ?? []}
+            keyExtractor={(item, index) =>
+              String(('lang' in (item as any) ? (item as any).lang : (item as any).language) ?? index)
+            }
+            ListHeaderComponent={
+              parsedMappings ? (
+                <YStack paddingBottom="$2">
+                  <RippleButton
+                    onPress={() => {
+                      setOpenExternalSubtitleLanguageDialog(true);
+                      setOpenSettings(false);
+                    }}>
+                    <XStack alignItems="center" justifyContent="center" gap="$3">
+                      <ListFilterPlus color="$color1" size={16} />
+                      <Text color="$color1" fontSize="$3" fontWeight="600">
+                        Add External Subtitle
+                      </Text>
+                    </XStack>
+                  </RippleButton>
+                </YStack>
+              ) : null
+            }
+            renderItem={({ item, index }) => (
               <RippleButton
-                key={index}
                 style={{
                   backgroundColor: sheetColor,
                 }}
@@ -233,14 +261,13 @@ const ControlsOverlay = memo(
                   setOpenSettings(false);
                 }}>
                 <Text color={selectedSubtitleIndex === index ? '$color' : '$color1'}>
-                  {'lang' in track ? track.lang : track.language}-{'title' in track ? track.title : undefined}
+                  {'lang' in item ? item.lang : item.language}-{'title' in item ? item.title : undefined}
                 </Text>
               </RippleButton>
-            ))}
-          </YStack>
+            )}
+          />
         ),
       },
-      ,
       // Only include audio tab if audioTracks exist and have items
       ...(audioTracks && audioTracks.length > 0
         ? [
@@ -248,10 +275,11 @@ const ControlsOverlay = memo(
               key: 'tab3',
               label: 'Audio',
               content: (
-                <YStack flex={1} width="100%" gap="$2" alignSelf="flex-start" paddingHorizontal="$4">
-                  {audioTracks.map((track, index) => (
+                <SheetSettingsList<AudioTrack>
+                  data={audioTracks}
+                  keyExtractor={(item, index) => `${item.language}-${item.title}-${index}`}
+                  renderItem={({ item, index }) => (
                     <RippleButton
-                      key={index}
                       style={{
                         backgroundColor: sheetColor,
                       }}
@@ -260,11 +288,11 @@ const ControlsOverlay = memo(
                         setOpenSettings(false);
                       }}>
                       <Text color={selectedAudioTrackIndex === index ? '$color' : '$color1'}>
-                        {track.language}-{track.title}
+                        {item.language}-{item.title}
                       </Text>
                     </RippleButton>
-                  ))}
-                </YStack>
+                  )}
+                />
               ),
             },
           ]
@@ -366,13 +394,13 @@ const ControlsOverlay = memo(
                 <Settings color="white" size={20} />
               </RippleButton>
               <Sheet
-                forceRemoveScrollEnabled={false}
+                forceRemoveScrollEnabled={true}
                 modal
                 open={openSettings}
                 onOpenChange={(value: boolean) => setOpenSettings(value)}
                 snapPoints={isFullscreen ? [80, 25] : [50, 25]}
                 snapPointsMode={'percent'}
-                dismissOnSnapToBottom
+                dismissOnSnapToBottom={false}
                 zIndex={100_000}
                 animation="quick">
                 <Sheet.Overlay
@@ -381,10 +409,8 @@ const ControlsOverlay = memo(
                   enterStyle={{ opacity: 0 }}
                   exitStyle={{ opacity: 0 }}
                 />
-                <Sheet.Frame backgroundColor={sheetColor} marginHorizontal="auto" width={isFullscreen ? '50%' : '90%'}>
-                  <Sheet.ScrollView>
-                    <HorizontalTabs items={tabItems as TabItem[]} initialTab="tab1" />
-                  </Sheet.ScrollView>
+                <Sheet.Frame backgroundColor={sheetColor} alignSelf="center" width={isFullscreen ? '50%' : '90%'}>
+                  <HorizontalTabs items={tabItems as TabItem[]} initialTab="tab1" />
                 </Sheet.Frame>
               </Sheet>
               <ExternalSubDialog
@@ -403,7 +429,7 @@ const ControlsOverlay = memo(
           <AnimatedXStack
             style={centerControlsAnimatedStyle}
             alignItems="center"
-            gap="$12"
+            gap="$10"
             position="absolute"
             top="50%"
             left="50%"
@@ -467,7 +493,7 @@ const ControlsOverlay = memo(
               <SkipBack color={prevEpisodeIndex >= 0 ? 'white' : 'gray'} size={30} />
             </RippleButton>
             {isBuffering ? (
-              <Spinner scale={2} size="large" color="white" />
+              <Spinner padding={10} scale={2} size="large" color="white" />
             ) : (
               <RippleButton
                 onPress={() => {
@@ -543,7 +569,7 @@ const ControlsOverlay = memo(
             paddingVertical={isFullscreen ? '$5' : '$2'}
             paddingHorizontal={isFullscreen ? '$4' : '$2'}
             pointerEvents={controlsVisible ? 'auto' : 'none'}>
-            <XStack gap="$2" alignItems="center" justifyContent="space-between" width="100%">
+            <XStack width={screenWidth} alignItems="center" justifyContent="space-between">
               <RippleButton onPress={onMutePress}>
                 {isMuted ? <VolumeOff color="white" size={20} /> : <Volume2 color="white" size={20} />}
               </RippleButton>
@@ -564,10 +590,13 @@ const ControlsOverlay = memo(
                 </RippleButton>
               </XStack>
             </XStack>
-            <YStack width={screenWidth} alignItems="center">
+            <XStack width={screenWidth} justifyContent="center" alignItems="center" gap="$2">
+              <Text color="white" fontSize={13} fontWeight={700}>
+                {formatTime(currentTime)}
+              </Text>
               <View alignItems="center" justifyContent="center">
                 <SkiaSlider
-                  width={screenWidth - 10}
+                  width={screenWidth - screenWidth * 0.25}
                   thumbColor={currentTheme?.color}
                   thumbSize={15}
                   activeTrackColor={currentTheme?.color}
@@ -582,15 +611,10 @@ const ControlsOverlay = memo(
                   }}
                 />
               </View>
-              <XStack justifyContent="space-between" width="100%" paddingHorizontal="$2">
-                <Text color="white" fontSize={13} fontWeight={700}>
-                  {formatTime(currentTime)}
-                </Text>
-                <Text color="white" fontSize={13} fontWeight={700}>
-                  {formatTime(seekableDuration)}
-                </Text>
-              </XStack>
-            </YStack>
+              <Text color="white" fontSize={13} fontWeight={700}>
+                {formatTime(seekableDuration)}
+              </Text>
+            </XStack>
           </AnimatedYStack>
         </AnimatedYStack>
       </>
