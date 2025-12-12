@@ -1,7 +1,7 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import 'react-native-reanimated';
 import { TamaguiProvider, Theme, Dialog, Unspaced, XStack, Text, YStack, Button, Separator } from 'tamagui';
 import { X, Download, ArrowUpCircle } from '@tamagui/lucide-icons';
@@ -21,6 +21,10 @@ import { SystemBars } from 'react-native-edge-to-edge';
 import { LogBox, Platform, PermissionsAndroid } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import StoragePermissionModule from '../../modules/storage-permission-module';
+import { HeroUINativeProvider } from 'heroui-native';
+import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
+import '../../global.css';
+import { useUniwind } from 'uniwind';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -164,8 +168,8 @@ const AppContent = () => {
     InterBold,
   });
 
-  const themeName = useThemeStore((state) => state.themeName);
-
+  const uniwindThemeName = useUniwind();
+  const setTheme = useThemeStore((state) => state.setTheme);
   // Request storage permissions on app startup
   useEffect(() => {
     const requestPermissions = async () => {
@@ -176,6 +180,16 @@ const AppContent = () => {
       }
     };
 
+    if (__DEV__) {
+      // @ts-ignore
+      if (uniwindThemeName.theme === 'light') {
+        setTheme('default-light');
+      }
+      // @ts-ignore
+      if (uniwindThemeName.theme === 'dark') {
+        setTheme('default-dark');
+      }
+    }
     requestPermissions();
   }, []);
 
@@ -189,10 +203,24 @@ const AppContent = () => {
     return null;
   }
 
+  const contentWrapper = useCallback(
+    (children: React.ReactNode) => (
+      <KeyboardAvoidingView pointerEvents="box-none" behavior="padding" keyboardVerticalOffset={12} className="flex-1">
+        {children}
+      </KeyboardAvoidingView>
+    ),
+    [],
+  );
+
   return (
     <TamaguiProvider config={config}>
       <PortalProvider>
-        <Theme name={themeName}>
+        <HeroUINativeProvider
+          config={{
+            toast: {
+              contentWrapper,
+            },
+          }}>
           <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="info/[mediaType]" />
@@ -210,7 +238,7 @@ const AppContent = () => {
               setShowUpdateDialog={setIsUpdateAvailable}
             />
           )}
-        </Theme>
+        </HeroUINativeProvider>
       </PortalProvider>
       <Toaster position="bottom-center" invert autoWiggleOnUpdate="always" richColors swipeToDismissDirection="left" />
       <SystemBars hidden={false} />
@@ -239,9 +267,11 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <AppContent />
-      </QueryClientProvider>
+      <KeyboardProvider>
+        <QueryClientProvider client={queryClient}>
+          <AppContent />
+        </QueryClientProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

@@ -55,21 +55,30 @@ src/
 
 ### Component Development
 
-#### Tamagui Components
-- Use Tamagui components (`View`, `Text`, `Button`, etc.) instead of React Native primitives
-- Leverage Tamagui's theme system and variants
-- Use `$` prefix for theme tokens: `color="$color"`, `backgroundColor="$color2"`
-- Use styled components for complex styling:
-  ```typescript
-  const StyledView = styled(View, {
-    padding: '$4',
-    variants: {
-      active: {
-        true: { backgroundColor: '$color4' }
-      }
-    }
-  });
-  ```
+#### HeroUI Components
+- [Accordion](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/accordion/accordion.md)
+- [Avatar](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/avatar/avatar.md)
+- [Button](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/button/button.md)
+- [Card](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/card/card.md)
+- [Checkbox](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/checkbox/checkbox.md)
+- [Chip](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/chip/chip.md)
+- [Dialog](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/dialog/dialog.md)
+- [Divider](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/divider/divider.md)
+- [Error View](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/error-view/error-view.md)
+- [Form Field](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/form-field/form-field.md)
+- [Popover](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/popover/popover.md)
+- [Pressable Feedback](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/pressable-feedback/pressable-feedback.md)
+- [Radio Group](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/radio-group/radio-group.md)
+- [Scroll Shadow](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/scroll-shadow/scroll-shadow.md)
+- [Select](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/select/select.md)
+- [Skeleton](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/skeleton/skeleton.md)
+- [Skeleton Group](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/skeleton-group/skeleton-group.md)
+- [Spinner](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/spinner/spinner.md)
+- [Surface](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/surface/surface.md)
+- [Switch](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/switch/switch.md)
+- [Tabs](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/tabs/tabs.md)
+- [Text Field](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/text-field/text-field.md)
+- [Toast](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/toast/toast.md)
 
 #### Performance Optimization
 - Use `memo()` for expensive components that receive stable props

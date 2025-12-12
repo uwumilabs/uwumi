@@ -2,7 +2,7 @@ import { ThemedView, CardList, HorizontalTabs } from '@/components';
 import { MediaType } from '@/constants/types';
 import { useFavoriteStore } from '@/hooks';
 import React from 'react';
-import { View } from 'tamagui';
+import { View } from 'react-native';
 
 const Favorites = () => {
   const { favorites } = useFavoriteStore();
@@ -12,7 +12,7 @@ const Favorites = () => {
       key: 'tab1',
       label: 'Anime',
       content: (
-        <View height="100%">
+        <View className="h-full">
           <CardList
             staticData={favorites.filter((item) => item.mediaType === MediaType.ANIME)}
             mediaType={MediaType.ANIME}

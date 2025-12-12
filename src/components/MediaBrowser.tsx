@@ -1,27 +1,17 @@
 /* eslint-disable react/display-name */
 import React, { memo, useMemo, useCallback } from 'react';
-import { YStack, Tabs, View } from 'tamagui';
+import { View } from 'react-native';
+import { Tabs } from 'heroui-native';
 import CardList from '@/components/CardList';
 import { ChartNoAxesCombined, Heart, Search } from '@tamagui/lucide-icons';
 import { useCurrentTheme, useTabsStore } from '@/hooks';
-import { IconTitle } from '@/components/ui-primitives';
+import { IconTitle, HUYStack } from '@/components/ui-primitives';
 import SearchBar from '@/components/SearchBar';
 import { MediaFeedType, MediaType } from '@/constants/types';
 
 interface MediaBrowserProps {
   mediaType: MediaType;
 }
-
-const TabTextStyle = {
-  fontSize: 13,
-  fontWeight: '600',
-  // color: '$color2',
-};
-
-const TabIconStyle = {
-  size: 15,
-  // color: '$color2',
-};
 
 export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
   const TABS = useMemo(
@@ -59,25 +49,13 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
 
   const TabList = useMemo(() => {
     return (
-      <Tabs.List disablePassBorderRadius width="65%" marginVertical="$2" marginHorizontal="$4" gap="$2">
+      <Tabs.List className="justify-center mx-auto">
+        <Tabs.Indicator />
         {TABS.map(({ id, icon, text }) => {
-          const isActive = currentTab === id;
-          const bgColor = isActive ? currentTheme?.color4 : 'transparent';
-
           return (
-            <Tabs.Tab
-              key={id}
-              flex={1}
-              value={id}
-              height={35}
-              padding={0}
-              borderWidth={2}
-              borderColor={isActive ? '$color4' : '$color1'}
-              style={{
-                backgroundColor: bgColor,
-              }}>
-              <IconTitle icon={icon} text={text} iconProps={TabIconStyle} textProps={TabTextStyle} />
-            </Tabs.Tab>
+            <Tabs.Trigger key={id} value={id}>
+              <IconTitle icon={icon} text={text} />
+            </Tabs.Trigger>
           );
         })}
       </Tabs.List>
@@ -88,7 +66,7 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
     () =>
       TABS.map(({ id, mediaFeedType }) => (
         <Tabs.Content value={id} key={id}>
-          <View height="100%">
+          <View className="h-full">
             <CardList mediaFeedType={mediaFeedType} mediaType={mediaType} metaProvider={metaProvider} />
           </View>
         </Tabs.Content>
@@ -97,19 +75,13 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
   );
 
   return (
-    <YStack gap="$2">
+    <HUYStack className="gap-2">
       <SearchBar />
-      <Tabs
-        defaultValue="tab1"
-        orientation="horizontal"
-        flexDirection="column"
-        width="100%"
-        value={currentTab}
-        onValueChange={handleTabChange}>
+      <Tabs value={currentTab} onValueChange={handleTabChange} variant="pill">
         {TabList}
         {tabsContent}
       </Tabs>
-    </YStack>
+    </HUYStack>
   );
 };
 

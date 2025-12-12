@@ -1,11 +1,12 @@
-import { IconTitle, RippleButton, CustomSelect, CustomFlashlist } from '@/components';
+import { IconTitle, RippleButton, CustomSelect, CustomFlashlist, HUXStack, HUYStack } from '@/components';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import { MediaType } from '@/constants/types';
 import { useMangaChapters, usePureBlackBackground } from '@/hooks';
 import { Album, Library, ScrollText } from '@tamagui/lucide-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { cn } from 'heroui-native';
 import React, { useCallback } from 'react';
-import { Spinner, Text, XStack, YStack } from 'tamagui';
+import { ActivityIndicator, Text } from 'react-native';
 
 const Chapters = () => {
   const { mediaType, provider, id } = useLocalSearchParams<{
@@ -17,11 +18,6 @@ const Chapters = () => {
   const currentProvider = useProviderStore((state) => state.getProvider(mediaType));
   const { data, isLoading } = useMangaChapters({ id, provider: currentProvider });
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
-  const IconProps = {
-    size: 20,
-    color: '$color1',
-    opacity: 0.7,
-  };
   const router = useRouter();
 
   const handleProviderChange = useCallback(
@@ -32,13 +28,12 @@ const Chapters = () => {
   );
   if (isLoading) {
     return (
-      <YStack justifyContent="center" alignItems="center" minHeight={300}>
-        <Spinner size="large" color="$color" />
-      </YStack>
+      <HUYStack className="justify-center items-center min-h-75">
+        <ActivityIndicator size="large" color="$color" />
+      </HUYStack>
     );
   }
   return (
-    //<YStack flex={1}>
     <CustomFlashlist
       data={data}
       keyExtractor={(item) => item.id}
@@ -47,14 +42,14 @@ const Chapters = () => {
         paddingVertical: 8,
       }}
       ListHeaderComponent={
-        <XStack paddingHorizontal={16} padding={8} gap="$5" alignItems="center" justifyContent="center">
+        <HUXStack className="px-4 p-2 gap-1.5 items-center justify-center">
           <CustomSelect
             SelectItem={PROVIDERS.manga}
             SelectLabel="Provider"
             value={currentProvider}
             onValueChange={handleProviderChange}
           />
-        </XStack>
+        </HUXStack>
       }
       renderItem={({ item }) => (
         <RippleButton
@@ -66,30 +61,29 @@ const Chapters = () => {
               },
             });
           }}>
-          <YStack gap={'$4'} padding={2} backgroundColor={pureBlackBackground ? '#000' : 'transparent'}>
-            <XStack gap={'$4'}>
-              <YStack padding={2} flex={1} justifyContent="space-between">
-                <YStack>
-                  <XStack alignItems="center" justifyContent="space-between" gap={2}>
-                    <Text fontSize="$3" fontWeight="700" numberOfLines={1} flex={1} color="$color">
+          <HUYStack className={cn('gap-4 px-2 py-2', pureBlackBackground && 'bg-black')}>
+            <HUXStack className="gap-4">
+              <HUYStack className="flex-1 justify-between p-2">
+                <HUYStack>
+                  <HUXStack className="flex-row items-center justify-between gap-2">
+                    <Text className="flex-1 text-base font-bold text-accent" numberOfLines={1}>
                       {item.title}
                     </Text>
-                    <XStack alignItems="center" gap={2}>
-                      <IconTitle text={item.volumeNumber} icon={Library} iconProps={IconProps} />
-                    </XStack>
-                  </XStack>
-                </YStack>
-                <XStack justifyContent="space-between" alignItems="center">
-                  <IconTitle text={item.chapterNumber} icon={Album} iconProps={IconProps} />
-                  <IconTitle text={item.pages} icon={ScrollText} iconProps={IconProps} />
-                </XStack>
-              </YStack>
-            </XStack>
-          </YStack>
+                    <HUXStack className="flex-row items-center gap-2">
+                      <IconTitle text={item.volumeNumber} icon={Library} />
+                    </HUXStack>
+                  </HUXStack>
+                </HUYStack>
+                <HUXStack className="flex-row items-center justify-between">
+                  <IconTitle text={item.chapterNumber} icon={Album} />
+                  <IconTitle text={item.pages} icon={ScrollText} />
+                </HUXStack>
+              </HUYStack>
+            </HUXStack>
+          </HUYStack>
         </RippleButton>
       )}
     />
-    //</YStack>
   );
 };
 

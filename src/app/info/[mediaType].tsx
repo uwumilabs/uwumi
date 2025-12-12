@@ -1,5 +1,13 @@
 import { AnimatedCountdown, AnimatedFavoriteButton } from './components';
-import { IconTitle, ThemedView, RippleButton, AnimatedCustomImage, HorizontalTabs } from '@/components';
+import {
+  IconTitle,
+  ThemedView,
+  RippleButton,
+  AnimatedCustomImage,
+  HorizontalTabs,
+  HUYStack,
+  HUXStack,
+} from '@/components';
 import {
   useCurrentTheme,
   useInfo,
@@ -11,10 +19,9 @@ import {
 import { ArrowLeft, Clock, Globe, Star } from '@tamagui/lucide-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { ImageBackground } from 'react-native';
+import { ActivityIndicator, ImageBackground, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Spinner, Text, View, XStack, YStack, ZStack } from 'tamagui';
-import { LinearGradient } from 'tamagui/linear-gradient';
+import { LinearGradient } from 'expo-linear-gradient';
 import { MediaType, MetaProvider } from '@/constants/types';
 import { hexToRGB, normalizeRating } from '@/constants/utils';
 import Episodes from './Episodes';
@@ -78,16 +85,15 @@ const Info = () => {
     <>
       <ThemedView useSafeArea statusBarProps={{ translucent: true, backgroundColor: 'transparent' }}>
         {isLoading ? (
-          <YStack height={300} justifyContent="center" alignItems="center">
-            <Spinner size="large" color="$color" />
-          </YStack>
+          <HUYStack className="h-75 justify-center items-center">
+            <ActivityIndicator size="large" color="$color" />
+          </HUYStack>
         ) : (
-          <ZStack height={300}>
-            <ImageBackground source={{ uri: data?.cover }} style={{ width: '100%', height: 300 }} />
-            <View height={300}>
+          <View className="h-75 relative">
+            <ImageBackground className="absolute inset-0 h-75 w-full" source={{ uri: data?.cover }} />
+            <View className="h-75 absolute inset-0 z-10">
               <LinearGradient
-                width="100%"
-                height="300"
+                className="w-full h-75 flex-1"
                 colors={
                   pureBlackBackground
                     ? [hexToRGB('#000000', 1), hexToRGB('#000000', 0.7), hexToRGB('#000000', 0.4)]
@@ -99,12 +105,10 @@ const Info = () => {
                 }
                 start={[0, 1]}
                 end={[0, 0.5]}
-                flex={1}
               />
             </View>
-            <View padding={10} marginTop={insets.top}>
-              <XStack alignItems="center" justifyContent="space-between" marginBlockEnd={20}>
-                {/* a small delay to ensure the back navigation is smooth  */}
+            <View className="p-2.5 z-20" style={{ marginTop: insets.top }}>
+              <HUXStack className="items-center justify-between">
                 <RippleButton onPress={() => router.back()}>
                   <ArrowLeft />
                 </RippleButton>
@@ -118,20 +122,20 @@ const Info = () => {
                   provider={provider}
                   metaProvider={metaProvider}
                 />
-              </XStack>
+              </HUXStack>
 
-              <XStack gap={10} alignItems="center">
+              <HUXStack className="gap-2.5 items-center">
                 <AnimatedCustomImage
                   sharedTransitionTag="shared-image"
                   source={{ uri: image }}
                   style={{ width: 115, height: 163 }}
                 />
-                <YStack gap={8} flex={1}>
-                  <Text numberOfLines={3} color="$color1" fontSize="$5" fontWeight="700">
+                <HUYStack className="gap-2 flex-1">
+                  <Text className="text-foreground text-3xl font-bold" numberOfLines={3}>
                     {typeof data?.title === 'object' ? data?.title?.english || data?.title?.romaji : data?.title}
                   </Text>
 
-                  <XStack alignItems="center" justifyContent="space-between">
+                  <HUXStack className="item-center justify-between">
                     {data?.status && <IconTitle icon={Clock} text={data?.status} />}
                     {episodes.length > 0 && (
                       <RippleButton
@@ -141,8 +145,8 @@ const Info = () => {
                         <IconTitle icon={Globe} text="Webview" color="$color" />
                       </RippleButton>
                     )}
-                  </XStack>
-                  <XStack justifyContent="space-between">
+                  </HUXStack>
+                  <HUXStack className="justify-between">
                     <IconTitle icon={Star} text={normalizeRating(data?.rating)} />
                     {(data?.nextAiringEpisode?.airingTime || data?.nextAiringEpisode?.releaseDate) && (
                       <AnimatedCountdown
@@ -150,16 +154,16 @@ const Info = () => {
                       />
                     )}
                     <IconTitle text={data?.type} />
-                  </XStack>
-                </YStack>
-              </XStack>
+                  </HUXStack>
+                </HUYStack>
+              </HUXStack>
             </View>
-          </ZStack>
+          </View>
         )}
 
-        <YStack alignItems="center" marginTop={20} flex={1}>
+        <HUYStack className="items-center mt-5 flex-1">
           <HorizontalTabs items={tabItems} initialTab="tab1" />
-        </YStack>
+        </HUYStack>
       </ThemedView>
     </>
   );

@@ -12,16 +12,18 @@ export default function TabLayout() {
   const currentTheme = useCurrentTheme();
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
 
-  SystemNavigationBar.setNavigationColor(pureBlackBackground ? currentTheme?.color5 : currentTheme?.color3 || 'black');
+  SystemNavigationBar.setNavigationColor(
+    pureBlackBackground ? currentTheme?.segment : currentTheme?.surface || 'black',
+  );
 
   return (
     <NativeTabs
       backBehavior="history"
-      backgroundColor={pureBlackBackground ? currentTheme?.color5 : currentTheme?.color3}
-      indicatorColor={currentTheme?.color4}
-      rippleColor={hexToRGB(currentTheme?.color1, 0.5)}
-      labelStyle={{ fontSize: 13, fontWeight: '700', color: currentTheme?.color1 }}
-      iconColor={currentTheme?.color1}
+      backgroundColor={pureBlackBackground ? currentTheme?.segment : currentTheme?.surface}
+      indicatorColor={currentTheme?.default}
+      rippleColor={hexToRGB(currentTheme?.accent, 0.5)}
+      labelStyle={{ fontSize: 13, fontWeight: '700', color: currentTheme?.foreground }}
+      iconColor={currentTheme?.foreground}
       labelVisibilityMode="labeled">
       <NativeTabs.Trigger name="index">
         <Label>Anime</Label>

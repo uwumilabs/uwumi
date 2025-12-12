@@ -3,14 +3,14 @@
  * This file contains lightweight, frequently-used components that don't warrant separate files
  */
 
-import React, { FC } from 'react';
-import { View, Theme, ViewProps, Text, XStack, YStack, styled, GetProps } from 'tamagui';
+import React, { FC, ReactNode } from 'react';
+import { View, ViewProps, Text, StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useThemeStore, useAccentStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
+import { useThemeStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { StatusBar, StatusBarProps } from 'expo-status-bar';
 import { TouchableWithoutFeedbackProps } from 'react-native';
-import Ripple from 'react-native-material-ripple';
 import { Link } from 'expo-router';
+import { cn, PressableFeedback } from 'heroui-native';
 
 /* ============================================
  * IconTitle - Icon with text label
@@ -20,28 +20,14 @@ interface IconTitleProps {
   icon?: React.ElementType;
   text: any;
   color?: string;
-  iconProps?: Record<string, unknown>;
-  textProps?: Partial<GetProps<typeof Text>>;
 }
 
-const IconText = styled(Text, {
-  fontSize: 14,
-  color: '$color1',
-});
-
-const IconContainer = styled(XStack, {
-  alignItems: 'center',
-  gap: 4,
-});
-
-export const IconTitle = ({ icon: Icon, text, color, iconProps, textProps }: IconTitleProps) => {
+export const IconTitle = ({ icon: Icon, text, color }: IconTitleProps) => {
   return (
-    <IconContainer>
-      {Icon && <Icon color={color ? color : '$color1'} size={16} {...iconProps} />}
-      <IconText color={color ? color : '$color1'} {...textProps}>
-        {text}
-      </IconText>
-    </IconContainer>
+    <HUXStack className="items-center gap-2">
+      {Icon && <Icon className="text-foreground" size={16} />}
+      <Text className="text-14 text-foreground">{text}</Text>
+    </HUXStack>
   );
 };
 
@@ -52,25 +38,32 @@ export const IconTitle = ({ icon: Icon, text, color, iconProps, textProps }: Ico
 interface RippleButtonProps extends TouchableWithoutFeedbackProps {
   onPress: () => void;
   children?: React.ReactNode;
-  containerStyle?: GetProps<typeof View>;
+  containerStyle?: StyleProp<ViewStyle>;
+  className?: string;
 }
 
-export const RippleButton: FC<RippleButtonProps> = ({ onPress, children, containerStyle, ...props }) => {
-  const themeName = useThemeStore((state) => state.themeName);
+export const RippleButton: FC<RippleButtonProps> = ({ onPress, children, containerStyle, className, ...props }) => {
+  const currentTheme = useCurrentTheme();
   return (
-    <Ripple
-      onPress={(e) => {
-        setTimeout(() => onPress(), 300);
+    <PressableFeedback
+      feedbackVariant="ripple"
+      onPress={onPress}
+      className={cn('rounded-full p-2', className)}
+      style={containerStyle}
+      animation={{
+        ripple: {
+          backgroundColor: { value: currentTheme.accent },
+          opacity: { value: [0, 0.3, 0] },
+          progress: { baseDuration: 600 },
+        },
+        scale: {
+          value: 0.98,
+          timingConfig: { duration: 150 },
+        },
       }}
-      rippleColor={themeName === 'light' ? 'black' : 'white'}
-      rippleDuration={300}
-      rippleContainerBorderRadius={50}
-      rippleOpacity={1}
       {...props}>
-      <View padding={10} {...containerStyle}>
-        {children}
-      </View>
-    </Ripple>
+      {children}
+    </PressableFeedback>
   );
 };
 
@@ -95,22 +88,16 @@ export const NoResults = () => {
   const randomKaomoji = KAOMOJI[Math.floor(Math.random() * KAOMOJI.length)];
 
   return (
-    <YStack padding="$4" alignItems="center" justifyContent="center" gap="$4">
-      <Text fontSize={46} fontWeight={500} textAlign="center" color="$color1">
-        {randomKaomoji}
-      </Text>
-      <Text fontSize={16} color="$color">
-        No results found
-      </Text>
-      <Text fontSize={14} color="$color1" textAlign="center">
+    <HUYStack className="p-2 items-center justify-center gap-2">
+      <Text className="text-5xl font-medium text-center text-foreground">{randomKaomoji}</Text>
+      <Text className="text-xl text-accent">No results found</Text>
+      <Text className="text-xs text-foreground text-center">
         Haven't installed extensions yet? Install them from{' '}
         <Link href="/(settings)/extensions">
-          <Text fontSize={14} color="$color" textDecorationLine="underline">
-            here
-          </Text>
+          <Text className="text-xs text-accent underline">here</Text>
         </Link>
       </Text>
-    </YStack>
+    </HUYStack>
   );
 };
 
@@ -130,21 +117,20 @@ export function ThemedView({
   useSafeArea = false, // because of edge-to-edge we won't be using safe area insets
   useStatusBar = true,
   statusBarProps,
-  ...props
 }: ThemedViewProps) {
-  const themeName = useThemeStore((state) => state.themeName);
-  const accentName = useAccentStore((state) => state.accentName);
+  const isDark = useThemeStore((state) => state.isDark);
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const currentTheme = useCurrentTheme();
   const insets = useSafeAreaInsets();
 
   return (
-    <Theme name={accentName}>
+    <>
       <View
-        paddingTop={useSafeArea ? 0 : insets.top}
-        flex={1}
-        backgroundColor={pureBlackBackground ? '#000' : '$background'}
-        {...props}>
+        style={{
+          paddingTop: useSafeArea ? 0 : insets.top,
+          backgroundColor: pureBlackBackground ? '#000' : currentTheme?.background,
+        }}
+        className="flex-1">
         {children}
       </View>
 
@@ -152,17 +138,45 @@ export function ThemedView({
         animated
         hideTransitionAnimation="slide"
         hidden={!useStatusBar}
-        style={themeName === 'dark' ? 'light' : 'dark'}
+        style={isDark ? 'light' : 'dark'}
         backgroundColor={pureBlackBackground ? '#000' : currentTheme?.background}
         {...statusBarProps}
       />
-    </Theme>
+    </>
   );
 }
 
-/* ============================================
- * Default exports for backward compatibility
- * ============================================ */
+// Tailwind/Uniwind-only stacks (no Tamagui dependency)
+type SimpleStackProps = {
+  children?: ReactNode;
+  props?: ViewProps;
+  className?: string;
+  style?: StyleProp<ViewStyle>;
+};
+
+export const HUXStack = ({ children, props, className }: SimpleStackProps) => {
+  return (
+    <View className={cn('flex flex-row', className)} {...props}>
+      {children}
+    </View>
+  );
+};
+
+export const HUYStack = ({ children, props, className }: SimpleStackProps) => {
+  return (
+    <View className={cn('flex flex-col', className)} {...props}>
+      {children}
+    </View>
+  );
+};
+
+export const HUZStack = ({ children, props, className }: SimpleStackProps) => {
+  return (
+    <HUYStack className={cn('relative', className)} {...props}>
+      {children}
+    </HUYStack>
+  );
+};
 
 // Allow importing components individually
 export default {
@@ -170,4 +184,6 @@ export default {
   RippleButton,
   NoResults,
   ThemedView,
+  HUXStack,
+  HUYStack,
 };

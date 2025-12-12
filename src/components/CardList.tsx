@@ -1,19 +1,19 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 /* eslint-disable react/display-name */
 import React, { memo, useMemo } from 'react';
-import { Text, Card, ZStack, styled, XStack, Spinner, YStack, View } from 'tamagui';
-import { Link } from 'expo-router';
-import { LinearGradient } from 'tamagui/linear-gradient';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { AnimatedCustomImage } from './CustomImage';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
 import { IAnimeResult, IMovieResult, ISearch } from 'react-native-consumet';
-import { RefreshControl } from 'react-native';
+import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
 import { InfiniteData } from '@tanstack/react-query';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { NoResults } from './ui-primitives';
+import { HUXStack, HUYStack, NoResults, RippleButton } from './ui-primitives';
 import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch, useSearchStore } from '@/hooks';
 import { DEFAULT_PROVIDERS, useProviderStore } from '@/constants/provider';
 import CustomFlashlist from './CustomFlashlist';
+import { Card } from 'heroui-native';
 
 export interface CardListProps {
   staticData?: (IAnimeResult | IMovieResult)[] | undefined;
@@ -29,80 +29,76 @@ interface CardProps {
   metaProvider: MetaProvider;
 }
 
-const StyledCard = styled(Card, {
-  width: '100%',
-  aspectRatio: 2 / 3,
-  variants: { isHovered: { true: { scale: 0.95, borderColor: '$color' } } },
-});
+// const StyledCard = styled(Card, {
+//   width: '100%',
+//   aspectRatio: 2 / 3,
+//   variants: { isHovered: { true: { scale: 0.95, borderColor: '$color' } } },
+// });
 
-const AnimatedStyledCard = Animated.createAnimatedComponent(StyledCard);
+const AnimatedStyledCard = Animated.createAnimatedComponent(Card);
 
 const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProvider }) => {
   const { getProvider } = useProviderStore();
+  const router = useRouter();
   const provider = getProvider(mediaType);
   return (
     item.image &&
     !item.image.includes('/originalundefined') &&
     !item.image.includes('/originalnull') && (
-      <Link
-        asChild
-        href={{
-          pathname: '/info/[mediaType]',
-          params: {
-            mediaType: mediaType,
-            metaProvider: metaProvider,
-            type: item?.type,
-            provider: (() => {
-              switch (mediaType) {
-                case MediaType.ANIME:
-                  return provider ?? DEFAULT_PROVIDERS.anime;
-                case MediaType.MANGA:
-                  return provider ?? DEFAULT_PROVIDERS.manga;
-                case MediaType.MOVIE:
-                  return provider ?? DEFAULT_PROVIDERS.movie;
-                default:
-                  return provider ?? DEFAULT_PROVIDERS.anime;
-              }
-            })(),
-            id: item.id,
-            image: item.image,
-          },
+      <RippleButton
+        className="p-0 rounded-none"
+        onPress={() => {
+          router.push({
+            pathname: '/info/[mediaType]',
+            params: {
+              mediaType: mediaType,
+              metaProvider: metaProvider,
+              type: item?.type,
+              provider: (() => {
+                switch (mediaType) {
+                  case MediaType.ANIME:
+                    return provider ?? DEFAULT_PROVIDERS.anime;
+                  case MediaType.MANGA:
+                    return provider ?? DEFAULT_PROVIDERS.manga;
+                  case MediaType.MOVIE:
+                    return provider ?? DEFAULT_PROVIDERS.movie;
+                  default:
+                    return provider ?? DEFAULT_PROVIDERS.anime;
+                }
+              })(),
+              id: item.id,
+              image: item.image,
+            },
+          });
         }}>
-        <AnimatedStyledCard entering={FadeInDown.delay(50 * index)} flex={1} elevate animation="bouncy">
-          <Card.Footer paddingVertical="$2" paddingHorizontal="$2">
-            <Text
+        <AnimatedStyledCard
+          entering={FadeInDown.delay(50 * index)}
+          className="flex-1 w-full aspect-2/3 rounded-lg overflow-hidden p-0">
+          <Card.Body className="w-full h-full p-0 relative">
+            <AnimatedCustomImage
+              source={{ uri: item.image }}
+              style={{ borderRadius: 10, zIndex: 0 }}
+              width="100%"
+              height="100%"
+              sharedTransitionTag="shared-image"
+              className="absolute inset-0"
+            />
+            <LinearGradient
+              className="w-full h-full absolute inset-0 z-10l"
+              colors={['rgba(0,0,0,0.8)', 'transparent']}
+              start={[0, 1]}
+              end={[0, 0.3]}
+              style={{ borderRadius: 10 }}
+            />
+            <Card.Title
+              className="absolute bottom-0 left-0 right-0 z-20 py-2 px-2 text-sm font-medium m-0 text-white"
               numberOfLines={2}
-              ellipsizeMode="tail"
-              fontSize="$3"
-              fontWeight="500"
-              margin={0}
-              // width={100}
-              color="#ffffff">
+              ellipsizeMode="tail">
               {typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english}
-            </Text>
-          </Card.Footer>
-          <Card.Background>
-            <ZStack width="100%" height="100%" alignItems="center">
-              <AnimatedCustomImage
-                source={{ uri: item.image }}
-                style={{ borderRadius: 10 }}
-                width="100%"
-                height="100%"
-                sharedTransitionTag="shared-image"
-              />
-              <LinearGradient
-                width="100%"
-                height="100%"
-                colors={['rgba(0,0,0,0.8)', 'transparent']}
-                start={[0, 1]}
-                end={[0, 0.3]}
-                borderRadius={10}
-                opacity={0.9}
-              />
-            </ZStack>
-          </Card.Background>
+            </Card.Title>
+          </Card.Body>
         </AnimatedStyledCard>
-      </Link>
+      </RippleButton>
     )
   );
 });
@@ -142,21 +138,19 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
 
   if (isLoading && !data) {
     return (
-      <XStack padding="$4" justifyContent="center">
-        <Spinner size="large" color="$color" />
-      </XStack>
+      <HUXStack className="p-2 justify-center">
+        <ActivityIndicator size="large" color="$color" />
+      </HUXStack>
     );
   }
 
   if (error) {
     //console.log(error);
     return (
-      <YStack justifyContent="center" alignItems="center">
+      <HUYStack className="justify-center items-center">
         <NoResults />
-        <Text fontSize="$4" color="$color4" textAlign="center" marginTop="$4">
-          Error: {error?.message}
-        </Text>
-      </YStack>
+        <Text className="text-sm text-center mt-2">Error: {error?.message}</Text>
+      </HUYStack>
     );
   }
 
@@ -168,7 +162,7 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
         ) || []
       }
       renderItem={({ item, index }) => (
-        <View flex={1} paddingVertical={4} paddingHorizontal={4}>
+        <View className="flex-1 p-1">
           <CustomCard item={item} index={index} mediaType={mediaType} metaProvider={metaProvider} />
         </View>
       )}
@@ -184,11 +178,11 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
       onEndReachedThreshold={0.5}
       ListFooterComponent={
         hasNextPage ? (
-          <XStack padding="$4" justifyContent="center">
-            <Spinner size="small" color="$color" />
-          </XStack>
+          <HUXStack className="p-2 justify-center">
+            <ActivityIndicator size="small" color="$color" />
+          </HUXStack>
         ) : (
-          <View height={100} />
+          <View className="h-25" />
         )
       }
     />

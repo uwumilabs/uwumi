@@ -1,9 +1,8 @@
 /* eslint-disable react/display-name */
 /* eslint-disable react-hooks/rules-of-hooks */
-import { View, Text, YStack, XStack, Spinner, styled, Progress } from 'tamagui';
-import { Pressable, StyleSheet } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View, Text, TextProps } from 'react-native';
 import { FlashListRef } from '@shopify/flash-list';
-import React, { useEffect, useRef, useMemo, useState, useCallback, memo } from 'react';
+import React, { useEffect, useRef, useMemo, useState, useCallback, memo, ReactNode } from 'react';
 import CustomImage from '@/components/CustomImage';
 import { useRouter } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -36,14 +35,26 @@ import { formatTime } from '@/constants/utils';
 import CustomSelect from '../CustomSelect';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import CustomFlashlist from '../CustomFlashlist';
+import { HUYStack, HUXStack, RippleButton } from '../ui-primitives';
+import { Card, cn } from 'heroui-native';
+import Progress from '../Progress';
 
 const LoadingState = () => (
-  <YStack justifyContent="center" alignItems="center" minHeight={300}>
-    <Spinner size="large" color="$color" />
-  </YStack>
+  <Card className="mx-4 mt-6 bg-background">
+    <HUYStack className="items-center gap-3 px-6 py-10">
+      <ActivityIndicator size="large" color="$color" />
+      <Text className="text-sm font-semibold text-foreground/80">Fetching episodes…</Text>
+    </HUYStack>
+  </Card>
 );
 
-const StyledText = styled(Text, { fontWeight: '500', color: '$color1', fontSize: '$2.5', opacity: 0.7 });
+const StyledText = ({ children, ...props }: { children: ReactNode } & TextProps) => {
+  return (
+    <Text {...props} className="text-[10px] text-overlay-foreground">
+      {children}
+    </Text>
+  );
+};
 
 export const EpisodeList = ({
   mediaType,
@@ -189,7 +200,7 @@ export const EpisodeList = ({
           <Animated.View
             style={[
               animatedStyle,
-              { width: 100, justifyContent: 'center', alignItems: 'center', backgroundColor: currentTheme?.color4 },
+              { width: 100, justifyContent: 'center', alignItems: 'center', backgroundColor: currentTheme?.default },
             ]}>
             {/* Show current state icon (fades out) */}
             <Animated.View
@@ -280,29 +291,21 @@ export const EpisodeList = ({
       };
 
       return (
-        <Pressable onPress={navigateToEpisode} onLongPress={handleLongPress}>
-          <YStack
-            gap={'$4'}
-            padding={4}
-            marginVertical={1}
-            borderWidth={2}
-            borderRadius={10}
-            borderColor={currentUniqueId === item?.uniqueId ? '$color4' : 'transparent'}
-            backgroundColor={pureBlackBackground ? '#000' : '$background'}>
-            <XStack gap={'$4'}>{children}</XStack>
-          </YStack>
-        </Pressable>
+        <RippleButton onPress={navigateToEpisode} onLongPress={handleLongPress} className="rounded-2xl py-1 w-full">
+          {children}
+        </RippleButton>
       );
     },
   );
 
   const ProgressAndAirDate = useCallback(
     ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
+      const date = new Date(item?.releaseDate ?? '');
       return (
-        <XStack justifyContent="space-between" alignItems="center">
+        <HUXStack className="items-center justify-between w-full">
           <View>{renderEpisodeProgress(item)}</View>
-          <StyledText>{new Date(item?.releaseDate ?? '').toDateString()}</StyledText>
-        </XStack>
+          <StyledText>{new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(date)}</StyledText>
+        </HUXStack>
       );
     },
     [renderEpisodeProgress],
@@ -311,80 +314,69 @@ export const EpisodeList = ({
   const renderFullMetadataPressableItem = useCallback(
     ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
       return (
-        <>
-          <View position="relative" overflow="hidden" borderRadius={4}>
-            {/* 10 - 4 (of gap) = 6 */}
+        <Card
+          className={cn(
+            'flex-row gap-3 overflow-hidden rounded-2xl bg-background p-0 py-1.5 shadow-md',
+            pureBlackBackground && 'bg-black',
+          )}>
+          <View className="relative overflow-hidden rounded-xl">
             <CustomImage
               source={typeof item?.image === 'string' ? item.image : (item?.image?.hd ?? '')}
               style={{ width: 160, height: 107 }}
             />
-            <View
-              position="absolute"
-              bottom="$2.5"
-              left="$2.5"
-              backgroundColor="$background"
-              opacity={0.8}
-              borderRadius="$4"
-              paddingHorizontal="$2"
-              paddingVertical="$1">
-              <Text fontSize="$3" fontWeight="700" color="$color">
-                EP {item.number ?? item.episode}
-              </Text>
-            </View>
-            {progresses[item?.uniqueId as string] && swipeable && (
-              <View position="absolute" bottom="$0" left="50%" transform={[{ translateX: '-50%' }]}>
-                <Progress
-                  size={'$2'}
-                  scaleX={1.15}
-                  borderRadius={0}
-                  backgroundColor="$color1"
-                  value={Math.round(progresses[item?.uniqueId as string]?.progress) || 0}
-                  max={100}>
-                  <Progress.Indicator animation="bouncy" backgroundColor="$color4" />
-                </Progress>
-              </View>
-            )}
+            <Text className="absolute left-2 bottom-2.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
+              {`EP ${(item.number ?? item.episode ?? '').toString()}`}
+            </Text>
+            {progresses[item?.uniqueId as string] && swipeable ? (
+              <Progress
+                className="absolute inset-x-1 bottom-0.5"
+                value={progresses[item?.uniqueId as string]?.progress || 0}
+              />
+            ) : null}
           </View>
-          <YStack padding={2} flex={1} justifyContent="space-between">
-            <YStack>
-              <XStack alignItems="center" justifyContent="space-between" gap={2}>
-                <Text fontSize="$3" fontWeight="700" numberOfLines={1} flex={1}>
+          <HUYStack className="flex-1 justify-between gap-2 px-2 ">
+            <Card.Header>
+              <HUXStack className="items-center justify-between gap-2">
+                <Card.Title className="w-4/5" numberOfLines={1}>
                   {item.title}
-                </Text>
-                <XStack gap={2}>
-                  <Captions size={20} color="$color1" opacity={0.7} />
-                  {item?.isDubbed && <Mic size={20} color="$color1" opacity={0.7} />}
-                </XStack>
-              </XStack>
-              <StyledText numberOfLines={4}>{item?.description}</StyledText>
-            </YStack>
-            {ProgressAndAirDate({ item })}
-          </YStack>
-        </>
+                </Card.Title>
+                <HUXStack className="items-center gap-1">
+                  <Captions size={12} />
+                  {item?.isDubbed ? <Mic size={12} /> : null}
+                </HUXStack>
+              </HUXStack>
+            </Card.Header>
+
+            <Card.Description className="text-xs text-foreground/85" numberOfLines={3}>
+              {item?.description}
+            </Card.Description>
+            <Card.Footer>
+              <HUXStack className="items-center justify-between">
+                <ProgressAndAirDate item={item} />
+              </HUXStack>
+            </Card.Footer>
+          </HUYStack>
+        </Card>
       );
     },
-    [ProgressAndAirDate, progresses, swipeable],
+    [ProgressAndAirDate, progresses, pureBlackBackground, swipeable, mediaType],
   );
 
   const renderTitleOnlyPressableItem = useCallback(
     ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
       return (
-        <>
-          <YStack padding={2} flex={1} justifyContent="space-between">
-            <YStack>
-              <XStack alignItems="center" justifyContent="space-between" gap={2}>
-                <Text fontSize="$3" fontWeight="700" numberOfLines={1} flex={1}>
-                  {item.title}
-                </Text>
-                <XStack gap={2}>
-                  <Captions size={20} color="$color1" opacity={0.7} />
-                  {item?.isDubbed && <Mic size={20} color="$color1" opacity={0.7} />}
-                </XStack>
-              </XStack>
-            </YStack>
-            {ProgressAndAirDate({ item })}
-          </YStack>
-        </>
+        <HUYStack className="flex-1 gap-2 rounded-2xl border border-border/60 bg-background/80 p-3 shadow-md">
+          <HUXStack className="items-center justify-between gap-2">
+            <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={2}>
+              {item.title}
+            </Text>
+            <HUXStack className="flex-row items-center gap-1">
+              <Captions size={18} color="#9ca3af" opacity={0.8} />
+              {item?.isDubbed ? <Mic size={18} color="#9ca3af" opacity={0.8} /> : null}
+            </HUXStack>
+          </HUXStack>
+          <ProgressAndAirDate item={item} />
+        </HUYStack>
       );
     },
     [ProgressAndAirDate],
@@ -393,22 +385,18 @@ export const EpisodeList = ({
   const renderNumberOnlyPressableItem = useCallback(
     ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
       return (
-        <>
-          <YStack padding={2} flex={1} justifyContent="space-between">
-            <YStack>
-              <XStack alignItems="center" justifyContent="space-between" gap={2}>
-                <Text fontSize="$3" fontWeight="700" numberOfLines={1} flex={1}>
-                  EP {item.number ?? item.episode}
-                </Text>
-                <XStack gap={2}>
-                  <Captions size={20} color="$color1" opacity={0.7} />
-                  {item?.isDubbed && <Mic size={20} color="$color1" opacity={0.7} />}
-                </XStack>
-              </XStack>
-            </YStack>
-            {ProgressAndAirDate({ item })}
-          </YStack>
-        </>
+        <HUYStack className="flex-1 gap-2 rounded-2xl border border-border/60 bg-background/80 p-3 shadow-md">
+          <HUXStack className="items-center justify-between gap-2">
+            <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={1}>
+              {`EP ${(item.number ?? item.episode ?? '').toString()}`}
+            </Text>
+            <HUXStack className="gap-1">
+              <Captions size={18} color="#9ca3af" opacity={0.8} />
+              {item?.isDubbed ? <Mic size={18} color="#9ca3af" opacity={0.8} /> : null}
+            </HUXStack>
+          </HUXStack>
+          <ProgressAndAirDate item={item} />
+        </HUYStack>
       );
     },
     [ProgressAndAirDate],
@@ -482,9 +470,8 @@ export const EpisodeList = ({
         key={listKey}
         ref={flashListRef}
         data={episodes}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
         ListHeaderComponent={
-          <XStack padding={8} paddingHorizontal={16} width="100%" gap="$5" alignItems="center" justifyContent="center">
+          <HUXStack className="w-full items-center justify-center gap-5 px-4 py-2">
             {swipeable && (
               <CustomSelect
                 SelectItem={mediaType === MediaType.ANIME ? PROVIDERS.anime : PROVIDERS.movie}
@@ -537,7 +524,7 @@ export const EpisodeList = ({
                 )}
               </Pressable>
             )}
-          </XStack>
+          </HUXStack>
         }
         onLoad={() => {
           flashListRef?.current?.scrollToIndex({

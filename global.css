@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+@import 'uniwind';
+
+@import 'heroui-native/styles';
+
+/* Path to the heroui-native lib inside node_modules from the root of your project */
+@source './node_modules/heroui-native/lib';
+@import './src/themes/default.css';
+@import './src/themes/cloudflare.css';
+@import './src/themes/cotton-candy.css';

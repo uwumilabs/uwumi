@@ -2,7 +2,7 @@ import { EpisodeList } from '@/components';
 import { MediaType } from '@/constants/types';
 import { useLocalSearchParams } from 'expo-router';
 import { MediaFormat, TvType } from 'react-native-consumet';
-import { View } from 'tamagui';
+import { View } from 'react-native';
 
 const Episodes = () => {
   const { mediaType, provider, id, type } = useLocalSearchParams<{
@@ -12,7 +12,7 @@ const Episodes = () => {
     id: string;
   }>();
   return (
-    <View height="100%">
+    <View className="h-full">
       <EpisodeList mediaType={mediaType} provider={provider} id={id} type={type} swipeable />
     </View>
   );

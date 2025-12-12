@@ -1,0 +1,144 @@
+@layer theme {
+  :root {
+    @variant default-light {
+      /* Theme-Specific Base Colors */
+      /* Android: background */
+      --background: #FEFBFF;
+      /* Android: onBackground */
+      --foreground: #1B1B1F;
+
+      /* Android: surfaceContainer (Nav bar/Cards) */
+      --surface: #F3EDF7;
+      /* Android: onSurface */
+      --surface-foreground: #1B1B1F;
+
+      /* Android: surfaceContainerHigh (Dialogs) */
+      --overlay: #FCF7FF;
+      /* Android: onSurface */
+      --overlay-foreground: #1B1B1F;
+
+      /* Android: onSurfaceVariant */
+      --muted: #44464F;
+
+      /* Android: secondaryContainer */
+      --default: #D9E2FF;
+      /* Android: onSecondaryContainer */
+      --default-foreground: #001945;
+
+      /* Align with surfaceVariant for cards/segments */
+      --segment: #F3EDF7;
+      /* Text on segment */
+      --segment-foreground: #1B1B1F;
+
+      /* Android: primary */
+      --accent: #0058CA;
+      /* Android: onPrimary */
+      --accent-foreground: #FFFFFF;
+
+      /* Status Colors */
+      /* Android: tertiary (Downloaded badge) */
+      --success: #006E1B;
+      /* Android: onTertiary */
+      --success-foreground: #FFFFFF;
+
+      /* Generated (Missing in input) */
+      --warning: #7D5700;
+      /* Generated */
+      --warning-foreground: #FFFFFF;
+
+      /* Android: error */
+      --danger: #BA1A1A;
+      /* Android: onError */
+      --danger-foreground: #FFFFFF;
+
+      /* Form Field Base Colors */
+      /* Android: surfaceContainerHighest */
+      --field-background: #FCF7FF;
+      /* Android: onSurface */
+      --field-foreground: #1B1B1F;
+      /* Android: onSurfaceVariant */
+      --field-placeholder: #44464F;
+      /* Android: outline */
+      --field-border: #757780;
+
+      /* Miscellaneous Colors */
+      /* Android: outline */
+      --border: #757780;
+      /* Android: outlineVariant */
+      --divider: #C5C6D0;
+      /* Android: primary */
+      --link: #0058CA;
+    }
+
+    @variant default-dark {
+      /* Theme-Specific Base Colors */
+      /* Android: background */
+      --background: #1B1B1F;
+      /* Android: onBackground */
+      --foreground: #E3E2E6;
+
+      /* Android: surfaceContainer */
+      --surface: #211F26;
+      /* Android: onSurface */
+      --surface-foreground: #E3E2E6;
+
+      /* Overlay is LIGHTER than surface in Dark Mode (#292730 > #211F26) */
+      /* Android: surfaceContainerHigh */
+      --overlay: #292730;
+      /* Android: onSurface */
+      --overlay-foreground: #E3E2E6;
+
+      /* Android: onSurfaceVariant */
+      --muted: #C5C6D0;
+
+      /* Android: secondaryContainer */
+      --default: #00429B;
+      /* Android: onSecondaryContainer */
+      --default-foreground: #D9E2FF;
+
+      /* Android: primary */
+      --accent: #B0C6FF;
+      /* Android: onPrimary */
+      --accent-foreground: #002D6E;
+
+      /* Align with surfaceContainerHigh for segments */
+      --segment: #292730;
+      /* Text on segment */
+      --segment-foreground: #E3E2E6;
+
+      /* Status Colors */
+      /* Android: tertiary (Downloaded badge) */
+      --success: #7ADC77;
+      /* Android: onTertiary */
+      --success-foreground: #003909;
+
+      /* Generated (Missing in input) */
+      --warning: #EFB000;
+      /* Generated */
+      --warning-foreground: #422F00;
+
+      /* Android: error */
+      --danger: #FFB4AB;
+      /* Android: onError */
+      --danger-foreground: #690005;
+
+      /* Form Field Base Colors */
+      /* Android: surfaceContainerHighest */
+      --field-background: #302E38;
+      /* Android: onSurface */
+      --field-foreground: #E3E2E6;
+      /* Android: onSurfaceVariant */
+      --field-placeholder: #C5C6D0;
+      /* Android: outline */
+      --field-border: #8F9099;
+
+      /* Miscellaneous Colors */
+      /* Android: outline */
+      --border: #8F9099;
+      /* Android: outlineVariant */
+      --divider: #44464F;
+      /* Android: primary (or inversePrimary #0058CA if contrast needs to be lower) */
+      --link: #B0C6FF;
+    }
+  }
+}

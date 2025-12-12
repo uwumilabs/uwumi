@@ -1,28 +1,23 @@
 import Animated, { useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
-import { LinearGradient } from 'tamagui/linear-gradient';
-import { Text, View, YStack, XStack, styled, ZStack, ScrollView } from 'tamagui';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Text, View, ScrollView } from 'react-native';
 import { ChevronDown } from '@tamagui/lucide-icons';
-import React, { useState } from 'react';
+import React, { ReactNode, useState } from 'react';
 import { WebView } from 'react-native-webview';
 import { hexToRGB } from '@/constants/utils';
 import { useCurrentTheme, usePureBlackBackground, useMediaInfoStore } from '@/hooks';
-import { RippleButton } from '@/components';
+import { RippleButton, HUXStack, HUYStack } from '@/components';
 
-const StatisticsXStack = styled(XStack, {
-  flex: 1,
-  justifyContent: 'space-between',
-});
+const StatisticsXStack = ({ children }: { children: ReactNode }) => {
+  return <HUXStack className="flex-1 justify-between">{children}</HUXStack>;
+};
 
 const StatisticItem = ({ label, value }: { label: string; value: string }) => (
   <StatisticsXStack>
     {value && (
       <>
-        <Text fontSize="$4" fontWeight={700} color="$color1">
-          {label}
-        </Text>
-        <Text fontSize="$4" fontWeight={700} color="$color">
-          {value}
-        </Text>
+        <Text className="text-2xl font-bold text-foreground">{label}</Text>
+        <Text className="text-2xl font-bold text-accent">{value}</Text>
       </>
     )}
   </StatisticsXStack>
@@ -64,7 +59,7 @@ const Details = () => {
   }, [isExpanded]);
 
   return (
-    <YStack gap={2}>
+    <HUYStack className="gap-0.5">
       <ScrollView
         contentContainerStyle={{
           padding: 16,
@@ -73,19 +68,19 @@ const Details = () => {
         showsVerticalScrollIndicator={false}>
         <View>
           <View>
-            <View position="relative" marginTop="$2">
-              <View position="absolute" onLayout={(event) => setContentHeight(event.nativeEvent.layout.height)}>
+            <View className="relaive mt-2">
+              <View className="absolute" onLayout={(event) => setContentHeight(event.nativeEvent.layout.height)}>
                 <Text
-                  color={pureBlackBackground ? '#000' : '$background'}
-                  paddingHorizontal="$2"
-                  lineHeight="$3.5"
-                  textAlign="justify">
+                  style={{ color: pureBlackBackground ? '#000' : currentTheme?.background }}
+                  className="px-2 leading-1 text-justify">
                   {data?.description}
                 </Text>
               </View>
               <View
-                height={isExpanded ? contentHeight + contentHeight * 0.5 : contentHeight}
-                style={{ overflow: 'hidden' }}>
+                style={{
+                  overflow: 'hidden',
+                  height: isExpanded ? contentHeight + contentHeight * 0.5 : contentHeight,
+                }}>
                 <WebView
                   bounces={false}
                   scrollEnabled={false}
@@ -97,7 +92,7 @@ const Details = () => {
                                         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
                                         <style>
                                           * { margin: 0; padding: 0; overflow: hidden; }
-                                          body { width: 100vw; height: 100vh;color: ${currentTheme?.color1};text-align: justify;font-weight: 500; }
+                                          body { width: 100vw; height: 100vh;color: ${currentTheme?.foreground};text-align: justify;font-weight: 500; }
                                         </style>
                                       </head>
                                       <body>
@@ -114,7 +109,7 @@ const Details = () => {
                 />
               </View>
             </View>
-            <View height="100%">
+            <View className="h-full">
               {/* Animated description view */}
               <Animated.View
                 style={[
@@ -146,13 +141,13 @@ const Details = () => {
                         <ChevronDown size={24} color="$color" />
                       </RippleButton>
                     </Animated.View>
-                    <YStack flex={1} height="100%" width="100%" gap="$2">
+                    <HUYStack className="flex-1 h-full w-full hap-2">
                       <StatisticItem label="Type" value={data?.type || ''} />
                       <StatisticItem label="Country" value={String(data?.countryOfOrigin || '')} />
                       <StatisticItem label="Season" value={`${data?.season || ''} ${data?.releaseDate}`} />
                       <StatisticItem label="Duration" value={`${data?.duration}m`} />
-                      <YStack height={200} position="relative">
-                        <ZStack height={200}>
+                      <HUYStack className="h-50 relative">
+                        <View className="absolute h-50">
                           <WebView
                             bounces={false}
                             scrollEnabled={false}
@@ -183,10 +178,10 @@ const Details = () => {
                               height: '100%',
                             }}
                           />
-                          <View width="100%" height="100%" />
-                        </ZStack>
-                      </YStack>
-                    </YStack>
+                          <View className="w-full h-full" />
+                        </View>
+                      </HUYStack>
+                    </HUYStack>
                   </View>
                 </LinearGradient>
               </Animated.View>
@@ -194,7 +189,7 @@ const Details = () => {
           </View>
         </View>
       </ScrollView>
-    </YStack>
+    </HUYStack>
   );
 };
 

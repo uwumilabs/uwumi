@@ -1,11 +1,10 @@
-import { Circle, Separator, Switch, Text, View, XStack, YStack } from 'tamagui';
 import React, { memo, useCallback, useMemo } from 'react';
-import { useThemeStore, useAccentStore, usePureBlackBackground, useCurrentTheme, AccentName } from '@/hooks';
-import { ThemedView } from '@/components';
-import { Pressable, StyleProp, ViewStyle } from 'react-native';
-import { themes } from '@/constants/Theme';
-import { FlatList } from 'react-native';
+import { useThemeStore, usePureBlackBackground } from '@/hooks';
+import { ThemedView, HUYStack, HUXStack } from '@/components';
+import { Pressable, StyleProp, ViewStyle, View, Text, FlatList } from 'react-native';
 import { Check } from '@tamagui/lucide-icons';
+import { Divider, Switch } from 'heroui-native';
+import { themes, ThemeName } from '@/themes/theme';
 
 interface ThemeButtonProps {
   isSelected: boolean;
@@ -14,151 +13,163 @@ interface ThemeButtonProps {
 }
 
 interface AccentCardProps {
-  accent: string;
-  themeName: string;
-  accentName: string;
+  themeName: ThemeName;
+  currentTheme: ThemeName;
   pureBlackBackground: boolean;
   onPress: () => void;
 }
 
-const ThemeButton = memo(({ isSelected, label, onPress }: ThemeButtonProps) => {
-  const currentTheme = useCurrentTheme();
+const Circle = memo(
+  ({ size, children, backgroundColor }: { size: number; children?: React.ReactNode; backgroundColor?: string }) => {
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: backgroundColor || 'transparent',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+        {children}
+      </View>
+    );
+  },
+);
+Circle.displayName = 'Circle';
 
+const ThemeButton = memo(({ isSelected, label, onPress }: ThemeButtonProps) => {
   return (
     <Pressable
       style={{
         flex: 1,
-        backgroundColor: isSelected ? currentTheme?.color4 : 'transparent',
+        // backgroundColor: isSelected ? currentTheme?.color4 : 'transparent',
       }}
+      className={isSelected ? 'bg-default' : 'transparent'}
       onPress={onPress}>
-      <Text color={currentTheme?.color1} fontWeight="500" fontSize={18} textAlign="center">
-        {label}
-      </Text>
+      <Text className="text-foreground font-medium text-lg text-center">{label}</Text>
     </Pressable>
   );
 });
 ThemeButton.displayName = 'ThemeButton';
 
 const ThemeSelector = memo(() => {
-  const setThemeName = useThemeStore((state) => state.setThemeName);
-  const themeName = useThemeStore((state) => state.themeName);
+  const isDark = useThemeStore((state) => state.isDark);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
   const setPureBlackBackground = usePureBlackBackground((state) => state.setPureBlackBackground);
 
   const handleLightPress = useCallback(() => {
-    setThemeName('light');
+    if (isDark) {
+      toggleTheme();
+    }
     setPureBlackBackground(false);
-  }, [setThemeName, setPureBlackBackground]);
+  }, [isDark, toggleTheme, setPureBlackBackground]);
 
   const handleDarkPress = useCallback(() => {
-    setThemeName('dark');
-  }, [setThemeName]);
+    if (!isDark) {
+      toggleTheme();
+    }
+  }, [isDark, toggleTheme]);
 
   return (
-    <View alignItems="center" justifyContent="center">
-      <XStack width="50%" borderWidth={2} borderColor="$color2" overflow="hidden" borderRadius={10}>
-        <ThemeButton isSelected={themeName === 'light'} label="Light" onPress={handleLightPress} />
-        <Separator vertical />
-        <ThemeButton isSelected={themeName === 'dark'} label="Dark" onPress={handleDarkPress} />
-      </XStack>
+    <View className="items-center justify-center">
+      <HUXStack className="w-1/2 border-2 overflow-hidden rounded-4xl border-muted">
+        <ThemeButton isSelected={!isDark} label="Light" onPress={handleLightPress} />
+        <Divider orientation="vertical" />
+        <ThemeButton isSelected={isDark} label="Dark" onPress={handleDarkPress} />
+      </HUXStack>
     </View>
   );
 });
 ThemeSelector.displayName = 'ThemeSelector';
 
-const AccentCard = memo(({ accent, themeName, accentName, pureBlackBackground, onPress }: AccentCardProps) => {
-  const themeKey = `${themeName}_${accent}`;
-  const theme = themes[themeKey];
-  const isSelected = accentName === accent;
-
+const AccentCard = memo(({ themeName, currentTheme, pureBlackBackground, onPress }: AccentCardProps) => {
+  const theme = themes[themeName];
+  const isSelected = currentTheme.startsWith(themeName.replace(/-(light|dark)$/i, ''));
   const cardStyle = useMemo(
     () => ({
       height: 150,
       width: 100,
-      backgroundColor: pureBlackBackground ? '#000' : theme?.background,
       borderRadius: 10,
-      borderColor: isSelected ? theme?.color : theme?.color2,
+      borderColor: isSelected ? theme?.accent : theme?.divider,
+      backgroundColor: pureBlackBackground ? '#000' : theme?.background,
       borderWidth: 2,
       overflow: 'hidden',
     }),
-    [pureBlackBackground, isSelected, theme],
+    [isSelected, theme],
   );
 
   return (
-    <YStack key={accent}>
+    <HUYStack key={themeName}>
       <Pressable onPress={onPress} style={cardStyle as StyleProp<ViewStyle>}>
-        <YStack flex={1}>
-          <YStack flex={1} justifyContent="space-between">
-            <YStack gap={4} margin="$2">
-              <XStack height={15} gap={8}>
-                <View width={50} borderRadius={10} backgroundColor={theme?.color1} />
+        <HUYStack className="flex-1">
+          <HUYStack className="flex-1 justify-between">
+            <HUYStack className="gap-4 p-2">
+              <HUXStack className="h-5 gap-4">
+                <View className="w-12 rounded-3xl bg-foreground" />
                 {isSelected && (
-                  <Circle size={15} backgroundColor={theme?.color}>
-                    <Check size={12} strokeWidth={3.5} color={theme?.color4} />
+                  <Circle size={15} backgroundColor={theme?.accent}>
+                    <Check size={12} strokeWidth={3.5} color={theme?.foreground} />
                   </Circle>
                 )}
-              </XStack>
-              <View width="50%" height={60} borderRadius={10} backgroundColor={theme?.color2}>
-                <XStack margin={4}>
-                  <View borderRadius={6} width="100%" height={13} backgroundColor={theme?.color4} />
-                </XStack>
+              </HUXStack>
+              <View className="w-1/2 h-12 rounded-xl bg-muted">
+                <HUXStack className="m-2">
+                  <View className="h-3 w-full rounded-md" style={{ backgroundColor: theme?.accent }} />
+                </HUXStack>
               </View>
-            </YStack>
-            <View backgroundColor={theme?.color2} height={20} alignItems="center" justifyContent="center">
-              <XStack marginHorizontal="$2" height={15} gap={8}>
-                <Circle size={15} backgroundColor={theme?.color} />
+            </HUYStack>
+            <View className="h-5 items-center justify-center" style={{ backgroundColor: theme?.default }}>
+              <HUXStack className="px-2 gap-4">
+                <Circle size={15} backgroundColor={theme?.accent} />
                 <View
-                  flex={1}
-                  width="70%"
-                  borderRadius={10}
-                  backgroundColor={pureBlackBackground ? theme?.color5 : theme?.color3}
+                  className="flex-1 rounded-lg"
+                  style={{ backgroundColor: pureBlackBackground ? theme?.muted : theme?.surface }}
                 />
-              </XStack>
+              </HUXStack>
             </View>
-          </YStack>
-        </YStack>
+          </HUYStack>
+        </HUYStack>
       </Pressable>
-      <Text textAlign="center" textTransform="capitalize">
-        {accent}
-      </Text>
-    </YStack>
+      <Text className="text-accent font-medium text-center capitalize">{themeName.replace(/-(light|dark)$/i, '')}</Text>
+    </HUYStack>
   );
 });
 AccentCard.displayName = 'AccentCard';
 
 const AccentSelector = memo(() => {
-  const themeName = useThemeStore((state) => state.themeName);
-  const setAccentName = useAccentStore((state) => state.setAccentName);
-  const accentName = useAccentStore((state) => state.accentName);
+  const currentTheme = useThemeStore((state) => state.currentTheme as ThemeName);
+  const setTheme = useThemeStore((state) => state.setTheme);
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
 
-  // Get unique accent names
-  const accentThemes = useMemo(() => {
-    const allThemes = Object.entries(themes).filter(([key]) => key.startsWith(themeName));
-    return [
-      ...new Set(
-        allThemes
-          .map(([key]) => {
-            const [_, accent] = key.split('_');
-            return accent;
-          })
-          .filter(Boolean),
-      ),
-    ];
-  }, [themeName]);
+  const themeNames = useMemo(() => Object.keys(themes) as ThemeName[], []);
 
-  const handleAccentChange = useCallback((accent: AccentName) => setAccentName(accent), [setAccentName]);
+  const baseNames = useMemo(() => {
+    const bases = new Set<string>();
+    themeNames.forEach((name) => bases.add(name.replace(/-(light|dark)$/i, '')));
+    return Array.from(bases);
+  }, [themeNames]);
+
+  const handleAccentChange = useCallback((themeName: ThemeName) => setTheme(themeName), [setTheme]);
 
   const renderAccentItem = useCallback(
-    ({ item: accent }: { item: AccentName }) => (
-      <AccentCard
-        accent={accent!}
-        themeName={themeName}
-        accentName={accentName!}
-        pureBlackBackground={pureBlackBackground}
-        onPress={() => handleAccentChange(accent)}
-      />
-    ),
-    [themeName, accentName, pureBlackBackground, handleAccentChange],
+    ({ item: baseName }: { item: string }) => {
+      const light = `${baseName}-light` as ThemeName;
+      const dark = `${baseName}-dark` as ThemeName;
+      const preferred = currentTheme.includes('dark') ? dark : light;
+      const fallback = themeNames.find((t) => t.startsWith(baseName)) as ThemeName;
+      const target = themeNames.includes(preferred) ? preferred : fallback;
+
+      return (
+        <AccentCard
+          themeName={target}
+          currentTheme={currentTheme}
+          pureBlackBackground={pureBlackBackground}
+          onPress={() => handleAccentChange(target)}
+        />
+      );
+    },
+    [currentTheme, pureBlackBackground, handleAccentChange, themeNames],
   );
 
   const keyExtractor = useCallback((item: any) => item, []);
@@ -167,7 +178,7 @@ const AccentSelector = memo(() => {
     <View>
       <FlatList
         horizontal
-        data={accentThemes}
+        data={baseNames}
         contentContainerStyle={{ padding: 8, gap: 16 }}
         showsHorizontalScrollIndicator={false}
         renderItem={renderAccentItem}
@@ -182,41 +193,24 @@ const AccentSelector = memo(() => {
 AccentSelector.displayName = 'AccentSelector';
 
 const PureBlackSwitch = memo(() => {
-  const themeName = useThemeStore((state) => state.themeName);
-  const accentName = useAccentStore((state) => state.accentName);
+  const currentTheme = useThemeStore((state) => state.currentTheme as ThemeName);
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const setPureBlackBackground = usePureBlackBackground((state) => state.setPureBlackBackground);
 
-  if (themeName !== 'dark') return null;
-
-  const themeKey = `${themeName}_${accentName}`;
-  const theme = themes[themeKey];
+  if (!currentTheme.includes('dark')) return null;
 
   return (
-    <XStack alignItems="center" padding={10} justifyContent="space-between" gap="$3">
-      <Text fontWeight={500}>Pure black dark background</Text>
-      <Switch
-        borderWidth={2}
-        borderColor={pureBlackBackground ? '$color' : '$color2'}
-        size="$4"
-        backgroundColor={pureBlackBackground ? '$color' : 'transparent'}
-        checked={pureBlackBackground}
-        onCheckedChange={setPureBlackBackground}>
-        <Switch.Thumb
-          borderWidth={0}
-          scale={0.7}
-          backgroundColor={pureBlackBackground ? theme?.color4 : theme?.color2}
-          animation="quick"
-        />
-      </Switch>
-    </XStack>
+    <HUXStack className="items-center p-10 justify-between gap-3">
+      <Text className="text-accent font-semibold">Pure black dark background</Text>
+      <Switch isSelected={pureBlackBackground} onSelectedChange={() => setPureBlackBackground(!pureBlackBackground)} />
+    </HUXStack>
   );
 });
 PureBlackSwitch.displayName = 'PureBlackSwitch';
 
 const Appearance = () => {
   return (
-    <ThemedView padding={10}>
+    <ThemedView>
       <ThemeSelector />
       <AccentSelector />
       <PureBlackSwitch />

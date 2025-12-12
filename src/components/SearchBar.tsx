@@ -1,8 +1,9 @@
 import { useCurrentTheme, useSearchStore, useTabsStore } from '@/hooks';
 import { X } from '@tamagui/lucide-icons';
 import React, { useCallback, useRef } from 'react';
-import { TextInput } from 'react-native';
-import { Button, View, XStack } from 'tamagui';
+import { TextInput, View } from 'react-native';
+import { HUXStack } from './ui-primitives';
+import { Button } from 'heroui-native';
 
 export const SearchBar: React.FC = () => {
   const searchQuery = useSearchStore((state) => state.searchQuery);
@@ -32,15 +33,8 @@ export const SearchBar: React.FC = () => {
   }, [searchQuery]);
 
   return (
-    <View width="100%">
-      <XStack
-        borderWidth={2}
-        borderColor="$color2"
-        borderRadius={10}
-        padding="$2"
-        marginTop="$4"
-        marginHorizontal="$4"
-        alignItems="center">
+    <View className="w-full">
+      <HUXStack className="border-2 border-border rounded-2xl p-2 mt-4 mx-4 items-center">
         <TextInput
           ref={inputRef}
           onChangeText={handleTextChange}
@@ -48,19 +42,23 @@ export const SearchBar: React.FC = () => {
           keyboardType="web-search"
           returnKeyType="search"
           onSubmitEditing={handleSearch}
-          placeholderTextColor={currentTheme?.color1}
+          placeholderTextColor={currentTheme?.foreground}
           placeholder="Search..."
           style={{
-            color: currentTheme?.color1,
+            color: currentTheme?.foreground,
             padding: 10,
             flex: 1,
             fontWeight: 700,
-            // height:50
+            height: 50,
           }}
           focusable
         />
-        {searchQuery && <Button icon={X} circular onPress={handleClear} />}
-      </XStack>
+        {searchQuery && (
+          <Button className="" onPress={handleClear}>
+            <X size={20} />
+          </Button>
+        )}
+      </HUXStack>
     </View>
   );
 };

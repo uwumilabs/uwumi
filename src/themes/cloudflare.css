@@ -1,0 +1,83 @@
+@layer theme {
+    :root {
+        @variant cloudflare-light {
+            --background: #eff2f5;
+            --foreground: #1b1b22;
+
+            --surface: #efe9e3;
+            --surface-foreground: #1b1b22;
+
+            --overlay: #eff2f5;
+            --overlay-foreground: #1b1b22;
+
+            --muted: #cac4d0;
+
+            --default: #efe9e3;
+            --default-foreground: #1b1b22;
+
+            --accent: #f38020;
+            --accent-foreground: #1b1b22;
+
+            --field-background: #efe9e3;
+            --field-foreground: #1b1b22;
+            --field-placeholder: var(--muted);
+            --field-border: transparent;
+
+            --success: #2f9e44;
+            --success-foreground: #0f130d;
+
+            --warning: #f59f00;
+            --warning-foreground: #1b1b22;
+
+            --danger: #d64045;
+            --danger-foreground: #fef7f0;
+
+            --segment: #efe9e3;
+            --segment-foreground: #1b1b22;
+
+            --border: rgba(0, 0, 0, 0);
+            --divider: #cac4d0;
+            --link: #f38020;
+        }
+
+        @variant cloudflare-dark {
+            --background: #1b1b22;
+            --foreground: #eff2f5;
+
+            --surface: #2d2322;
+            --surface-foreground: #eff2f5;
+
+            --overlay: #2d2322;
+            --overlay-foreground: #eff2f5;
+
+            --muted: #49454f;
+
+            --default: #2d2322;
+            --default-foreground: #eff2f5;
+
+            --accent: #f38020;
+            --accent-foreground: #140b03;
+
+            --field-background: #2d2322;
+            --field-foreground: #eff2f5;
+            --field-placeholder: var(--muted);
+            --field-border: transparent;
+
+            --success: #2f9e44;
+            --success-foreground: #0f130d;
+
+            --warning: #f59f00;
+            --warning-foreground: #1b1b22;
+
+            --danger: #d64045;
+            --danger-foreground: #fef2e8;
+
+            --segment: #2d2322;
+            --segment-foreground: #eff2f5;
+
+            --border: rgba(0, 0, 0, 0);
+            --divider: #49454f;
+            --link: #f38020;
+        }
+    }
+}

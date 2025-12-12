@@ -1,15 +1,15 @@
 import React, { forwardRef } from 'react';
 import { FlashList, FlashListProps, type FlashListRef } from '@shopify/flash-list';
-import { View } from 'tamagui';
 import { NoResults } from './ui-primitives';
+import { View } from 'react-native';
 
 export const CustomFlashlist = forwardRef(<T,>(props: FlashListProps<T>, ref: React.Ref<FlashListRef<T>>) => {
   return (
-    <View height="100%">
+    <View className="h-full">
       <FlashList
         ref={ref}
         ListEmptyComponent={<NoResults />}
-        ListFooterComponent={<View marginBottom={250} />}
+        ListFooterComponent={<View className="mb-250" />}
         showsVerticalScrollIndicator={true}
         {...props}
       />

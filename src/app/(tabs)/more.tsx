@@ -1,9 +1,10 @@
 import React, { RefObject, useMemo } from 'react';
-import { ThemedView } from '@/components';
-import { Text, YStack, XStack, Separator } from 'tamagui';
+import { HUXStack, HUYStack, ThemedView } from '@/components';
 import { Route, useRouter } from 'expo-router';
 import { Palette, Info, Heart, Package, Download } from '@tamagui/lucide-icons';
-import { Pressable, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { Divider } from 'heroui-native';
+import { useCurrentTheme } from '@/hooks';
 
 const MenuItem = ({
   href,
@@ -25,15 +26,13 @@ const MenuItem = ({
     //console.log(`Navigating to: ${href}`);
     router.push(href);
   };
-
+  const currentTheme = useCurrentTheme();
   return (
     <Pressable onPress={handlePress} style={{ width: '100%' }}>
-      <XStack padding="$4" alignItems="center" gap="$4">
-        <Icon color="$color" />
-        <Text fontSize="$4" fontWeight="500">
-          {label}
-        </Text>
-      </XStack>
+      <HUXStack className="p-4 items-center gap-2">
+        <Icon color={currentTheme.accent} />
+        <Text className="text-lg font-medium text-foreground">{label}</Text>
+      </HUXStack>
     </Pressable>
   );
 };
@@ -62,16 +61,16 @@ const More = () => {
 
   return (
     <ThemedView>
-      <YStack flex={1}>
-        <YStack marginTop="$4">
+      <HUYStack className="flex-1">
+        <HUYStack className="mt-4">
           {menuItems.map((item, index) => (
             <View key={item.label} style={{ width: '100%' }}>
               <MenuItem href={item.href} icon={item.icon} label={item.label} />
-              {index < totalItems - 1 && <Separator />}
+              {index < totalItems - 1 && <Divider />}
             </View>
           ))}
-        </YStack>
-      </YStack>
+        </HUYStack>
+      </HUYStack>
     </ThemedView>
   );
 };
