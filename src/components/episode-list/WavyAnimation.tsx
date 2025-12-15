@@ -1,24 +1,19 @@
 import { memo } from 'react';
-import { cubicBezier, createAnimatedComponent, CSSAnimationKeyframes } from 'react-native-reanimated';
-import { View, XStack } from 'tamagui';
+import Animated, { cubicBezier, CSSAnimationKeyframes } from 'react-native-reanimated';
+import { HUXStack } from '../ui-primitives';
 const keyframes: CSSAnimationKeyframes = {
   '0%': { transform: [{ scaleY: 1.0 }] },
   '50%': { transform: [{ scaleY: 0.4 }] },
   '100%': { transform: [{ scaleY: 1.0 }] },
 };
 
-const AnimatedView = createAnimatedComponent(View);
-
 export const WavyAnimation = () => {
   return (
-    <XStack height={12} gap={2}>
+    <HUXStack className="h-3 gap-0.5">
       {[1, 2, 3, 4, 5].map((i, idx) => (
-        <AnimatedView
+        <Animated.View
           key={idx}
-          backgroundColor="$color4"
-          height="100%"
-          width={2}
-          borderRadius={4}
+          className="h-full w-0.5 rounded-full bg-default"
           // @ts-ignore
           style={{
             animationName: keyframes,
@@ -33,7 +28,7 @@ export const WavyAnimation = () => {
           }}
         />
       ))}
-    </XStack>
+    </HUXStack>
   );
 };
 

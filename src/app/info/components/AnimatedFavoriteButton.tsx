@@ -40,8 +40,8 @@ export const AnimatedFavoriteButton: React.FC<AnimatedFavoriteButtonProps> = (pr
     <RippleButton onPress={handleFavorite}>
       <Heart
         size={24}
-        color={isFavorited ? '$color4' : '$color'}
-        fill={isFavorited ? currentTheme?.color4 : 'transparent'}
+        color={isFavorited ? currentTheme?.default : currentTheme?.accent}
+        fill={isFavorited ? currentTheme?.default : 'transparent'}
       />
     </RippleButton>
   );

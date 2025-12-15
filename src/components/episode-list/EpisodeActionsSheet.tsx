@@ -1,6 +1,5 @@
-import React, { memo, useCallback, useState, useEffect } from 'react';
-import { Sheet, YStack, Text, XStack, Separator, Spinner } from 'tamagui';
-import { Linking, Platform, ScrollView } from 'react-native';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Linking, Platform, ScrollView, Text } from 'react-native';
 import { IAnimeEpisode, IMovieEpisode, IEpisodeServer } from 'react-native-consumet';
 import { Check, X, Play, ChevronRight, Server, ChevronLeft, Download } from '@tamagui/lucide-icons';
 import {
@@ -16,7 +15,9 @@ import { toast } from 'sonner-native';
 import { MediaType } from '@/constants/types';
 import { useProviderStore } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
-import { RippleButton } from '../ui-primitives';
+import { HUXStack, HUYStack, RippleButton } from '../ui-primitives';
+import { Divider } from 'heroui-native';
+import { Sheet } from 'tamagui';
 
 interface EpisodeActionsSheetProps {
   open: boolean;
@@ -27,6 +28,57 @@ interface EpisodeActionsSheetProps {
   mediaId: string;
   type?: string;
 }
+
+interface SheetButtonProps {
+  onPress: () => void;
+  icon?: React.ReactNode;
+  label: string;
+  rightIcon?: React.ReactNode;
+}
+
+const StyledSheetButton: React.FC<SheetButtonProps> = memo(({ onPress, icon, label, rightIcon }) => {
+  return (
+    <HUXStack className="items-center justify-between gap-3">
+      <RippleButton className="flex-1 p-3.5 rounded-lg bg-default" onPress={onPress}>
+        <HUXStack className="items-center gap-3">
+          {icon ? icon : null}
+          <Text className="text-base font-medium text-accent">{label}</Text>
+        </HUXStack>
+      </RippleButton>
+      {rightIcon ? rightIcon : null}
+    </HUXStack>
+  );
+});
+
+StyledSheetButton.displayName = 'StyledSheetButton';
+
+const ListState = ({
+  loading,
+  title,
+  subtitle,
+  severity = 'default',
+}: {
+  loading?: boolean;
+  title: string;
+  subtitle?: string;
+  severity?: 'default' | 'error';
+}) => {
+  const titleClassName =
+    severity === 'error' ? 'text-xl font-semibold text-danger text-center' : 'text-lg text-foreground text-center';
+
+  const subtitleClassName =
+    severity === 'error'
+      ? 'text-sm text-foreground text-center opacity-90'
+      : 'text-sm text-foreground text-center opacity-80';
+
+  return (
+    <HUYStack className="items-center justify-center p-4 gap-2">
+      {loading ? <ActivityIndicator size="large" color="$color" /> : null}
+      <Text className={titleClassName}>{title}</Text>
+      {subtitle ? <Text className={subtitleClassName}>{subtitle}</Text> : null}
+    </HUYStack>
+  );
+};
 
 const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
   ({ open, onOpenChange, episode, mediaType, provider, mediaId, type }) => {
@@ -330,26 +382,30 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const videoSources = data?.sources || [];
     const availableServers = data?.servers || [];
 
-    // console.log({ showQualitySelection, showServerSelection });
-    // Determine current view title
-    const getHeaderTitle = () => {
+    const headerTitle = useMemo(() => {
       if (showServerSelection) return 'Select Server';
       if (showQualitySelection) {
         const serverName = selectedServer?.name || getCurrentServer()?.name;
         return serverName ? `Select Quality - ${serverName}` : 'Select Quality';
       }
       return episode?.title;
-    };
+    }, [episode?.title, getCurrentServer, selectedServer?.name, showQualitySelection, showServerSelection]);
+
+    const snapPoints = useMemo(
+      () => (showQualitySelection || showServerSelection ? [70] : [40]),
+      [showQualitySelection, showServerSelection],
+    );
+
+    const shouldShowBack = showQualitySelection || showServerSelection;
 
     if (!episode) return null;
-
     return (
       <Sheet
         forceRemoveScrollEnabled={false}
         modal
         open={open}
         onOpenChange={onOpenChange}
-        snapPoints={showQualitySelection || showServerSelection ? [70] : [40]}
+        snapPoints={snapPoints}
         snapPointsMode="percent"
         dismissOnSnapToBottom
         zIndex={100_000}
@@ -361,219 +417,117 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
           exitStyle={{ opacity: 0 }}
         />
         <Sheet.Frame backgroundColor={sheetColor} borderTopLeftRadius={20} borderTopRightRadius={20}>
-          <YStack padding="$4" gap="$2" minHeight={200}>
+          <HUYStack className="p-4 gap-2 min-h-50">
             {/* Header */}
-            <XStack justifyContent="space-between" alignItems="center" marginBottom="$2">
-              <YStack flex={1}>
-                <Text fontSize="$5" fontWeight={700} color="$color">
-                  {getHeaderTitle()}
+            <HUXStack className="justify-between items-center mb-2">
+              <HUYStack className="flex-1">
+                <Text className="text-lg font-bold text-accent" numberOfLines={1}>
+                  {headerTitle}
                 </Text>
-              </YStack>
-              <RippleButton
-                onPress={() =>
-                  showQualitySelection || showServerSelection ? handleBackToMainMenu() : onOpenChange(false)
-                }>
-                {showQualitySelection || showServerSelection ? (
-                  <ChevronLeft size={24} color="$color1" />
-                ) : (
-                  <X size={24} color="$color1" />
-                )}
+              </HUYStack>
+              <RippleButton onPress={() => (shouldShowBack ? handleBackToMainMenu() : onOpenChange(false))}>
+                {shouldShowBack ? <ChevronLeft size={24} color="$color1" /> : <X size={24} color="$color1" />}
               </RippleButton>
-            </XStack>
+            </HUXStack>
 
-            <Separator borderColor="$color3" />
+            <Divider />
 
             {/* Main Menu */}
             {!showQualitySelection && !showServerSelection && (
-              <YStack gap="$1" marginTop="$2">
+              <HUYStack className="gap-1 mt-2">
                 {/* Mark as Complete/Incomplete */}
-                <XStack
-                  padding="$3.5"
-                  alignItems="center"
-                  gap="$3"
-                  borderRadius="$3"
-                  backgroundColor="$color4"
+                <StyledSheetButton
                   onPress={handleMarkComplete}
-                  cursor="pointer">
-                  <Check size={20} color={isCompleted ? '$green10' : '$color'} />
-                  <Text fontSize="$4" fontWeight="500" color="$color">
-                    {isCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}
-                  </Text>
-                </XStack>
+                  icon={<Check size={20} />}
+                  label={isCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}
+                />
 
                 {/* Open in External Player */}
-                <XStack
-                  padding="$3.5"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  borderRadius="$3"
-                  backgroundColor="$color4"
-                  onPress={() => handleShowQualityOptions('external-player')}
-                  cursor="pointer">
-                  <XStack alignItems="center" gap="$3" flex={1}>
-                    <Play size={20} color="$color" />
-                    <YStack flex={1}>
-                      <Text fontSize="$4" fontWeight="500" color="$color">
-                        Open in External Player
-                      </Text>
-                      <Text fontSize="$2.5" color="$color1" opacity={0.7}>
-                        Choose quality
-                      </Text>
-                    </YStack>
-                  </XStack>
-                  <ChevronRight size={20} color="$color1" />
-                </XStack>
 
+                <StyledSheetButton
+                  onPress={() => handleShowQualityOptions('external-player')}
+                  icon={<Play size={20} />}
+                  label="Open in External Player"
+                />
                 {/* Download */}
-                <XStack
-                  padding="$3.5"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  borderRadius="$3"
-                  backgroundColor="$color4"
+                <StyledSheetButton
                   onPress={() => handleShowQualityOptions('download')}
-                  cursor="pointer">
-                  <XStack alignItems="center" gap="$3" flex={1}>
-                    <Download size={20} color="$color" />
-                    <YStack flex={1}>
-                      <Text fontSize="$4" fontWeight="500" color="$color">
-                        Download
-                      </Text>
-                      <Text fontSize="$2.5" color="$color1" opacity={0.7}>
-                        Save for offline viewing
-                      </Text>
-                    </YStack>
-                  </XStack>
-                  <ChevronRight size={20} color="$color1" />
-                </XStack>
-              </YStack>
+                  icon={<Download size={20} />}
+                  label="Download"
+                />
+              </HUYStack>
             )}
 
             {/* Server Selection Menu */}
             {showServerSelection && (
               <ScrollView style={{ maxHeight: 400 }}>
-                <YStack gap="$1" marginTop="$2">
+                <HUYStack className="gap-1 mt-2">
                   {isLoading ? (
-                    <YStack alignItems="center" justifyContent="center" padding="$4">
-                      <Spinner size="large" color="$color" />
-                      <Text fontSize="$3" color="$color1" marginTop="$2">
-                        Loading servers...
-                      </Text>
-                    </YStack>
+                    <ListState loading title="Loading servers..." />
                   ) : error ? (
-                    <YStack alignItems="center" padding="$4">
-                      <Text fontSize="$4" color="$red10" textAlign="center">
-                        Failed to load servers
-                      </Text>
-                      <Text fontSize="$3" color="$color1" textAlign="center" marginTop="$2">
-                        Please try again
-                      </Text>
-                    </YStack>
+                    <ListState title="Failed to load servers" subtitle="Please try again" severity="error" />
                   ) : availableServers.length === 0 ? (
-                    <YStack alignItems="center" padding="$4">
-                      <Text fontSize="$4" color="$color1" textAlign="center">
-                        No servers available
-                      </Text>
-                    </YStack>
+                    <ListState title="No servers available" subtitle="Please try again later" severity="error" />
                   ) : (
-                    availableServers.map((server, index) => (
-                      <XStack
-                        key={index}
-                        padding="$3.5"
-                        alignItems="center"
-                        justifyContent="space-between"
-                        borderRadius="$3"
-                        backgroundColor="$color4"
-                        marginBottom="$1"
+                    availableServers.map((server) => (
+                      <StyledSheetButton
+                        key={server.name}
                         onPress={() => handleServerSelect(server)}
-                        cursor="pointer">
-                        <XStack alignItems="center" gap="$3">
-                          <Server size={18} color="$color" />
-                          <Text fontSize="$4" fontWeight="500" color="$color">
-                            {server.name}
-                          </Text>
-                        </XStack>
-                        <ChevronRight size={18} color="$color1" opacity={0.5} />
-                      </XStack>
+                        icon={<Server size={20} />}
+                        label={server.name}
+                      />
                     ))
                   )}
-                </YStack>
+                </HUYStack>
               </ScrollView>
             )}
 
             {/* Quality Selection Menu */}
             {showQualitySelection && (
               <ScrollView style={{ maxHeight: 400 }}>
-                <YStack gap="$1" marginTop="$2">
+                <HUYStack className="gap-1 mt-2">
                   {isLoading ? (
-                    <YStack alignItems="center" justifyContent="center" padding="$4">
-                      <Spinner size="large" color="$color" />
-                      <Text fontSize="$3" color="$color1" marginTop="$2">
-                        Loading video sources...
-                      </Text>
-                    </YStack>
+                    <ListState loading title="Loading video sources..." />
                   ) : error ? (
-                    <YStack alignItems="center" padding="$4">
-                      <Text fontSize="$4" color="$red10" textAlign="center">
-                        Failed to load video sources
-                      </Text>
-                      <Text fontSize="$3" color="$color1" textAlign="center" marginTop="$2">
-                        Please try again or use a different server
-                      </Text>
-                    </YStack>
+                    <ListState
+                      title="Failed to load video sources"
+                      subtitle="Please try again or try different server"
+                      severity="error"
+                    />
                   ) : videoSources.length === 0 ? (
-                    <YStack alignItems="center" padding="$4">
-                      <Text fontSize="$4" color="$color1" textAlign="center">
-                        No video sources available
-                      </Text>
-                      <Text fontSize="$3" color="$color1" textAlign="center" marginTop="$2">
-                        Try selecting a different server
-                      </Text>
-                    </YStack>
+                    <ListState
+                      title="No video sources available"
+                      subtitle="Please try different server"
+                      severity="error"
+                    />
                   ) : (
                     videoSources.map((source, index) => {
                       const quality = source.quality || `Source ${index + 1}`;
                       const url = source.url;
 
                       return (
-                        <XStack
-                          key={index}
-                          padding="$3.5"
-                          alignItems="center"
-                          justifyContent="space-between"
-                          borderRadius="$3"
-                          backgroundColor="$color4"
-                          marginBottom="$1"
+                        <StyledSheetButton
+                          key={quality}
                           onPress={() =>
                             actionMode === 'download' ? handleDownloadWithQuality(url) : handleOpenWithQuality(url)
                           }
-                          cursor="pointer">
-                          <XStack alignItems="center" gap="$3">
-                            {actionMode === 'download' ? (
+                          icon={
+                            actionMode === 'download' ? (
                               <Download size={18} color="$color" />
                             ) : (
                               <Play size={18} color="$color" />
-                            )}
-                            <YStack>
-                              <Text fontSize="$4" fontWeight="500" color="$color">
-                                {quality}
-                              </Text>
-                              {source.size && (
-                                <Text fontSize="$2" color="$color1" opacity={0.7}>
-                                  {source.size}
-                                </Text>
-                              )}
-                            </YStack>
-                          </XStack>
-                          <ChevronRight size={18} color="$color1" opacity={0.5} />
-                        </XStack>
+                            )
+                          }
+                          label={quality}
+                          rightIcon={<ChevronRight size={18} color="$color1" opacity={0.5} />}
+                        />
                       );
                     })
                   )}
-                </YStack>
+                </HUYStack>
               </ScrollView>
             )}
-          </YStack>
+          </HUYStack>
         </Sheet.Frame>
       </Sheet>
     );

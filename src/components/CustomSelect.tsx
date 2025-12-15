@@ -1,9 +1,7 @@
-import React, { memo, useState } from 'react';
-import { Check, ChevronDown, X } from '@tamagui/lucide-icons';
-import { Adapt, Select, Sheet, View } from 'tamagui';
-import { RippleButton } from './ui-primitives';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSheetColor } from '@/hooks';
+import React, { memo, useCallback, useMemo } from 'react';
+import { Button, Select } from 'heroui-native';
+import { ScrollView, Text, View } from 'react-native';
+import { ChevronDown } from '@tamagui/lucide-icons';
 
 type SelectOption = {
   name: string;
@@ -21,88 +19,55 @@ export const CustomSelect = ({
   value: string;
   onValueChange: (value: string) => void;
 }) => {
-  const [openSelect, setOpenSelect] = useState(false);
-  const insets = useSafeAreaInsets();
-  const sheetColor = useSheetColor();
+  const selectOptions = useMemo(
+    () =>
+      SelectItem.map((item) => ({
+        value: item.value,
+        label: item.name,
+      })),
+    [SelectItem],
+  );
 
-  const handleValueChange = (newValue: string) => {
-    onValueChange(newValue);
-    setOpenSelect(false);
-  };
+  const selectedOption = useMemo(() => selectOptions.find((item) => item.value === value), [selectOptions, value]);
+
+  const handleValueChange = useCallback(
+    (option?: { value: string }) => {
+      if (option?.value) {
+        onValueChange(option.value);
+      }
+    },
+    [onValueChange],
+  );
 
   return (
-    <Select open={openSelect} value={value} onValueChange={handleValueChange} onOpenChange={setOpenSelect}>
-      <Select.Trigger backgroundColor={sheetColor} flex={1} maxWidth={150} iconAfter={ChevronDown}>
-        <Select.Value width={90}>{SelectItem.find((opt) => opt.value === value)?.name || SelectLabel}</Select.Value>
+    <Select value={selectedOption} onValueChange={handleValueChange} closeDelay={150}>
+      <Select.Trigger asChild>
+        <Button>
+          {selectedOption ? (
+            <View className="flex-row items-center gap-2">
+              <Text className="text-base">{selectedOption.label}</Text>
+            </View>
+          ) : (
+            <Text className="text-foreground">{SelectLabel}</Text>
+          )}
+          <ChevronDown size={20} />
+        </Button>
       </Select.Trigger>
-
-      <Adapt platform="touch">
-        <Sheet
-          modal
-          open={openSelect}
-          onOpenChange={setOpenSelect}
-          snapPoints={[40]}
-          dismissOnSnapToBottom
-          animation="quick">
-          <Sheet.Overlay
-            backgroundColor="rgba(0,0,0,0.5)"
-            animation="quick"
-            enterStyle={{ opacity: 0 }}
-            exitStyle={{ opacity: 0 }}
-          />
-          <Sheet.Frame paddingBottom={insets.bottom} backgroundColor={sheetColor}>
-            <Sheet.ScrollView showsVerticalScrollIndicator>
-              <Adapt.Contents />
-            </Sheet.ScrollView>
-          </Sheet.Frame>
-        </Sheet>
-      </Adapt>
-
-      <Select.Content zIndex={200000}>
-        <Select.Viewport
-          animation="quick"
-          animateOnly={['transform', 'opacity']}
-          enterStyle={{ x: 0, y: -10 }}
-          exitStyle={{ x: 0, y: 10 }}
-          minWidth={200}>
-          <Select.Group>
-            <Select.Label backgroundColor={sheetColor} width={'100%'}>
-              {SelectLabel}{' '}
-              <RippleButton onPress={() => setOpenSelect(false)}>
-                <X />
-              </RippleButton>
-            </Select.Label>
-
-            {SelectItem.map((item, index) => (
-              <Select.Item
-                backgroundColor={sheetColor}
-                index={index}
-                value={item.value}
-                key={item.value}
-                paddingVertical={4}
-                // onPress={() => handleValueChange(item.value)}
-              >
-                <RippleButton
-                  onPressIn={() => handleValueChange(item.value)}
-                  // onPress={() => handleValueChange(item.value)}
-                  containerStyle={{
-                    padding: 12,
-                    justifyContent: 'space-between',
-                    flexDirection: 'row',
-                    width: '100%',
-                    // backgroundColor:"red"
-                  }}>
-                  <Select.ItemText>{item.name}</Select.ItemText>
-                  <Select.ItemIndicator marginLeft="auto">
-                    <Check size={16} />
-                  </Select.ItemIndicator>
-                  <View />
-                </RippleButton>
+      <Select.Portal>
+        <Select.Overlay />
+        <Select.Content width={280} className="rounded-2xl" placement="bottom">
+          <ScrollView>
+            {selectOptions.map((item) => (
+              <Select.Item key={item.value} value={item.value} label={item.label}>
+                <View className="flex-row items-center gap-3 flex-1">
+                  <Text className="text-base text-foreground flex-1">{item.label}</Text>
+                </View>
+                <Select.ItemIndicator />
               </Select.Item>
             ))}
-          </Select.Group>
-        </Select.Viewport>
-      </Select.Content>
+          </ScrollView>
+        </Select.Content>
+      </Select.Portal>
     </Select>
   );
 };

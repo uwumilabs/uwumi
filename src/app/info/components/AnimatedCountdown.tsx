@@ -1,5 +1,6 @@
-import { Text, View, XStack } from 'tamagui';
+import { HUXStack } from '@/components';
 import React, { useEffect, useState } from 'react';
+import { View, Text } from 'react-native';
 
 type CountdownProps = {
   targetDate: number | string;
@@ -54,20 +55,16 @@ export const AnimatedCountdown: React.FC<CountdownProps> = ({ targetDate }) => {
   });
 
   return (
-    <XStack gap="$2" alignItems="center">
+    <HUXStack className="gap-2 items-center">
       {unitsToShow.map(([key, value]) => (
-        <XStack key={key} alignItems="center" gap="$1">
+        <HUXStack className="items-center gap-1" key={key}>
           <View>
-            <Text color="$color" fontSize="$3" fontWeight="700">
-              {value.toString().padStart(2, '0')}
-            </Text>
+            <Text className="text-accent text-sm font-bold">{value.toString().padStart(2, '0')}</Text>
           </View>
-          <Text color="$color1" fontSize="$3" fontWeight="700">
-            {key}
-          </Text>
-        </XStack>
+          <Text className="text-foreground text-sm font-bold">{key}</Text>
+        </HUXStack>
       ))}
-    </XStack>
+    </HUXStack>
   );
 };
 

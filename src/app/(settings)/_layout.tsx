@@ -1,9 +1,9 @@
 import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View, XStack } from 'tamagui';
+import { Text, View } from 'react-native';
 import { ArrowLeft } from '@tamagui/lucide-icons';
-import { RippleButton } from '@/components/ui-primitives';
+import { RippleButton, HUXStack } from '@/components/ui-primitives';
 
 export default function SettingsLayout() {
   const currentTheme = useCurrentTheme();
@@ -23,35 +23,30 @@ export default function SettingsLayout() {
           const canGoBack = props.navigation.canGoBack();
           return (
             <View
-              backgroundColor={pureBlackBackground ? '#000' : currentTheme?.background}
-              paddingTop={insets.top}
-              zIndex={1000}>
-              <XStack alignItems="center" justifyContent="space-between" paddingHorizontal="$4">
+              style={{
+                backgroundColor: pureBlackBackground ? '#000' : currentTheme?.background,
+                paddingTop: insets.top,
+              }}
+              className="z-1000">
+              <HUXStack className="items-center px-4">
                 {/* Left Section - Back Button */}
-                <XStack alignItems="center" flex={1}>
+                <HUXStack className="flex-1 items-start">
                   {canGoBack && (
                     // a small delay to ensure the back navigation is smooth
                     <RippleButton onPress={() => props.navigation.goBack()}>
-                      <ArrowLeft size={24} color={currentTheme?.color1} />
+                      <ArrowLeft size={24} color={currentTheme?.foreground} />
                     </RippleButton>
                   )}
-                </XStack>
+                </HUXStack>
 
                 {/* Center Section - Title */}
-                <XStack flex={2} justifyContent="center">
-                  <Text
-                    fontSize="$5"
-                    fontWeight="600"
-                    color={currentTheme?.color1}
-                    textAlign="center"
-                    numberOfLines={1}>
-                    {props.options.title}
-                  </Text>
-                </XStack>
+                <HUXStack className="flex-1 items-center justify-center">
+                  <Text className="text-foreground text-xl font-semibold text-center ">{props.options.title}</Text>
+                </HUXStack>
 
                 {/* Right Section - Empty for now */}
-                <XStack flex={1} justifyContent="flex-end" />
-              </XStack>
+                <HUXStack className="flex-1 items-end" />
+              </HUXStack>
             </View>
           );
         },

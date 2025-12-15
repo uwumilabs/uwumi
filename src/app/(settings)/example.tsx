@@ -5,11 +5,14 @@
  * It is used to test the functionality of library, stores,hooks other screens etc.
  */
 import React from 'react';
-import { ThemedView, RippleButton } from '@/components';
-import { Button, Text, ScrollView, YStack } from 'tamagui';
+import { ThemedView, HUXStack, HUYStack, Progress } from '@/components';
 import { storage } from '@/hooks/stores/MMKV';
+import { ScrollView, Text } from 'react-native';
+import { Button } from 'heroui-native';
+import { useUniwind } from 'uniwind';
 
 const Example = () => {
+  const uni = useUniwind();
   const getAllMMKVKeys = () => {
     const keys = storage.getAllKeys();
     //console.log('All MMKV Keys:', keys);
@@ -20,6 +23,7 @@ const Example = () => {
       const typeOfValue = typeof value;
       console.log(`Key: ${key}, Value: ${value}, Type: ${typeOfValue}`);
     });
+    console.log(uni);
   };
 
   const deleteAllMMKVKeys = () => {
@@ -33,33 +37,24 @@ const Example = () => {
   return (
     <ThemedView>
       <ScrollView>
-        <YStack padding="$4" gap="$3">
-          <Text fontSize="$7" fontWeight="bold" color="$color" marginTop="$4">
-            MMKV Storage
-          </Text>
+        <HUYStack className="p-4 gap-3">
+          <Text className="text-xs font-bold text-accent mt-4">MMKV Storage</Text>
           <Button
             onPress={() => {
               getAllMMKVKeys();
-            }}
-            themeInverse>
+            }}>
             Get All MMKV Keys
           </Button>
           <Button
             onPress={() => {
               deleteAllMMKVKeys();
-            }}
-            themeInverse>
+            }}>
             delete All MMKV Keys
           </Button>
-
-          <RippleButton
-            onPress={() => {
-              console.log('RippleButton Pressed');
-            }}
-            containerStyle={{ padding: 12, backgroundColor: '$color2', borderRadius: 8 }}>
-            <Text color="$color1">Ripple Button</Text>
-          </RippleButton>
-        </YStack>
+        </HUYStack>
+        <HUXStack className="w-full bg-red-500">
+          <Progress value={70} />
+        </HUXStack>
       </ScrollView>
     </ThemedView>
   );

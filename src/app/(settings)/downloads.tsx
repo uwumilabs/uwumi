@@ -1,18 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ThemedView, CustomFlashlist } from '@/components';
-import { Text, YStack, XStack, Progress, Spinner, Separator, styled, AlertDialog, Button } from 'tamagui';
-import { useDownloadStore, usePureBlackBackground, useSheetColor } from '@/hooks';
+import { ThemedView, CustomFlashlist, HUXStack, HUYStack } from '@/components';
+import { useDownloadStore, usePureBlackBackground, useSheetColor, useCurrentTheme } from '@/hooks';
 import { Download, CheckCircle2, XCircle, Trash2, PauseCircle, Folder, HardDrive, Clock } from '@tamagui/lucide-icons';
 import { formatTime } from '@/constants/utils';
 import { IconTitle, RippleButton } from '@/components/ui-primitives';
+import { ActivityIndicator, Text } from 'react-native';
+import { Divider, Dialog, Button, Card, cn } from 'heroui-native';
+import { Progress } from 'tamagui';
 // import * as Haptics from 'expo-haptics';
-
-const StyledText = styled(Text, {
-  fontWeight: '500',
-  color: '$color1',
-  fontSize: '$2.5',
-  opacity: 0.7,
-});
 
 // Reusable Confirm Dialog Component
 interface ConfirmDialogProps {
@@ -39,6 +34,7 @@ const Downloads = () => {
 
   const [storageInfo, setStorageInfo] = useState({ downloadsSize: 0, totalDownloads: 0 });
   const sheetColor = useSheetColor();
+  const currentTheme = useCurrentTheme();
   const pureBlackBackground = usePureBlackBackground();
   // Alert dialog states
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
@@ -61,132 +57,132 @@ const Downloads = () => {
     }
   }, [isInitialized, downloads, getStorageInfo]);
 
-  const downloadList = useMemo(() => Object.values(downloads), [downloads]);
+  // const downloadList = useMemo(() => Object.values(downloads), [downloads]);
 
   // Dummy data for testing - uncomment to preview UI with sample downloads
-  // const downloadList = useMemo(
-  //   () => [
-  //     // Downloading
-  //     {
-  //       id: 'dummy-1',
-  //       name: 'Attack on Titan',
-  //       showName: 'Shingeki no Kyojin',
-  //       episode: 15,
-  //       season: 4,
-  //       status: 'downloading',
-  //       progress: {
-  //         percentage: 45,
-  //         currentTime: 540,
-  //         totalDuration: 1200,
-  //         speed: 2048000,
-  //         bitrate: 5000000,
-  //         size: 150000000,
-  //       },
-  //       fileSize: 350000000,
-  //       createdAt: Date.now() - 600000,
-  //     },
-  //     {
-  //       id: 'dummy-2',
-  //       name: 'Demon Slayer Movie',
-  //       showName: 'Kimetsu no Yaiba',
-  //       episode: 1,
-  //       status: 'downloading',
-  //       progress: {
-  //         percentage: 78,
-  //         currentTime: 3600,
-  //         totalDuration: 4620,
-  //         speed: 5242880,
-  //         bitrate: 8000000,
-  //         size: 520000000,
-  //       },
-  //       fileSize: 720000000,
-  //       createdAt: Date.now() - 1800000,
-  //     },
-  //     // Pending
-  //     {
-  //       id: 'dummy-3',
-  //       name: 'One Piece',
-  //       showName: 'One Piece',
-  //       episode: 1050,
-  //       status: 'pending',
-  //       createdAt: Date.now() - 300000,
-  //     },
-  //     {
-  //       id: 'dummy-4',
-  //       name: 'Jujutsu Kaisen',
-  //       showName: 'JJK',
-  //       episode: 24,
-  //       season: 2,
-  //       status: 'pending',
-  //       createdAt: Date.now() - 150000,
-  //     },
-  //     // Completed
-  //     {
-  //       id: 'dummy-5',
-  //       name: 'Naruto Shippuden',
-  //       showName: 'Naruto',
-  //       episode: 500,
-  //       season: 1,
-  //       status: 'completed',
-  //       fileSize: 450000000,
-  //       outputFile: '/storage/downloads/Naruto_S1_E500.mp4',
-  //       createdAt: Date.now() - 7200000,
-  //       completedAt: Date.now() - 3600000,
-  //     },
-  //     {
-  //       id: 'dummy-6',
-  //       name: 'My Hero Academia',
-  //       showName: 'Boku no Hero Academia',
-  //       episode: 12,
-  //       season: 6,
-  //       status: 'completed',
-  //       fileSize: 380000000,
-  //       outputFile: '/storage/downloads/MHA_S6_E12.mp4',
-  //       createdAt: Date.now() - 86400000,
-  //       completedAt: Date.now() - 82800000,
-  //     },
-  //     {
-  //       id: 'dummy-7',
-  //       name: 'Chainsaw Man',
-  //       episode: 8,
-  //       season: 1,
-  //       status: 'completed',
-  //       fileSize: 420000000,
-  //       outputFile: '/storage/downloads/Chainsaw_Man_S1_E8.mp4',
-  //       createdAt: Date.now() - 172800000,
-  //       completedAt: Date.now() - 169200000,
-  //     },
-  //     // Failed
-  //     {
-  //       id: 'dummy-8',
-  //       name: 'Tokyo Revengers',
-  //       showName: 'Tokyo Revengers',
-  //       episode: 7,
-  //       season: 2,
-  //       status: 'failed',
-  //       error: 'Network connection lost',
-  //       createdAt: Date.now() - 43200000,
-  //     },
-  //     {
-  //       id: 'dummy-9',
-  //       name: 'Spy x Family',
-  //       episode: 3,
-  //       season: 2,
-  //       status: 'cancelled',
-  //       createdAt: Date.now() - 21600000,
-  //     },
-  //     {
-  //       id: 'dummy-10',
-  //       name: 'Bleach TYBW',
-  //       showName: 'Bleach: Thousand-Year Blood War',
-  //       episode: 5,
-  //       status: 'failed',
-  //       error: 'Insufficient storage space',
-  //       createdAt: Date.now() - 10800000,
-  //     },
-  //   ],
-  //   [],
-  // );
+  const downloadList = useMemo(
+    () => [
+      // Downloading
+      {
+        id: 'dummy-1',
+        name: 'Attack on Titan',
+        showName: 'Shingeki no Kyojin',
+        episode: 15,
+        season: 4,
+        status: 'downloading',
+        progress: {
+          percentage: 45,
+          currentTime: 540,
+          totalDuration: 1200,
+          speed: 2048000,
+          bitrate: 5000000,
+          size: 150000000,
+        },
+        fileSize: 350000000,
+        createdAt: Date.now() - 600000,
+      },
+      {
+        id: 'dummy-2',
+        name: 'Demon Slayer Movie',
+        showName: 'Kimetsu no Yaiba',
+        episode: 1,
+        status: 'downloading',
+        progress: {
+          percentage: 78,
+          currentTime: 3600,
+          totalDuration: 4620,
+          speed: 5242880,
+          bitrate: 8000000,
+          size: 520000000,
+        },
+        fileSize: 720000000,
+        createdAt: Date.now() - 1800000,
+      },
+      // Pending
+      {
+        id: 'dummy-3',
+        name: 'One Piece',
+        showName: 'One Piece',
+        episode: 1050,
+        status: 'pending',
+        createdAt: Date.now() - 300000,
+      },
+      {
+        id: 'dummy-4',
+        name: 'Jujutsu Kaisen',
+        showName: 'JJK',
+        episode: 24,
+        season: 2,
+        status: 'pending',
+        createdAt: Date.now() - 150000,
+      },
+      // Completed
+      {
+        id: 'dummy-5',
+        name: 'Naruto Shippuden',
+        showName: 'Naruto',
+        episode: 500,
+        season: 1,
+        status: 'completed',
+        fileSize: 450000000,
+        outputFile: '/storage/downloads/Naruto_S1_E500.mp4',
+        createdAt: Date.now() - 7200000,
+        completedAt: Date.now() - 3600000,
+      },
+      {
+        id: 'dummy-6',
+        name: 'My Hero Academia',
+        showName: 'Boku no Hero Academia',
+        episode: 12,
+        season: 6,
+        status: 'completed',
+        fileSize: 380000000,
+        outputFile: '/storage/downloads/MHA_S6_E12.mp4',
+        createdAt: Date.now() - 86400000,
+        completedAt: Date.now() - 82800000,
+      },
+      {
+        id: 'dummy-7',
+        name: 'Chainsaw Man',
+        episode: 8,
+        season: 1,
+        status: 'completed',
+        fileSize: 420000000,
+        outputFile: '/storage/downloads/Chainsaw_Man_S1_E8.mp4',
+        createdAt: Date.now() - 172800000,
+        completedAt: Date.now() - 169200000,
+      },
+      // Failed
+      {
+        id: 'dummy-8',
+        name: 'Tokyo Revengers',
+        showName: 'Tokyo Revengers',
+        episode: 7,
+        season: 2,
+        status: 'failed',
+        error: 'Network connection lost',
+        createdAt: Date.now() - 43200000,
+      },
+      {
+        id: 'dummy-9',
+        name: 'Spy x Family',
+        episode: 3,
+        season: 2,
+        status: 'cancelled',
+        createdAt: Date.now() - 21600000,
+      },
+      {
+        id: 'dummy-10',
+        name: 'Bleach TYBW',
+        showName: 'Bleach: Thousand-Year Blood War',
+        episode: 5,
+        status: 'failed',
+        error: 'Insufficient storage space',
+        createdAt: Date.now() - 10800000,
+      },
+    ],
+    [],
+  );
 
   const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     open,
@@ -197,59 +193,28 @@ const Downloads = () => {
     cancelText = 'Cancel',
     onConfirm,
   }) => (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialog.Portal>
-        <AlertDialog.Overlay
-          key="overlay"
-          animation="quick"
-          opacity={0.5}
-          enterStyle={{ opacity: 0 }}
-          exitStyle={{ opacity: 0 }}
-          backgroundColor="rgba(0,0,0,0.5)"
-        />
-        <AlertDialog.Content
-          bordered
-          elevate
-          key="content"
-          animation={[
-            'quick',
-            {
-              opacity: {
-                overshootClamping: true,
-              },
-            },
-          ]}
-          enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
-          exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
-          x={0}
-          scale={1}
-          opacity={1}
-          y={0}
-          backgroundColor={sheetColor}>
-          <YStack gap="$3">
-            <AlertDialog.Title fontWeight="700" color="$color">
-              {title}
-            </AlertDialog.Title>
-            <AlertDialog.Description color="$color1" opacity={0.8}>
-              {description}
-            </AlertDialog.Description>
-
-            <XStack gap="$3" justifyContent="flex-end">
-              <AlertDialog.Cancel asChild>
-                <Button backgroundColor="$color4" color="$color" pressStyle={{ opacity: 0.8 }}>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} closeDelay={200}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="bg-black/50" />
+        <Dialog.Content className="rounded-3xl bg-background p-4">
+          <Dialog.Close className="absolute right-3 top-3" />
+          <HUYStack className="gap-3">
+            <Dialog.Title className="text-lg font-semibold text-foreground">{title}</Dialog.Title>
+            <Dialog.Description className="text-base text-foreground/80">{description}</Dialog.Description>
+            <HUXStack className="flex-row justify-end gap-3">
+              <Dialog.Close asChild>
+                <Button variant="ghost" className="min-w-[100px]">
                   {cancelText}
                 </Button>
-              </AlertDialog.Cancel>
-              <AlertDialog.Action asChild>
-                <Button backgroundColor="$color" color="$color2" onPress={onConfirm}>
-                  {confirmText}
-                </Button>
-              </AlertDialog.Action>
-            </XStack>
-          </YStack>
-        </AlertDialog.Content>
-      </AlertDialog.Portal>
-    </AlertDialog>
+              </Dialog.Close>
+              <Button onPress={onConfirm} className="min-w-[100px]" variant="primary">
+                {confirmText}
+              </Button>
+            </HUXStack>
+          </HUYStack>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog>
   );
   // Group downloads by status
   const groupedDownloads = useMemo(() => {
@@ -361,113 +326,97 @@ const Downloads = () => {
       const progress = item.progress?.percentage || 0;
 
       return (
-        <YStack
-          padding="$4"
-          marginVertical="$2"
-          borderRadius="$4"
-          backgroundColor={pureBlackBackground ? '#000' : '$color3'}
-          borderWidth={1}
-          borderColor="$color4">
+        <Card className={cn('m-2 rounded-2xl bg-background border border-default', pureBlackBackground && 'bg-black')}>
           {/* Header */}
-          <XStack justifyContent="space-between" alignItems="flex-start" marginBottom="$2">
-            <YStack flex={1} gap="$1">
-              {item.showName && (
-                <Text fontSize="$2.5" color="$color1" opacity={0.6} numberOfLines={1}>
-                  {item.showName}
-                </Text>
-              )}
-              <Text fontSize="$4" fontWeight="600" color="$color" width={'90%'} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <XStack gap="$2" alignItems="center">
-                <Text fontSize="$2.5" color="$color1" opacity={0.7}>
-                  {item.season ? `S${item.season} ` : ''}
-                  {`E${item.episode}`}
-                </Text>
-                {item.fileSize && (
-                  <>
-                    <Text fontSize="$2.5" color="$color1" opacity={0.5}>
-                      •
+          <Card.Header>
+            <HUXStack className="mb-2 flex-row items-start justify-between">
+              <HUYStack className="flex-1 gap-1">
+                {item.showName && (
+                  <Text className="text-sm text-foreground/60" numberOfLines={1}>
+                    {item.showName}
+                  </Text>
+                )}
+                <Card.Title className="w-[90%]" numberOfLines={1}>
+                  {item.name}
+                </Card.Title>
+                <HUXStack className="flex-row items-center gap-2">
+                  <Text className="text-sm text-foreground/70">
+                    {item.season ? `S${item.season} ` : ''}
+                    {`E${item.episode}`}
+                  </Text>
+                  {item.fileSize && (
+                    <>
+                      <Text className="text-sm text-foreground/50">•</Text>
+                      <Text className="text-sm text-foreground/70">{formatBytes(item.fileSize)}</Text>
+                    </>
+                  )}
+                </HUXStack>
+              </HUYStack>
+
+              <HUXStack className="flex-row items-center gap-2">
+                {getStatusIcon(item.status)}
+                <RippleButton onPress={() => handleRemoveDownload(item.id, item.status)}>
+                  <Trash2 size={20} color="$color" />
+                </RippleButton>
+              </HUXStack>
+            </HUXStack>
+          </Card.Header>
+          <Card.Body>
+            {/* Progress Bar for Downloading */}
+            {item.status === 'downloading' && (
+              <HUYStack className="mt-2 gap-2">
+                <Progress size="$1" backgroundColor="$color4" value={Math.round(progress)} max={100} borderRadius="$2">
+                  <Progress.Indicator animation="bouncy" backgroundColor="$color" />
+                </Progress>
+                <HUXStack className="flex-row items-center justify-between">
+                  <HUXStack className="flex-row items-center gap-3">
+                    <Text className="text-sm font-semibold text-foreground">{Math.round(progress)}%</Text>
+                    {item.progress?.speed && (
+                      <Text className="text-xs text-foreground">{formatBytes(item.progress.speed)}/s</Text>
+                    )}
+                  </HUXStack>
+                  {item.progress?.currentTime && item.progress?.totalDuration && (
+                    <Text className="text-sm text-foreground">
+                      {formatTime(item.progress.currentTime)} / {formatTime(item.progress.totalDuration)}
                     </Text>
-                    <Text fontSize="$2.5" color="$color1" opacity={0.7}>
-                      {formatBytes(item.fileSize)}
+                  )}
+                </HUXStack>
+                <RippleButton
+                  className="mt-2 items-center justify-center gap-2 rounded-xl p-3"
+                  onPress={() => handleCancelDownload(item.id)}>
+                  <IconTitle icon={PauseCircle} text="Cancel" />
+                </RippleButton>
+              </HUYStack>
+            )}
+          </Card.Body>
+
+          {/* Status Info */}
+          <Card.Footer>
+            {item.status !== 'downloading' && (
+              <HUXStack className="mt-2 flex-row items-center gap-2">
+                <Text className="text-sm font-medium" style={{ color: getStatusColor(item.status) }}>
+                  {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                </Text>
+                {item.error && (
+                  <>
+                    <Text className="text-sm text-foreground/50">•</Text>
+                    <Text className="flex-1 text-sm text-foreground" numberOfLines={1}>
+                      {item.error}
                     </Text>
                   </>
                 )}
-              </XStack>
-            </YStack>
-
-            <XStack gap="$2" alignItems="center">
-              {getStatusIcon(item.status)}
-              <RippleButton onPress={() => handleRemoveDownload(item.id, item.status)}>
-                <Trash2 size={20} color="$color" />
-              </RippleButton>
-            </XStack>
-          </XStack>
-
-          {/* Progress Bar for Downloading */}
-          {item.status === 'downloading' && (
-            <YStack gap="$2" marginTop="$2">
-              <Progress size="$1" backgroundColor="$color4" value={Math.round(progress)} max={100} borderRadius="$2">
-                <Progress.Indicator animation="bouncy" backgroundColor="$color" />
-              </Progress>
-              <XStack justifyContent="space-between" alignItems="center">
-                <XStack gap="$3" alignItems="center">
-                  <Text fontSize="$2.5" fontWeight="600">
-                    {Math.round(progress)}%
-                  </Text>
-                  {item.progress?.speed && <StyledText>{formatBytes(item.progress.speed)}/s</StyledText>}
-                </XStack>
-                {item.progress?.currentTime && item.progress?.totalDuration && (
-                  <StyledText>
-                    {formatTime(item.progress.currentTime)} / {formatTime(item.progress.totalDuration)}
-                  </StyledText>
+                {item.completedAt && (
+                  <>
+                    <Text className="text-sm text-foreground/50">•</Text>
+                    <Text className="text-sm text-foreground/70">
+                      {new Date(item.completedAt).toLocaleDateString()}
+                    </Text>
+                  </>
                 )}
-              </XStack>
-              <RippleButton
-                containerStyle={{
-                  gap: '$2',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '$2',
-                  borderRadius: '$2',
-                  backgroundColor: '$color4',
-                }}
-                onPress={() => handleCancelDownload(item.id)}>
-                <IconTitle icon={PauseCircle} text="Cancel" />
-              </RippleButton>
-            </YStack>
-          )}
-
-          {/* Status Info */}
-          {item.status !== 'downloading' && (
-            <XStack marginTop="$2" gap="$2" alignItems="center">
-              <Text fontSize="$2.5" color={getStatusColor(item.status)} fontWeight="500">
-                {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-              </Text>
-              {item.error && (
-                <>
-                  <Text fontSize="$2.5" color="$color1" opacity={0.5}>
-                    •
-                  </Text>
-                  <Text fontSize="$2.5" numberOfLines={1} flex={1}>
-                    {item.error}
-                  </Text>
-                </>
-              )}
-              {item.completedAt && (
-                <>
-                  <Text fontSize="$2.5" color="$color1" opacity={0.5}>
-                    •
-                  </Text>
-                  <Text fontSize="$2.5" color="$color1" opacity={0.7}>
-                    {new Date(item.completedAt).toLocaleDateString()}
-                  </Text>
-                </>
-              )}
-            </XStack>
-          )}
-        </YStack>
+              </HUXStack>
+            )}
+          </Card.Footer>
+        </Card>
       );
     },
     [pureBlackBackground, handleRemoveDownload, handleCancelDownload, formatBytes, getStatusIcon, getStatusColor],
@@ -477,49 +426,40 @@ const Downloads = () => {
     (title: string, count: number, action?: () => void, actionText?: string) => {
       if (count === 0) return null;
       return (
-        <XStack
-          paddingHorizontal="$4"
-          paddingVertical="$3"
-          justifyContent="space-between"
-          alignItems="center"
-          backgroundColor={pureBlackBackground ? '#000' : '$color2'}>
-          <Text fontSize="$4" fontWeight="600" color="$color">
+        <HUXStack
+          className="flex-row items-center justify-between px-4 py-3"
+          style={{ backgroundColor: pureBlackBackground ? '#000' : undefined }}>
+          <Text className="text-lg font-semibold text-foreground">
             {title} ({count})
           </Text>
           {action && actionText && (
             <RippleButton onPress={action}>
-              <Text fontSize="$3" fontWeight="500">
-                {actionText}
-              </Text>
+              <Text className="text-base font-medium text-foreground">{actionText}</Text>
             </RippleButton>
           )}
-        </XStack>
+        </HUXStack>
       );
     },
     [pureBlackBackground],
   );
 
   const renderEmptyState = () => (
-    <YStack flex={1} justifyContent="center" alignItems="center" padding="$8" gap="$4">
+    <HUYStack className="flex-1 items-center justify-center gap-4 p-8">
       <Folder size={64} color="$color1" opacity={0.3} />
-      <Text fontSize="$5" fontWeight="600" color="$color1" opacity={0.5} textAlign="center">
-        No Downloads
-      </Text>
-      <Text fontSize="$3" color="$color1" opacity={0.4} textAlign="center" maxWidth={300}>
+      <Text className="text-center text-2xl font-semibold text-foreground/50">No Downloads</Text>
+      <Text className="max-w-[300px] text-center text-base text-foreground/40">
         Downloaded episodes will appear here. Long press an episode to access download options.
       </Text>
-    </YStack>
+    </HUYStack>
   );
 
   if (!isInitialized) {
     return (
       <ThemedView>
-        <YStack flex={1} justifyContent="center" alignItems="center">
-          <Spinner size="large" color="$color" />
-          <Text fontSize="$4" color="$color1" marginTop="$4">
-            Initializing downloads...
-          </Text>
-        </YStack>
+        <HUYStack className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="$color" />
+          <Text className="mt-4 text-xl text-foreground/70">Initializing downloads...</Text>
+        </HUYStack>
       </ThemedView>
     );
   }
@@ -527,65 +467,45 @@ const Downloads = () => {
   return (
     <ThemedView>
       {/* Storage Info Header */}
-      <YStack backgroundColor={pureBlackBackground ? '#000' : '$color2'} padding="$4" gap="$3">
-        <XStack justifyContent="space-between" alignItems="center">
-          <XStack gap="$2" alignItems="center">
+      <HUYStack className="gap-3 p-4" style={{ backgroundColor: pureBlackBackground ? '#000' : undefined }}>
+        <HUXStack className="flex-row items-center justify-between">
+          <HUXStack className="flex-row items-center gap-2">
             <HardDrive size={20} color="$color1" opacity={0.7} />
-            <Text fontSize="$3" color="$color1" opacity={0.7}>
-              Storage Used
-            </Text>
-          </XStack>
-          <Text fontSize="$4" fontWeight="600" color="$color">
-            {formatBytes(storageInfo.downloadsSize)}
-          </Text>
-        </XStack>
-        <XStack justifyContent="space-between" alignItems="center">
-          <XStack gap="$2" alignItems="center">
+            <Text className="text-base text-foreground/70">Storage Used</Text>
+          </HUXStack>
+          <Text className="text-lg font-semibold text-foreground">{formatBytes(storageInfo.downloadsSize)}</Text>
+        </HUXStack>
+        <HUXStack className="flex-row items-center justify-between">
+          <HUXStack className="flex-row items-center gap-2">
             <Folder size={20} color="$color1" opacity={0.7} />
-            <Text fontSize="$3" color="$color1" opacity={0.7}>
-              Total Downloads
-            </Text>
-          </XStack>
-          <Text fontSize="$4" fontWeight="600" color="$color">
-            {storageInfo.totalDownloads}
-          </Text>
-        </XStack>
+            <Text className="text-base text-foreground/70">Total Downloads</Text>
+          </HUXStack>
+          <Text className="text-lg font-semibold text-foreground">{storageInfo.totalDownloads}</Text>
+        </HUXStack>
 
         {/* Action Buttons */}
         {downloadList.length > 0 && (
-          <XStack gap="$2" marginTop="$2">
+          <HUXStack className="mt-2 flex-row gap-2">
             {groupedDownloads.completed.length > 0 && (
               <RippleButton
                 onPress={handleClearCompleted}
                 style={{ flex: 1 }}
-                containerStyle={{
-                  gap: '$2',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '$3',
-                  borderRadius: '$3',
-                  backgroundColor: '$color4',
-                }}>
+                containerStyle={{ backgroundColor: '$color4' }}
+                className="flex-1 items-center justify-center gap-2 rounded-xl p-3">
                 <IconTitle icon={Trash2} text="Clear Completed" />
               </RippleButton>
             )}
             <RippleButton
               onPress={handleClearAll}
               style={{ flex: 1 }}
-              containerStyle={{
-                gap: '$2',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '$3',
-                borderRadius: '$3',
-              }}>
+              className="flex-1 items-center justify-center gap-2 rounded-xl p-3">
               <IconTitle icon={Trash2} text="Clear All" />
             </RippleButton>
-          </XStack>
+          </HUXStack>
         )}
-      </YStack>
+      </HUYStack>
 
-      <Separator borderColor="$color3" />
+      <Divider />
 
       {/* Downloads List */}
       <CustomFlashlist

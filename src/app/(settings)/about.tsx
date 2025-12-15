@@ -1,14 +1,15 @@
 import React, { useEffect } from 'react';
 import { ThemedView } from '@/components/ui-primitives';
-import { Text, YStack, XStack, Separator, Card, Theme, Spinner } from 'tamagui';
 import { Github, ExternalLink, CheckCircle2, AlertCircle, Globe, RefreshCw } from '@tamagui/lucide-icons';
-import { CustomImage, RippleButton } from '@/components';
+import { CustomImage, RippleButton, HUYStack, HUXStack } from '@/components';
 import { useUpdateChecker } from '@/hooks/useUpdateChecker';
 import { openBrowserAsync } from 'expo-web-browser';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import { useCurrentTheme } from '@/hooks';
 import { toast } from 'sonner-native';
 import { DiscordIcon } from '@/svg';
+import { Card, Divider } from 'heroui-native';
+import { ActivityIndicator, ScrollView, Text } from 'react-native';
 
 const About = () => {
   const { updateInfo, isLoading, isError, checkForUpdates } = useUpdateChecker(
@@ -29,132 +30,116 @@ const About = () => {
 
   return (
     <ThemedView>
-      <YStack padding="$4" gap="$6">
-        <YStack alignItems="center" gap="$2">
-          <CustomImage
-            source={require('../../../assets/images/icon.png')}
-            alt="Logo"
-            style={{ width: 100, height: 100, borderRadius: 20 }}
-          />
-        </YStack>
+      <ScrollView>
+        <HUYStack className="gap-6 p-4">
+          <HUYStack className="items-center gap-2">
+            <CustomImage
+              source={require('../../../assets/images/icon.png')}
+              alt="Logo"
+              style={{ width: 100, height: 100, borderRadius: 20 }}
+            />
+          </HUYStack>
 
-        <Separator />
-        {process.env.NODE_ENV && (
-          <Card
-            elevation="$1"
-            padding="$2"
-            borderRadius="$4"
-            backgroundColor="$background"
-            marginVertical="$2"
-            width="$25"
-            alignSelf="center">
-            <XStack gap="$2" alignItems="center" justifyContent="center">
-              <AlertCircle size={16} />
-              <Text fontSize="$3" fontWeight="500">
-                Environment:{' '}
-                <Text fontWeight="600" textTransform="capitalize">
-                  {process.env.NODE_ENV}
-                </Text>
-              </Text>
-            </XStack>
-          </Card>
-        )}
-
-        <Card elevation="$2" padding="$4" borderRadius="$4">
-          <YStack gap="$3">
-            <XStack gap="$2" alignItems="center">
-              <CheckCircle2 size={18} color="$color" />
-              <Text fontSize="$5" fontWeight="600">
-                Version Information
-              </Text>
-            </XStack>
-
-            <YStack gap="$1" paddingLeft="$2">
-              <Text color="$color1" fontSize="$3">
-                Current Version
-              </Text>
-              {isLoading ? (
-                <XStack gap="$2" alignItems="center">
-                  <Spinner size="small" />
-                  <Text fontSize="$4" fontWeight="500">
-                    Checking for updates...
+          <Divider />
+          {process.env.NODE_ENV && (
+            <Card className="self-center my-2 w-64 rounded-3xl p-2">
+              <Card.Body>
+                <HUXStack className="items-center justify-center gap-2">
+                  <AlertCircle size={16} />
+                  <Text className="text-lg font-medium">
+                    Environment: <Text className="font-semibold capitalize text-accent">{process.env.NODE_ENV}</Text>
                   </Text>
-                </XStack>
-              ) : isError ? (
-                <Text fontSize="$4" fontWeight="500" color="red">
-                  {updateInfo.currentVersion} (Unable to check for updates)
-                </Text>
-              ) : (
-                <Text fontSize="$4" fontWeight="500">
-                  {updateInfo.createdAt
-                    ? `${updateInfo.currentVersion} (${new Date(updateInfo.createdAt).toLocaleDateString()})`
-                    : updateInfo.currentVersion}
-                </Text>
-              )}
-            </YStack>
+                </HUXStack>
+              </Card.Body>
+            </Card>
+          )}
 
-            {hasNewVersion && (
-              <Theme>
-                <Card backgroundColor="$background" borderRadius="$3" padding="$3" marginTop="$2">
-                  <YStack gap="$1">
-                    <XStack gap="$2" alignItems="center">
-                      <AlertCircle size={16} color="$color" />
-                      <Text fontSize="$3" fontWeight="600" color="$color">
-                        Update Available
-                      </Text>
-                    </XStack>
-                    <Text fontSize="$4" fontWeight="500">
-                      {`Version ${updateInfo.newVersion}`}
+          <Card className="rounded-3xl p-4">
+            <Card.Body>
+              <HUYStack className="gap-3">
+                <HUXStack className="items-center gap-2">
+                  <CheckCircle2 size={18} color="$color" />
+                  <Text className="text-xl font-semibold">Version Information</Text>
+                </HUXStack>
+
+                <HUYStack className="gap-1 pl-2">
+                  <Text className="text-foreground text-lg">Current Version</Text>
+                  {isLoading ? (
+                    <HUXStack className="items-center gap-2">
+                      <ActivityIndicator size="small" />
+                      <Text className="text-2xl font-medium">Checking for updates...</Text>
+                    </HUXStack>
+                  ) : isError ? (
+                    <Text className="text-lg font-medium text-red-500">
+                      {updateInfo.currentVersion} (Unable to check for updates)
                     </Text>
-                  </YStack>
-                </Card>
-              </Theme>
-            )}
-          </YStack>
-        </Card>
+                  ) : (
+                    <Text className="text-lg font-medium">
+                      {updateInfo.createdAt
+                        ? `${updateInfo.currentVersion} (${new Date(updateInfo.createdAt).toLocaleDateString()})`
+                        : updateInfo.currentVersion}
+                    </Text>
+                  )}
+                </HUYStack>
 
-        <YStack gap="$4" alignItems="center" marginTop="$2">
-          <RippleButton onPress={() => checkForUpdates()}>
-            <XStack gap="$2" alignItems="center">
-              <RefreshCw size={20} color={currentTheme.color} />
-              <Text fontWeight="600">Check for Updates</Text>
-            </XStack>
-          </RippleButton>
-          <XStack gap="$4" justifyContent="center" flexWrap="wrap" alignItems="center">
-            <Theme>
+                {hasNewVersion && (
+                  <Card className="mt-2 rounded-2xl p-3">
+                    <Card.Body>
+                      <HUYStack className="gap-1">
+                        <HUXStack className="items-center gap-2">
+                          <AlertCircle size={16} color="$color" />
+                          <Text className="text-base font-semibold text-foreground">Update Available</Text>
+                        </HUXStack>
+                        <Text className="text-lg font-medium">{`Version ${updateInfo.newVersion}`}</Text>
+                      </HUYStack>
+                    </Card.Body>
+                  </Card>
+                )}
+              </HUYStack>
+            </Card.Body>
+          </Card>
+
+          <HUYStack className="items-center gap-4">
+            <RippleButton onPress={() => checkForUpdates()}>
+              <HUXStack className="items-center gap-2">
+                <RefreshCw size={20} color={currentTheme.accent} />
+                <Text className="text-foreground font-semibold">Check for Updates</Text>
+              </HUXStack>
+            </RippleButton>
+            <HUXStack className="flex-wrap items-center justify-center gap-4">
               <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.GITHUB_REPOSITORY)}>
-                <XStack gap="$2" alignItems="center">
-                  <Github size={20} />
-                  <Text fontWeight="600">GitHub</Text>
-                </XStack>
+                <HUXStack className="items-center gap-2">
+                  <Github size={20} color={currentTheme.accent} />
+                  <Text className="text-foreground font-semibold">GitHub</Text>
+                </HUXStack>
               </RippleButton>
 
               <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.DISCORD_SERVER)}>
-                <XStack gap="$2" alignItems="center">
-                  <DiscordIcon size={20} color={currentTheme.color} />
-                  <Text fontWeight="600">Discord</Text>
-                </XStack>
+                <HUXStack className="items-center gap-2">
+                  <DiscordIcon size={20} color={currentTheme.accent} />
+                  <Text className="text-foreground font-semibold">Discord</Text>
+                </HUXStack>
               </RippleButton>
 
               <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.PROJECT_WEBSITE)}>
-                <XStack gap="$2" alignItems="center">
-                  <Globe size={20} color={currentTheme.color} />
-                  <Text fontWeight="600">Website</Text>
-                </XStack>
+                <HUXStack className="items-center gap-2">
+                  <Globe size={20} color={currentTheme.accent} />
+                  <Text className="text-foreground font-semibold">Website</Text>
+                </HUXStack>
               </RippleButton>
 
               {hasNewVersion && (
                 <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE)}>
-                  <XStack gap="$2" alignItems="center">
+                  <HUXStack className="items-center gap-2">
                     <ExternalLink size={20} />
-                    <Text fontWeight="600">Update</Text>
-                  </XStack>
+                    <Text className="text-foreground font-semibold">Update</Text>
+                  </HUXStack>
                 </RippleButton>
               )}
-            </Theme>
-          </XStack>
-        </YStack>
-      </YStack>
+            </HUXStack>
+          </HUYStack>
+        </HUYStack>
+      </ScrollView>
     </ThemedView>
   );
 };

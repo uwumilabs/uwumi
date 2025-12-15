@@ -253,7 +253,7 @@ const Watch = () => {
       }
       Promise.all([
         SystemNavigationBar.setNavigationColor(
-          pureBlackBackground ? currentTheme?.color5 || 'black' : currentTheme?.color3 || 'black',
+          pureBlackBackground ? currentTheme?.surface || 'black' : currentTheme?.surface || 'black',
         ),
         SystemNavigationBar.navigationShow(),
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP),
@@ -292,7 +292,7 @@ const Watch = () => {
         });
       }
       SystemNavigationBar.setNavigationColor(
-        pureBlackBackground ? currentTheme?.color5?.val || 'black' : currentTheme?.color3?.val || 'black',
+        pureBlackBackground ? currentTheme?.surface || 'black' : currentTheme?.surface || 'black',
       );
       SystemNavigationBar.navigationShow();
       await Promise.all([

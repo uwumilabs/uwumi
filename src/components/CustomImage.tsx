@@ -1,10 +1,11 @@
-import { Image } from 'expo-image';
+import { Image, ImageStyle } from 'expo-image';
 import React, { forwardRef } from 'react';
+import { StyleProp } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 type CustomImageProps = {
   source: string | { uri: string; width?: number; height?: number };
-  style?: object;
+  style?: StyleProp<ImageStyle>;
   [key: string]: any;
 };
 

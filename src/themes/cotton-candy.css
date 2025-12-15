@@ -1,0 +1,83 @@
+@layer theme {
+    :root {
+        @variant cotton-candy-light {
+            --background: #fffbff;
+            --foreground: #201a1b;
+
+            --surface: #f7ecf1;
+            --surface-foreground: #201a1b;
+
+            --overlay: #fffbff;
+            --overlay-foreground: #201a1b;
+
+            --muted: #f3dde0;
+
+            --default: #f7ecf1;
+            --default-foreground: #201a1b;
+
+            --accent: #9a4058;
+            --accent-foreground: #fffbff;
+
+            --field-background: #f7ecf1;
+            --field-foreground: #201a1b;
+            --field-placeholder: var(--muted);
+            --field-border: transparent;
+
+            --success: #2f9e44;
+            --success-foreground: #0f130d;
+
+            --warning: #f59f00;
+            --warning-foreground: #201a1b;
+
+            --danger: #d64045;
+            --danger-foreground: #fffbff;
+
+            --segment: #f7ecf1;
+            --segment-foreground: #201a1b;
+
+            --border: rgba(0, 0, 0, 0);
+            --divider: #f3dde0;
+            --link: #5bcefa;
+        }
+
+        @variant cotton-candy-dark {
+            --background: #201a1b;
+            --foreground: #ece0e0;
+
+            --surface: #322629;
+            --surface-foreground: #ece0e0;
+
+            --overlay: #322629;
+            --overlay-foreground: #ece0e0;
+
+            --muted: #524345;
+
+            --default: #322629;
+            --default-foreground: #ece0e0;
+
+            --accent: #ffb1c1;
+            --accent-foreground: #150f10;
+
+            --field-background: #322629;
+            --field-foreground: #ece0e0;
+            --field-placeholder: var(--muted);
+            --field-border: transparent;
+
+            --success: #2f9e44;
+            --success-foreground: #0f130d;
+
+            --warning: #f59f00;
+            --warning-foreground: #201a1b;
+
+            --danger: #d64045;
+            --danger-foreground: #fffbff;
+
+            --segment: #322629;
+            --segment-foreground: #ece0e0;
+
+            --border: rgba(0, 0, 0, 0);
+            --divider: #524345;
+            --link: #5bcefa;
+        }
+    }
+}
