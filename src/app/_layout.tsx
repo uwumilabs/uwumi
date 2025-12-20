@@ -3,11 +3,8 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect } from 'react';
 import 'react-native-reanimated';
-import { TamaguiProvider, Theme, Dialog, Unspaced, XStack, Text, YStack, Button, Separator } from 'tamagui';
-import { X, Download, ArrowUpCircle } from '@tamagui/lucide-icons';
-import { PortalProvider } from '@tamagui/portal';
+import { ArrowUpCircle, Download } from 'lucide-react-native';
 import { Toaster } from 'sonner-native';
-import config from '../../tamagui.config';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Inter_500Medium as InterMedium,
@@ -15,16 +12,17 @@ import {
   Inter_800ExtraBold as InterBold,
 } from '@expo-google-fonts/inter';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useThemeStore, useAccentStore, useUpdateChecker } from '@/hooks';
+import { useThemeStore, useUpdateChecker } from '@/hooks';
 import * as WebBrowser from 'expo-web-browser';
 import { SystemBars } from 'react-native-edge-to-edge';
-import { LogBox, Platform, PermissionsAndroid } from 'react-native';
+import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import StoragePermissionModule from '../../modules/storage-permission-module';
-import { HeroUINativeProvider } from 'heroui-native';
+import { Button, Dialog, HeroUINativeProvider } from 'heroui-native';
 import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
 import '../../global.css';
 import { useUniwind } from 'uniwind';
+import { CustomSheetProvider } from '@/components';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -79,82 +77,59 @@ const DownloadDialog = ({
   showUpdateDialog,
   setShowUpdateDialog,
 }: DownloadDialogProps) => {
-  const accentName = useAccentStore((state) => state.accentName);
   return (
-    <Theme name={accentName}>
-      <Dialog modal open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
-        <Dialog.Portal>
-          <Dialog.Overlay
-            key="overlay"
-            backgroundColor="rgba(0,0,0,0.5)"
-            animation="lazy"
-            enterStyle={{ opacity: 0 }}
-            exitStyle={{ opacity: 0 }}
-          />
-          <Dialog.Content
-            bordered
-            elevate
-            key="content"
-            width="85%"
-            maxWidth={400}
-            padding="$5"
-            borderRadius="$6"
-            animation={[
-              'quick',
-              {
-                opacity: {
-                  overshootClamping: true,
-                },
-              },
-            ]}
-            enterStyle={{ opacity: 0, scale: 0.95 }}
-            exitStyle={{ opacity: 0, scale: 0.95 }}
-            gap="$4">
-            <YStack alignItems="center" marginTop="$2" marginBottom="$2">
-              <ArrowUpCircle size={48} color={'$color'} opacity={0.9} />
-            </YStack>
-            <Dialog.Title textAlign="center" fontSize={13} fontWeight="700">
+    <Dialog isOpen={showUpdateDialog} onOpenChange={setShowUpdateDialog} closeDelay={200}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="bg-black/50" />
+        <Dialog.Content className="rounded-3xl bg-background p-5">
+          <Dialog.Close className="absolute right-3 top-3" />
+
+          <View className="items-center mt-1 mb-3">
+            <ArrowUpCircle size={48} />
+          </View>
+
+          <View className="gap-3">
+            <Dialog.Title className="text-center text-sm font-semibold text-foreground">
               New Version Available
             </Dialog.Title>
-            <XStack justifyContent="center" gap="$4" paddingVertical="$2">
-              <YStack alignItems="center">
-                <Text fontSize={16}>Current</Text>
-                <Text fontWeight="600">{currentVersion}</Text>
-              </YStack>
-              <Separator vertical />
-              <YStack alignItems="center">
-                <Text fontSize={16}>New</Text>
-                <Text fontWeight="600">{newVersion}</Text>
-              </YStack>
-            </XStack>
-            <Dialog.Description textAlign="center" paddingHorizontal="$2">
+
+            <View className="flex-row justify-center gap-6">
+              <View className="items-center">
+                <Text className="text-base text-foreground">Current</Text>
+                <Text className="text-base font-semibold text-foreground">{currentVersion}</Text>
+              </View>
+              <View className="w-px bg-border" />
+              <View className="items-center">
+                <Text className="text-base text-foreground">New</Text>
+                <Text className="text-base font-semibold text-foreground">{newVersion}</Text>
+              </View>
+            </View>
+
+            <Dialog.Description className="text-center text-base text-foreground/80">
               {updateType} is now available.
             </Dialog.Description>
-            <YStack gap="$3" marginTop="$2">
+
+            <View className="gap-3">
               <Button
-                themeInverse
-                icon={Download}
-                fontSize={18}
-                fontWeight="600"
-                borderRadius="$4"
+                variant="primary"
                 onPress={async () => {
                   await WebBrowser.openBrowserAsync('https://github.com/2004durgesh/uwumi/releases/latest');
-                }}>
+                }}
+                className="w-full">
+                <Download size={18} />
                 Update Now
               </Button>
-              <Button variant="outlined" fontSize={18} borderRadius="$4" onPress={() => setShowUpdateDialog(false)}>
-                Not Now
-              </Button>
-            </YStack>
-            <Unspaced>
+
               <Dialog.Close asChild>
-                <Button position="absolute" top="$3" right="$3" size="$2" circular icon={X} opacity={0.7} />
+                <Button variant="ghost" className="w-full">
+                  Not Now
+                </Button>
               </Dialog.Close>
-            </Unspaced>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog>
-    </Theme>
+            </View>
+          </View>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog>
   );
 };
 
@@ -180,16 +155,13 @@ const AppContent = () => {
       }
     };
 
-    if (__DEV__) {
-      // @ts-ignore
-      if (uniwindThemeName.theme === 'light') {
-        setTheme('default-light');
-      }
-      // @ts-ignore
-      if (uniwindThemeName.theme === 'dark') {
-        setTheme('default-dark');
-      }
+    if (uniwindThemeName.theme === 'light') {
+      setTheme('default-light');
     }
+    if (uniwindThemeName.theme === 'dark') {
+      setTheme('default-dark');
+    }
+
     requestPermissions();
   }, []);
 
@@ -213,14 +185,14 @@ const AppContent = () => {
   );
 
   return (
-    <TamaguiProvider config={config}>
-      <PortalProvider>
-        <HeroUINativeProvider
-          config={{
-            toast: {
-              contentWrapper,
-            },
-          }}>
+    <>
+      <HeroUINativeProvider
+        config={{
+          toast: {
+            contentWrapper,
+          },
+        }}>
+        <CustomSheetProvider>
           <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="info/[mediaType]" />
@@ -229,28 +201,25 @@ const AppContent = () => {
             <Stack.Screen name="(settings)" />
             <Stack.Screen name="+not-found" />
           </Stack>
-          {isUpdateAvailable && (
-            <DownloadDialog
-              currentVersion={updateInfo.currentVersion}
-              newVersion={updateInfo.newVersion}
-              updateType={updateInfo.updateType}
-              showUpdateDialog={isUpdateAvailable}
-              setShowUpdateDialog={setIsUpdateAvailable}
-            />
-          )}
-        </HeroUINativeProvider>
-      </PortalProvider>
+        </CustomSheetProvider>
+        {isUpdateAvailable && (
+          <DownloadDialog
+            currentVersion={updateInfo.currentVersion}
+            newVersion={updateInfo.newVersion}
+            updateType={updateInfo.updateType}
+            showUpdateDialog={isUpdateAvailable}
+            setShowUpdateDialog={setIsUpdateAvailable}
+          />
+        )}
+      </HeroUINativeProvider>
       <Toaster position="bottom-center" invert autoWiggleOnUpdate="always" richColors swipeToDismissDirection="left" />
       <SystemBars hidden={false} />
-    </TamaguiProvider>
+    </>
   );
 };
 
 export default function RootLayout() {
-  LogBox.ignoreLogs([
-    'StatusBar backgroundColor is not supported with edge-to-edge enabled',
-    /\[tamagui\] ⚠️ missing token/,
-  ]);
+  LogBox.ignoreLogs(['StatusBar backgroundColor is not supported with edge-to-edge enabled']);
 
   const queryClient = new QueryClient({
     defaultOptions: {

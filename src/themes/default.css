@@ -68,12 +68,13 @@
       --divider: #C5C6D0;
       /* Android: primary */
       --link: #0058CA;
+      
     }
 
     @variant default-dark {
       /* Theme-Specific Base Colors */
       /* Android: background */
-      --background: #1B1B1F;
+      --background: #1B1B1F; /* hhh*/
       /* Android: onBackground */
       --foreground: #E3E2E6;
 

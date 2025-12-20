@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, ScrollView, Text } from 'react-native';
 import { IAnimeEpisode, IMovieEpisode, IEpisodeServer } from 'react-native-consumet';
-import { Check, X, Play, ChevronRight, Server, ChevronLeft, Download } from '@tamagui/lucide-icons';
+import { Check, X, Play, ChevronRight, Server, ChevronLeft, Download } from 'lucide-react-native';
 import {
   useWatchProgressStore,
   useWatchAnimeEpisodes,
@@ -17,7 +17,7 @@ import { useProviderStore } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { HUXStack, HUYStack, RippleButton } from '../ui-primitives';
 import { Divider } from 'heroui-native';
-import { Sheet } from 'tamagui';
+import { CustomSheet } from '../CustomSheet';
 
 interface EpisodeActionsSheetProps {
   open: boolean;
@@ -392,7 +392,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     }, [episode?.title, getCurrentServer, selectedServer?.name, showQualitySelection, showServerSelection]);
 
     const snapPoints = useMemo(
-      () => (showQualitySelection || showServerSelection ? [70] : [40]),
+      () => (showQualitySelection || showServerSelection ? ['70%'] : ['40%']),
       [showQualitySelection, showServerSelection],
     );
 
@@ -400,136 +400,119 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
     if (!episode) return null;
     return (
-      <Sheet
-        forceRemoveScrollEnabled={false}
-        modal
-        open={open}
-        onOpenChange={onOpenChange}
-        snapPoints={snapPoints}
-        snapPointsMode="percent"
-        dismissOnSnapToBottom
-        zIndex={100_000}
-        animation="quick">
-        <Sheet.Overlay
-          backgroundColor="rgba(0,0,0,0.5)"
-          animation="quick"
-          enterStyle={{ opacity: 0 }}
-          exitStyle={{ opacity: 0 }}
-        />
-        <Sheet.Frame backgroundColor={sheetColor} borderTopLeftRadius={20} borderTopRightRadius={20}>
-          <HUYStack className="p-4 gap-2 min-h-50">
-            {/* Header */}
-            <HUXStack className="justify-between items-center mb-2">
-              <HUYStack className="flex-1">
-                <Text className="text-lg font-bold text-accent" numberOfLines={1}>
-                  {headerTitle}
-                </Text>
-              </HUYStack>
-              <RippleButton onPress={() => (shouldShowBack ? handleBackToMainMenu() : onOpenChange(false))}>
-                {shouldShowBack ? <ChevronLeft size={24} color="$color1" /> : <X size={24} color="$color1" />}
-              </RippleButton>
-            </HUXStack>
+      <CustomSheet open={open} onOpenChange={onOpenChange} snapPoints={snapPoints}>
+        <HUYStack className="p-4 gap-2 min-h-50">
+          {/* Header */}
+          <HUXStack className="justify-between items-center mb-2">
+            <Text className="text-lg font-bold text-accent" numberOfLines={1}>
+              {headerTitle}
+            </Text>
+            {/* <HUYStack className="flex-1">
+            </HUYStack> */}
+            <RippleButton onPress={() => (shouldShowBack ? handleBackToMainMenu() : onOpenChange(false))}>
+              {shouldShowBack ? <ChevronLeft size={24} color="$color1" /> : <X size={24} color="$color1" />}
+            </RippleButton>
+          </HUXStack>
 
-            <Divider />
+          <Divider />
 
-            {/* Main Menu */}
-            {!showQualitySelection && !showServerSelection && (
+          {/* Main Menu */}
+          {!showQualitySelection && !showServerSelection && (
+            <HUYStack className="gap-1 mt-2">
+              {/* Mark as Complete/Incomplete */}
+              <StyledSheetButton
+                onPress={handleMarkComplete}
+                icon={<Check size={20} />}
+                label={isCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}
+              />
+
+              {/* Open in External Player */}
+
+              <StyledSheetButton
+                onPress={() => handleShowQualityOptions('external-player')}
+                icon={<Play size={20} />}
+                label="Open in External Player"
+              />
+              {/* Download */}
+              <StyledSheetButton
+                onPress={() => handleShowQualityOptions('download')}
+                icon={<Download size={20} />}
+                label="Download"
+              />
+            </HUYStack>
+          )}
+
+          {/* Server Selection Menu */}
+          {showServerSelection && (
+            <ScrollView style={{ maxHeight: 400 }}>
               <HUYStack className="gap-1 mt-2">
-                {/* Mark as Complete/Incomplete */}
-                <StyledSheetButton
-                  onPress={handleMarkComplete}
-                  icon={<Check size={20} />}
-                  label={isCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}
-                />
-
-                {/* Open in External Player */}
-
-                <StyledSheetButton
-                  onPress={() => handleShowQualityOptions('external-player')}
-                  icon={<Play size={20} />}
-                  label="Open in External Player"
-                />
-                {/* Download */}
-                <StyledSheetButton
-                  onPress={() => handleShowQualityOptions('download')}
-                  icon={<Download size={20} />}
-                  label="Download"
-                />
+                {isLoading ? (
+                  <ListState loading title="Loading servers..." />
+                ) : error ? (
+                  <ListState title="Failed to load servers" subtitle="Please try again" severity="error" />
+                ) : availableServers.length === 0 ? (
+                  <ListState title="No servers available" subtitle="Please try again later" severity="error" />
+                ) : (
+                  availableServers.map((server) => (
+                    <StyledSheetButton
+                      key={server.name}
+                      onPress={() => handleServerSelect(server)}
+                      icon={<Server size={20} />}
+                      label={server.name}
+                    />
+                  ))
+                )}
               </HUYStack>
-            )}
+            </ScrollView>
+          )}
 
-            {/* Server Selection Menu */}
-            {showServerSelection && (
-              <ScrollView style={{ maxHeight: 400 }}>
-                <HUYStack className="gap-1 mt-2">
-                  {isLoading ? (
-                    <ListState loading title="Loading servers..." />
-                  ) : error ? (
-                    <ListState title="Failed to load servers" subtitle="Please try again" severity="error" />
-                  ) : availableServers.length === 0 ? (
-                    <ListState title="No servers available" subtitle="Please try again later" severity="error" />
-                  ) : (
-                    availableServers.map((server) => (
+          {/* Quality Selection Menu */}
+          {showQualitySelection && (
+            <ScrollView style={{ maxHeight: 400 }}>
+              <HUYStack className="gap-1 mt-2">
+                {isLoading ? (
+                  <ListState loading title="Loading video sources..." />
+                ) : error ? (
+                  <ListState
+                    title="Failed to load video sources"
+                    subtitle="Please try again or try different server"
+                    severity="error"
+                  />
+                ) : videoSources.length === 0 ? (
+                  <ListState
+                    title="No video sources available"
+                    subtitle="Please try different server"
+                    severity="error"
+                  />
+                ) : (
+                  videoSources.map((source, index) => {
+                    const quality = source.quality || `Source ${index + 1}`;
+                    const url = source.url;
+
+                    return (
                       <StyledSheetButton
-                        key={server.name}
-                        onPress={() => handleServerSelect(server)}
-                        icon={<Server size={20} />}
-                        label={server.name}
+                        key={quality}
+                        onPress={() =>
+                          actionMode === 'download' ? handleDownloadWithQuality(url) : handleOpenWithQuality(url)
+                        }
+                        icon={
+                          actionMode === 'download' ? (
+                            <Download size={18} color="$color" />
+                          ) : (
+                            <Play size={18} color="$color" />
+                          )
+                        }
+                        label={quality}
+                        rightIcon={<ChevronRight size={18} color="$color1" opacity={0.5} />}
                       />
-                    ))
-                  )}
-                </HUYStack>
-              </ScrollView>
-            )}
-
-            {/* Quality Selection Menu */}
-            {showQualitySelection && (
-              <ScrollView style={{ maxHeight: 400 }}>
-                <HUYStack className="gap-1 mt-2">
-                  {isLoading ? (
-                    <ListState loading title="Loading video sources..." />
-                  ) : error ? (
-                    <ListState
-                      title="Failed to load video sources"
-                      subtitle="Please try again or try different server"
-                      severity="error"
-                    />
-                  ) : videoSources.length === 0 ? (
-                    <ListState
-                      title="No video sources available"
-                      subtitle="Please try different server"
-                      severity="error"
-                    />
-                  ) : (
-                    videoSources.map((source, index) => {
-                      const quality = source.quality || `Source ${index + 1}`;
-                      const url = source.url;
-
-                      return (
-                        <StyledSheetButton
-                          key={quality}
-                          onPress={() =>
-                            actionMode === 'download' ? handleDownloadWithQuality(url) : handleOpenWithQuality(url)
-                          }
-                          icon={
-                            actionMode === 'download' ? (
-                              <Download size={18} color="$color" />
-                            ) : (
-                              <Play size={18} color="$color" />
-                            )
-                          }
-                          label={quality}
-                          rightIcon={<ChevronRight size={18} color="$color1" opacity={0.5} />}
-                        />
-                      );
-                    })
-                  )}
-                </HUYStack>
-              </ScrollView>
-            )}
-          </HUYStack>
-        </Sheet.Frame>
-      </Sheet>
+                    );
+                  })
+                )}
+              </HUYStack>
+            </ScrollView>
+          )}
+        </HUYStack>
+      </CustomSheet>
     );
   },
 );

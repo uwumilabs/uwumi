@@ -14,7 +14,7 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Captions, Eye, EyeOff, Mic, TableProperties, Images, ListOrdered } from '@tamagui/lucide-icons';
+import { Captions, Eye, EyeOff, Mic, TableProperties, Images, ListOrdered } from 'lucide-react-native';
 import {
   useEpisodesIdStore,
   useEpisodesStore,
@@ -89,6 +89,7 @@ export const EpisodeList = ({
   const movieSeasons = episodeData?.seasons as IMovieSeason[];
   // console.log('movieSeasons', movieSeasons);
   const animeEpisodes = useMemo(() => (Array.isArray(episodeData) ? episodeData : []), [episodeData]);
+  // console.log(episodeData?.mappings, 'episodeData?.mappings');
   const episodes = useMemo(() => {
     if (mediaType === MediaType.MOVIE && movieSeasons?.[seasonNumber]?.episodes) {
       return movieSeasons[seasonNumber].episodes;
@@ -273,7 +274,6 @@ export const EpisodeList = ({
             description: item?.description,
             episodeNumber: (item?.number ?? item?.episode) as string,
             seasonNumber: item?.season as string,
-            mappings: JSON.stringify(episodeData?.mappings),
             type,
           },
         };
@@ -300,11 +300,15 @@ export const EpisodeList = ({
 
   const ProgressAndAirDate = useCallback(
     ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
-      const date = new Date(item?.releaseDate ?? '');
+      const rawReleaseDate = item?.releaseDate;
+      const date = rawReleaseDate ? new Date(rawReleaseDate) : null;
+      const isValidDate = !!date && !Number.isNaN(date.getTime());
       return (
         <HUXStack className="items-center justify-between w-full">
           <View>{renderEpisodeProgress(item)}</View>
-          <StyledText>{new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(date)}</StyledText>
+          <StyledText>
+            {isValidDate ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(date) : '—'}
+          </StyledText>
         </HUXStack>
       );
     },

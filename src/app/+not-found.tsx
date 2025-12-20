@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 
 import { ThemedView } from '@/components/ui-primitives';
-import { Text } from 'tamagui';
+import { Text } from 'react-native';
 import React from 'react';
 
 export default function NotFoundScreen() {

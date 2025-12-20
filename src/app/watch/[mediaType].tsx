@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Dimensions, StyleProp, ViewStyle } from 'react-native'; // Removed Pressable as it's not directly used after changes
+import React, { useEffect, useMemo, useRef, useState, useCallback, ReactNode } from 'react';
+import { ActivityIndicator, Dimensions, StyleProp, Text, View, ViewStyle } from 'react-native'; // Removed Pressable as it's not directly used after changes
 import Video, {
   ISO639_1,
   SelectedTrackType,
@@ -11,13 +11,12 @@ import Video, {
   AudioTrack,
 } from 'react-native-video/src';
 import SystemNavigationBar from 'react-native-system-navigation-bar';
-import { Button, Spinner, Text, View, XStack, YStack, styled } from 'tamagui';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ControlsOverlay from './ControlsOverlay';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
 import { ISubtitle } from 'react-native-consumet';
-import { ThemedView, EpisodeList } from '@/components';
+import { ThemedView, HUYStack, HUXStack } from '@/components';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
@@ -35,54 +34,41 @@ import {
   usePureBlackBackground,
   useExternalSubtitles,
   useCustomBackHandler,
+  useMediaInfoStore,
 } from '@/hooks';
 import { toast } from 'sonner-native';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import FullscreenModule from '../../../modules/fullscreen-module';
-import { Check } from '@tamagui/lucide-icons';
+import { Check } from 'lucide-react-native';
 import { SystemBars, SystemBarsEntry } from 'react-native-edge-to-edge';
 import { SUB_LANGUAGE } from '@/constants/config';
+import { Button, cn } from 'heroui-native';
+import { setVisibilityAsync } from 'expo-navigation-bar';
 
-const SeekText = styled(Text, {
-  fontSize: 10,
-  fontWeight: 'bold',
-  color: 'white',
-  padding: 10,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  borderRadius: 8,
+const SeekText = ({ children }: { children: (string | number)[] }) => {
+  return <Text className="text-sm font-bold text-white p-2.5 rounded-3xl bg-black/50">{children}</Text>;
+};
+
+type OverlayedViewProps = {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+};
+
+const OverlayedView = React.forwardRef<any, OverlayedViewProps>(({ children, style }, ref) => {
+  return (
+    <Animated.View
+      ref={ref}
+      className="absolute top-0 w-1/2 h-full justify-center items-center pointer-events-none z-10 overflow-hidden rounded-full"
+      style={[{ transform: [{ scale: 1.5 }] }, style]}>
+      {children}
+    </Animated.View>
+  );
 });
-const OverlayedView = styled(Animated.View, {
-  position: 'absolute',
-  top: 0,
-  // width: 200,
-  // height: 200,
-  width: '50%',
-  height: '100%',
-  justifyContent: 'center',
-  alignItems: 'center',
-  pointerEvents: 'none',
-  zIndex: 10,
-  overflow: 'hidden',
-  borderRadius: '50%',
-  transform: [{ scale: 1.5 }],
-  // backgroundColor: 'red',
-});
+OverlayedView.displayName = 'OverlayedView';
 
 const Watch = () => {
-  const {
-    mediaType,
-    provider,
-    id,
-    mediaId,
-    episodeId,
-    uniqueId,
-    isDubbed,
-    poster,
-    type,
-    mappings,
-    episodeNumber,
-    seasonNumber,
-  } = useLocalSearchParams() as unknown as WatchSearchParams;
+  const { mediaType, provider, id, mediaId, episodeId, uniqueId, isDubbed, poster, type, episodeNumber, seasonNumber } =
+    useLocalSearchParams() as unknown as WatchSearchParams;
   // console.log(useLocalSearchParams(), 'useLocalSearchParams');
   const { top } = useSafeAreaInsets();
   const { setProgress, getProgress } = useWatchProgressStore();
@@ -90,6 +76,7 @@ const Watch = () => {
   const { setServers, setCurrentServer, currentServer, clearServers } = useServerStore();
   const [isEmbed, setIsEmbed] = useState<boolean>(true);
   const [serverInitialized, setServerInitialized] = useState(false);
+  const { mediaInfo } = useMediaInfoStore();
 
   const setEpisodeIds = useEpisodesIdStore((state) => state.setEpisodeIds);
   const currentEpisodeId = useEpisodesIdStore((state) => state.currentEpisodeId);
@@ -202,7 +189,7 @@ const Watch = () => {
   const [volume, setVolume] = useState(1);
   const [systemVolume, setSystemVolume] = useState(1);
 
-  const parsedMappings = mappings ? JSON.parse(mappings) : null;
+  const parsedMappings = mediaInfo?.mappings ? mediaInfo?.mappings : null;
   const imdbId = parsedMappings?.imdb?.replace('tt', '') || '';
   const isImdbIdValid = imdbId && imdbId.trim() !== '' && imdbId.length > 0;
   const {
@@ -255,7 +242,7 @@ const Watch = () => {
         SystemNavigationBar.setNavigationColor(
           pureBlackBackground ? currentTheme?.surface || 'black' : currentTheme?.surface || 'black',
         ),
-        SystemNavigationBar.navigationShow(),
+        setVisibilityAsync('visible'),
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP),
         FullscreenModule.exitFullscreen(),
       ]).catch((err) => console.error('Cleanup failed:', err));
@@ -271,7 +258,7 @@ const Watch = () => {
           hidden: true,
         });
       }
-      SystemNavigationBar.stickyImmersive();
+      setVisibilityAsync('hidden');
       await Promise.all([
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE),
         FullscreenModule.enterFullscreen(),
@@ -577,7 +564,7 @@ const Watch = () => {
   if (isLoading) {
     return (
       <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Spinner size="large" color="$color" />
+        <ActivityIndicator size="large" color="$color" />
       </ThemedView>
     );
   }
@@ -587,14 +574,12 @@ const Watch = () => {
       useSafeArea
       useStatusBar={!isFullscreen}
       style={{ flex: 1, backgroundColor: pureBlackBackground ? '#000' : currentTheme?.background }}>
-      <View height="100%" top={top}>
+      <View className="h-full" style={{ top: top }}>
         <GestureDetector gesture={gestures}>
           <View
             // This View is the main container for the video player and overlays
             // It should define the aspect ratio or take full screen dimensions
-            overflow="hidden" // Important to contain the video and overlays
-            // Undefined to respect aspectRatio
-            aspectRatio={16 / 9}
+            className="overflow-hidden aspect-video"
             // style={{ backgroundColor: 'black' }} // Already on parent
           >
             <View
@@ -728,12 +713,12 @@ const Watch = () => {
                 setBrightness={updateBrightness}
                 setVolume={updateVolume}
               />
-              <OverlayedView ref={backwardRippleRef} style={{ left: 0 }}>
+              <OverlayedView ref={backwardRippleRef} style={{ left: '-15%' }}>
                 <Animated.View style={[backwardAnimatedRipple]}>
                   <SeekText>-{doubleTapValue.backward}s</SeekText>
                 </Animated.View>
               </OverlayedView>
-              <OverlayedView ref={forwardRippleRef} style={{ right: 0 }}>
+              <OverlayedView ref={forwardRippleRef} style={{ right: '-15%' }}>
                 <Animated.View style={[forwardAnimatedRipple]}>
                   <SeekText>+{doubleTapValue.forward}s</SeekText>
                 </Animated.View>
@@ -742,7 +727,7 @@ const Watch = () => {
           </View>
         </GestureDetector>
         {!isFullscreen && (
-          <YStack flex={1} gap="$2">
+          <HUYStack className="flex-1 gap-2">
             {/* {description && (
             <>
               <Text textAlign="justify" padding="$2">
@@ -751,21 +736,13 @@ const Watch = () => {
             </>
           )} */}
             {mediaType === MediaType.ANIME && (
-              <YStack paddingTop="$2" paddingHorizontal="$2" borderRadius="$4">
+              <HUYStack className="pt-2 px-2 rounded-2xl">
                 {[{ label: 'Sub', key: 'sub' }, isDubbed === 'true' && { label: 'Dub', key: 'dub' }]
                   // @ts-ignore
                   .map(({ label, key }, index) => (
-                    <XStack
-                      key={`${key}-${index}`}
-                      alignItems="center"
-                      justifyContent="space-between"
-                      marginBottom="$2">
-                      {key && (
-                        <Text color="$color1" fontWeight="bold" width={50}>
-                          {label}:
-                        </Text>
-                      )}
-                      <XStack flexWrap="wrap" flex={1} gap={4}>
+                    <HUXStack key={`${key}-${index}`} className="items-center justify-between mb-2">
+                      {key && <Text className="text-foreground font-bold w-12.5">{label}:</Text>}
+                      <HUXStack className="flex-wrap flex-1 gap-1">
                         {PROVIDERS[mediaType].map(({ name, value, subbed, dubbed }) => {
                           const isAvailable = key === 'sub' ? subbed : key === 'dub' ? dubbed : false;
                           const isSelected = getProvider(mediaType) === value && dub === (key === 'dub');
@@ -777,39 +754,32 @@ const Watch = () => {
                                 setDub(key === 'dub');
                                 setProvider(mediaType, value);
                               }}
-                              backgroundColor={isSelected ? '$color' : '$color3'}
-                              width="48%"
-                              flexGrow={1}
-                              flexShrink={0}
-                              justifyContent="center">
-                              <XStack alignItems="center">
-                                {isSelected && <Check color="$color4" />}
-                                <Text fontWeight={900} color={isSelected ? '$color4' : '$color'}>
-                                  {name}
-                                </Text>
-                              </XStack>
+                              className={cn(
+                                'w-48/100 grow shrink-0 justify-center bg-accent-soft-foreground',
+                                isSelected && 'bg-accent',
+                              )}>
+                              <HUXStack className="items-center">
+                                {isSelected && <Check color="text-accent-foreground" />}
+                                <Button.Label>{name}</Button.Label>
+                              </HUXStack>
                             </Button>
                           );
                         })}
-                      </XStack>
-                    </XStack>
+                      </HUXStack>
+                    </HUXStack>
                   ))}
-              </YStack>
+              </HUYStack>
             )}
 
             {mediaType === MediaType.MOVIE && (
-              <YStack paddingTop="$2" paddingHorizontal="$2" borderRadius="$4">
+              <HUYStack className="pt-2 px-2 rounded-2xl">
                 {[
                   { label: 'Embed', key: 'embed' },
                   { label: 'Direct', key: 'nonEmbed' },
                 ].map(({ label, key }) => (
-                  <XStack key={key} alignItems="center" justifyContent="space-between" marginBottom="$2">
-                    {key && (
-                      <Text color="$color1" fontWeight="bold" width={70}>
-                        {label}:
-                      </Text>
-                    )}
-                    <XStack flexWrap="wrap" flex={1} gap={4}>
+                  <HUXStack key={key} className="items-center justify-between mb-2">
+                    {key && <Text className="text-foreground font-bold w-12.5">{label}:</Text>}
+                    <HUXStack className="flex-wrap flex-1 gap-1">
                       {PROVIDERS[mediaType].map(({ name, value, embed, nonEmbed }) => {
                         const isAvailable = key === 'embed' ? embed : key === 'nonEmbed' ? nonEmbed : false;
                         const isSelected =
@@ -826,29 +796,26 @@ const Watch = () => {
                               setProvider(mediaType, value);
                               setIsEmbed(key === 'embed');
                             }}
-                            backgroundColor={isSelected ? '$color' : '$color3'}
-                            width="48%"
-                            flexGrow={1}
-                            flexShrink={0}
-                            justifyContent="center">
-                            <XStack alignItems="center">
-                              {isSelected && <Check color="$color4" />}
-                              <Text fontWeight={900} color={isSelected ? '$color4' : '$color'}>
-                                {name}
-                              </Text>
-                            </XStack>
+                            className={cn(
+                              'w-48/100 grow shrink-0 justify-center bg-accent-soft-foreground',
+                              isSelected && 'bg-accent',
+                            )}>
+                            <HUXStack className="items-center">
+                              {isSelected && <Check color="text-accent-foreground" />}
+                              <Button.Label>{name}</Button.Label>
+                            </HUXStack>
                           </Button>
                         );
                       })}
-                    </XStack>
-                  </XStack>
+                    </HUXStack>
+                  </HUXStack>
                 ))}
-              </YStack>
+              </HUYStack>
             )}
-            <View flex={1}>
+            {/* <View className="flex-1">
               <EpisodeList mediaType={mediaType} provider={provider} id={id} type={type} swipeable={false} />
-            </View>
-          </YStack>
+            </View> */}
+          </HUYStack>
         )}
       </View>
     </ThemedView>

@@ -36,9 +36,9 @@ const CustomSlider: React.FC<CustomSliderProps> = ({ value, min, max, onValueCha
   return (
     <Slider
       theme={{
-        minimumTrackTintColor: currentTheme?.color,
+        minimumTrackTintColor: currentTheme?.accent,
         maximumTrackTintColor: '#000',
-        bubbleBackgroundColor: currentTheme?.color,
+        bubbleBackgroundColor: currentTheme?.accent,
       }}
       progress={progress}
       minimumValue={minimumValue}
@@ -46,7 +46,7 @@ const CustomSlider: React.FC<CustomSliderProps> = ({ value, min, max, onValueCha
       onValueChange={onValueChange}
       bubble={() => formatTime(value)}
       containerStyle={{ borderRadius: 2 }}
-      bubbleTextStyle={{ color: currentTheme?.color4 }}
+      bubbleTextStyle={{ color: currentTheme?.foreground }}
     />
   );
 };

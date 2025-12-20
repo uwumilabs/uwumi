@@ -4,15 +4,44 @@
  * This file doesnt get bundled in the production build.(may be😁)
  * It is used to test the functionality of library, stores,hooks other screens etc.
  */
-import React from 'react';
-import { ThemedView, HUXStack, HUYStack, Progress } from '@/components';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ThemedView, HUYStack } from '@/components';
 import { storage } from '@/hooks/stores/MMKV';
 import { ScrollView, Text } from 'react-native';
 import { Button } from 'heroui-native';
 import { useUniwind } from 'uniwind';
+import { useProviderStore } from '@/constants/provider';
+import ExternalSubDialog from '@/app/watch/components/ExternalSubDialog';
 
 const Example = () => {
   const uni = useUniwind();
+  const setProvider = useProviderStore((state) => state.setProvider);
+
+  const [externalSubtitleLanguage, setExternalSubtitleLanguage] = useState<string | null>(null);
+  const [shouldFetchExternalSubs, setShouldFetchExternalSubs] = useState(false);
+  const [isExternalSubtitlesLoading, setIsExternalSubtitlesLoading] = useState(false);
+  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+    };
+  }, []);
+
+  const handleSetShouldFetchExternalSubs = useCallback((value: boolean) => {
+    setShouldFetchExternalSubs(value);
+
+    // This screen is for UI testing, so we simulate a short loading state.
+    if (value) {
+      setIsExternalSubtitlesLoading(true);
+      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = setTimeout(() => {
+        setIsExternalSubtitlesLoading(false);
+        setShouldFetchExternalSubs(false);
+      }, 1200);
+    }
+  }, []);
+
   const getAllMMKVKeys = () => {
     const keys = storage.getAllKeys();
     //console.log('All MMKV Keys:', keys);
@@ -36,7 +65,7 @@ const Example = () => {
 
   return (
     <ThemedView>
-      <ScrollView>
+      <ScrollView className="space-y-3">
         <HUYStack className="p-4 gap-3">
           <Text className="text-xs font-bold text-accent mt-4">MMKV Storage</Text>
           <Button
@@ -52,9 +81,24 @@ const Example = () => {
             delete All MMKV Keys
           </Button>
         </HUYStack>
-        <HUXStack className="w-full bg-red-500">
-          <Progress value={70} />
-        </HUXStack>
+
+        <HUYStack className="p-4 gap-3">
+          <Text className="text-xs font-bold text-accent">External Subtitles (UI Test)</Text>
+          <ExternalSubDialog
+            externalSubtitleLanguage={externalSubtitleLanguage}
+            setExternalSubtitleLanguage={setExternalSubtitleLanguage}
+            isExternalSubtitlesLoading={isExternalSubtitlesLoading}
+            setShouldFetchExternalSubs={handleSetShouldFetchExternalSubs}
+            isFullscreen={false}
+          />
+          <Button onPress={() => setIsExternalSubtitlesLoading((v) => !v)}>
+            Toggle loading ({isExternalSubtitlesLoading ? 'on' : 'off'})
+          </Button>
+          <Button onPress={() => handleSetShouldFetchExternalSubs(true)}>
+            Simulate “Fetch Subtitles” (shouldFetch={String(shouldFetchExternalSubs)})
+          </Button>
+          <Text>Selected language: {externalSubtitleLanguage ?? '(none)'}</Text>
+        </HUYStack>
       </ScrollView>
     </ThemedView>
   );

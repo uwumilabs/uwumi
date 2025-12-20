@@ -1,5 +1,5 @@
 import { useCurrentTheme, useSearchStore, useTabsStore } from '@/hooks';
-import { X } from '@tamagui/lucide-icons';
+import { X } from 'lucide-react-native';
 import React, { useCallback, useRef } from 'react';
 import { TextInput, View } from 'react-native';
 import { HUXStack } from './ui-primitives';

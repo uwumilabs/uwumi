@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { StatusBar, StatusBarProps } from 'expo-status-bar';
 import { Link } from 'expo-router';
-import { cn, PressableFeedback } from 'heroui-native';
+import { cn, PressableFeedback, PressableFeedbackProps } from 'heroui-native';
 
 /* ============================================
  * IconTitle - Icon with text label
@@ -34,7 +34,7 @@ export const IconTitle = ({ icon: Icon, text, color }: IconTitleProps) => {
  * RippleButton - Material ripple effect button
  * ============================================ */
 
-type RippleButtonProps = Omit<PressableProps, 'onPress'> & {
+type RippleButtonProps = Omit<PressableFeedbackProps, 'onPress'> & {
   onPress?: () => void;
   children?: React.ReactNode;
   containerStyle?: StyleProp<ViewStyle>;
@@ -145,7 +145,6 @@ export function ThemedView({
   );
 }
 
-// Tailwind/Uniwind-only stacks (no Tamagui dependency)
 type SimpleStackProps = {
   children?: ReactNode;
   props?: ViewProps;

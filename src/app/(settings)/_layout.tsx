@@ -2,7 +2,7 @@ import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View } from 'react-native';
-import { ArrowLeft } from '@tamagui/lucide-icons';
+import { ArrowLeft } from 'lucide-react-native';
 import { RippleButton, HUXStack } from '@/components/ui-primitives';
 
 export default function SettingsLayout() {

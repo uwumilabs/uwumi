@@ -1,10 +1,9 @@
 import React from 'react';
 import { ThemedView, NoResults, CustomImage } from '@/components';
-import { Spinner, View } from 'tamagui';
 import { useLocalSearchParams } from 'expo-router';
 import { useMangaChapterRead } from '@/hooks';
 import { FlashList } from '@shopify/flash-list';
-import { Dimensions } from 'react-native';
+import { Dimensions, View, ActivityIndicator } from 'react-native';
 import { MediaType } from '@/constants/types';
 import { useProviderStore } from '@/constants/provider';
 
@@ -20,8 +19,8 @@ const Read = () => {
   if (isLoading) {
     return (
       <ThemedView>
-        <View flex={1} justifyContent="center" alignItems="center">
-          <Spinner size="large" color="$color" />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="$color" />
         </View>
       </ThemedView>
     );
@@ -38,7 +37,7 @@ const Read = () => {
         ListEmptyComponent={<NoResults />}
         showsVerticalScrollIndicator={true}
         renderItem={({ item }) => (
-          <View marginVertical="$2">
+          <View className="my-2">
             <CustomImage
               source={{ uri: item?.img }}
               style={{

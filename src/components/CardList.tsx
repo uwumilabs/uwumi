@@ -6,10 +6,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AnimatedCustomImage } from './CustomImage';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
 import { IAnimeResult, IMovieResult, ISearch } from 'react-native-consumet';
-import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, Text, View } from 'react-native';
 import { InfiniteData } from '@tanstack/react-query';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { HUXStack, HUYStack, NoResults, RippleButton } from './ui-primitives';
+import { HUXStack, HUYStack, NoResults } from './ui-primitives';
 import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch, useSearchStore } from '@/hooks';
 import { DEFAULT_PROVIDERS, useProviderStore } from '@/constants/provider';
 import CustomFlashlist from './CustomFlashlist';
@@ -45,7 +45,7 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
     item.image &&
     !item.image.includes('/originalundefined') &&
     !item.image.includes('/originalnull') && (
-      <RippleButton
+      <Pressable
         className="p-0 rounded-none"
         onPress={() => {
           router.push({
@@ -80,7 +80,7 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
               style={{ borderRadius: 10, zIndex: 0 }}
               width="100%"
               height="100%"
-              sharedTransitionTag="shared-image"
+              sharedTransitionTag={`shared-image-${item.id}`}
               className="absolute inset-0"
             />
             <LinearGradient
@@ -98,7 +98,7 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
             </Card.Title>
           </Card.Body>
         </AnimatedStyledCard>
-      </RippleButton>
+      </Pressable>
     )
   );
 });

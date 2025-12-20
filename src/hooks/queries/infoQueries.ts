@@ -2773,7 +2773,7 @@ export function useMoviesEpisodes({
         id,
         type,
       )) as unknown as IMovieInfo;
-      //console.log(data);
+      // console.log(data);
       return data;
     },
   });

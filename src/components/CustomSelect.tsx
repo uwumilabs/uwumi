@@ -1,7 +1,8 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Button, Select } from 'heroui-native';
 import { ScrollView, Text, View } from 'react-native';
-import { ChevronDown } from '@tamagui/lucide-icons';
+import { ChevronDown } from 'lucide-react-native';
+import { useSheetColor } from '@/hooks';
 
 type SelectOption = {
   name: string;
@@ -29,7 +30,7 @@ export const CustomSelect = ({
   );
 
   const selectedOption = useMemo(() => selectOptions.find((item) => item.value === value), [selectOptions, value]);
-
+  const sheetColor = useSheetColor();
   const handleValueChange = useCallback(
     (option?: { value: string }) => {
       if (option?.value) {
@@ -55,7 +56,7 @@ export const CustomSelect = ({
       </Select.Trigger>
       <Select.Portal>
         <Select.Overlay />
-        <Select.Content width={280} className="rounded-2xl" placement="bottom">
+        <Select.Content detached backgroundStyle={{ backgroundColor: sheetColor }} presentation="bottom-sheet">
           <ScrollView>
             {selectOptions.map((item) => (
               <Select.Item key={item.value} value={item.value} label={item.label}>

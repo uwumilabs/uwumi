@@ -7,10 +7,10 @@ export function useSheetColor() {
 
   const sheetColor =
     isDark && pureBlackBackground
-      ? currentTheme.color5
-      : isDark && !pureBlackBackground
-        ? currentTheme.color3
-        : currentTheme.background;
+      ? currentTheme.amoledSurfaceVariant
+      : //   : isDark && !pureBlackBackground
+        //     ? currentTheme.divider
+        currentTheme.background;
 
   return sheetColor;
 }

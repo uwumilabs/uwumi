@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Heart } from '@tamagui/lucide-icons';
+import { Heart } from 'lucide-react-native';
 import { MediaType, MetaProvider } from '@/constants/types';
 import { ITitle, MediaFormat, TvType } from 'react-native-consumet';
 import { RippleButton } from '../../../components/ui-primitives';

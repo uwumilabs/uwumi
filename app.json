@@ -77,7 +77,8 @@
           "defaultChannel": "default",
           "enableBackgroundRemoteNotifications": false
         }
-      ]
+      ],
+      "expo-navigation-bar"
     ],
     "experiments": {
       "typedRoutes": true,

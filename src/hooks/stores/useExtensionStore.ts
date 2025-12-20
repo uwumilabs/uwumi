@@ -105,6 +105,15 @@ const saveJSONToStorage = (key: string, data: any): boolean => {
   }
 };
 
+const createEmptyRegistry = (registryUrl = ''): RegistryMetadata => ({
+  updatedAt: new Date(0).toISOString(),
+  registryUrl,
+  totalExtensions: 0,
+  totalExtractors: 0,
+  extensions: [],
+  extractors: [],
+});
+
 const downloadFile = async (url: string, destination: string): Promise<boolean> => {
   try {
     const parentDir = destination.substring(0, destination.lastIndexOf('/'));
@@ -170,6 +179,10 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       try {
         await get().initializeDirectories();
         const { data } = await axios.get<RegistryResponse>(registryUrl);
+
+        if (!data || !Array.isArray((data as any).extensions) || !Array.isArray((data as any).extractors)) {
+          throw new Error('Invalid extension registry response');
+        }
 
         const registryMetadata: RegistryMetadata = {
           updatedAt: new Date().toISOString(),
@@ -371,8 +384,10 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
 // --- Helper Hook ---
 export const useConsumetExtensions = () => {
   const ExtensionStore = useExtensionStore();
-  const providerManager = new ProviderManager(ExtensionStore.registry);
-  const extractorManager = new ExtractorManager(ExtensionStore.registry);
+  // react-native-consumet managers expect a non-null registry object
+  const safeRegistry = ExtensionStore.registry ?? createEmptyRegistry();
+  const providerManager = new ProviderManager(safeRegistry);
+  const extractorManager = new ExtractorManager(safeRegistry);
   return { ...ExtensionStore, providerManager, extractorManager };
 };
 

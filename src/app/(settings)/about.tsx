@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { ThemedView } from '@/components/ui-primitives';
-import { Github, ExternalLink, CheckCircle2, AlertCircle, Globe, RefreshCw } from '@tamagui/lucide-icons';
+import { Github, ExternalLink, CheckCircle2, AlertCircle, Globe, RefreshCw } from 'lucide-react-native';
 import { CustomImage, RippleButton, HUYStack, HUXStack } from '@/components';
 import { useUpdateChecker } from '@/hooks/useUpdateChecker';
 import { openBrowserAsync } from 'expo-web-browser';

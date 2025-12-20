@@ -3,7 +3,7 @@ import React, { memo, useMemo, useCallback } from 'react';
 import { View } from 'react-native';
 import { Tabs } from 'heroui-native';
 import CardList from '@/components/CardList';
-import { ChartNoAxesCombined, Heart, Search } from '@tamagui/lucide-icons';
+import { ChartNoAxesCombined, Heart, Search } from 'lucide-react-native';
 import { useCurrentTheme, useTabsStore } from '@/hooks';
 import { IconTitle, HUYStack } from '@/components/ui-primitives';
 import SearchBar from '@/components/SearchBar';

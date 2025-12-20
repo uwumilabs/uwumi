@@ -11,7 +11,6 @@ interface ProgressProps {
   maxTrackColor?: string;
 }
 
-// Reusable progress bar without Tamagui; tailwind-style classes only
 export const Progress: React.FC<ProgressProps> = ({ value = 0, className, minTrackColor, maxTrackColor }) => {
   const clamped = Math.max(0, Math.min(100, value));
   const currentTheme = useCurrentTheme();

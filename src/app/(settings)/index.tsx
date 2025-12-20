@@ -1,6 +1,6 @@
 import React from 'react';
 import { ThemedView } from '@/components/ui-primitives';
-import { Text } from 'tamagui';
+import { Text } from 'react-native';
 
 const Settings = () => {
   return (

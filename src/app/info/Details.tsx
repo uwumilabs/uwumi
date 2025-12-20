@@ -1,7 +1,7 @@
 import Animated, { useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text, View, ScrollView } from 'react-native';
-import { ChevronDown } from '@tamagui/lucide-icons';
+import { ChevronDown } from 'lucide-react-native';
 import React, { ReactNode, useState } from 'react';
 import { WebView } from 'react-native-webview';
 import { hexToRGB } from '@/constants/utils';

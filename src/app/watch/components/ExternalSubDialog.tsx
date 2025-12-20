@@ -1,258 +1,215 @@
-import { FlatList } from 'react-native';
-import React, { useCallback, useMemo } from 'react';
-import { Button, Dialog, Input, Spinner, XStack, Text, View } from 'tamagui';
-import { RippleButton } from '@/components/ui-primitives';
-import { Search, X } from '@tamagui/lucide-icons';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { ListFilterPlus, Search, X } from 'lucide-react-native';
+import { Easing } from 'react-native-reanimated';
+import { Button, cn, ScrollShadow, Select, TextField } from 'heroui-native';
 import { SUB_LANGUAGE } from '@/constants/config';
-import Animated, { LinearTransition, FadeInDown, FadeOutUp, Easing } from 'react-native-reanimated';
-import type { TextInput } from 'react-native';
-import { useCustomBackHandler } from '@/hooks';
+import { useCurrentTheme, useCustomBackHandler } from '@/hooks';
+import { HUXStack, RippleButton } from '@/components/ui-primitives';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const AnimatedView = Animated.createAnimatedComponent(View);
+type LanguageOption = {
+  value: string;
+  label: string;
+};
 
 interface ExternalSubDialogProps {
-  openExternalSubtitleLanguageDialog: boolean;
-  setOpenExternalSubtitleLanguageDialog: (open: boolean) => void;
   externalSubtitleLanguage: string | null;
   setExternalSubtitleLanguage: (language: string | null) => void;
   isExternalSubtitlesLoading: boolean;
   setShouldFetchExternalSubs: (shouldFetch: boolean) => void;
   isFullscreen: boolean;
+  onOpenDialog?: () => void;
 }
 
-const ExternalSubDialog: React.FC<ExternalSubDialogProps> = ({
-  openExternalSubtitleLanguageDialog,
-  setOpenExternalSubtitleLanguageDialog,
-  externalSubtitleLanguage,
-  setExternalSubtitleLanguage,
-  isExternalSubtitlesLoading,
-  setShouldFetchExternalSubs,
-  isFullscreen,
-}) => {
-  const inputRef = React.useRef<TextInput>(null);
+const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
+  ({
+    externalSubtitleLanguage,
+    setExternalSubtitleLanguage,
+    isExternalSubtitlesLoading,
+    setShouldFetchExternalSubs,
+    isFullscreen,
+    onOpenDialog,
+  }) => {
+    const theme = useCurrentTheme();
+    const inputRef = useRef<TextInput>(null);
+    const { height } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
 
-  useCustomBackHandler(openExternalSubtitleLanguageDialog, () => {
-    if (openExternalSubtitleLanguageDialog) {
-      setOpenExternalSubtitleLanguageDialog(false);
-    }
-    return true;
-  });
+    const insetTop = insets.top + 12;
+    const maxDialogHeight = (height - insetTop) / 2;
 
-  const handleSelectLanguage = useCallback(
-    (lang: string) => {
-      setExternalSubtitleLanguage(lang);
-      inputRef.current?.blur();
-    },
-    [setExternalSubtitleLanguage],
-  );
+    const [open, setOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
-  const handleClear = useCallback(() => {
-    inputRef.current?.focus();
-    inputRef.current?.clear();
-    setExternalSubtitleLanguage(null);
-  }, [setExternalSubtitleLanguage]);
+    useCustomBackHandler(open, () => {
+      if (open) setOpen(false);
+      return true;
+    });
 
-  // Improved search function with fuzzy matching
-  const filteredLanguages = useMemo(() => {
-    const searchTerms = externalSubtitleLanguage?.toLowerCase().trim().split(/\s+/);
+    const allLanguages = useMemo(() => Object.keys(SUB_LANGUAGE).sort((a, b) => a.localeCompare(b)), []);
 
-    return Object.keys(SUB_LANGUAGE)
-      .filter((lang) => {
-        const langLower = lang.toLowerCase();
-        const langParts = langLower.split(/[\s()]+/);
-        return searchTerms?.every((term) => langParts.some((part) => part.startsWith(term)));
-      })
-      .sort((a, b) => {
-        const aLower = a.toLowerCase();
-        const bLower = b.toLowerCase();
-        const searchLower = externalSubtitleLanguage?.toLowerCase().trim();
+    const filteredLanguages = useMemo(() => {
+      const query = searchQuery.toLowerCase().trim();
+      if (!query) return allLanguages;
 
-        if (aLower === searchLower) return -1;
-        if (bLower === searchLower) return 1;
-        if (aLower.startsWith(searchLower!) && !bLower.startsWith(searchLower!)) return -1;
-        if (bLower.startsWith(searchLower!) && !aLower.startsWith(searchLower!)) return 1;
-        return a.localeCompare(b);
+      const terms = query.split(/\s+/).filter(Boolean);
+      return allLanguages.filter((lang) => {
+        const lower = lang.toLowerCase();
+        return terms.every((t) => lower.includes(t));
       });
-  }, [externalSubtitleLanguage]);
-  return (
-    <Dialog modal open={openExternalSubtitleLanguageDialog} onOpenChange={setOpenExternalSubtitleLanguageDialog}>
-      <Dialog.Portal>
-        <Dialog.Overlay
-          key="overlay"
-          backgroundColor="rgba(0,0,0,0.5)"
-          animateOnly={['transform', 'opacity']}
-          animation={[
-            'quick',
-            {
-              opacity: {
-                overshootClamping: true,
-              },
+    }, [allLanguages, searchQuery]);
+
+    const options = useMemo<LanguageOption[]>(
+      () => filteredLanguages.map((lang) => ({ value: lang, label: lang })),
+      [filteredLanguages],
+    );
+
+    const selectedOption = useMemo<LanguageOption | undefined>(() => {
+      if (!externalSubtitleLanguage) return undefined;
+      return { value: externalSubtitleLanguage, label: externalSubtitleLanguage };
+    }, [externalSubtitleLanguage]);
+
+    const handleOpenChange = useCallback(
+      (nextOpen: boolean) => {
+        setOpen(nextOpen);
+        if (nextOpen) {
+          onOpenDialog?.();
+          requestAnimationFrame(() => inputRef.current?.focus());
+        } else {
+          setSearchQuery('');
+        }
+      },
+      [onOpenDialog],
+    );
+
+    const handleValueChange = useCallback(
+      (option?: { value: string }) => {
+        if (!option?.value) return;
+        setExternalSubtitleLanguage(option.value);
+      },
+      [setExternalSubtitleLanguage],
+    );
+
+    const handleClearSearch = useCallback(() => {
+      setSearchQuery('');
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }, []);
+
+    return (
+      <Select
+        value={selectedOption}
+        onValueChange={handleValueChange}
+        isOpen={open}
+        onOpenChange={handleOpenChange}
+        closeDelay={300}
+        animation={{
+          exiting: {
+            type: 'timing',
+            config: {
+              duration: 250,
+              easing: Easing.out(Easing.quad),
             },
-          ]}
-          enterStyle={{ opacity: 0 }}
-          exitStyle={{ opacity: 0 }}
-        />
-        <Dialog.Content
-          bordered
-          elevate
-          key="content"
-          width={isFullscreen ? '85%' : '95%'}
-          maxWidth={900}
-          height={isFullscreen ? '80%' : '60%'}
-          padding="$5"
-          borderRadius="$6"
-          position="relative"
-          alignSelf={'center'}
-          animation={[
-            'quick',
-            {
-              opacity: {
-                overshootClamping: true,
-              },
-            },
-          ]}
-          enterStyle={{ opacity: 0, scale: 0.95 }}
-          exitStyle={{ opacity: 0, scale: 0.95 }}
-          gap="$4">
-          <View
-            flexDirection={isFullscreen ? 'row' : 'column'}
-            gap={isFullscreen ? '$6' : '$4'}
-            alignItems={isFullscreen ? 'flex-start' : 'stretch'}
-            justifyContent="space-between"
-            flex={1}>
-            <View flex={1} gap="4" width={isFullscreen ? 'auto' : '100%'}>
-              <XStack
-                alignItems="center"
-                backgroundColor="$background"
-                borderWidth={2}
-                borderColor="$borderColor"
-                borderRadius="$4"
-                paddingHorizontal="$3"
-                paddingVertical="$2.5"
-                width={isFullscreen ? 'auto' : '100%'}>
-                <Search size={18} color="$color2" />
-                <Input
+          },
+        }}>
+        <Select.Trigger asChild>
+          <RippleButton>
+            <HUXStack className="items-center justify-center gap-3">
+              <ListFilterPlus color={theme.foreground} size={16} />
+              <Text className="text-foreground text-base font-semibold">Add External Subtitle</Text>
+            </HUXStack>
+          </RippleButton>
+        </Select.Trigger>
+
+        <Select.Portal>
+          <Select.Overlay className="bg-black/50" />
+          <Select.Content
+            presentation="dialog"
+            className={cn('relative rounded-3xl bg-background p-5')}
+            style={{ height: maxDialogHeight }}>
+            <View className="flex-1 gap-3">
+              <View className="flex-row items-center justify-between">
+                <Select.ListLabel>Subtitle language</Select.ListLabel>
+                <Select.Close />
+              </View>
+              <TextField>
+                <TextField.Input
                   ref={inputRef}
-                  flex={1}
                   placeholder="Search languages..."
-                  value={externalSubtitleLanguage!}
-                  borderWidth={0}
+                  value={searchQuery}
                   autoCorrect={false}
                   autoCapitalize="none"
                   autoComplete="off"
-                  placeholderTextColor={'$color1'}
-                  onChangeText={setExternalSubtitleLanguage}
-                />
-                {externalSubtitleLanguage ? (
+                  placeholderTextColor={theme.divider}
+                  onChangeText={setSearchQuery}>
+                  <TextField.InputStartContent>
+                    <Search size={18} color={theme.foreground} />
+                  </TextField.InputStartContent>
+                  <TextField.InputEndContent>
+                    {searchQuery ? <X size={16} color={theme.foreground} onPress={handleClearSearch} /> : null}
+                  </TextField.InputEndContent>
+                </TextField.Input>
+              </TextField>
+
+              <ScrollShadow
+                className="flex-1"
+                LinearGradientComponent={LinearGradient}
+                // color={isDark ? themeColorSurface : themeColorOverlay}
+              >
+                <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 12 }}>
+                  {options.map((item) => (
+                    <Select.Item key={item.value} value={item.value} label={item.label}>
+                      <View className="flex-row items-center gap-3 flex-1">
+                        <Text className="text-base text-foreground flex-1">{item.label}</Text>
+                      </View>
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                  {options.length === 0 ? (
+                    <Text className="text-foreground/70 text-center mt-8">No languages found</Text>
+                  ) : null}
+                </ScrollView>
+              </ScrollShadow>
+              <HUXStack className="self-stretch justify-between gap-4">
+                <Select.Close asChild>
                   <Button
-                    size="$2.5"
-                    circular
-                    chromeless
-                    icon={X}
-                    onPress={handleClear}
-                    backgroundColor="$color3"
-                    color="$color1"
-                    hoverStyle={{ backgroundColor: '$color4' }}
-                    pressStyle={{ backgroundColor: '$color5' }}
-                  />
-                ) : null}
-              </XStack>
-              <XStack
-                alignSelf={isFullscreen ? 'flex-end' : 'stretch'}
-                justifyContent={isFullscreen ? 'flex-end' : 'space-between'}
-                gap="$4"
-                marginTop={isFullscreen && externalSubtitleLanguage ? '$6' : '$4'}
-                width="100%">
-                <Dialog.Close displayWhenAdapted asChild>
-                  <RippleButton
+                    variant="danger-soft"
                     onPress={() => {
                       setExternalSubtitleLanguage(null);
-                      setOpenExternalSubtitleLanguageDialog(false);
+                      setOpen(false);
                     }}>
-                    <Text>Cancel</Text>
-                  </RippleButton>
-                </Dialog.Close>
-                <Dialog.Close displayWhenAdapted asChild>
+                    Cancel
+                  </Button>
+                </Select.Close>
+
+                <Select.Close asChild>
                   <Button
-                    disabled={!externalSubtitleLanguage?.trim()}
+                    isDisabled={!externalSubtitleLanguage?.trim()}
                     onPress={() => {
                       if (externalSubtitleLanguage?.trim()) {
                         setShouldFetchExternalSubs(true);
-                        //console.log('Fetching subtitles for language:', externalSubtitleLanguage);
-                        setOpenExternalSubtitleLanguageDialog(false);
-                        setExternalSubtitleLanguage(externalSubtitleLanguage);
+                        setOpen(false);
                       }
                     }}>
                     {isExternalSubtitlesLoading ? (
-                      <XStack gap="$2" alignItems="center">
-                        <Spinner size="small" />
-                        <Text color={'$color1'}>Fetching...</Text>
-                      </XStack>
+                      <HUXStack className="gap-2 items-center">
+                        <ActivityIndicator size="small" />
+                        <Button.Label>Fetching...</Button.Label>
+                      </HUXStack>
                     ) : (
-                      <Text>Fetch Subtitles</Text>
+                      <Button.Label>Fetch Subtitles</Button.Label>
                     )}
                   </Button>
-                </Dialog.Close>
-              </XStack>
+                </Select.Close>
+              </HUXStack>
             </View>
+          </Select.Content>
+        </Select.Portal>
+      </Select>
+    );
+  },
+);
 
-            {externalSubtitleLanguage && (
-              <AnimatedView
-                padding="$2"
-                borderRadius="$2"
-                flex={1}
-                width="100%"
-                minHeight={isFullscreen ? 300 : 350}
-                maxHeight={isFullscreen ? 400 : '70%'}
-                entering={FadeInDown.duration(200).easing(Easing.out(Easing.quad))}
-                exiting={FadeOutUp.duration(150).easing(Easing.out(Easing.quad))}>
-                <View flex={1} width="100%" borderRadius="$4" borderWidth={1} borderColor="$borderColor" padding="$4">
-                  <FlatList
-                    data={filteredLanguages}
-                    keyExtractor={(item) => item}
-                    keyboardDismissMode="on-drag"
-                    showsVerticalScrollIndicator={false}
-                    style={{ flex: 1 }}
-                    contentContainerStyle={{ paddingVertical: 4 }}
-                    ListEmptyComponent={
-                      <View padding="$4">
-                        <Text color="$color2" fontSize="$3" textAlign="center">
-                          No languages found for "{externalSubtitleLanguage}"
-                        </Text>
-                      </View>
-                    }
-                    renderItem={({ item, index }) => (
-                      <AnimatedView
-                        key={item}
-                        justifyContent="flex-start"
-                        paddingHorizontal="$4"
-                        borderColor="transparent"
-                        borderBottomColor="$borderColor"
-                        borderWidth={1}
-                        hoverStyle={{ backgroundColor: '$color3' }}
-                        pressStyle={{ backgroundColor: '$color4' }}
-                        focusStyle={{ backgroundColor: '$color3' }}
-                        entering={FadeInDown.delay(index * 15)
-                          .duration(150)
-                          .easing(Easing.out(Easing.quad))}
-                        exiting={FadeOutUp.duration(100).easing(Easing.out(Easing.quad))}
-                        layout={LinearTransition.duration(200).easing(Easing.bezier(0.4, 0, 0.2, 1))}>
-                        <RippleButton onPress={() => handleSelectLanguage(item)}>
-                          <Text fontSize="$4" color="$color1" fontWeight="500">
-                            {item}
-                          </Text>
-                        </RippleButton>
-                      </AnimatedView>
-                    )}
-                  />
-                </View>
-              </AnimatedView>
-            )}
-          </View>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog>
-  );
-};
-
+ExternalSubDialog.displayName = 'ExternalSubSelectDialog';
 export default ExternalSubDialog;

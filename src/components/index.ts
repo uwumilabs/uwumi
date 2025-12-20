@@ -10,6 +10,7 @@ export { EpisodeList, WavyAnimation } from './episode-list';
 export { CustomImage, AnimatedCustomImage } from './CustomImage';
 export { CustomFlashlist } from './CustomFlashlist';
 export { CustomSelect } from './CustomSelect';
+export { CustomSheet, CustomSheetProvider } from './CustomSheet';
 export { SearchBar } from './SearchBar';
 export { Progress } from './Progress';
 

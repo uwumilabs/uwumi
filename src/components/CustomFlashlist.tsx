@@ -9,7 +9,7 @@ export const CustomFlashlist = forwardRef(<T,>(props: FlashListProps<T>, ref: Re
       <FlashList
         ref={ref}
         ListEmptyComponent={<NoResults />}
-        ListFooterComponent={<View className="mb-250" />}
+        ListFooterComponent={<View className="mb-8" />}
         showsVerticalScrollIndicator={true}
         {...props}
       />

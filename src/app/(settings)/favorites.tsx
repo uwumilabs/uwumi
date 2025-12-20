@@ -25,7 +25,7 @@ const Favorites = () => {
       key: 'tab2',
       label: 'Manga',
       content: (
-        <View height="100%">
+        <View className="h-full">
           <CardList
             staticData={favorites.filter((item) => item.mediaType === MediaType.MANGA)}
             mediaType={MediaType.MANGA}
@@ -38,7 +38,7 @@ const Favorites = () => {
       key: 'tab3',
       label: 'Movie',
       content: (
-        <View height="100%">
+        <View className="h-full">
           <CardList
             staticData={favorites.filter((item) => item.mediaType === MediaType.MOVIE)}
             mediaType={MediaType.MOVIE}

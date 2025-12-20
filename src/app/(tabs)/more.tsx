@@ -1,7 +1,7 @@
 import React, { RefObject, useMemo } from 'react';
 import { HUXStack, HUYStack, ThemedView } from '@/components';
 import { Route, useRouter } from 'expo-router';
-import { Palette, Info, Heart, Package, Download } from '@tamagui/lucide-icons';
+import { Palette, Info, Heart, Package, Download } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 import { Divider } from 'heroui-native';
 import { useCurrentTheme } from '@/hooks';

@@ -2,7 +2,7 @@ import React, { memo, useCallback, useMemo } from 'react';
 import { useThemeStore, usePureBlackBackground } from '@/hooks';
 import { ThemedView, HUYStack, HUXStack } from '@/components';
 import { Pressable, StyleProp, ViewStyle, View, Text, FlatList } from 'react-native';
-import { Check } from '@tamagui/lucide-icons';
+import { Check } from 'lucide-react-native';
 import { Divider, Switch } from 'heroui-native';
 import { themes, ThemeName } from '@/themes/theme';
 

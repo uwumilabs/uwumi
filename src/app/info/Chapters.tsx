@@ -2,7 +2,7 @@ import { IconTitle, RippleButton, CustomSelect, CustomFlashlist, HUXStack, HUYSt
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import { MediaType } from '@/constants/types';
 import { useMangaChapters, usePureBlackBackground } from '@/hooks';
-import { Album, Library, ScrollText } from '@tamagui/lucide-icons';
+import { Album, Library, ScrollText } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { cn } from 'heroui-native';
 import React, { useCallback } from 'react';

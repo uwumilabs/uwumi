@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 // Generates src/themes/theme.ts from all @variant blocks inside src/themes/*.css
-// Run with: `bun tsx src/scripts/generate-themes.ts` or `npx tsx src/scripts/generate-themes.ts`
+// Run with: `bunx tsx src/scripts/generate-themes.ts` or `npx tsx src/scripts/generate-themes.ts`
 
 const THEMES_DIR = path.resolve(__dirname, '..', 'themes');
 const OUTPUT_FILE = path.join(THEMES_DIR, 'theme.ts');

@@ -13,13 +13,13 @@ export default function TabLayout() {
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
 
   SystemNavigationBar.setNavigationColor(
-    pureBlackBackground ? currentTheme?.segment : currentTheme?.surface || 'black',
+    pureBlackBackground ? currentTheme?.amoledSurfaceVariant : currentTheme?.segment || 'black',
   );
 
   return (
     <NativeTabs
       backBehavior="history"
-      backgroundColor={pureBlackBackground ? currentTheme?.segment : currentTheme?.surface}
+      backgroundColor={pureBlackBackground ? currentTheme?.amoledSurfaceVariant : currentTheme?.segment}
       indicatorColor={currentTheme?.default}
       rippleColor={hexToRGB(currentTheme?.accent, 0.5)}
       labelStyle={{ fontSize: 13, fontWeight: '700', color: currentTheme?.foreground }}

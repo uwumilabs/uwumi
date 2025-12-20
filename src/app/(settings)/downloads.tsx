@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ThemedView, CustomFlashlist, HUXStack, HUYStack } from '@/components';
+import { ThemedView, CustomFlashlist, HUXStack, HUYStack, Progress } from '@/components';
 import { useDownloadStore, usePureBlackBackground, useSheetColor, useCurrentTheme } from '@/hooks';
-import { Download, CheckCircle2, XCircle, Trash2, PauseCircle, Folder, HardDrive, Clock } from '@tamagui/lucide-icons';
+import { Download, CheckCircle2, XCircle, Trash2, PauseCircle, Folder, HardDrive, Clock } from 'lucide-react-native';
 import { formatTime } from '@/constants/utils';
 import { IconTitle, RippleButton } from '@/components/ui-primitives';
 import { ActivityIndicator, Text } from 'react-native';
 import { Divider, Dialog, Button, Card, cn } from 'heroui-native';
-import { Progress } from 'tamagui';
 // import * as Haptics from 'expo-haptics';
 
 // Reusable Confirm Dialog Component
@@ -365,9 +364,7 @@ const Downloads = () => {
             {/* Progress Bar for Downloading */}
             {item.status === 'downloading' && (
               <HUYStack className="mt-2 gap-2">
-                <Progress size="$1" backgroundColor="$color4" value={Math.round(progress)} max={100} borderRadius="$2">
-                  <Progress.Indicator animation="bouncy" backgroundColor="$color" />
-                </Progress>
+                <Progress value={Math.round(progress)} />
                 <HUXStack className="flex-row items-center justify-between">
                   <HUXStack className="flex-row items-center gap-3">
                     <Text className="text-sm font-semibold text-foreground">{Math.round(progress)}%</Text>
