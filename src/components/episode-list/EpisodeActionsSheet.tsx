@@ -1,7 +1,6 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, ScrollView, Text } from 'react-native';
 import { IAnimeEpisode, IMovieEpisode, IEpisodeServer } from 'react-native-consumet';
-import { Check, X, Play, ChevronRight, Server, ChevronLeft, Download } from 'lucide-react-native';
 import {
   useWatchProgressStore,
   useWatchAnimeEpisodes,
@@ -18,6 +17,7 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import { HUXStack, HUYStack, RippleButton } from '../ui-primitives';
 import { Divider } from 'heroui-native';
 import { CustomSheet } from '../CustomSheet';
+import { IoniconsIcon } from '../Icons';
 
 interface EpisodeActionsSheetProps {
   open: boolean;
@@ -404,13 +404,17 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         <HUYStack className="p-4 gap-2 min-h-50">
           {/* Header */}
           <HUXStack className="justify-between items-center mb-2">
-            <Text className="text-lg font-bold text-accent" numberOfLines={1}>
+            <Text className="text-lg font-bold text-accent w-4/5" numberOfLines={1}>
               {headerTitle}
             </Text>
             {/* <HUYStack className="flex-1">
             </HUYStack> */}
             <RippleButton onPress={() => (shouldShowBack ? handleBackToMainMenu() : onOpenChange(false))}>
-              {shouldShowBack ? <ChevronLeft size={24} color="$color1" /> : <X size={24} color="$color1" />}
+              {shouldShowBack ? (
+                <IoniconsIcon name="chevron-back" size={24} color="$color1" />
+              ) : (
+                <IoniconsIcon name="close" size={24} color="$color1" />
+              )}
             </RippleButton>
           </HUXStack>
 
@@ -422,7 +426,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
               {/* Mark as Complete/Incomplete */}
               <StyledSheetButton
                 onPress={handleMarkComplete}
-                icon={<Check size={20} />}
+                icon={<IoniconsIcon name="checkmark" size={20} />}
                 label={isCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}
               />
 
@@ -430,13 +434,13 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
               <StyledSheetButton
                 onPress={() => handleShowQualityOptions('external-player')}
-                icon={<Play size={20} />}
+                icon={<IoniconsIcon name="play" size={20} />}
                 label="Open in External Player"
               />
               {/* Download */}
               <StyledSheetButton
                 onPress={() => handleShowQualityOptions('download')}
-                icon={<Download size={20} />}
+                icon={<IoniconsIcon name="download-outline" size={20} />}
                 label="Download"
               />
             </HUYStack>
@@ -457,7 +461,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                     <StyledSheetButton
                       key={server.name}
                       onPress={() => handleServerSelect(server)}
-                      icon={<Server size={20} />}
+                      icon={<IoniconsIcon name="server-outline" size={20} />}
                       label={server.name}
                     />
                   ))
@@ -497,13 +501,13 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                         }
                         icon={
                           actionMode === 'download' ? (
-                            <Download size={18} color="$color" />
+                            <IoniconsIcon name="download-outline" size={18} color="$color" />
                           ) : (
-                            <Play size={18} color="$color" />
+                            <IoniconsIcon name="play" size={18} color="$color" />
                           )
                         }
                         label={quality}
-                        rightIcon={<ChevronRight size={18} color="$color1" opacity={0.5} />}
+                        rightIcon={<IoniconsIcon name="chevron-forward" size={18} color="$color1" />}
                       />
                     );
                   })

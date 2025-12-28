@@ -7,6 +7,7 @@ import {
   HorizontalTabs,
   HUYStack,
   HUXStack,
+  IoniconsIcon,
 } from '@/components';
 import {
   useCurrentTheme,
@@ -16,10 +17,9 @@ import {
   useMediaInfoStore,
   useEpisodesStore,
 } from '@/hooks';
-import { ArrowLeft, Clock, Globe, Star } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { ImageBackground, Text, View } from 'react-native';
+import { ImageBackground, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MediaType, MetaProvider } from '@/constants/types';
@@ -31,15 +31,17 @@ import Similar from './Similar';
 import { MediaFormat, TvType } from 'react-native-consumet';
 import { useProviderStore } from '@/constants/provider';
 import { openBrowserAsync } from 'expo-web-browser';
+import Animated from 'react-native-reanimated';
 
 const Info = () => {
-  const { mediaType, metaProvider, type, provider, id, image } = useLocalSearchParams<{
+  const { mediaType, metaProvider, type, provider, id, image, title } = useLocalSearchParams<{
     mediaType: MediaType;
     metaProvider: MetaProvider;
     type: MediaFormat | TvType;
     provider: string;
     id: string;
     image: string;
+    title?: string;
   }>();
   const { getProvider } = useProviderStore();
   const { getExtensionInfo } = useExtensionStore();
@@ -105,18 +107,10 @@ const Info = () => {
           <View className="p-2.5 z-20" style={{ marginTop: insets.top }}>
             <HUXStack className="items-center justify-between">
               <RippleButton onPress={() => router.back()}>
-                <ArrowLeft />
+                <IoniconsIcon name="arrow-back-outline" />
               </RippleButton>
 
-              <AnimatedFavoriteButton
-                id={id}
-                title={data?.title!}
-                image={image || data?.image!}
-                type={type}
-                mediaType={mediaType}
-                provider={provider}
-                metaProvider={metaProvider}
-              />
+              <AnimatedFavoriteButton />
             </HUXStack>
 
             <HUXStack className="gap-2.5 items-center">
@@ -126,29 +120,32 @@ const Info = () => {
                 style={{ width: 115, height: 163 }}
               />
               <HUYStack className="gap-2 flex-1">
-                <Text className="text-foreground text-3xl font-bold" numberOfLines={3}>
-                  {typeof data?.title === 'object' ? data?.title?.english || data?.title?.romaji : data?.title}
-                </Text>
+                <Animated.Text
+                  className="text-foreground text-3xl font-bold"
+                  numberOfLines={3}
+                  sharedTransitionTag={`shared-title-${id}`}>
+                  {title}
+                </Animated.Text>
 
                 <HUXStack className="item-center justify-between">
-                  {data?.status && <IconTitle icon={Clock} text={data?.status} />}
+                  {data?.status && <IconTitle iconName="time-outline" text={data?.status} />}
                   {episodes.length > 0 && (
                     <RippleButton
                       onPress={() =>
                         openBrowserAsync(episodes[0].url! || getExtensionInfo(getProvider(mediaType))?.baseUrl!)
                       }>
-                      <IconTitle icon={Globe} text="Webview" color="$color" />
+                      <IconTitle iconName="globe-outline" text="Webview" color="$color" />
                     </RippleButton>
                   )}
                 </HUXStack>
                 <HUXStack className="justify-between">
-                  <IconTitle icon={Star} text={normalizeRating(data?.rating)} />
+                  <IconTitle iconName="star-outline" text={normalizeRating(data?.rating)} />
                   {(data?.nextAiringEpisode?.airingTime || data?.nextAiringEpisode?.releaseDate) && (
                     <AnimatedCountdown
-                      targetDate={data.nextAiringEpisode.airingTime || data?.nextAiringEpisode?.releaseDate}
+                    // targetDate={data.nextAiringEpisode.airingTime || data?.nextAiringEpisode?.releaseDate}
                     />
                   )}
-                  <IconTitle text={data?.type} />
+                  <IconTitle iconName="film-outline" text={data?.type} />
                 </HUXStack>
               </HUYStack>
             </HUXStack>

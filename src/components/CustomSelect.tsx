@@ -1,8 +1,8 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Button, Select } from 'heroui-native';
 import { ScrollView, Text, View } from 'react-native';
-import { ChevronDown } from 'lucide-react-native';
 import { useSheetColor } from '@/hooks';
+import { IoniconsIcon } from './Icons';
 
 type SelectOption = {
   name: string;
@@ -51,7 +51,7 @@ export const CustomSelect = ({
           ) : (
             <Text className="text-foreground">{SelectLabel}</Text>
           )}
-          <ChevronDown size={20} />
+          <IoniconsIcon name="chevron-down" size={20} className="text-accent-foreground" />
         </Button>
       </Select.Trigger>
       <Select.Portal>

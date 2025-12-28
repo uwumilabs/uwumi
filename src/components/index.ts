@@ -13,6 +13,14 @@ export { CustomSelect } from './CustomSelect';
 export { CustomSheet, CustomSheetProvider } from './CustomSheet';
 export { SearchBar } from './SearchBar';
 export { Progress } from './Progress';
+export {
+  IoniconsIcon,
+  IoniconProps,
+  IoniconsIconProps,
+  MaterialIconsIcon,
+  MaterialIconsProps,
+  MaterialIconsIconProps,
+} from './Icons';
 
 // Navigation Components
 export { HorizontalTabs, TabItem } from './HorizontalTabs';

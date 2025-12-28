@@ -2,8 +2,7 @@ import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View } from 'react-native';
-import { ArrowLeft } from 'lucide-react-native';
-import { RippleButton, HUXStack } from '@/components/ui-primitives';
+import { RippleButton, HUXStack, IoniconsIcon } from '@/components';
 
 export default function SettingsLayout() {
   const currentTheme = useCurrentTheme();
@@ -34,7 +33,7 @@ export default function SettingsLayout() {
                   {canGoBack && (
                     // a small delay to ensure the back navigation is smooth
                     <RippleButton onPress={() => props.navigation.goBack()}>
-                      <ArrowLeft size={24} color={currentTheme?.foreground} />
+                      <IoniconsIcon name="chevron-back" size={24} color={currentTheme?.foreground} />
                     </RippleButton>
                   )}
                 </HUXStack>

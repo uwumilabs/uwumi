@@ -1,19 +1,17 @@
 import { HUXStack } from '@/components';
+import { useMediaInfoStore } from '@/hooks';
 import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 
-type CountdownProps = {
-  targetDate: number | string;
-};
-
-export const AnimatedCountdown: React.FC<CountdownProps> = ({ targetDate }) => {
+export const AnimatedCountdown = () => {
   const [timeLeft, setTimeLeft] = useState({
     d: 0,
     h: 0,
     m: 0,
     s: 0,
   });
-
+  const { mediaInfo } = useMediaInfoStore();
+  const targetDate = mediaInfo?.nextAiringEpisode?.airingTime || mediaInfo?.nextAiringEpisode?.releaseDate;
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date().getTime();

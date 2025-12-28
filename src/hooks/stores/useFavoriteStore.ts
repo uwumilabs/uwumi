@@ -25,12 +25,16 @@ export const useFavoriteStore = create<FavoriteState>()(
 
       removeFavorite: (id) => {
         //console.log('Removing favorite:', id);
+        const idKey = String(id);
         set((state) => ({
-          favorites: state.favorites.filter((item) => item.id !== id),
+          favorites: state.favorites.filter((item) => String(item.id) !== idKey),
         }));
       },
 
-      isFavorite: (id) => get().favorites.some((item) => item.id === id),
+      isFavorite: (id) => {
+        const idKey = String(id);
+        return get().favorites.some((item) => String(item.id) === idKey);
+      },
 
       clearAll: () => {
         //console.log('Clearing all favorites');

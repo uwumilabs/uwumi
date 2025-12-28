@@ -3,7 +3,6 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect } from 'react';
 import 'react-native-reanimated';
-import { ArrowUpCircle, Download } from 'lucide-react-native';
 import { Toaster } from 'sonner-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -23,6 +22,7 @@ import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-co
 import '../../global.css';
 import { useUniwind } from 'uniwind';
 import { CustomSheetProvider } from '@/components';
+import { IoniconsIcon } from '@/components';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -85,7 +85,7 @@ const DownloadDialog = ({
           <Dialog.Close className="absolute right-3 top-3" />
 
           <View className="items-center mt-1 mb-3">
-            <ArrowUpCircle size={48} />
+            <IoniconsIcon name="arrow-up-circle-outline" className="text-accent" size={48} />
           </View>
 
           <View className="gap-3">
@@ -116,7 +116,6 @@ const DownloadDialog = ({
                   await WebBrowser.openBrowserAsync('https://github.com/2004durgesh/uwumi/releases/latest');
                 }}
                 className="w-full">
-                <Download size={18} />
                 Update Now
               </Button>
 

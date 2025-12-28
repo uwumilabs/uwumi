@@ -3,9 +3,8 @@ import React, { memo, useMemo, useCallback } from 'react';
 import { View } from 'react-native';
 import { Tabs } from 'heroui-native';
 import CardList from '@/components/CardList';
-import { ChartNoAxesCombined, Heart, Search } from 'lucide-react-native';
 import { useCurrentTheme, useTabsStore } from '@/hooks';
-import { IconTitle, HUYStack } from '@/components/ui-primitives';
+import { IconTitle, HUYStack, IoniconProps } from '@/components';
 import SearchBar from '@/components/SearchBar';
 import { MediaFeedType, MediaType } from '@/constants/types';
 
@@ -13,21 +12,27 @@ interface MediaBrowserProps {
   mediaType: MediaType;
 }
 
+type TabConfig = {
+  id: string;
+  icon: IoniconProps['name'];
+  text: string;
+  mediaFeedType: MediaFeedType;
+};
+
 export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
   const TABS = useMemo(
-    () =>
+    (): TabConfig[] =>
       [
-        { id: 'tab1', icon: ChartNoAxesCombined, text: 'Trending', mediaFeedType: 'trending' },
+        { id: 'tab1', icon: 'trending-up', text: 'Trending', mediaFeedType: 'trending' },
         (mediaType === MediaType.ANIME || mediaType === MediaType.MANGA) && {
           id: 'tab2',
-          icon: Heart,
+          icon: 'heart-outline',
           text: 'Popular',
           mediaFeedType: 'popular',
         },
-        { id: 'tab3', icon: Search, text: 'Search', mediaFeedType: 'search' },
-      ].filter(
-        (tab): tab is { id: string; icon: typeof ChartNoAxesCombined; text: string; mediaFeedType: MediaFeedType } =>
-          Boolean(tab),
+        { id: 'tab3', icon: 'search', text: 'Search', mediaFeedType: 'search' },
+      ].filter((tab): tab is { id: string; icon: IoniconProps['name']; text: string; mediaFeedType: MediaFeedType } =>
+        Boolean(tab),
       ),
     [mediaType],
   );
@@ -54,7 +59,7 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
         {TABS.map(({ id, icon, text }) => {
           return (
             <Tabs.Trigger key={id} value={id}>
-              <IconTitle icon={icon} text={text} />
+              <IconTitle iconName={icon} text={text} />
             </Tabs.Trigger>
           );
         })}

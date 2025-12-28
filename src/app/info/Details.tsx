@@ -1,12 +1,11 @@
 import Animated, { useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text, View, ScrollView } from 'react-native';
-import { ChevronDown } from 'lucide-react-native';
 import React, { ReactNode, useState } from 'react';
 import { WebView } from 'react-native-webview';
 import { hexToRGB } from '@/constants/utils';
 import { useCurrentTheme, usePureBlackBackground, useMediaInfoStore } from '@/hooks';
-import { RippleButton, HUXStack, HUYStack } from '@/components';
+import { RippleButton, HUXStack, HUYStack, IoniconsIcon } from '@/components';
 
 const StatisticsXStack = ({ children }: { children: ReactNode }) => {
   return <HUXStack className="flex-1 justify-between">{children}</HUXStack>;
@@ -138,7 +137,7 @@ const Details = () => {
                     {/* Animated icon rotation */}
                     <Animated.View style={[{ alignItems: 'center', padding: 8 }, chevronAnimatedStyle]}>
                       <RippleButton style={{ alignItems: 'center' }} onPress={() => setIsExpanded(!isExpanded)}>
-                        <ChevronDown size={24} color="$color" />
+                        <IoniconsIcon name="chevron-down" size={24} color="$color" />
                       </RippleButton>
                     </Animated.View>
                     <HUYStack className="flex-1 h-full w-full hap-2">

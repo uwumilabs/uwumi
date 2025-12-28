@@ -1,11 +1,10 @@
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import { ListFilterPlus, Search, X } from 'lucide-react-native';
 import { Easing } from 'react-native-reanimated';
 import { Button, cn, ScrollShadow, Select, TextField } from 'heroui-native';
 import { SUB_LANGUAGE } from '@/constants/config';
 import { useCurrentTheme, useCustomBackHandler } from '@/hooks';
-import { HUXStack, RippleButton } from '@/components/ui-primitives';
+import { HUXStack, IoniconsIcon, RippleButton } from '@/components';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -116,7 +115,7 @@ const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
         <Select.Trigger asChild>
           <RippleButton>
             <HUXStack className="items-center justify-center gap-3">
-              <ListFilterPlus color={theme.foreground} size={16} />
+              <IoniconsIcon name="add-circle-outline" color={theme.foreground} size={16} />
               <Text className="text-foreground text-base font-semibold">Add External Subtitle</Text>
             </HUXStack>
           </RippleButton>
@@ -144,10 +143,12 @@ const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
                   placeholderTextColor={theme.divider}
                   onChangeText={setSearchQuery}>
                   <TextField.InputStartContent>
-                    <Search size={18} color={theme.foreground} />
+                    <IoniconsIcon name="search" size={18} color={theme.foreground} />
                   </TextField.InputStartContent>
                   <TextField.InputEndContent>
-                    {searchQuery ? <X size={16} color={theme.foreground} onPress={handleClearSearch} /> : null}
+                    {searchQuery ? (
+                      <IoniconsIcon name="close" size={16} color={theme.foreground} onPress={handleClearSearch} />
+                    ) : null}
                   </TextField.InputEndContent>
                 </TextField.Input>
               </TextField>

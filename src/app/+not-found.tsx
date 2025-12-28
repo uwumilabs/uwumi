@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 
-import { ThemedView } from '@/components/ui-primitives';
+import { ThemedView } from '@/components';
 import { Text } from 'react-native';
 import React from 'react';
 

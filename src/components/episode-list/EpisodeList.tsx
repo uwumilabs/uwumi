@@ -14,7 +14,6 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Captions, Eye, EyeOff, Mic, TableProperties, Images, ListOrdered } from 'lucide-react-native';
 import {
   useEpisodesIdStore,
   useEpisodesStore,
@@ -35,9 +34,10 @@ import { formatTime } from '@/constants/utils';
 import CustomSelect from '../CustomSelect';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import CustomFlashlist from '../CustomFlashlist';
-import { HUYStack, HUXStack, RippleButton } from '../ui-primitives';
+import { HUYStack, HUXStack } from '../ui-primitives';
 import { Card, cn } from 'heroui-native';
 import Progress from '../Progress';
+import { IoniconsIcon, MaterialIconsIcon } from '../Icons';
 
 const LoadingState = () => (
   <Card className="mx-4 mt-6 bg-background">
@@ -185,14 +185,14 @@ export const EpisodeList = ({
 
         const firstIconStyle = useAnimatedStyle(() => {
           const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
-          // If completed: show EyeOff first (fade out), else show Eye first (fade out)
+          // If completed: show IoniconsIcon name="eye-off-outline" first (fade out), else show Eye first (fade out)
           const opacity = interpolate(progress, [0, 0.5], [1, 0], Extrapolation.CLAMP);
           return { opacity };
         });
 
         const secondIconStyle = useAnimatedStyle(() => {
           const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
-          // If completed: show Eye after (fade in), else show EyeOff after (fade in)
+          // If completed: show Eye after (fade in), else show IoniconsIcon name="eye-off-outline" after (fade in)
           const opacity = interpolate(progress, [0.5, 1], [0, 1], Extrapolation.CLAMP);
           return { opacity };
         });
@@ -209,7 +209,11 @@ export const EpisodeList = ({
                 { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
                 firstIconStyle,
               ]}>
-              {isCompleted ? <EyeOff color="white" size={24} /> : <Eye color="white" size={24} />}
+              {isCompleted ? (
+                <IoniconsIcon name="eye-off-outline" color="white" size={24} />
+              ) : (
+                <IoniconsIcon name="eye-outline" color="white" size={24} />
+              )}
             </Animated.View>
 
             {/* Show new state icon (fades in) */}
@@ -218,7 +222,11 @@ export const EpisodeList = ({
                 { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
                 secondIconStyle,
               ]}>
-              {isCompleted ? <Eye color="white" size={24} /> : <EyeOff color="white" size={24} />}
+              {isCompleted ? (
+                <IoniconsIcon name="eye-outline" color="white" size={24} />
+              ) : (
+                <IoniconsIcon name="eye-off-outline" color="white" size={24} />
+              )}
             </Animated.View>
           </Animated.View>
         );
@@ -237,7 +245,7 @@ export const EpisodeList = ({
 
       // Check if episode is completed (either manually marked or watched to 90%+)
       if (progress?.isCompleted) {
-        return <EyeOff opacity={0.7} color="white" size={15} />;
+        return <IoniconsIcon name="eye-off-outline" color="white" size={15} />;
       }
 
       // Show progress if watching but not completed
@@ -250,7 +258,7 @@ export const EpisodeList = ({
       }
 
       // Not started
-      return <Eye opacity={0.7} color="white" size={15} />;
+      return <IoniconsIcon name="eye-outline" color="white" size={15} />;
     },
     [currentUniqueId, progresses],
   );
@@ -291,9 +299,9 @@ export const EpisodeList = ({
       };
 
       return (
-        <RippleButton onPress={navigateToEpisode} onLongPress={handleLongPress} className="rounded-2xl py-1 w-full">
+        <Pressable onPress={navigateToEpisode} onLongPress={handleLongPress} className="rounded-2xl py-1 w-full">
           {children}
-        </RippleButton>
+        </Pressable>
       );
     },
   );
@@ -345,8 +353,8 @@ export const EpisodeList = ({
                   {item.title}
                 </Card.Title>
                 <HUXStack className="items-center gap-1">
-                  <Captions size={12} />
-                  {item?.isDubbed ? <Mic size={12} /> : null}
+                  <MaterialIconsIcon name="closed-caption-off" size={12} />
+                  {item?.isDubbed ? <IoniconsIcon name="mic" size={12} /> : null}
                 </HUXStack>
               </HUXStack>
             </Card.Header>
@@ -369,14 +377,15 @@ export const EpisodeList = ({
   const renderTitleOnlyPressableItem = useCallback(
     ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
       return (
-        <HUYStack className="flex-1 gap-2 rounded-2xl border border-border/60 bg-background/80 p-3 shadow-md">
+        <HUYStack
+          className={cn('flex-1 gap-2 rounded-2xl bg-background p-3 shadow-md', pureBlackBackground && 'bg-black')}>
           <HUXStack className="items-center justify-between gap-2">
             <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={2}>
               {item.title}
             </Text>
             <HUXStack className="flex-row items-center gap-1">
-              <Captions size={18} color="#9ca3af" opacity={0.8} />
-              {item?.isDubbed ? <Mic size={18} color="#9ca3af" opacity={0.8} /> : null}
+              <MaterialIconsIcon name="closed-caption-off" size={18} />
+              {item?.isDubbed ? <IoniconsIcon name="mic" size={18} /> : null}
             </HUXStack>
           </HUXStack>
           <ProgressAndAirDate item={item} />
@@ -389,14 +398,15 @@ export const EpisodeList = ({
   const renderNumberOnlyPressableItem = useCallback(
     ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
       return (
-        <HUYStack className="flex-1 gap-2 rounded-2xl border border-border/60 bg-background/80 p-3 shadow-md">
+        <HUYStack
+          className={cn('flex-1 gap-2 rounded-2xl bg-background p-3 shadow-md', pureBlackBackground && 'bg-black')}>
           <HUXStack className="items-center justify-between gap-2">
             <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={1}>
               {`EP ${(item.number ?? item.episode ?? '').toString()}`}
             </Text>
             <HUXStack className="gap-1">
-              <Captions size={18} color="#9ca3af" opacity={0.8} />
-              {item?.isDubbed ? <Mic size={18} color="#9ca3af" opacity={0.8} /> : null}
+              <MaterialIconsIcon name="closed-caption-off" size={18} />
+              {item?.isDubbed ? <IoniconsIcon name="mic" size={18} /> : null}
             </HUXStack>
           </HUXStack>
           <ProgressAndAirDate item={item} />
@@ -474,6 +484,7 @@ export const EpisodeList = ({
         key={listKey}
         ref={flashListRef}
         data={episodes}
+        ItemSeparatorComponent={() => <View className="h-3" />}
         ListHeaderComponent={
           <HUXStack className="w-full items-center justify-center gap-5 px-4 py-2">
             {swipeable && (
@@ -520,11 +531,11 @@ export const EpisodeList = ({
                   );
                 }}>
                 {displayMode === EpisodeDisplayMode.FullMetadata ? (
-                  <TableProperties color="$color" />
+                  <IoniconsIcon name="list" />
                 ) : displayMode === EpisodeDisplayMode.TitleOnly ? (
-                  <ListOrdered color="$color" />
+                  <MaterialIconsIcon name="format-list-numbered" />
                 ) : (
-                  <Images color="$color" />
+                  <IoniconsIcon name="image-outline" />
                 )}
               </Pressable>
             )}

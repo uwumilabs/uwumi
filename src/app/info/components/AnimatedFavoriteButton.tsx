@@ -1,25 +1,28 @@
-import React, { useCallback } from 'react';
-import { Heart } from 'lucide-react-native';
+import React, { useCallback, useMemo } from 'react';
 import { MediaType, MetaProvider } from '@/constants/types';
-import { ITitle, MediaFormat, TvType } from 'react-native-consumet';
-import { RippleButton } from '../../../components/ui-primitives';
+import { MediaFormat, TvType } from 'react-native-consumet';
+import { IoniconsIcon, RippleButton } from '@/components';
 import { useCurrentTheme, useFavoriteStore } from '@/hooks';
 import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
+import { useLocalSearchParams } from 'expo-router';
 
-interface AnimatedFavoriteButtonProps {
-  id: string;
-  title: string | ITitle;
-  image: string;
-  type?: MediaFormat | TvType;
-  mediaType: MediaType;
-  provider: string;
-  metaProvider: MetaProvider;
-}
-
-export const AnimatedFavoriteButton: React.FC<AnimatedFavoriteButtonProps> = (props) => {
-  const { id, ...itemData } = props;
-  const { isFavorite, addFavorite, removeFavorite } = useFavoriteStore();
-  const isFavorited = isFavorite(id);
+export const AnimatedFavoriteButton = () => {
+  // const { id, ...itemData } = props;
+  const { mediaType, metaProvider, type, provider, id, image, title } = useLocalSearchParams<{
+    mediaType: MediaType;
+    metaProvider: MetaProvider;
+    type: MediaFormat | TvType;
+    provider: string;
+    id: string;
+    image: string;
+    title: string;
+  }>();
+  const addFavorite = useFavoriteStore((state) => state.addFavorite);
+  const removeFavorite = useFavoriteStore((state) => state.removeFavorite);
+  const idKey = useMemo(() => String(id), [id]);
+  const isFavorited = useFavoriteStore(
+    useCallback((state) => state.favorites.some((item) => String(item.id) === idKey), [idKey]),
+  );
   const currentTheme = useCurrentTheme();
 
   const handleFavorite = useCallback(async () => {
@@ -29,20 +32,20 @@ export const AnimatedFavoriteButton: React.FC<AnimatedFavoriteButtonProps> = (pr
       console.warn('Haptic feedback failed:', error);
     }
 
-    if (isFavorite(id)) {
-      removeFavorite(id);
+    if (isFavorited) {
+      removeFavorite(idKey);
     } else {
-      addFavorite({ id, ...itemData });
+      addFavorite({ id, image, type, mediaType, provider, metaProvider, title });
     }
-  }, [id, isFavorite, removeFavorite, addFavorite, itemData]);
+  }, [addFavorite, id, idKey, isFavorited, removeFavorite]);
 
   return (
     <RippleButton onPress={handleFavorite}>
-      <Heart
-        size={24}
-        color={isFavorited ? currentTheme?.default : currentTheme?.accent}
-        fill={isFavorited ? currentTheme?.default : 'transparent'}
-      />
+      {isFavorited ? (
+        <IoniconsIcon name="heart-sharp" color={currentTheme.default} />
+      ) : (
+        <IoniconsIcon name="heart-outline" />
+      )}
     </RippleButton>
   );
 };

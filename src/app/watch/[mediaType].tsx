@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ControlsOverlay from './ControlsOverlay';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
 import { ISubtitle } from 'react-native-consumet';
-import { ThemedView, HUYStack, HUXStack } from '@/components';
+import { ThemedView, HUYStack, HUXStack, IoniconsIcon, EpisodeList } from '@/components';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
@@ -39,7 +39,6 @@ import {
 import { toast } from 'sonner-native';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import FullscreenModule from '../../../modules/fullscreen-module';
-import { Check } from 'lucide-react-native';
 import { SystemBars, SystemBarsEntry } from 'react-native-edge-to-edge';
 import { SUB_LANGUAGE } from '@/constants/config';
 import { Button, cn } from 'heroui-native';
@@ -759,7 +758,7 @@ const Watch = () => {
                                 isSelected && 'bg-accent',
                               )}>
                               <HUXStack className="items-center">
-                                {isSelected && <Check color="text-accent-foreground" />}
+                                {isSelected && <IoniconsIcon name="checkmark" className="text-accent-foreground" />}
                                 <Button.Label>{name}</Button.Label>
                               </HUXStack>
                             </Button>
@@ -801,7 +800,7 @@ const Watch = () => {
                               isSelected && 'bg-accent',
                             )}>
                             <HUXStack className="items-center">
-                              {isSelected && <Check color="text-accent-foreground" />}
+                              {isSelected && <IoniconsIcon name="checkmark" className="text-accent-foreground" />}
                               <Button.Label>{name}</Button.Label>
                             </HUXStack>
                           </Button>
@@ -812,9 +811,9 @@ const Watch = () => {
                 ))}
               </HUYStack>
             )}
-            {/* <View className="flex-1">
+            <View className="flex-1">
               <EpisodeList mediaType={mediaType} provider={provider} id={id} type={type} swipeable={false} />
-            </View> */}
+            </View>
           </HUYStack>
         )}
       </View>

@@ -2,18 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useExtensionStore, useCurrentTheme } from '@/hooks';
 import { Avatar, Button, Card, Chip, Divider, Switch } from 'heroui-native';
-import {
-  Puzzle,
-  Download,
-  Trash2,
-  RefreshCw,
-  Info,
-  Globe,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-} from 'lucide-react-native';
-import { CustomImage, CustomSheet, HUXStack, HUYStack, RippleButton } from '@/components';
+import { CustomImage, CustomSheet, HUXStack, HUYStack, RippleButton, IoniconsIcon } from '@/components';
 
 interface ExtensionCardProps {
   extension: any;
@@ -42,8 +31,8 @@ function ExtensionCard({
     if (!isInstalled) {
       return <View className="h-2 w-2 rounded-full" style={{ backgroundColor: currentTheme?.muted }} />;
     }
-    if (hasUpdate) return <AlertCircle size={12} color={currentTheme?.warning} />;
-    return <CheckCircle size={12} color={currentTheme?.success} />;
+    if (hasUpdate) return <IoniconsIcon name="alert-circle-outline" size={12} color={currentTheme?.warning} />;
+    return <IoniconsIcon name="checkmark-circle-outline" size={12} color={currentTheme?.success} />;
   };
 
   // Debug logging
@@ -68,7 +57,7 @@ function ExtensionCard({
                   </Avatar.Image>
                 )}
                 <Avatar.Fallback>
-                  <Puzzle size={20} color={currentTheme?.foreground} />
+                  <IoniconsIcon name="extension-puzzle-outline" size={20} color={currentTheme?.foreground} />
                 </Avatar.Fallback>
               </Avatar>
 
@@ -94,7 +83,7 @@ function ExtensionCard({
 
                   {!!extension.languages?.length && (
                     <HUXStack className="items-center gap-1">
-                      <Globe size={12} color={currentTheme?.foreground} />
+                      <IoniconsIcon name="globe-outline" size={12} color={currentTheme?.foreground} />
                       <Text className="text-xs font-semibold text-foreground/80">
                         {extension.languages.slice(0, 2).join(', ')}
                         {extension.languages.length > 2 && ` +${extension.languages.length - 2}`}
@@ -112,7 +101,7 @@ function ExtensionCard({
             </HUXStack>
 
             <RippleButton onPress={onShowDetails} className="p-2">
-              <Info size={18} color={currentTheme?.accent} />
+              <IoniconsIcon name="information-circle-outline" size={18} color={currentTheme?.accent} />
             </RippleButton>
           </HUXStack>
 
@@ -125,7 +114,7 @@ function ExtensionCard({
                     {isLoading ? (
                       <ActivityIndicator size="small" color={currentTheme?.default} />
                     ) : (
-                      <RefreshCw size={14} color={currentTheme?.default} />
+                      <IoniconsIcon name="refresh-outline" size={14} color={currentTheme?.default} />
                     )}
                     <Button.Label>Update</Button.Label>
                   </HUXStack>
@@ -138,7 +127,7 @@ function ExtensionCard({
                     {isLoading ? (
                       <ActivityIndicator size="small" color={currentTheme?.default} />
                     ) : (
-                      <Trash2 size={14} color={currentTheme?.default} />
+                      <IoniconsIcon name="trash-outline" size={14} color={currentTheme?.default} />
                     )}
                     <Button.Label>Uninstall</Button.Label>
                   </HUXStack>
@@ -149,7 +138,7 @@ function ExtensionCard({
                     {isLoading ? (
                       <ActivityIndicator size="small" color={currentTheme?.default} />
                     ) : (
-                      <Download size={14} color={currentTheme?.default} />
+                      <IoniconsIcon name="download-outline" size={14} color={currentTheme?.default} />
                     )}
                     <Button.Label>Install</Button.Label>
                   </HUXStack>
@@ -201,7 +190,7 @@ function ExtensionDetailsSheet({
               </Avatar.Image>
             )}
             <Avatar.Fallback>
-              <Puzzle size={24} color={theme?.foreground} />
+              <IoniconsIcon name="extension-puzzle-outline" size={24} color={theme?.foreground} />
             </Avatar.Fallback>
           </Avatar>
 
@@ -390,6 +379,8 @@ export default function Extensions() {
   const filteredExtensions =
     registry?.extensions.filter((ext) => (showInstalledOnly ? isExtensionInstalled(ext.id) : true)) || [];
 
+  const currentTheme = useCurrentTheme();
+
   if (isLoading) {
     return (
       <>
@@ -405,12 +396,12 @@ export default function Extensions() {
     return (
       <>
         <HUYStack className="flex-1 items-center justify-center gap-3 p-4">
-          <XCircle size={48} color={useCurrentTheme().danger} />
+          <IoniconsIcon name="close-circle-outline" size={48} color={currentTheme.danger} />
           <Text className="text-xl font-semibold text-foreground">Something went wrong</Text>
           <Text className="text-foreground/70 text-center">{error}</Text>
           <Button onPress={onRefresh} variant="primary">
             <HUXStack className="items-center gap-2">
-              <RefreshCw size={16} />
+              <IoniconsIcon name="refresh-outline" size={16} />
               <Text className="text-foreground font-semibold">Try Again</Text>
             </HUXStack>
           </Button>
@@ -424,7 +415,7 @@ export default function Extensions() {
     return (
       <>
         <HUYStack className="flex-1 items-center justify-center gap-3 p-4">
-          <Puzzle size={48} color={useCurrentTheme().foreground} />
+          <IoniconsIcon name="extension-puzzle-outline" size={48} color={currentTheme.foreground} />
           <Text className="text-xl font-semibold text-foreground">No extensions found</Text>
           <Text className="text-foreground/70 text-center">
             {showInstalledOnly
@@ -433,7 +424,7 @@ export default function Extensions() {
           </Text>
           <Button onPress={onRefresh} variant="primary">
             <HUXStack className="items-center gap-2">
-              <RefreshCw size={16} />
+              <IoniconsIcon name="refresh-outline" size={16} />
               <Text className="text-foreground font-semibold">Refresh</Text>
             </HUXStack>
           </Button>
@@ -452,7 +443,7 @@ export default function Extensions() {
         {/* Header Stats */}
         <HUXStack
           className="px-4 py-3 items-center justify-between border-b"
-          style={{ borderColor: useCurrentTheme().divider }}>
+          style={{ borderColor: currentTheme.divider }}>
           <HUYStack>
             <Text className="text-foreground/70 text-xs">
               {installedCount} installed • {filteredExtensions.length} available

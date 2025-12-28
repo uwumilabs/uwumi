@@ -1,12 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ThemedView, CustomFlashlist, HUXStack, HUYStack, Progress } from '@/components';
+import {
+  ThemedView,
+  CustomFlashlist,
+  HUXStack,
+  HUYStack,
+  Progress,
+  IconTitle,
+  IoniconsIcon,
+  RippleButton,
+} from '@/components';
 import { useDownloadStore, usePureBlackBackground, useSheetColor, useCurrentTheme } from '@/hooks';
-import { Download, CheckCircle2, XCircle, Trash2, PauseCircle, Folder, HardDrive, Clock } from 'lucide-react-native';
 import { formatTime } from '@/constants/utils';
-import { IconTitle, RippleButton } from '@/components/ui-primitives';
 import { ActivityIndicator, Text } from 'react-native';
 import { Divider, Dialog, Button, Card, cn } from 'heroui-native';
-// import * as Haptics from 'expo-haptics';
+import { MaterialIconsIcon } from '@/components/Icons';
 
 // Reusable Confirm Dialog Component
 interface ConfirmDialogProps {
@@ -56,132 +63,132 @@ const Downloads = () => {
     }
   }, [isInitialized, downloads, getStorageInfo]);
 
-  // const downloadList = useMemo(() => Object.values(downloads), [downloads]);
+  const downloadList = useMemo(() => Object.values(downloads), [downloads]);
 
   // Dummy data for testing - uncomment to preview UI with sample downloads
-  const downloadList = useMemo(
-    () => [
-      // Downloading
-      {
-        id: 'dummy-1',
-        name: 'Attack on Titan',
-        showName: 'Shingeki no Kyojin',
-        episode: 15,
-        season: 4,
-        status: 'downloading',
-        progress: {
-          percentage: 45,
-          currentTime: 540,
-          totalDuration: 1200,
-          speed: 2048000,
-          bitrate: 5000000,
-          size: 150000000,
-        },
-        fileSize: 350000000,
-        createdAt: Date.now() - 600000,
-      },
-      {
-        id: 'dummy-2',
-        name: 'Demon Slayer Movie',
-        showName: 'Kimetsu no Yaiba',
-        episode: 1,
-        status: 'downloading',
-        progress: {
-          percentage: 78,
-          currentTime: 3600,
-          totalDuration: 4620,
-          speed: 5242880,
-          bitrate: 8000000,
-          size: 520000000,
-        },
-        fileSize: 720000000,
-        createdAt: Date.now() - 1800000,
-      },
-      // Pending
-      {
-        id: 'dummy-3',
-        name: 'One Piece',
-        showName: 'One Piece',
-        episode: 1050,
-        status: 'pending',
-        createdAt: Date.now() - 300000,
-      },
-      {
-        id: 'dummy-4',
-        name: 'Jujutsu Kaisen',
-        showName: 'JJK',
-        episode: 24,
-        season: 2,
-        status: 'pending',
-        createdAt: Date.now() - 150000,
-      },
-      // Completed
-      {
-        id: 'dummy-5',
-        name: 'Naruto Shippuden',
-        showName: 'Naruto',
-        episode: 500,
-        season: 1,
-        status: 'completed',
-        fileSize: 450000000,
-        outputFile: '/storage/downloads/Naruto_S1_E500.mp4',
-        createdAt: Date.now() - 7200000,
-        completedAt: Date.now() - 3600000,
-      },
-      {
-        id: 'dummy-6',
-        name: 'My Hero Academia',
-        showName: 'Boku no Hero Academia',
-        episode: 12,
-        season: 6,
-        status: 'completed',
-        fileSize: 380000000,
-        outputFile: '/storage/downloads/MHA_S6_E12.mp4',
-        createdAt: Date.now() - 86400000,
-        completedAt: Date.now() - 82800000,
-      },
-      {
-        id: 'dummy-7',
-        name: 'Chainsaw Man',
-        episode: 8,
-        season: 1,
-        status: 'completed',
-        fileSize: 420000000,
-        outputFile: '/storage/downloads/Chainsaw_Man_S1_E8.mp4',
-        createdAt: Date.now() - 172800000,
-        completedAt: Date.now() - 169200000,
-      },
-      // Failed
-      {
-        id: 'dummy-8',
-        name: 'Tokyo Revengers',
-        showName: 'Tokyo Revengers',
-        episode: 7,
-        season: 2,
-        status: 'failed',
-        error: 'Network connection lost',
-        createdAt: Date.now() - 43200000,
-      },
-      {
-        id: 'dummy-9',
-        name: 'Spy x Family',
-        episode: 3,
-        season: 2,
-        status: 'cancelled',
-        createdAt: Date.now() - 21600000,
-      },
-      {
-        id: 'dummy-10',
-        name: 'Bleach TYBW',
-        showName: 'Bleach: Thousand-Year Blood War',
-        episode: 5,
-        status: 'failed',
-        error: 'Insufficient storage space',
-        createdAt: Date.now() - 10800000,
-      },
-    ],
-    [],
-  );
+  // const downloadList = useMemo(
+  //   () => [
+  //     // Downloading
+  //     {
+  //       id: 'dummy-1',
+  //       name: 'Attack on Titan',
+  //       showName: 'Shingeki no Kyojin',
+  //       episode: 15,
+  //       season: 4,
+  //       status: 'downloading',
+  //       progress: {
+  //         percentage: 45,
+  //         currentTime: 540,
+  //         totalDuration: 1200,
+  //         speed: 2048000,
+  //         bitrate: 5000000,
+  //         size: 150000000,
+  //       },
+  //       fileSize: 350000000,
+  //       createdAt: Date.now() - 600000,
+  //     },
+  //     {
+  //       id: 'dummy-2',
+  //       name: 'Demon Slayer Movie',
+  //       showName: 'Kimetsu no Yaiba',
+  //       episode: 1,
+  //       status: 'downloading',
+  //       progress: {
+  //         percentage: 78,
+  //         currentTime: 3600,
+  //         totalDuration: 4620,
+  //         speed: 5242880,
+  //         bitrate: 8000000,
+  //         size: 520000000,
+  //       },
+  //       fileSize: 720000000,
+  //       createdAt: Date.now() - 1800000,
+  //     },
+  //     // Pending
+  //     {
+  //       id: 'dummy-3',
+  //       name: 'One Piece',
+  //       showName: 'One Piece',
+  //       episode: 1050,
+  //       status: 'pending',
+  //       createdAt: Date.now() - 300000,
+  //     },
+  //     {
+  //       id: 'dummy-4',
+  //       name: 'Jujutsu Kaisen',
+  //       showName: 'JJK',
+  //       episode: 24,
+  //       season: 2,
+  //       status: 'pending',
+  //       createdAt: Date.now() - 150000,
+  //     },
+  //     // Completed
+  //     {
+  //       id: 'dummy-5',
+  //       name: 'Naruto Shippuden',
+  //       showName: 'Naruto',
+  //       episode: 500,
+  //       season: 1,
+  //       status: 'completed',
+  //       fileSize: 450000000,
+  //       outputFile: '/storage/downloads/Naruto_S1_E500.mp4',
+  //       createdAt: Date.now() - 7200000,
+  //       completedAt: Date.now() - 3600000,
+  //     },
+  //     {
+  //       id: 'dummy-6',
+  //       name: 'My Hero Academia',
+  //       showName: 'Boku no Hero Academia',
+  //       episode: 12,
+  //       season: 6,
+  //       status: 'completed',
+  //       fileSize: 380000000,
+  //       outputFile: '/storage/downloads/MHA_S6_E12.mp4',
+  //       createdAt: Date.now() - 86400000,
+  //       completedAt: Date.now() - 82800000,
+  //     },
+  //     {
+  //       id: 'dummy-7',
+  //       name: 'Chainsaw Man',
+  //       episode: 8,
+  //       season: 1,
+  //       status: 'completed',
+  //       fileSize: 420000000,
+  //       outputFile: '/storage/downloads/Chainsaw_Man_S1_E8.mp4',
+  //       createdAt: Date.now() - 172800000,
+  //       completedAt: Date.now() - 169200000,
+  //     },
+  //     // Failed
+  //     {
+  //       id: 'dummy-8',
+  //       name: 'Tokyo Revengers',
+  //       showName: 'Tokyo Revengers',
+  //       episode: 7,
+  //       season: 2,
+  //       status: 'failed',
+  //       error: 'Network connection lost',
+  //       createdAt: Date.now() - 43200000,
+  //     },
+  //     {
+  //       id: 'dummy-9',
+  //       name: 'Spy x Family',
+  //       episode: 3,
+  //       season: 2,
+  //       status: 'cancelled',
+  //       createdAt: Date.now() - 21600000,
+  //     },
+  //     {
+  //       id: 'dummy-10',
+  //       name: 'Bleach TYBW',
+  //       showName: 'Bleach: Thousand-Year Blood War',
+  //       episode: 5,
+  //       status: 'failed',
+  //       error: 'Insufficient storage space',
+  //       createdAt: Date.now() - 10800000,
+  //     },
+  //   ],
+  //   [],
+  // );
 
   const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     open,
@@ -291,14 +298,14 @@ const Downloads = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'downloading':
-        return <Download size={20} />;
+        return <IoniconsIcon name="download-outline" size={20} />;
       case 'completed':
-        return <CheckCircle2 size={20} />;
+        return <IoniconsIcon name="checkmark-circle-outline" size={20} />;
       case 'failed':
       case 'cancelled':
-        return <XCircle size={20} />;
+        return <IoniconsIcon name="close-circle-outline" size={20} />;
       case 'pending':
-        return <Clock size={20} />;
+        return <IoniconsIcon name="time-outline" size={20} />;
       default:
         return null;
     }
@@ -355,7 +362,7 @@ const Downloads = () => {
               <HUXStack className="flex-row items-center gap-2">
                 {getStatusIcon(item.status)}
                 <RippleButton onPress={() => handleRemoveDownload(item.id, item.status)}>
-                  <Trash2 size={20} color="$color" />
+                  <IoniconsIcon name="trash-outline" size={20} />
                 </RippleButton>
               </HUXStack>
             </HUXStack>
@@ -381,7 +388,7 @@ const Downloads = () => {
                 <RippleButton
                   className="mt-2 items-center justify-center gap-2 rounded-xl p-3"
                   onPress={() => handleCancelDownload(item.id)}>
-                  <IconTitle icon={PauseCircle} text="Cancel" />
+                  <IconTitle iconName="pause-circle-outline" text="Cancel" />
                 </RippleButton>
               </HUYStack>
             )}
@@ -442,7 +449,7 @@ const Downloads = () => {
 
   const renderEmptyState = () => (
     <HUYStack className="flex-1 items-center justify-center gap-4 p-8">
-      <Folder size={64} color="$color1" opacity={0.3} />
+      <IoniconsIcon name="folder-outline" size={64} className="text-foreground" />
       <Text className="text-center text-2xl font-semibold text-foreground/50">No Downloads</Text>
       <Text className="max-w-[300px] text-center text-base text-foreground/40">
         Downloaded episodes will appear here. Long press an episode to access download options.
@@ -467,14 +474,14 @@ const Downloads = () => {
       <HUYStack className="gap-3 p-4" style={{ backgroundColor: pureBlackBackground ? '#000' : undefined }}>
         <HUXStack className="flex-row items-center justify-between">
           <HUXStack className="flex-row items-center gap-2">
-            <HardDrive size={20} color="$color1" opacity={0.7} />
+            <MaterialIconsIcon name="sd-card" className="text-foreground" />
             <Text className="text-base text-foreground/70">Storage Used</Text>
           </HUXStack>
           <Text className="text-lg font-semibold text-foreground">{formatBytes(storageInfo.downloadsSize)}</Text>
         </HUXStack>
         <HUXStack className="flex-row items-center justify-between">
           <HUXStack className="flex-row items-center gap-2">
-            <Folder size={20} color="$color1" opacity={0.7} />
+            <IoniconsIcon name="folder-outline" className="text-foreground" />
             <Text className="text-base text-foreground/70">Total Downloads</Text>
           </HUXStack>
           <Text className="text-lg font-semibold text-foreground">{storageInfo.totalDownloads}</Text>
@@ -489,14 +496,14 @@ const Downloads = () => {
                 style={{ flex: 1 }}
                 containerStyle={{ backgroundColor: '$color4' }}
                 className="flex-1 items-center justify-center gap-2 rounded-xl p-3">
-                <IconTitle icon={Trash2} text="Clear Completed" />
+                <IconTitle iconName="trash-outline" text="Clear Completed" />
               </RippleButton>
             )}
             <RippleButton
               onPress={handleClearAll}
               style={{ flex: 1 }}
               className="flex-1 items-center justify-center gap-2 rounded-xl p-3">
-              <IconTitle icon={Trash2} text="Clear All" />
+              <IconTitle iconName="trash-outline" text="Clear All" />
             </RippleButton>
           </HUXStack>
         )}

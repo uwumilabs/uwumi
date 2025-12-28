@@ -10,21 +10,22 @@ import { useThemeStore, useCurrentTheme, usePureBlackBackground } from '@/hooks'
 import { StatusBar, StatusBarProps } from 'expo-status-bar';
 import { Link } from 'expo-router';
 import { cn, PressableFeedback, PressableFeedbackProps } from 'heroui-native';
+import { IoniconProps, IoniconsIcon } from './Icons';
 
 /* ============================================
  * IconTitle - Icon with text label
  * ============================================ */
 
 interface IconTitleProps {
-  icon?: React.ElementType;
+  iconName: IoniconProps['name'];
   text: any;
   color?: string;
 }
 
-export const IconTitle = ({ icon: Icon, text, color }: IconTitleProps) => {
+export const IconTitle = ({ iconName, text, color }: IconTitleProps) => {
   return (
     <HUXStack className="items-center gap-2">
-      {Icon && <Icon className="text-foreground" size={16} />}
+      <IoniconsIcon name={iconName} color={color} className="text-foreground" size={16} />
       <Text className="text-14 text-foreground">{text}</Text>
     </HUXStack>
   );
@@ -165,14 +166,6 @@ export const HUYStack = ({ children, props, className }: SimpleStackProps) => {
     <View className={cn('flex flex-col', className)} {...props}>
       {children}
     </View>
-  );
-};
-
-export const HUZStack = ({ children, props, className }: SimpleStackProps) => {
-  return (
-    <HUYStack className={cn('relative', className)} {...props}>
-      {children}
-    </HUYStack>
   );
 };
 

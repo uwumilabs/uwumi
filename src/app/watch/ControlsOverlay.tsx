@@ -1,19 +1,5 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Text, useWindowDimensions, View, ActivityIndicator } from 'react-native';
-import {
-  Play,
-  Pause,
-  Volume2,
-  VolumeOff,
-  Maximize,
-  Minimize,
-  Settings,
-  Captions,
-  CaptionsOff,
-  SkipForward,
-  SkipBack,
-  Sun,
-} from 'lucide-react-native';
 import Animated, { FadeIn, FadeOut, Easing, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { ISubtitle, TvType } from 'react-native-consumet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -21,7 +7,16 @@ import { useCurrentTheme, useEpisodesIdStore, useEpisodesStore, useSheetColor, u
 import { formatTime } from '@/constants/utils';
 import { VideoTrack, AudioTrack, WatchSearchParams, SubtitleTrack } from '@/constants/types';
 import type { FlashListProps } from '@shopify/flash-list';
-import { CustomFlashlist, CustomSheet, HorizontalTabs, HUYStack, HUXStack, RippleButton, TabItem } from '@/components';
+import {
+  CustomFlashlist,
+  CustomSheet,
+  HorizontalTabs,
+  HUYStack,
+  HUXStack,
+  RippleButton,
+  type TabItem,
+  MaterialIconsIcon,
+} from '@/components';
 import SkiaSlider from './SkiaSlider';
 import { Button, cn } from 'heroui-native';
 import ExternalSubDialog from './components/ExternalSubDialog';
@@ -367,11 +362,11 @@ const ControlsOverlay = memo(
             <HUXStack className="gap-4">
               {(selectedSubtitleIndex ?? -1) > -1 ? (
                 <RippleButton onPress={() => setSelectedSubtitleIndex(-1)}>
-                  <Captions color="white" size={20} />
+                  <MaterialIconsIcon name="closed-caption-off" color="white" size={20} />
                 </RippleButton>
               ) : (
                 <RippleButton onPress={() => setSelectedSubtitleIndex(0)}>
-                  <CaptionsOff color="white" size={20} />
+                  <MaterialIconsIcon name="closed-caption-disabled" color="white" size={20} />
                 </RippleButton>
               )}
 
@@ -379,7 +374,7 @@ const ControlsOverlay = memo(
                 onPress={() => {
                   setOpenSettings(!openSettings);
                 }}>
-                <Settings color="white" size={20} />
+                <MaterialIconsIcon name="video-settings" color="white" size={20} />
               </RippleButton>
               <CustomSheet
                 open={openSettings}
@@ -409,7 +404,7 @@ const ControlsOverlay = memo(
             className="absolute gap-10 inset-0 items-center justify-center">
             {isFullscreen && (
               <HUYStack className="items-center gap-2">
-                <Sun color="white" size={20} />
+                <MaterialIconsIcon name="sunny" color="white" size={20} />
                 <SkiaSlider
                   orientation="vertical"
                   height={Math.max(50, screenHeight * 0.3)}
@@ -460,7 +455,7 @@ const ControlsOverlay = memo(
                   });
                 }
               }}>
-              <SkipBack color={prevEpisodeIndex >= 0 ? 'white' : 'gray'} size={30} />
+              <MaterialIconsIcon name="skip-previous" color={prevEpisodeIndex >= 0 ? 'white' : 'gray'} size={30} />
             </RippleButton>
             {isBuffering ? (
               <ActivityIndicator className="p-2.5" size="large" color="white" />
@@ -469,7 +464,11 @@ const ControlsOverlay = memo(
                 onPress={() => {
                   onPlayPress();
                 }}>
-                {isPlaying ? <Pause color="white" size={40} /> : <Play color="white" size={40} />}
+                {isPlaying ? (
+                  <MaterialIconsIcon name="pause" color="white" size={40} />
+                ) : (
+                  <MaterialIconsIcon name="play-arrow" color="white" size={40} />
+                )}
               </RippleButton>
             )}
 
@@ -506,12 +505,12 @@ const ControlsOverlay = memo(
                   });
                 }
               }}>
-              <SkipForward color={nextEpisodeIndex >= 0 ? 'white' : 'gray'} size={30} />
+              <MaterialIconsIcon name="skip-next" color={nextEpisodeIndex >= 0 ? 'white' : 'gray'} size={30} />
             </RippleButton>
 
             {isFullscreen && (
               <HUYStack className="items-center gap-2">
-                <Volume2 color="white" size={20} />
+                <MaterialIconsIcon name="volume-up" color="white" size={20} />
                 <SkiaSlider
                   orientation="vertical"
                   height={Math.max(50, screenHeight * 0.3)}
@@ -537,12 +536,20 @@ const ControlsOverlay = memo(
             className={cn('px-2', isFullscreen && 'py-5 px-4')}>
             <HUXStack className="justify-center items-center" style={{ width: screenWidth }}>
               <RippleButton onPress={onMutePress}>
-                {isMuted ? <VolumeOff color="white" size={20} /> : <Volume2 color="white" size={20} />}
+                {isMuted ? (
+                  <MaterialIconsIcon name="volume-off" color="white" size={20} />
+                ) : (
+                  <MaterialIconsIcon name="volume-up" color="white" size={20} />
+                )}
               </RippleButton>
               <HUXStack className="gap-2 ml-auto items-center">
                 <Button onPress={() => onSeek(Math.round(currentTime) + 85)}>+85 s</Button>
                 <RippleButton onPress={onFullscreenPress}>
-                  {isFullscreen ? <Minimize color="white" size={20} /> : <Maximize color="white" size={20} />}
+                  {isFullscreen ? (
+                    <MaterialIconsIcon name="fullscreen-exit" color="white" size={20} />
+                  ) : (
+                    <MaterialIconsIcon name="fullscreen" color="white" size={20} />
+                  )}
                 </RippleButton>
               </HUXStack>
             </HUXStack>

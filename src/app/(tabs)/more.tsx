@@ -1,25 +1,11 @@
-import React, { RefObject, useMemo } from 'react';
-import { HUXStack, HUYStack, ThemedView } from '@/components';
+import React, { useMemo } from 'react';
+import { HUXStack, HUYStack, IoniconsIcon, ThemedView, IoniconProps } from '@/components';
 import { Route, useRouter } from 'expo-router';
-import { Palette, Info, Heart, Package, Download } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 import { Divider } from 'heroui-native';
 import { useCurrentTheme } from '@/hooks';
 
-const MenuItem = ({
-  href,
-  icon: Icon,
-  label,
-}: {
-  href: Route;
-  icon: React.ElementType;
-  label: string;
-  index?: number;
-  totalItems?: number;
-  refs?: RefObject<(View | null)[]>;
-  nextFocusUp?: number | null;
-  nextFocusDown?: number | null;
-}) => {
+const MenuItem = ({ href, icon, label }: { href: Route; icon: IoniconProps['name']; label: string }) => {
   const router = useRouter();
 
   const handlePress = () => {
@@ -30,7 +16,7 @@ const MenuItem = ({
   return (
     <Pressable onPress={handlePress} style={{ width: '100%' }}>
       <HUXStack className="p-4 items-center gap-2">
-        <Icon color={currentTheme.accent} />
+        <IoniconsIcon name={icon} color={currentTheme.accent} />
         <Text className="text-lg font-medium text-foreground">{label}</Text>
       </HUXStack>
     </Pressable>
@@ -41,17 +27,17 @@ const More = () => {
   // Create menu items array with conditional development item inside useMemo
   const menuItems = useMemo(() => {
     const baseItems = [
-      { href: '/(settings)/appearance' as Route, icon: Palette, label: 'Appearance' },
-      { href: '/(settings)/extensions' as Route, icon: Package, label: 'Extensions' },
+      { href: '/(settings)/appearance' as Route, icon: 'color-palette', label: 'Appearance' },
+      { href: '/(settings)/extensions' as Route, icon: 'extension-puzzle', label: 'Extensions' },
       // { href: '/(settings)' as Route, icon: Settings, label: 'Settings' },
-      { href: '/(settings)/favorites' as Route, icon: Heart, label: 'Favorites' },
-      { href: '/(settings)/downloads' as Route, icon: Download, label: 'Downloads' },
-      { href: '/(settings)/about' as Route, icon: Info, label: 'About' },
+      { href: '/(settings)/favorites' as Route, icon: 'heart', label: 'Favorites' },
+      { href: '/(settings)/downloads' as Route, icon: 'download', label: 'Downloads' },
+      { href: '/(settings)/about' as Route, icon: 'information-circle-outline', label: 'About' },
     ];
 
     // Add development-only menu item for testing purposes
     if (process.env.NODE_ENV === 'development') {
-      return [...baseItems, { href: '/(settings)/example' as Route, icon: Info, label: 'Example' }];
+      return [...baseItems, { href: '/(settings)/example' as Route, icon: 'information', label: 'Example' }];
     }
 
     return baseItems;

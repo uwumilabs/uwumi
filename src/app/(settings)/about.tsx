@@ -1,13 +1,10 @@
 import React, { useEffect } from 'react';
-import { ThemedView } from '@/components/ui-primitives';
-import { Github, ExternalLink, CheckCircle2, AlertCircle, Globe, RefreshCw } from 'lucide-react-native';
-import { CustomImage, RippleButton, HUYStack, HUXStack } from '@/components';
+import { CustomImage, RippleButton, HUYStack, HUXStack, IoniconsIcon, ThemedView } from '@/components';
 import { useUpdateChecker } from '@/hooks/useUpdateChecker';
 import { openBrowserAsync } from 'expo-web-browser';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import { useCurrentTheme } from '@/hooks';
 import { toast } from 'sonner-native';
-import { DiscordIcon } from '@/svg';
 import { Card, Divider } from 'heroui-native';
 import { ActivityIndicator, ScrollView, Text } from 'react-native';
 
@@ -45,7 +42,7 @@ const About = () => {
             <Card className="self-center my-2 w-64 rounded-3xl p-2">
               <Card.Body>
                 <HUXStack className="items-center justify-center gap-2">
-                  <AlertCircle size={16} />
+                  <IoniconsIcon name="alert-outline" size={16} />
                   <Text className="text-lg font-medium">
                     Environment: <Text className="font-semibold capitalize text-accent">{process.env.NODE_ENV}</Text>
                   </Text>
@@ -58,7 +55,7 @@ const About = () => {
             <Card.Body>
               <HUYStack className="gap-3">
                 <HUXStack className="items-center gap-2">
-                  <CheckCircle2 size={18} color="$color" />
+                  <IoniconsIcon name="checkmark-circle-outline" size={18} color="$color" />
                   <Text className="text-xl font-semibold">Version Information</Text>
                 </HUXStack>
 
@@ -87,7 +84,7 @@ const About = () => {
                     <Card.Body>
                       <HUYStack className="gap-1">
                         <HUXStack className="items-center gap-2">
-                          <AlertCircle size={16} color="$color" />
+                          <IoniconsIcon name="alert-outline" size={16} color="$color" />
                           <Text className="text-base font-semibold text-foreground">Update Available</Text>
                         </HUXStack>
                         <Text className="text-lg font-medium">{`Version ${updateInfo.newVersion}`}</Text>
@@ -102,28 +99,28 @@ const About = () => {
           <HUYStack className="items-center gap-4">
             <RippleButton onPress={() => checkForUpdates()}>
               <HUXStack className="items-center gap-2">
-                <RefreshCw size={20} color={currentTheme.accent} />
+                <IoniconsIcon name="refresh-outline" size={20} />
                 <Text className="text-foreground font-semibold">Check for Updates</Text>
               </HUXStack>
             </RippleButton>
             <HUXStack className="flex-wrap items-center justify-center gap-4">
               <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.GITHUB_REPOSITORY)}>
                 <HUXStack className="items-center gap-2">
-                  <Github size={20} color={currentTheme.accent} />
+                  <IoniconsIcon name="logo-github" size={20} />
                   <Text className="text-foreground font-semibold">GitHub</Text>
                 </HUXStack>
               </RippleButton>
 
               <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.DISCORD_SERVER)}>
                 <HUXStack className="items-center gap-2">
-                  <DiscordIcon size={20} color={currentTheme.accent} />
+                  <IoniconsIcon name="logo-discord" size={20} />
                   <Text className="text-foreground font-semibold">Discord</Text>
                 </HUXStack>
               </RippleButton>
 
               <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.PROJECT_WEBSITE)}>
                 <HUXStack className="items-center gap-2">
-                  <Globe size={20} color={currentTheme.accent} />
+                  <IoniconsIcon name="globe-outline" size={20} />
                   <Text className="text-foreground font-semibold">Website</Text>
                 </HUXStack>
               </RippleButton>
@@ -131,7 +128,7 @@ const About = () => {
               {hasNewVersion && (
                 <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE)}>
                   <HUXStack className="items-center gap-2">
-                    <ExternalLink size={20} />
+                    <IoniconsIcon name="arrow-up-right-box-outline" size={20} />
                     <Text className="text-foreground font-semibold">Update</Text>
                   </HUXStack>
                 </RippleButton>

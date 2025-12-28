@@ -1,8 +1,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { useThemeStore, usePureBlackBackground } from '@/hooks';
-import { ThemedView, HUYStack, HUXStack } from '@/components';
+import { ThemedView, HUYStack, HUXStack, IoniconsIcon } from '@/components';
 import { Pressable, StyleProp, ViewStyle, View, Text, FlatList } from 'react-native';
-import { Check } from 'lucide-react-native';
 import { Divider, Switch } from 'heroui-native';
 import { themes, ThemeName } from '@/themes/theme';
 
@@ -109,7 +108,7 @@ const AccentCard = memo(({ themeName, currentTheme, pureBlackBackground, onPress
                 <View className="w-12 rounded-3xl bg-foreground" />
                 {isSelected && (
                   <Circle size={15} backgroundColor={theme?.accent}>
-                    <Check size={12} strokeWidth={3.5} color={theme?.foreground} />
+                    <IoniconsIcon name="checkmark" size={14} className="text-default" />
                   </Circle>
                 )}
               </HUXStack>

@@ -2,7 +2,6 @@ import { IconTitle, RippleButton, CustomSelect, CustomFlashlist, HUXStack, HUYSt
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import { MediaType } from '@/constants/types';
 import { useMangaChapters, usePureBlackBackground } from '@/hooks';
-import { Album, Library, ScrollText } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { cn } from 'heroui-native';
 import React, { useCallback } from 'react';
@@ -70,13 +69,13 @@ const Chapters = () => {
                       {item.title}
                     </Text>
                     <HUXStack className="flex-row items-center gap-2">
-                      <IconTitle text={item.volumeNumber} icon={Library} />
+                      <IconTitle text={item.volumeNumber} iconName="library-outline" />
                     </HUXStack>
                   </HUXStack>
                 </HUYStack>
                 <HUXStack className="flex-row items-center justify-between">
-                  <IconTitle text={item.chapterNumber} icon={Album} />
-                  <IconTitle text={item.pages} icon={ScrollText} />
+                  <IconTitle text={item.chapterNumber} iconName="albums-outline" />
+                  <IconTitle text={item.pages} iconName="document-text-outline" />
                 </HUXStack>
               </HUYStack>
             </HUXStack>

@@ -55,6 +55,7 @@
   "dependencies": {
     "@dr.pogodin/react-native-fs": "^2.36.0",
     "@expo-google-fonts/inter": "^0.2.3",
+    "@expo/vector-icons": "^15.0.3",
     "@gorhom/bottom-sheet": "^5",
     "@react-navigation/bottom-tabs": "^7.0.0",
     "@react-navigation/native": "^7.0.0",
@@ -80,7 +81,6 @@
     "expo-web-browser": "~15.0.10",
     "heroui-native": "^1.0.0-beta.8",
     "lodash": "^4.17.21",
-    "lucide-react-native": "^0.561.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",

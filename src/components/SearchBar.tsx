@@ -1,9 +1,8 @@
 import { useCurrentTheme, useSearchStore, useTabsStore } from '@/hooks';
-import { X } from 'lucide-react-native';
 import React, { useCallback, useRef } from 'react';
 import { TextInput, View } from 'react-native';
-import { HUXStack } from './ui-primitives';
-import { Button } from 'heroui-native';
+import { Button, TextField } from 'heroui-native';
+import { IoniconsIcon } from './Icons';
 
 export const SearchBar: React.FC = () => {
   const searchQuery = useSearchStore((state) => state.searchQuery);
@@ -34,8 +33,8 @@ export const SearchBar: React.FC = () => {
 
   return (
     <View className="w-full">
-      <HUXStack className="border-2 border-border rounded-2xl p-2 mt-4 mx-4 items-center">
-        <TextInput
+      <TextField className="p-2 mt-4 mx-4">
+        <TextField.Input
           ref={inputRef}
           onChangeText={handleTextChange}
           value={searchQuery}
@@ -51,14 +50,16 @@ export const SearchBar: React.FC = () => {
             fontWeight: 700,
             height: 50,
           }}
-          focusable
-        />
-        {searchQuery && (
-          <Button className="" onPress={handleClear}>
-            <X size={20} />
-          </Button>
-        )}
-      </HUXStack>
+          focusable>
+          <TextField.InputEndContent>
+            {searchQuery && (
+              <Button variant="ghost" onPress={handleClear}>
+                <IoniconsIcon name="close" size={20} />
+              </Button>
+            )}
+          </TextField.InputEndContent>
+        </TextField.Input>
+      </TextField>
     </View>
   );
 };

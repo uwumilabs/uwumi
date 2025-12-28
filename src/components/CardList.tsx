@@ -36,6 +36,7 @@ interface CardProps {
 // });
 
 const AnimatedStyledCard = Animated.createAnimatedComponent(Card);
+const AnimatedStyledCardTitle = Animated.createAnimatedComponent(Card.Title);
 
 const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProvider }) => {
   const { getProvider } = useProviderStore();
@@ -68,6 +69,7 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
               })(),
               id: item.id,
               image: item.image,
+              title: typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english,
             },
           });
         }}>
@@ -90,12 +92,13 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
               end={[0, 0.3]}
               style={{ borderRadius: 10 }}
             />
-            <Card.Title
+            <AnimatedStyledCardTitle
               className="absolute bottom-0 left-0 right-0 z-20 py-2 px-2 text-sm font-medium m-0 text-white"
               numberOfLines={2}
+              sharedTransitionTag={`shared-title-${item.id}`}
               ellipsizeMode="tail">
               {typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english}
-            </Card.Title>
+            </AnimatedStyledCardTitle>
           </Card.Body>
         </AnimatedStyledCard>
       </Pressable>

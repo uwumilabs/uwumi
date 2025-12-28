@@ -1,5 +1,5 @@
 import React from 'react';
-import { ThemedView } from '@/components/ui-primitives';
+import { ThemedView } from '@/components';
 import { Text } from 'react-native';
 
 const Settings = () => {
