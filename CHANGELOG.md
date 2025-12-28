@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.5.0-rc.0 (2025-12-28)
+
+* chore: generate raw files ([569a7bc](https://github.com/uwumilabs/uwumi/commit/569a7bc))
+* chore: wip partial work for 3.5.0 (do not merge) ([218f04b](https://github.com/uwumilabs/uwumi/commit/218f04b))
+* feat: replace lucide-react-native icons with ionicons and materialicons ([5f8f9d0](https://github.com/uwumilabs/uwumi/commit/5f8f9d0))
+* refactor: update theming system and ui components ([aa36e49](https://github.com/uwumilabs/uwumi/commit/aa36e49))
+
 ## <small>3.4.1 (2025-12-12)</small>
 
 * fix(ui): improve touch handling and watch controls ([869c798](https://github.com/uwumilabs/uwumi/commit/869c798))
