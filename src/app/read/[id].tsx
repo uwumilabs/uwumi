@@ -20,7 +20,7 @@ const Read = () => {
     return (
       <ThemedView>
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="$color" />
+          <ActivityIndicator size="large" />
         </View>
       </ThemedView>
     );

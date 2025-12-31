@@ -49,9 +49,6 @@ export function useUpdateChecker(url?: string) {
       // Get update type
       const updateType = compareVersions(localVersion, remoteVersion);
 
-      // Set update available if it's not "No update available"
-      const hasUpdate = !updateType.includes('No update');
-
       const newUpdateInfo = {
         currentVersion: localVersion,
         newVersion: remoteVersion,
@@ -60,6 +57,9 @@ export function useUpdateChecker(url?: string) {
         isNewVersionPreRelease: Array.isArray(data) ? data[0].prerelease : data.prerelease,
       };
 
+      // Set update available if it's not "No update available"
+      // and the new version is not a pre-release (for stable releases only)
+      const hasUpdate = !updateType.includes('No update') && !newUpdateInfo.isNewVersionPreRelease;
       setUpdateInfo(newUpdateInfo);
       setIsUpdateAvailable(hasUpdate);
     }

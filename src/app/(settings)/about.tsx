@@ -55,7 +55,7 @@ const About = () => {
             <Card.Body>
               <HUYStack className="gap-3">
                 <HUXStack className="items-center gap-2">
-                  <IoniconsIcon name="checkmark-circle-outline" size={18} color="$color" />
+                  <IoniconsIcon name="checkmark-circle-outline" size={18} />
                   <Text className="text-xl font-semibold">Version Information</Text>
                 </HUXStack>
 
@@ -84,7 +84,7 @@ const About = () => {
                     <Card.Body>
                       <HUYStack className="gap-1">
                         <HUXStack className="items-center gap-2">
-                          <IoniconsIcon name="alert-outline" size={16} color="$color" />
+                          <IoniconsIcon name="alert-outline" size={16} />
                           <Text className="text-base font-semibold text-foreground">Update Available</Text>
                         </HUXStack>
                         <Text className="text-lg font-medium">{`Version ${updateInfo.newVersion}`}</Text>

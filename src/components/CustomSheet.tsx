@@ -1,16 +1,8 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
-import { View, type ViewProps } from 'react-native';
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetModalProvider,
-  BottomSheetScrollView,
-  BottomSheetView,
-  type BottomSheetBackdropProps,
-  type BottomSheetModalProps,
-} from '@gorhom/bottom-sheet';
+import React, { forwardRef, useCallback, useImperativeHandle, useMemo } from 'react';
+import { ScrollView, View, type ViewProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCurrentTheme, useSheetColor } from '@/hooks';
+import { BottomSheet } from 'heroui-native';
 
 export type CustomSheetRef = {
   present: () => void;
@@ -29,8 +21,8 @@ export type CustomSheetProps = {
   /** If true, wraps content in a BottomSheetScrollView. */
   scrollable?: boolean;
 
-  /** Optional props passed to BottomSheetModal. */
-  modalProps?: Omit<BottomSheetModalProps, 'children' | 'snapPoints' | 'onDismiss'>;
+  /** Optional props passed to HeroUI BottomSheet.Content (forwarded to underlying sheet). */
+  modalProps?: Record<string, any>;
 
   /** Extra props for the outer content wrapper. */
   contentContainerProps?: ViewProps;
@@ -41,66 +33,45 @@ export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
     const insets = useSafeAreaInsets();
     const theme = useCurrentTheme();
     const sheetColor = useSheetColor();
-    const modalRef = useRef<BottomSheetModal>(null);
 
     const resolvedSnapPoints = useMemo(() => snapPoints ?? ['55%'], [snapPoints]);
 
-    const present = useCallback(() => {
-      modalRef.current?.present();
-    }, []);
-
-    const dismiss = useCallback(() => {
-      modalRef.current?.dismiss();
-    }, []);
+    const present = useCallback(() => onOpenChange(true), [onOpenChange]);
+    const dismiss = useCallback(() => onOpenChange(false), [onOpenChange]);
 
     useImperativeHandle(ref, () => ({ present, dismiss }), [present, dismiss]);
 
-    useEffect(() => {
-      if (open) present();
-      else dismiss();
-    }, [open, present, dismiss]);
-
-    const handleDismiss = useCallback(() => {
-      onOpenChange(false);
-    }, [onOpenChange]);
-
-    const renderBackdrop = useCallback(
-      (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
-      ),
-      [],
-    );
-
     return (
-      <BottomSheetModal
-        ref={modalRef}
-        snapPoints={resolvedSnapPoints}
-        enablePanDownToClose
-        onDismiss={handleDismiss}
-        backdropComponent={renderBackdrop}
-        backgroundStyle={{ backgroundColor: sheetColor }}
-        handleIndicatorStyle={{ backgroundColor: theme?.divider }}
-        topInset={insets.top}
-        detached
-        {...modalProps}>
-        <BottomSheetView style={{ flex: 1 }}>
-          {!!header && <View>{header}</View>}
+      <BottomSheet isOpen={open} onOpenChange={onOpenChange} closeDelay={300}>
+        <BottomSheet.Portal>
+          <BottomSheet.Overlay />
+          <BottomSheet.Content
+            snapPoints={resolvedSnapPoints}
+            // Keep parity with prior styling.
+            backgroundStyle={{ backgroundColor: sheetColor }}
+            handleIndicatorStyle={{ backgroundColor: theme?.divider }}
+            topInset={insets.top}
+            detached
+            {...(modalProps as any)}>
+            {/* Header must stay outside scrollable area to avoid gesture/tap conflicts on Android */}
+            {!!header && <View>{header}</View>}
 
-          {scrollable ? (
-            <BottomSheetScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ paddingBottom: 16 }}
-              keyboardShouldPersistTaps="handled"
-              {...(contentContainerProps as any)}>
-              {children}
-            </BottomSheetScrollView>
-          ) : (
-            <View style={{ flex: 1 }} {...contentContainerProps}>
-              {children}
-            </View>
-          )}
-        </BottomSheetView>
-      </BottomSheetModal>
+            {scrollable ? (
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: 16 }}
+                keyboardShouldPersistTaps="handled"
+                {...(contentContainerProps as any)}>
+                {children}
+              </ScrollView>
+            ) : (
+              <View style={{ flex: 1 }} {...contentContainerProps}>
+                {children}
+              </View>
+            )}
+          </BottomSheet.Content>
+        </BottomSheet.Portal>
+      </BottomSheet>
     );
   },
 );
@@ -108,5 +79,6 @@ export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
 CustomSheet.displayName = 'CustomSheet';
 
 export const CustomSheetProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <BottomSheetModalProvider>{children}</BottomSheetModalProvider>;
+  // HeroUI BottomSheet uses an internal portal; no provider needed here.
+  return <>{children}</>;
 };

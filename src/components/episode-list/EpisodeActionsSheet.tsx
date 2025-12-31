@@ -73,7 +73,7 @@ const ListState = ({
 
   return (
     <HUYStack className="items-center justify-center p-4 gap-2">
-      {loading ? <ActivityIndicator size="large" color="$color" /> : null}
+      {loading ? <ActivityIndicator size="large" /> : null}
       <Text className={titleClassName}>{title}</Text>
       {subtitle ? <Text className={subtitleClassName}>{subtitle}</Text> : null}
     </HUYStack>
@@ -401,7 +401,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     if (!episode) return null;
     return (
       <CustomSheet open={open} onOpenChange={onOpenChange} snapPoints={snapPoints}>
-        <HUYStack className="p-4 gap-2 min-h-50">
+        <HUYStack className="gap-2">
           {/* Header */}
           <HUXStack className="justify-between items-center mb-2">
             <Text className="text-lg font-bold text-accent w-4/5" numberOfLines={1}>
@@ -411,9 +411,9 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
             </HUYStack> */}
             <RippleButton onPress={() => (shouldShowBack ? handleBackToMainMenu() : onOpenChange(false))}>
               {shouldShowBack ? (
-                <IoniconsIcon name="chevron-back" size={24} color="$color1" />
+                <IoniconsIcon name="chevron-back" size={24} className="text-foreground" />
               ) : (
-                <IoniconsIcon name="close" size={24} color="$color1" />
+                <IoniconsIcon name="close" size={24} className="text-foreground" />
               )}
             </RippleButton>
           </HUXStack>
@@ -501,13 +501,13 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                         }
                         icon={
                           actionMode === 'download' ? (
-                            <IoniconsIcon name="download-outline" size={18} color="$color" />
+                            <IoniconsIcon name="download-outline" size={18} />
                           ) : (
-                            <IoniconsIcon name="play" size={18} color="$color" />
+                            <IoniconsIcon name="play" size={18} />
                           )
                         }
                         label={quality}
-                        rightIcon={<IoniconsIcon name="chevron-forward" size={18} color="$color1" />}
+                        rightIcon={<IoniconsIcon name="chevron-forward" size={18} className="text-foreground" />}
                       />
                     );
                   })

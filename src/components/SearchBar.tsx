@@ -45,10 +45,10 @@ export const SearchBar: React.FC = () => {
           placeholder="Search..."
           style={{
             color: currentTheme?.foreground,
-            padding: 10,
-            flex: 1,
+            // padding: 10,
+            // flex: 1,
             fontWeight: 700,
-            height: 50,
+            // height: 50,
           }}
           focusable>
           <TextField.InputEndContent>

@@ -563,7 +563,7 @@ const Watch = () => {
   if (isLoading) {
     return (
       <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="$color" />
+        <ActivityIndicator size="large" />
       </ThemedView>
     );
   }
@@ -579,8 +579,7 @@ const Watch = () => {
             // This View is the main container for the video player and overlays
             // It should define the aspect ratio or take full screen dimensions
             className="overflow-hidden aspect-video"
-            // style={{ backgroundColor: 'black' }} // Already on parent
-          >
+            style={{ backgroundColor: 'black', pointerEvents: 'box-none' }}>
             <View
               style={{ height: playerDimensions.height, position: 'relative' }}
               // style={{height:"100%", position: 'relative' }} //keep for future ref

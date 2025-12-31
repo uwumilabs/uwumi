@@ -134,7 +134,7 @@ const Info = () => {
                       onPress={() =>
                         openBrowserAsync(episodes[0].url! || getExtensionInfo(getProvider(mediaType))?.baseUrl!)
                       }>
-                      <IconTitle iconName="globe-outline" text="Webview" color="$color" />
+                      <IconTitle iconName="globe-outline" text="Webview" />
                     </RippleButton>
                   )}
                 </HUXStack>

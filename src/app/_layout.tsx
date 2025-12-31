@@ -136,6 +136,7 @@ const AppContent = () => {
   const { isUpdateAvailable, isUpdateChecked, updateInfo, setIsUpdateAvailable } = useUpdateChecker(
     EXTERNAL_LINKS.GITHUB_RELEASES_API,
   );
+  console.log({ isUpdateAvailable, isUpdateChecked, updateInfo, setIsUpdateAvailable });
   const [loaded] = useFonts({
     InterMedium,
     InterSemiBold,
@@ -144,6 +145,12 @@ const AppContent = () => {
 
   const uniwindThemeName = useUniwind();
   const setTheme = useThemeStore((state) => state.setTheme);
+  if (uniwindThemeName.theme === 'light') {
+    setTheme('default-light');
+  }
+  if (uniwindThemeName.theme === 'dark') {
+    setTheme('default-dark');
+  }
   // Request storage permissions on app startup
   useEffect(() => {
     const requestPermissions = async () => {
@@ -153,13 +160,6 @@ const AppContent = () => {
         console.warn('⚠️ Storage permissions denied');
       }
     };
-
-    if (uniwindThemeName.theme === 'light') {
-      setTheme('default-light');
-    }
-    if (uniwindThemeName.theme === 'dark') {
-      setTheme('default-dark');
-    }
 
     requestPermissions();
   }, []);

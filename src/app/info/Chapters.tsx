@@ -28,7 +28,7 @@ const Chapters = () => {
   if (isLoading) {
     return (
       <HUYStack className="justify-center items-center min-h-75">
-        <ActivityIndicator size="large" color="$color" />
+        <ActivityIndicator size="large" />
       </HUYStack>
     );
   }

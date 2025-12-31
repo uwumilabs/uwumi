@@ -46,22 +46,22 @@ export const RippleButton: FC<RippleButtonProps> = ({ onPress, children, contain
   const currentTheme = useCurrentTheme();
   return (
     <PressableFeedback
-      feedbackVariant="ripple"
       onPress={onPress}
       className={cn('rounded-full p-2', className)}
       style={containerStyle}
       animation={{
-        ripple: {
-          backgroundColor: { value: currentTheme.accent },
-          opacity: { value: [0, 0.3, 0] },
-          progress: { baseDuration: 600 },
-        },
+        // ripple: {
+        //   backgroundColor: { value: currentTheme.accent },
+        //   opacity: { value: [0, 0.3, 0] },
+        //   progress: { baseDuration: 600 },
+        // },
         scale: {
           value: 0.98,
           timingConfig: { duration: 150 },
         },
       }}
       {...props}>
+      <PressableFeedback.Ripple />
       {children}
     </PressableFeedback>
   );

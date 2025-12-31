@@ -42,7 +42,7 @@ import { IoniconsIcon, MaterialIconsIcon } from '../Icons';
 const LoadingState = () => (
   <Card className="mx-4 mt-6 bg-background">
     <HUYStack className="items-center gap-3 px-6 py-10">
-      <ActivityIndicator size="large" color="$color" />
+      <ActivityIndicator size="large" />
       <Text className="text-sm font-semibold text-foreground/80">Fetching episodes…</Text>
     </HUYStack>
   </Card>

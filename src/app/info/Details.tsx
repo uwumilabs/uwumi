@@ -137,7 +137,7 @@ const Details = () => {
                     {/* Animated icon rotation */}
                     <Animated.View style={[{ alignItems: 'center', padding: 8 }, chevronAnimatedStyle]}>
                       <RippleButton style={{ alignItems: 'center' }} onPress={() => setIsExpanded(!isExpanded)}>
-                        <IoniconsIcon name="chevron-down" size={24} color="$color" />
+                        <IoniconsIcon name="chevron-down" size={24} />
                       </RippleButton>
                     </Animated.View>
                     <HUYStack className="flex-1 h-full w-full hap-2">

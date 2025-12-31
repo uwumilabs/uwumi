@@ -29,12 +29,6 @@ interface CardProps {
   metaProvider: MetaProvider;
 }
 
-// const StyledCard = styled(Card, {
-//   width: '100%',
-//   aspectRatio: 2 / 3,
-//   variants: { isHovered: { true: { scale: 0.95, borderColor: '$color' } } },
-// });
-
 const AnimatedStyledCard = Animated.createAnimatedComponent(Card);
 const AnimatedStyledCardTitle = Animated.createAnimatedComponent(Card.Title);
 
@@ -142,7 +136,7 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
   if (isLoading && !data) {
     return (
       <HUXStack className="p-2 justify-center">
-        <ActivityIndicator size="large" color="$color" />
+        <ActivityIndicator size="large" />
       </HUXStack>
     );
   }
@@ -182,7 +176,7 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
       ListFooterComponent={
         hasNextPage ? (
           <HUXStack className="p-2 justify-center">
-            <ActivityIndicator size="small" color="$color" />
+            <ActivityIndicator size="small" />
           </HUXStack>
         ) : (
           <View className="h-25" />
