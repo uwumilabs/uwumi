@@ -136,7 +136,6 @@ const AppContent = () => {
   const { isUpdateAvailable, isUpdateChecked, updateInfo, setIsUpdateAvailable } = useUpdateChecker(
     EXTERNAL_LINKS.GITHUB_RELEASES_API,
   );
-  console.log({ isUpdateAvailable, isUpdateChecked, updateInfo, setIsUpdateAvailable });
   const [loaded] = useFonts({
     InterMedium,
     InterSemiBold,

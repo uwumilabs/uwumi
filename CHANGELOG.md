@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.5.0-rc.1 (2025-12-31)
+
+* refactor(ui): migrate customsheet to heroui bottomsheet ([ae24c23](https://github.com/uwumilabs/uwumi/commit/ae24c23))
+
 ## 3.5.0-rc.0 (2025-12-28)
 
 * chore: generate raw files ([569a7bc](https://github.com/uwumilabs/uwumi/commit/569a7bc))
