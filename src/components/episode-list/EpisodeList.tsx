@@ -56,6 +56,72 @@ const StyledText = ({ children, ...props }: { children: ReactNode } & TextProps)
   );
 };
 
+const ListPressable = memo(
+  ({
+    item,
+    children,
+    mediaType,
+    provider,
+    id,
+    episodeDataId,
+    type,
+    swipeable,
+    setSelectedEpisode,
+    setSheetOpen,
+  }: {
+    item: IAnimeEpisode | IMovieEpisode;
+    children: React.ReactNode;
+    mediaType: MediaType;
+    provider: string;
+    id: string;
+    episodeDataId?: string;
+    type?: string;
+    swipeable: boolean;
+    setSelectedEpisode: (item: IAnimeEpisode | IMovieEpisode) => void;
+    setSheetOpen: (open: boolean) => void;
+  }) => {
+    const router = useRouter();
+    const navigateToEpisode = () => {
+      const routerParams = {
+        pathname: '/watch/[mediaType]' as const,
+        params: {
+          mediaType,
+          provider,
+          id,
+          mediaId: episodeDataId,
+          episodeId: item?.id,
+          ...(item?.dubId ? { episodeDubId: item.dubId as string } : null),
+          ...(item?.isDubbed ? { isDubbed: item.isDubbed as string } : null),
+          uniqueId: item?.uniqueId as string,
+          poster: typeof item?.image === 'string' ? item.image : (item?.image?.hd ?? ''),
+          title: item?.title,
+          description: item?.description,
+          episodeNumber: (item?.number ?? item?.episode) as string,
+          seasonNumber: item?.season as string,
+          type,
+        },
+      };
+      if (swipeable) {
+        router.push(routerParams);
+      } else {
+        router.replace(routerParams);
+      }
+    };
+
+    const handleLongPress = () => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setSelectedEpisode(item);
+      setSheetOpen(true);
+    };
+
+    return (
+      <Pressable onPress={navigateToEpisode} onLongPress={handleLongPress} className="rounded-2xl py-1 w-full">
+        {children}
+      </Pressable>
+    );
+  },
+);
+
 export const EpisodeList = ({
   mediaType,
   provider,
@@ -263,49 +329,6 @@ export const EpisodeList = ({
     [currentUniqueId, progresses],
   );
 
-  const ListPressable = memo(
-    ({ item, children }: { item: IAnimeEpisode | IMovieEpisode; children: React.ReactNode }) => {
-      const navigateToEpisode = () => {
-        const routerParams = {
-          pathname: '/watch/[mediaType]' as const,
-          params: {
-            mediaType,
-            provider: getProvider(mediaType),
-            id,
-            mediaId: episodeData?.id,
-            episodeId: item?.id,
-            ...(item?.dubId ? { episodeDubId: item.dubId as string } : null),
-            ...(item?.isDubbed ? { isDubbed: item.isDubbed as string } : null),
-            uniqueId: item?.uniqueId as string,
-            poster: typeof item?.image === 'string' ? item.image : (item?.image?.hd ?? ''),
-            title: item?.title,
-            description: item?.description,
-            episodeNumber: (item?.number ?? item?.episode) as string,
-            seasonNumber: item?.season as string,
-            type,
-          },
-        };
-        if (swipeable) {
-          router.push(routerParams);
-        } else {
-          router.replace(routerParams);
-        }
-      };
-
-      const handleLongPress = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        setSelectedEpisode(item);
-        setSheetOpen(true);
-      };
-
-      return (
-        <Pressable onPress={navigateToEpisode} onLongPress={handleLongPress} className="rounded-2xl py-1 w-full">
-          {children}
-        </Pressable>
-      );
-    },
-  );
-
   const ProgressAndAirDate = useCallback(
     ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
       const rawReleaseDate = item?.releaseDate;
@@ -465,13 +488,47 @@ export const EpisodeList = ({
           onSwipeableWillOpen={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
           onSwipeableWillClose={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
           renderRightActions={rightActions(item)}>
-          <ListPressable item={item}>{renderItemContent(item)}</ListPressable>
+          <ListPressable
+            item={item}
+            mediaType={mediaType}
+            provider={getProvider(mediaType) ?? provider}
+            id={id}
+            episodeDataId={episodeData?.id}
+            type={type as string}
+            swipeable={swipeable}
+            setSelectedEpisode={setSelectedEpisode}
+            setSheetOpen={setSheetOpen}>
+            {renderItemContent(item)}
+          </ListPressable>
         </ReanimatedSwipeable>
       ) : (
-        <ListPressable item={item}>{renderItemContent(item)}</ListPressable>
+        <ListPressable
+          item={item}
+          mediaType={mediaType}
+          provider={getProvider(mediaType) ?? provider}
+          id={id}
+          episodeDataId={episodeData?.id}
+          type={type as string}
+          swipeable={swipeable}
+          setSelectedEpisode={setSelectedEpisode}
+          setSheetOpen={setSheetOpen}>
+          {renderItemContent(item)}
+        </ListPressable>
       );
     },
-    [swipeable, getItemKey, handleToggleComplete, rightActions, renderItemContent],
+    [
+      swipeable,
+      getItemKey,
+      handleToggleComplete,
+      rightActions,
+      renderItemContent,
+      mediaType,
+      getProvider,
+      provider,
+      id,
+      episodeData?.id,
+      type,
+    ],
   );
 
   if (isLoading) {
@@ -484,7 +541,7 @@ export const EpisodeList = ({
         key={listKey}
         ref={flashListRef}
         data={episodes}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+        // ItemSeparatorComponent={() => <View className="h-3" />}
         ListHeaderComponent={
           <HUXStack className="w-full items-center justify-center gap-5 px-4 py-2">
             {swipeable && (
@@ -549,7 +606,7 @@ export const EpisodeList = ({
             viewOffset: 200,
           });
         }}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={getItemKey}
         renderItem={renderItem}
       />
       {swipeable && sheetOpen && (

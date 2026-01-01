@@ -8,6 +8,7 @@ import {
   HUYStack,
   HUXStack,
   IoniconsIcon,
+  CustomImage,
 } from '@/components';
 import {
   useCurrentTheme,
@@ -18,8 +19,8 @@ import {
   useEpisodesStore,
 } from '@/hooks';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
-import { ImageBackground, View } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MediaType, MetaProvider } from '@/constants/types';
@@ -64,30 +65,35 @@ const Info = () => {
     };
   }, [data, mediaType, id, metaProvider, setMediaInfo, clearMediaInfo]);
 
-  const tabItems = [
-    {
-      key: 'tab1',
-      label: mediaType === MediaType.MANGA ? 'Chapters' : 'Episodes',
-      content: mediaType === MediaType.MANGA ? <Chapters /> : <Episodes />,
-    },
-    {
-      key: 'tab2',
-      label: 'Details',
-      content: <Details />,
-    },
-    {
-      key: 'tab3',
-      label: 'Similar',
-      content: <Similar />,
-    },
-  ];
+  const tabItems = useMemo(
+    () => [
+      {
+        key: 'tab1',
+        label: mediaType === MediaType.MANGA ? 'Chapters' : 'Episodes',
+        content: mediaType === MediaType.MANGA ? <Chapters /> : <Episodes />,
+      },
+      {
+        key: 'tab2',
+        label: 'Details',
+        content: <Details />,
+      },
+      {
+        key: 'tab3',
+        label: 'Similar',
+        content: <Similar />,
+      },
+    ],
+    [mediaType],
+  );
   // console.log(data);
 
   return (
     <>
       <ThemedView useSafeArea statusBarProps={{ translucent: true, backgroundColor: 'transparent' }}>
         <View className="h-75 relative">
-          <ImageBackground className="absolute inset-0 h-75 w-full" source={{ uri: data?.cover }} />
+          <View className="absolute inset-0 h-75 w-full">
+            <CustomImage source={{ uri: data?.cover }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+          </View>
           <View className="h-75 absolute inset-0 z-10">
             <LinearGradient
               className="w-full h-75 flex-1"

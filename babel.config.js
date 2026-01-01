@@ -3,6 +3,7 @@ module.exports = function (api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
+      ['transform-remove-console', { exclude: ['error', 'warn'] }],
       [
         'module-resolver',
         {
@@ -22,7 +23,7 @@ module.exports = function (api) {
             '@/constants': './src/constants',
             '@/components': './src/components',
             '@/hooks': './src/hooks',
-            '@':'./src'
+            '@': './src'
           },
         },
       ],

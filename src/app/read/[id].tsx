@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { ThemedView, NoResults, CustomImage } from '@/components';
 import { useLocalSearchParams } from 'expo-router';
 import { useMangaChapterRead } from '@/hooks';
@@ -16,6 +16,24 @@ const Read = () => {
   const { getProvider } = useProviderStore();
   const { data, isLoading } = useMangaChapterRead({ id: id, provider: getProvider(mediaType) });
 
+  const renderItem = useCallback(
+    ({ item }: { item: { img: string } }) => (
+      <View className="my-2">
+        <CustomImage
+          source={{ uri: item?.img }}
+          style={{
+            width: width,
+            height: width * 1.4,
+          }}
+          contentFit="contain"
+        />
+      </View>
+    ),
+    [width],
+  );
+
+  const keyExtractor = useCallback((item: { img: string }) => item?.img, []);
+
   if (isLoading) {
     return (
       <ThemedView>
@@ -30,24 +48,13 @@ const Read = () => {
     <ThemedView>
       <FlashList
         data={data}
-        keyExtractor={(item) => item?.img}
+        keyExtractor={keyExtractor}
         contentContainerStyle={{
           paddingVertical: 8,
         }}
         ListEmptyComponent={<NoResults />}
         showsVerticalScrollIndicator={true}
-        renderItem={({ item }) => (
-          <View className="my-2">
-            <CustomImage
-              source={{ uri: item?.img }}
-              style={{
-                width: width,
-                height: width * 1.4,
-              }}
-              resizeMode="contain"
-            />
-          </View>
-        )}
+        renderItem={renderItem}
       />
     </ThemedView>
   );

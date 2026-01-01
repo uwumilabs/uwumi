@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Text, useWindowDimensions, View, ActivityIndicator } from 'react-native';
 import Animated, { FadeIn, FadeOut, Easing, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { ISubtitle, TvType } from 'react-native-consumet';
@@ -188,108 +188,132 @@ const ControlsOverlay = memo(
     //   nextId,
     // });
     // console.log('selectedSubtitleIndex', selectedSubtitleIndex, subtitleTracks![selectedSubtitleIndex!]);
-    const tabItems = [
-      {
-        key: 'tab1',
-        label: 'Quality',
-        content: (
-          <SheetSettingsList<VideoTrack>
-            data={videoTracks ?? []}
-            keyExtractor={(item, index) => String(item?.index ?? index)}
-            renderItem={({ item }) => (
-              <RippleButton
-                style={{
-                  backgroundColor: sheetColor,
-                }}
-                onPress={() => {
-                  setSelectedVideoTrackIndex(item.index);
-                  setOpenSettings(false);
-                }}>
-                <Text
-                  style={{
-                    color: selectedVideoTrackIndex === item.index ? currentTheme.accent : currentTheme.foreground,
-                  }}>
-                  {item.height === 9999 ? 'Auto' : `${item.height}p`}
-                </Text>
-              </RippleButton>
-            )}
-          />
-        ),
-      },
-      {
-        key: 'tab2',
-        label: 'Subtitle',
-        content: (
-          <SheetSettingsList<SubtitleTrack | ISubtitle>
-            data={subtitleTracks ?? []}
-            keyExtractor={(item, index) =>
-              String(('lang' in (item as any) ? (item as any).lang : (item as any).language) ?? index)
-            }
-            ListHeaderComponent={
-              parsedMappings ? (
-                <HUYStack className="pb-2">
-                  <ExternalSubDialog
-                    externalSubtitleLanguage={externalSubtitleLanguage}
-                    setExternalSubtitleLanguage={setExternalSubtitleLanguage}
-                    isExternalSubtitlesLoading={isExternalSubtitlesLoading}
-                    setShouldFetchExternalSubs={setShouldFetchExternalSubs}
-                    isFullscreen={isFullscreen}
-                    onOpenDialog={() => setOpenSettings(false)}
-                  />
-                </HUYStack>
-              ) : null
-            }
-            renderItem={({ item, index }) => (
-              <RippleButton
-                style={{
-                  backgroundColor: sheetColor,
-                }}
-                onPress={() => {
-                  setSelectedSubtitleIndex(index);
-                  setOpenSettings(false);
-                }}>
-                <Text
-                  style={{ color: selectedSubtitleIndex === index ? currentTheme.accent : currentTheme.foreground }}>
-                  {'lang' in item ? item.lang : item.language}-{'title' in item ? item.title : undefined}
-                </Text>
-              </RippleButton>
-            )}
-          />
-        ),
-      },
-      // Only include audio tab if audioTracks exist and have items
-      ...(audioTracks && audioTracks.length > 0
-        ? [
-            {
-              key: 'tab3',
-              label: 'Audio',
-              content: (
-                <SheetSettingsList<AudioTrack>
-                  data={audioTracks}
-                  keyExtractor={(item, index) => `${item.language}-${item.title}-${index}`}
-                  renderItem={({ item, index }) => (
-                    <RippleButton
+    const tabItems = useMemo(
+      () =>
+        [
+          {
+            key: 'tab1',
+            label: 'Quality',
+            content: (
+              <SheetSettingsList<VideoTrack>
+                data={videoTracks ?? []}
+                keyExtractor={(item, index) => String(item?.index ?? index)}
+                renderItem={({ item }) => (
+                  <RippleButton
+                    style={{
+                      backgroundColor: sheetColor,
+                    }}
+                    onPress={() => {
+                      setSelectedVideoTrackIndex(item.index);
+                      setOpenSettings(false);
+                    }}>
+                    <Text
                       style={{
-                        backgroundColor: sheetColor,
-                      }}
-                      onPress={() => {
-                        setSelectedAudioTrackIndex(index);
-                        setOpenSettings(false);
+                        color: selectedVideoTrackIndex === item.index ? currentTheme.accent : currentTheme.foreground,
                       }}>
-                      <Text
-                        style={{
-                          color: selectedAudioTrackIndex === index ? currentTheme.accent : currentTheme.foreground,
-                        }}>
-                        {item.language}-{item.title}
-                      </Text>
-                    </RippleButton>
-                  )}
-                />
-              ),
-            },
-          ]
-        : []),
-    ].filter(Boolean) as TabItem[];
+                      {item.height === 9999 ? 'Auto' : `${item.height}p`}
+                    </Text>
+                  </RippleButton>
+                )}
+              />
+            ),
+          },
+          {
+            key: 'tab2',
+            label: 'Subtitle',
+            content: (
+              <SheetSettingsList<SubtitleTrack | ISubtitle>
+                data={subtitleTracks ?? []}
+                keyExtractor={(item, index) =>
+                  String(('lang' in (item as any) ? (item as any).lang : (item as any).language) ?? index)
+                }
+                ListHeaderComponent={
+                  parsedMappings ? (
+                    <HUYStack className="pb-2">
+                      <ExternalSubDialog
+                        externalSubtitleLanguage={externalSubtitleLanguage}
+                        setExternalSubtitleLanguage={setExternalSubtitleLanguage}
+                        isExternalSubtitlesLoading={isExternalSubtitlesLoading}
+                        setShouldFetchExternalSubs={setShouldFetchExternalSubs}
+                        isFullscreen={isFullscreen}
+                        onOpenDialog={() => setOpenSettings(false)}
+                      />
+                    </HUYStack>
+                  ) : null
+                }
+                renderItem={({ item, index }) => (
+                  <RippleButton
+                    style={{
+                      backgroundColor: sheetColor,
+                    }}
+                    onPress={() => {
+                      setSelectedSubtitleIndex(index);
+                      setOpenSettings(false);
+                    }}>
+                    <Text
+                      style={{
+                        color: selectedSubtitleIndex === index ? currentTheme.accent : currentTheme.foreground,
+                      }}>
+                      {'lang' in item ? item.lang : item.language}-{'title' in item ? item.title : undefined}
+                    </Text>
+                  </RippleButton>
+                )}
+              />
+            ),
+          },
+          // Only include audio tab if audioTracks exist and have items
+          ...(audioTracks && audioTracks.length > 0
+            ? [
+                {
+                  key: 'tab3',
+                  label: 'Audio',
+                  content: (
+                    <SheetSettingsList<AudioTrack>
+                      data={audioTracks}
+                      keyExtractor={(item, index) => `${item.language}-${item.title}-${index}`}
+                      renderItem={({ item, index }) => (
+                        <RippleButton
+                          style={{
+                            backgroundColor: sheetColor,
+                          }}
+                          onPress={() => {
+                            setSelectedAudioTrackIndex(index);
+                            setOpenSettings(false);
+                          }}>
+                          <Text
+                            style={{
+                              color: selectedAudioTrackIndex === index ? currentTheme.accent : currentTheme.foreground,
+                            }}>
+                            {item.language}-{item.title}
+                          </Text>
+                        </RippleButton>
+                      )}
+                    />
+                  ),
+                },
+              ]
+            : []),
+        ].filter(Boolean) as TabItem[],
+      [
+        videoTracks,
+        sheetColor,
+        setSelectedVideoTrackIndex,
+        selectedVideoTrackIndex,
+        currentTheme,
+        subtitleTracks,
+        parsedMappings,
+        externalSubtitleLanguage,
+        setExternalSubtitleLanguage,
+        isExternalSubtitlesLoading,
+        setShouldFetchExternalSubs,
+        isFullscreen,
+        setSelectedSubtitleIndex,
+        selectedSubtitleIndex,
+        audioTracks,
+        setSelectedAudioTrackIndex,
+        selectedAudioTrackIndex,
+      ],
+    );
     useEffect(() => {
       // Check if currentEpisodeIndex is valid before accessing episodes array
       if ((prevId || nextId) && currentEpisodeIndex >= 0 && episodes[currentEpisodeIndex]) {

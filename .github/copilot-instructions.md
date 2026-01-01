@@ -34,59 +34,69 @@
 - Prefer updating existing stores/hooks over inventing new state paths; keep query keys stable.# GitHub Copilot Instructions for Uwumi
 
 ## Project Overview
+Uwumi is a React Native media streaming application built with Expo, supporting anime, manga, and movies. It features a modular extension system, custom theming engine, and offline capabilities.
 
-Uwumi is a React Native media streaming application built with Expo, supporting anime, manga, and movies. The app uses a modular architecture with extension support for different content providers.
+## Architecture & Core Concepts
 
-## Technology Stack
+### 1. Extension System (`src/hooks/stores/useExtensionStore.ts`)
+- **Dynamic Loading:** Extensions are downloaded from a remote registry and cached locally using `react-native-fs`.
+- **Execution:** `react-native-consumet` manages the execution of these extensions to fetch media content.
+- **Provider Management:** `src/constants/provider.ts` maps installed extensions to active providers.
+- **Key Path:** `src/hooks/stores/useExtensionStore.ts` is the brain of this system.
 
-- **Framework**: React Native (0.81.4) with Expo (SDK 54)
-- **Language**: TypeScript 5.9
-- **UI Library**: Tamagui (1.134.2) - styled components with variants
-- **State Management**: Zustand (5.0.1) - lightweight state management
-- **Data Fetching**: TanStack Query (React Query 5.66.0)
-- **Navigation**: Expo Router (6.0.10) - file-based routing
-- **Video Player**: react-native-video (6.12.0)
-- **Storage**: react-native-mmkv (3.1.0) - high-performance key-value storage
-- **Media Provider**: react-native-consumet (1.1.0) - extensible media provider system
-- **Animations**: react-native-reanimated (4.1.1)
-- **Gestures**: react-native-gesture-handler (2.28.0)
+### 2. Theming Engine (`src/themes/`)
+- **CSS-Driven:** Themes are defined in CSS files (e.g., `src/themes/cloudflare.css`) using `@variant` blocks.
+- **Generation:** A script (`src/scripts/generate-themes.ts`) parses these CSS files to generate type-safe TypeScript definitions in `src/themes/theme.ts`.
+- **Usage:** Components consume themes via `useThemeStore` and `uniwind` styling.
+- **Workflow:** **ALWAYS** run `npm run generate-themes` after modifying any `.css` file in `src/themes/`.
 
-## Architecture Patterns
+### 3. State Management
+- **App State (Zustand):** Used for global UI state, settings, and extension management. Stores live in `src/hooks/stores/`.
+- **Server State (React Query):** Used for all data fetching. Query keys follow the pattern `['mediaType', 'operation', ...params]`.
+- **Persistence:** `react-native-mmkv` is used for high-performance synchronous storage.
+
+### 4. Native Modules (`modules/`)
+- The project uses custom Expo modules for platform-specific functionality:
+  - `storage-permission-module`: Handles Android storage permissions.
+  - `fullscreen-module`: Manages immersive mode.
+
+## Critical Workflows
+
+### Theme Updates
+When adding or modifying a theme:
+1. Edit the `.css` file in `src/themes/`.
+2. Run `npm run generate-themes` to update `src/themes/theme.ts`.
+3. Restart the dev server to see changes.
+
+### Build & Run
+- **Dev:** `npm run start` (uses `expo start --localhost`).
+- **Android:** `npm run android` (builds native app).
+- **Post-install:** The `postinstall` script downloads necessary AARs (e.g., ffmpeg-kit). Ensure this runs successfully.
+
+## Coding Conventions
+
+### UI & Styling
+- **Library:** Uses `heroui-native` for core components (Card, Button, etc.) and `tamagui` for layout primitives.
+- **Styling:** Prefer `uniwind` classes (Tailwind-like) or Tamagui props.
+- **Performance:** Heavily use `memo`, `useMemo`, and `useCallback` for UI components, especially in lists (`CustomFlashlist`).
+
+### Data Fetching
+- **Pattern:** Encapsulate queries in custom hooks (e.g., `useMediaInfo`, `useMediaFeed`).
+- **Error Handling:** Use `sonner-native` for user-facing toast notifications on error.
 
 ### File Structure
-```
-src/
-├── app/                    # Expo Router screens (file-based routing)
-│   ├── (onboarding)/      # Onboarding flow screens
-│   ├── (settings)/        # Settings screens
-│   ├── (tabs)/            # Main tab navigation
-│   ├── info/              # Media info/details screens
-│   ├── read/              # Manga reader
-│   └── watch/             # Video player
-├── components/            # Reusable UI components
-├── constants/             # App constants, themes, types
-├── hooks/                 # Custom hooks
-│   ├── queries/          # React Query hooks
-│   └── stores/           # Zustand stores
-├── scripts/              # Build and utility scripts
-└── svg/                  # SVG icons as React components
-```
+- `src/app`: Expo Router screens.
+- `src/modules`: Custom native modules.
+- `src/themes`: CSS theme definitions.
+- `src/scripts`: Build and utility scripts.
 
-### State Management Guidelines
+## Key Files to Know
+- `src/app/_layout.tsx`: Global provider setup (QueryClient, Theme, Permissions).
+- `src/constants/provider.ts`: Central registry for media providers.
+- `src/hooks/stores/useExtensionStore.ts`: Extension lifecycle management.
+- `src/scripts/generate-themes.ts`: Theming build script.
 
-1. **Zustand for App State**: Use Zustand stores for global app state
-   - Store files in `src/hooks/stores/`
-   - Use MMKV for persistence when needed
-   - Export stores from `src/hooks/stores/index.ts`
-
-2. **React Query for Server State**: Use TanStack Query for API data
-   - Query hooks in `src/hooks/queries/`
-   - Use query keys: `['mediaType', 'operation', ...params]`
-   - Enable caching and background refetching appropriately
-
-3. **Component State**: Use `useState` for local component state
-
-### Component Development
+## Component Development
 
 #### HeroUI Components
 - [Accordion](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/accordion/accordion.md)
