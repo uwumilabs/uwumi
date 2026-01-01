@@ -10,7 +10,6 @@ import Video, {
   VideoTrack,
   AudioTrack,
 } from 'react-native-video/src';
-import SystemNavigationBar from 'react-native-system-navigation-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ControlsOverlay from './ControlsOverlay';
@@ -238,9 +237,6 @@ const Watch = () => {
         systemBarsStackEntry.current = null;
       }
       Promise.all([
-        SystemNavigationBar.setNavigationColor(
-          pureBlackBackground ? currentTheme?.surface || 'black' : currentTheme?.surface || 'black',
-        ),
         setVisibilityAsync('visible'),
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP),
         FullscreenModule.exitFullscreen(),
@@ -277,10 +273,7 @@ const Watch = () => {
           hidden: false,
         });
       }
-      SystemNavigationBar.setNavigationColor(
-        pureBlackBackground ? currentTheme?.surface || 'black' : currentTheme?.surface || 'black',
-      );
-      SystemNavigationBar.navigationShow();
+
       await Promise.all([
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP),
         FullscreenModule.exitFullscreen(),

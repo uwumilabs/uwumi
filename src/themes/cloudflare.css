@@ -1,83 +1,143 @@
 @layer theme {
     :root {
         @variant cloudflare-light {
-            --background: #eff2f5;
-            --foreground: #1b1b22;
+            /* Theme-Specific Base Colors */
+            /* Android: background */
+            --background: #EFF2F5;
+            /* Android: onBackground */
+            --foreground: #1B1B22;
 
-            --surface: #efe9e3;
-            --surface-foreground: #1b1b22;
+            /* Android: surfaceContainer (Nav bar/Cards) (from default.css) */
+            --surface: #F3EDF7;
+            /* Android: onSurface */
+            --surface-foreground: #1B1B22;
 
-            --overlay: #eff2f5;
-            --overlay-foreground: #1b1b22;
+            /* Android: surfaceContainerHigh (Dialogs) (from default.css) */
+            --overlay: #FCF7FF;
+            /* Android: onSurface */
+            --overlay-foreground: #1B1B22;
 
-            --muted: #cac4d0;
+            /* Android: onSurfaceVariant */
+            --muted: #49454E;
 
-            --default: #efe9e3;
-            --default-foreground: #1b1b22;
+            /* Android: secondaryContainer */
+            --default: #F38020;
+            /* Android: onSecondaryContainer */
+            --default-foreground: #EFF2F5;
 
-            --accent: #f38020;
-            --accent-foreground: #1b1b22;
+            /* Align with surfaceVariant for cards/segments */
+            --segment: #B9B0CC;
+            /* Text on segment */
+            --segment-foreground: #1B1B1F;
 
-            --field-background: #efe9e3;
-            --field-foreground: #1b1b22;
-            --field-placeholder: var(--muted);
-            --field-border: transparent;
+            /* Android: primary */
+            --accent: #F38020;
+            /* Android: onPrimary */
+            --accent-foreground: #EFF2F5;
 
-            --success: #2f9e44;
-            --success-foreground: #0f130d;
+            /* Status Colors */
+            /* Android: tertiary (Downloaded badge) */
+            --success: #EFF2F5;
+            /* Android: onTertiary */
+            --success-foreground: #F38020;
 
-            --warning: #f59f00;
-            --warning-foreground: #1b1b22;
+            /* Generated (Missing in input) (from default.css) */
+            --warning: #7D5700;
+            /* Generated */
+            --warning-foreground: #FFFFFF;
 
-            --danger: #d64045;
-            --danger-foreground: #fef7f0;
+            /* Android: error (from default.css) */
+            --danger: #BA1A1A;
+            /* Android: onError */
+            --danger-foreground: #FFFFFF;
 
-            --segment: #efe9e3;
-            --segment-foreground: #1b1b22;
+            /* Form Field Base Colors */
+            /* Android: surfaceContainerHighest (from default.css) */
+            --field-background: #FCF7FF;
+            /* Android: onSurface */
+            --field-foreground: #1B1B22;
+            /* Android: onSurfaceVariant */
+            --field-placeholder: #49454E;
+            /* Android: outlineVariant (from default.css) */
+            --field-border: #C5C6D0;
 
-            --border: rgba(0, 0, 0, 0);
-            --divider: #cac4d0;
-            --link: #f38020;
+            /* Miscellaneous Colors */
+            /* Android: outlineVariant (from default.css) */
+            --border: #C5C6D0;
+            /* Android: outlineVariant (from default.css) */
+            --divider: #C5C6D0;
+            /* Android: primary */
+            --link: #F38020;
         }
 
         @variant cloudflare-dark {
-            --background: #1b1b22;
-            --foreground: #eff2f5;
+            /* Theme-Specific Base Colors */
+            /* Android: background */
+            --background: #1B1B22;
+            /* Android: onBackground */
+            --foreground: #EFF2F5;
 
-            --surface: #2d2322;
-            --surface-foreground: #eff2f5;
+            /* Android: surfaceContainer (from default.css) */
+            --surface: #211F26;
+            /* Android: onSurface */
+            --surface-foreground: #EFF2F5;
 
-            --overlay: #2d2322;
-            --overlay-foreground: #eff2f5;
+            /* Android: surfaceContainerHigh (from default.css) */
+            --overlay: #292730;
+            /* Android: onSurface */
+            --overlay-foreground: #EFF2F5;
 
-            --muted: #49454f;
+            /* Android: onSurfaceVariant */
+            --muted: #FFFFFF;
 
-            --default: #2d2322;
-            --default-foreground: #eff2f5;
+            /* Android: secondaryContainer */
+            --default: #F38020;
+            /* Android: onSecondaryContainer */
+            --default-foreground: #1B1B22;
 
-            --accent: #f38020;
-            --accent-foreground: #140b03;
+            /* Align with surfaceContainerHigh for segments (from default.css) */
+            --segment: #292730;
+            /* Text on segment */
+            --segment-foreground: #E3E2E6;
 
-            --field-background: #2d2322;
-            --field-foreground: #eff2f5;
-            --field-placeholder: var(--muted);
-            --field-border: transparent;
+            /* Android: primary */
+            --accent: #F38020;
+            /* Android: onPrimary */
+            --accent-foreground: #1B1B22;
 
-            --success: #2f9e44;
-            --success-foreground: #0f130d;
+            /* Status Colors */
+            /* Android: tertiary (Downloaded badge) */
+            --success: #1B1B22;
+            /* Android: onTertiary */
+            --success-foreground: #F38020;
 
-            --warning: #f59f00;
-            --warning-foreground: #1b1b22;
+            /* Generated (Missing in input) (from default.css) */
+            --warning: #EFB000;
+            /* Generated */
+            --warning-foreground: #422F00;
 
-            --danger: #d64045;
-            --danger-foreground: #fef2e8;
+            /* Android: error (from default.css) */
+            --danger: #FFB4AB;
+            /* Android: onError */
+            --danger-foreground: #690005;
 
-            --segment: #2d2322;
-            --segment-foreground: #eff2f5;
+            /* Form Field Base Colors */
+            /* Android: surfaceContainerHighest (from default.css) */
+            --field-background: #302E38;
+            /* Android: onSurface */
+            --field-foreground: #EFF2F5;
+            /* Android: onSurfaceVariant */
+            --field-placeholder: #FFFFFF;
+            /* Android: outlineVariant (from default.css) */
+            --field-border: #44464F;
 
-            --border: rgba(0, 0, 0, 0);
-            --divider: #49454f;
-            --link: #f38020;
+            /* Miscellaneous Colors */
+            /* Android: outlineVariant (from default.css) */
+            --border: #44464F;
+            /* Android: outlineVariant (from default.css) */
+            --divider: #44464F;
+            /* Android: primary */
+            --link: #F38020;
         }
     }
 }

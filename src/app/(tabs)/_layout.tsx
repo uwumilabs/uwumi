@@ -1,7 +1,6 @@
 import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
 import React from 'react';
 import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
-import SystemNavigationBar from 'react-native-system-navigation-bar';
 import { hexToRGB } from '@/constants/utils';
 
 export const unstable_settings = {
@@ -11,10 +10,6 @@ export const unstable_settings = {
 export default function TabLayout() {
   const currentTheme = useCurrentTheme();
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
-
-  SystemNavigationBar.setNavigationColor(
-    pureBlackBackground ? currentTheme?.amoledSurfaceVariant : currentTheme?.segment || 'black',
-  );
 
   return (
     <NativeTabs

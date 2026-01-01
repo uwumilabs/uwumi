@@ -23,6 +23,7 @@ import '../../global.css';
 import { useUniwind } from 'uniwind';
 import { CustomSheetProvider } from '@/components';
 import { IoniconsIcon } from '@/components';
+import { themes } from '@/themes/theme';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -144,11 +145,10 @@ const AppContent = () => {
 
   const uniwindThemeName = useUniwind();
   const setTheme = useThemeStore((state) => state.setTheme);
-  if (uniwindThemeName.theme === 'light') {
-    setTheme('default-light');
-  }
-  if (uniwindThemeName.theme === 'dark') {
-    setTheme('default-dark');
+  const themeName = useThemeStore((state) => state.themeName);
+  // console.log(themeName, uniwindThemeName, Object.keys(themes), Object.keys(themes).includes(uniwindThemeName.theme));
+  if (!Object.keys(themes).includes(uniwindThemeName.theme)) {
+    setTheme(themeName ?? 'default-dark');
   }
   // Request storage permissions on app startup
   useEffect(() => {

@@ -108,7 +108,7 @@ const AccentCard = memo(({ themeName, currentTheme, pureBlackBackground, onPress
                 <View className="w-12 rounded-3xl bg-foreground" />
                 {isSelected && (
                   <Circle size={15} backgroundColor={theme?.accent}>
-                    <IoniconsIcon name="checkmark" size={14} className="text-default" />
+                    <IoniconsIcon name="checkmark" size={14} className="text-accent-foreground" />
                   </Circle>
                 )}
               </HUXStack>

@@ -64,17 +64,17 @@
       /* Miscellaneous Colors */
       /* Android: outline */
       --border: #757780;
-      /* Android: outlineVariant */
+      /* Android: outlineVariant (from default.css) */
       --divider: #C5C6D0;
       /* Android: primary */
       --link: #0058CA;
-      
+
     }
 
     @variant default-dark {
       /* Theme-Specific Base Colors */
       /* Android: background */
-      --background: #1B1B1F; /* hhh*/
+      --background: #1B1B1F;
       /* Android: onBackground */
       --foreground: #E3E2E6;
 
@@ -83,7 +83,6 @@
       /* Android: onSurface */
       --surface-foreground: #E3E2E6;
 
-      /* Overlay is LIGHTER than surface in Dark Mode (#292730 > #211F26) */
       /* Android: surfaceContainerHigh */
       --overlay: #292730;
       /* Android: onSurface */
@@ -130,15 +129,15 @@
       --field-foreground: #E3E2E6;
       /* Android: onSurfaceVariant */
       --field-placeholder: #C5C6D0;
-      /* Android: outline */
-      --field-border: #8F9099;
+      /* Android: outlineVariant (from default.css) */
+      --field-border: #44464F;
 
       /* Miscellaneous Colors */
-      /* Android: outline */
-      --border: #8F9099;
-      /* Android: outlineVariant */
+      /* Android: outlineVariant (from default.css) */
+      --border: #44464F;
+      /* Android: outlineVariant (from default.css) */
       --divider: #44464F;
-      /* Android: primary (or inversePrimary #0058CA if contrast needs to be lower) */
+      /* Android: primary */
       --link: #B0C6FF;
     }
   }

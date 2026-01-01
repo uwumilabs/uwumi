@@ -97,7 +97,6 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "^4.19.0",
     "react-native-svg": "15.12.1",
-    "react-native-system-navigation-bar": "^2.6.4",
     "react-native-video": "github:pigeonmal/react-native-video#ajami1.4.1",
     "react-native-volume-manager": "^2.0.8",
     "react-native-web": "^0.21.0",
