@@ -222,7 +222,7 @@ export function useExternalSubtitles({
           ? `https://rest.opensubtitles.org/search/episode-${episodeNumber}/imdbid-${imdbId}/season-${seasonNumber}/sublanguageid-${language}`
           : `https://rest.opensubtitles.org/search/imdbid-${imdbId}/sublanguageid-${language}`;
 
-      //console.log('Fetching external subtitles from:', url);
+      console.log('Fetching external subtitles from:', url);
 
       try {
         const { data }: { data: ExternalSubtitleData[] } = await axios.get(url, {

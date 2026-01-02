@@ -12,6 +12,9 @@ import { Button } from 'heroui-native';
 import { useUniwind } from 'uniwind';
 import { useProviderStore } from '@/constants/provider';
 import ExternalSubDialog from '@/app/watch/components/ExternalSubDialog';
+import { SUB_LANGUAGE } from '@/constants/config';
+import { useExternalSubtitles } from '@/hooks';
+import { TvType } from 'react-native-consumet';
 
 const Example = () => {
   const uni = useUniwind();
@@ -19,8 +22,21 @@ const Example = () => {
 
   const [externalSubtitleLanguage, setExternalSubtitleLanguage] = useState<string | null>(null);
   const [shouldFetchExternalSubs, setShouldFetchExternalSubs] = useState(false);
-  const [isExternalSubtitlesLoading, setIsExternalSubtitlesLoading] = useState(false);
+  // const [isExternalSubtitlesLoading, setIsExternalSubtitlesLoading] = useState(false);
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const {
+    data: externalSubtitles,
+    isLoading: isExternalSubtitlesLoading,
+    isError: isExternalSubtitlesError,
+  } = useExternalSubtitles({
+    imdbId: 'tt4574334',
+    episodeNumber: '5',
+    seasonNumber: '1',
+    type: TvType.TVSERIES,
+    language: SUB_LANGUAGE[externalSubtitleLanguage as keyof typeof SUB_LANGUAGE],
+    enabled: true,
+  });
+  console.log('externalSubtitles', externalSubtitles, isExternalSubtitlesLoading, isExternalSubtitlesError);
 
   useEffect(() => {
     return () => {
@@ -32,14 +48,14 @@ const Example = () => {
     setShouldFetchExternalSubs(value);
 
     // This screen is for UI testing, so we simulate a short loading state.
-    if (value) {
-      setIsExternalSubtitlesLoading(true);
-      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = setTimeout(() => {
-        setIsExternalSubtitlesLoading(false);
-        setShouldFetchExternalSubs(false);
-      }, 1200);
-    }
+    // if (value) {
+    //   setIsExternalSubtitlesLoading(true);
+    //   if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+    //   loadingTimeoutRef.current = setTimeout(() => {
+    //     setIsExternalSubtitlesLoading(false);
+    //     setShouldFetchExternalSubs(false);
+    //   }, 1200);
+    // }
   }, []);
 
   const getAllMMKVKeys = () => {
@@ -91,9 +107,9 @@ const Example = () => {
             setShouldFetchExternalSubs={handleSetShouldFetchExternalSubs}
             isFullscreen={false}
           />
-          <Button onPress={() => setIsExternalSubtitlesLoading((v) => !v)}>
+          {/* <Button onPress={() => setIsExternalSubtitlesLoading((v) => !v)}>
             Toggle loading ({isExternalSubtitlesLoading ? 'on' : 'off'})
-          </Button>
+          </Button> */}
           <Button onPress={() => handleSetShouldFetchExternalSubs(true)}>
             Simulate “Fetch Subtitles” (shouldFetch={String(shouldFetchExternalSubs)})
           </Button>

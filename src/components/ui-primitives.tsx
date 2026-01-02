@@ -3,7 +3,7 @@
  * This file contains lightweight, frequently-used components that don't warrant separate files
  */
 
-import React, { FC, ReactNode } from 'react';
+import React, { ReactNode, forwardRef } from 'react';
 import { View, ViewProps, Text, StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
@@ -42,30 +42,33 @@ type RippleButtonProps = Omit<PressableFeedbackProps, 'onPress'> & {
   className?: string;
 };
 
-export const RippleButton: FC<RippleButtonProps> = ({ onPress, children, containerStyle, className, ...props }) => {
-  const currentTheme = useCurrentTheme();
-  return (
-    <PressableFeedback
-      onPress={onPress}
-      className={cn('rounded-full p-2', className)}
-      style={containerStyle}
-      animation={{
-        // ripple: {
-        //   backgroundColor: { value: currentTheme.accent },
-        //   opacity: { value: [0, 0.3, 0] },
-        //   progress: { baseDuration: 600 },
-        // },
-        scale: {
-          value: 0.98,
-          timingConfig: { duration: 150 },
-        },
-      }}
-      {...props}>
-      <PressableFeedback.Ripple />
-      {children}
-    </PressableFeedback>
-  );
-};
+export const RippleButton = forwardRef<View, RippleButtonProps>(
+  ({ onPress, children, containerStyle, className, ...props }, ref) => {
+    const currentTheme = useCurrentTheme();
+    return (
+      <PressableFeedback
+        ref={ref}
+        onPress={onPress}
+        className={cn('rounded-full p-2', className)}
+        style={containerStyle}
+        animation={{
+          // ripple: {
+          //   backgroundColor: { value: currentTheme.accent },
+          //   opacity: { value: [0, 0.3, 0] },
+          //   progress: { baseDuration: 600 },
+          // },
+          scale: {
+            value: 0.98,
+            timingConfig: { duration: 150 },
+          },
+        }}
+        {...props}>
+        <PressableFeedback.Ripple />
+        {children}
+      </PressableFeedback>
+    );
+  },
+);
 
 /* ============================================
  * NoResults - Empty state with random kaomoji

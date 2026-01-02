@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { BackHandler } from 'react-native';
 
 /**
@@ -8,15 +8,21 @@ import { BackHandler } from 'react-native';
  */
 
 export const useCustomBackHandler = (enabled: boolean, onBackPress: () => boolean) => {
+  const onBackPressRef = useRef(onBackPress);
+
+  useEffect(() => {
+    onBackPressRef.current = onBackPress;
+  });
+
   useEffect(() => {
     if (!enabled) return;
 
     const backAction = () => {
-      return onBackPress();
+      return onBackPressRef.current();
     };
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
 
     return () => backHandler.remove(); // Clean up listener on unmount
-  }, [enabled, onBackPress]);
+  }, [enabled]);
 };

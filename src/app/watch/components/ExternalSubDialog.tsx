@@ -190,7 +190,7 @@ const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
                     onPress={() => {
                       if (externalSubtitleLanguage?.trim()) {
                         setShouldFetchExternalSubs(true);
-                        setOpen(false);
+                        // setOpen(false);
                       }
                     }}>
                     {isExternalSubtitlesLoading ? (

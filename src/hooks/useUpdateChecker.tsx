@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { compareVersions } from '@/constants/utils';
@@ -20,13 +20,6 @@ interface UpdateInfo {
 
 export function useUpdateChecker(url?: string) {
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
-  const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({
-    currentVersion: pkg.version,
-    newVersion: '',
-    updateType: '',
-    createdAt: '',
-    isNewVersionPreRelease: false,
-  });
 
   const { data, isLoading, isError, error, refetch, isSuccess } = useQuery({
     queryKey: ['updateChecker', url],
@@ -40,8 +33,7 @@ export function useUpdateChecker(url?: string) {
     retry: 2,
   });
 
-  // Handle successful data fetch
-  useEffect(() => {
+  const updateInfo = useMemo<UpdateInfo>(() => {
     if (data && isSuccess) {
       const localVersion = pkg.version;
       const remoteVersion = Array.isArray(data) ? data[0].tag_name.replace('v', '') : data.tag_name.replace('v', '');
@@ -49,21 +41,32 @@ export function useUpdateChecker(url?: string) {
       // Get update type
       const updateType = compareVersions(localVersion, remoteVersion);
 
-      const newUpdateInfo = {
+      return {
         currentVersion: localVersion,
         newVersion: remoteVersion,
         updateType,
         createdAt: Array.isArray(data) ? data[0].created_at : data.created_at,
         isNewVersionPreRelease: Array.isArray(data) ? data[0].prerelease : data.prerelease,
       };
+    }
+    return {
+      currentVersion: pkg.version,
+      newVersion: '',
+      updateType: '',
+      createdAt: '',
+      isNewVersionPreRelease: false,
+    };
+  }, [data, isSuccess]);
 
+  // Handle successful data fetch
+  useEffect(() => {
+    if (updateInfo.newVersion) {
       // Set update available if it's not "No update available"
       // and the new version is not a pre-release (for stable releases only)
-      const hasUpdate = !updateType.includes('No update') && !newUpdateInfo.isNewVersionPreRelease;
-      setUpdateInfo(newUpdateInfo);
+      const hasUpdate = !updateInfo.updateType.includes('No update') && !updateInfo.isNewVersionPreRelease;
       setIsUpdateAvailable(hasUpdate);
     }
-  }, [data, isSuccess]);
+  }, [updateInfo]);
 
   // Handle errors
   useEffect(() => {
