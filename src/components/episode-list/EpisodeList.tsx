@@ -351,13 +351,15 @@ export const EpisodeList = ({
       return (
         <Card
           className={cn(
-            'flex-row gap-3 overflow-hidden rounded-2xl bg-background p-0 py-1.5 shadow-md',
+            'flex-row gap-3 overflow-hidden rounded-2xl bg-background p-1.5 shadow-md border-0',
             pureBlackBackground && 'bg-black',
+            currentUniqueId === item?.uniqueId && 'border-2 border-default',
           )}>
           <View className="relative overflow-hidden rounded-xl">
             <CustomImage
               source={typeof item?.image === 'string' ? item.image : (item?.image?.hd ?? '')}
               style={{ width: 160, height: 107 }}
+              // className="pl-1.5"
             />
             <Text className="absolute left-2 bottom-2.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
               {`EP ${(item.number ?? item.episode ?? '').toString()}`}
@@ -394,7 +396,7 @@ export const EpisodeList = ({
         </Card>
       );
     },
-    [ProgressAndAirDate, progresses, pureBlackBackground, swipeable, mediaType],
+    [ProgressAndAirDate, progresses, pureBlackBackground, swipeable, mediaType, currentUniqueId, currentTheme],
   );
 
   const renderTitleOnlyPressableItem = useCallback(

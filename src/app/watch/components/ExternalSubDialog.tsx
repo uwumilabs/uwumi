@@ -22,7 +22,7 @@ interface ExternalSubDialogProps {
   onOpenDialog?: () => void;
 }
 
-const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
+export const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
   ({
     externalSubtitleLanguage,
     setExternalSubtitleLanguage,

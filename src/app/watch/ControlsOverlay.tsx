@@ -19,7 +19,7 @@ import {
 } from '@/components';
 import SkiaSlider from './SkiaSlider';
 import { Button, cn } from 'heroui-native';
-import ExternalSubDialog from './components/ExternalSubDialog';
+import { ExternalSubDialog } from './components';
 
 type SheetSettingsListProps<T> = Pick<
   FlashListProps<T>,

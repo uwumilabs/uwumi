@@ -22,7 +22,7 @@ export default function TabLayout() {
       labelVisibilityMode="labeled">
       <NativeTabs.Trigger name="index">
         <Label>Anime</Label>
-        <Icon drawable="anime_icon" />
+        <Icon androidSrc={require('../../../assets/images/icon.png')} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="manga">
         <Label>Manga</Label>

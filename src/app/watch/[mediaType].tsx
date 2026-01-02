@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ControlsOverlay from './ControlsOverlay';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
 import { ISubtitle } from 'react-native-consumet';
-import { ThemedView, HUYStack, HUXStack, IoniconsIcon, EpisodeList } from '@/components';
+import { ThemedView, HUYStack, EpisodeList } from '@/components';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
@@ -40,8 +40,9 @@ import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import FullscreenModule from '../../../modules/fullscreen-module';
 import { SystemBars, SystemBarsEntry } from 'react-native-edge-to-edge';
 import { SUB_LANGUAGE } from '@/constants/config';
-import { Button, cn } from 'heroui-native';
 import { setVisibilityAsync } from 'expo-navigation-bar';
+import { useProviderSelectionStore } from './components';
+import ProviderSelection from './components/ProviderSelection';
 
 const SeekText = ({ children }: { children: (string | number)[] }) => {
   return <Text className="text-sm font-bold text-white p-2.5 rounded-3xl bg-black/50">{children}</Text>;
@@ -72,7 +73,6 @@ const Watch = () => {
   const { setProgress, getProgress } = useWatchProgressStore();
   const { setProvider, getProvider } = useProviderStore();
   const { setServers, setCurrentServer, currentServer, clearServers } = useServerStore();
-  const [isEmbed, setIsEmbed] = useState<boolean>(true);
   const [serverInitialized, setServerInitialized] = useState(false);
   const { mediaInfo } = useMediaInfoStore();
 
@@ -100,12 +100,12 @@ const Watch = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [seekableDuration, setSeekableDuration] = useState(0);
   const [isVideoReady, setIsVideoReady] = useState(false);
-  const [dub, setDub] = useState(false);
   const [playerDimensions, setPlayerDimensions] = useState({ width: 0, height: 0 });
   const [dimensions, setDimensions] = useState({
     width: Dimensions.get('screen').width,
     height: Dimensions.get('screen').height,
   });
+  const { dub, isEmbed, setDub, setIsEmbed } = useProviderSelectionStore();
   const [wrapperDimensions, setWrapperDimensions] = useState({ width: 0, height: 0 }); // Not actively used
   // console.log({currentEpisodeId , episodeId})
   const animeQuery =
@@ -606,7 +606,7 @@ const Watch = () => {
                 }}
                 style={videoStyle}
                 resizeMode={'contain'}
-                poster={{ source: { uri: poster }, resizeMode: 'contain' }}
+                // poster={{ source: { uri: poster }, resizeMode: 'contain' }}
                 onProgress={handleProgress}
                 paused={!isPlaying}
                 volume={isMuted ? 0 : volume}
@@ -726,24 +726,69 @@ const Watch = () => {
               </Text>
             </>
           )} */}
-            {mediaType === MediaType.ANIME && (
-              <HUYStack className="pt-2 px-2 rounded-2xl">
-                {[{ label: 'Sub', key: 'sub' }, isDubbed === 'true' && { label: 'Dub', key: 'dub' }]
-                  // @ts-ignore
-                  .map(({ label, key }, index) => (
-                    <HUXStack key={`${key}-${index}`} className="items-center justify-between mb-2">
+            {/* {mediaType === MediaType.ANIME && (
+              <Card className="mx-2 rounded-2xl">
+                <Card.Body className="pt-2 px-2">
+                  {[{ label: 'Sub', key: 'sub' }, isDubbed === 'true' && { label: 'Dub', key: 'dub' }]
+                    // @ts-ignore
+                    .map(({ label, key }, index) => (
+                      <HUXStack key={`${key}-${index}`} className="items-center justify-between mb-2">
+                        {key && <Text className="text-foreground font-bold w-12.5">{label}:</Text>}
+                        <HUXStack className="flex-wrap flex-1 gap-1">
+                          {PROVIDERS[mediaType].map(({ name, value, subbed, dubbed }) => {
+                            const isAvailable = key === 'sub' ? subbed : key === 'dub' ? dubbed : false;
+                            const isSelected = getProvider(mediaType) === value && dub === (key === 'dub');
+                            if (!isAvailable) return null;
+                            return (
+                              <Button
+                                key={value}
+                                onPress={() => {
+                                  setDub(key === 'dub');
+                                  setProvider(mediaType, value);
+                                }}
+                                className={cn(
+                                  'w-48/100 grow shrink-0 justify-center bg-accent-soft-foreground',
+                                  isSelected && 'bg-accent',
+                                )}>
+                                <HUXStack className="items-center">
+                                  {isSelected && <IoniconsIcon name="checkmark" className="text-accent-foreground" />}
+                                  <Button.Label>{name}</Button.Label>
+                                </HUXStack>
+                              </Button>
+                            );
+                          })}
+                        </HUXStack>
+                      </HUXStack>
+                    ))}
+                </Card.Body>
+              </Card>
+            )}
+
+            {mediaType === MediaType.MOVIE && (
+              <Card className="mx-2 rounded-2xl">
+                <Card.Body className="pt-2 px-2">
+                  {[
+                    { label: 'Embed', key: 'embed' },
+                    { label: 'Direct', key: 'nonEmbed' },
+                  ].map(({ label, key }) => (
+                    <HUXStack key={key} className="items-center justify-between mb-2">
                       {key && <Text className="text-foreground font-bold w-12.5">{label}:</Text>}
                       <HUXStack className="flex-wrap flex-1 gap-1">
-                        {PROVIDERS[mediaType].map(({ name, value, subbed, dubbed }) => {
-                          const isAvailable = key === 'sub' ? subbed : key === 'dub' ? dubbed : false;
-                          const isSelected = getProvider(mediaType) === value && dub === (key === 'dub');
+                        {PROVIDERS[mediaType].map(({ name, value, embed, nonEmbed }) => {
+                          const isAvailable = key === 'embed' ? embed : key === 'nonEmbed' ? nonEmbed : false;
+                          const isSelected =
+                            getProvider(mediaType) === value &&
+                            ((key === 'embed' && isEmbed) || (key === 'nonEmbed' && !isEmbed));
+                          // console.log('isEmbed:', isEmbed, isSelected);
+
                           if (!isAvailable) return null;
+
                           return (
                             <Button
-                              key={value}
+                              key={`${value}-${key}`}
                               onPress={() => {
-                                setDub(key === 'dub');
                                 setProvider(mediaType, value);
+                                setIsEmbed(key === 'embed');
                               }}
                               className={cn(
                                 'w-48/100 grow shrink-0 justify-center bg-accent-soft-foreground',
@@ -759,50 +804,10 @@ const Watch = () => {
                       </HUXStack>
                     </HUXStack>
                   ))}
-              </HUYStack>
-            )}
-
-            {mediaType === MediaType.MOVIE && (
-              <HUYStack className="pt-2 px-2 rounded-2xl">
-                {[
-                  { label: 'Embed', key: 'embed' },
-                  { label: 'Direct', key: 'nonEmbed' },
-                ].map(({ label, key }) => (
-                  <HUXStack key={key} className="items-center justify-between mb-2">
-                    {key && <Text className="text-foreground font-bold w-12.5">{label}:</Text>}
-                    <HUXStack className="flex-wrap flex-1 gap-1">
-                      {PROVIDERS[mediaType].map(({ name, value, embed, nonEmbed }) => {
-                        const isAvailable = key === 'embed' ? embed : key === 'nonEmbed' ? nonEmbed : false;
-                        const isSelected =
-                          getProvider(mediaType) === value &&
-                          ((key === 'embed' && isEmbed) || (key === 'nonEmbed' && !isEmbed));
-                        // console.log('isEmbed:', isEmbed, isSelected);
-
-                        if (!isAvailable) return null;
-
-                        return (
-                          <Button
-                            key={`${value}-${key}`}
-                            onPress={() => {
-                              setProvider(mediaType, value);
-                              setIsEmbed(key === 'embed');
-                            }}
-                            className={cn(
-                              'w-48/100 grow shrink-0 justify-center bg-accent-soft-foreground',
-                              isSelected && 'bg-accent',
-                            )}>
-                            <HUXStack className="items-center">
-                              {isSelected && <IoniconsIcon name="checkmark" className="text-accent-foreground" />}
-                              <Button.Label>{name}</Button.Label>
-                            </HUXStack>
-                          </Button>
-                        );
-                      })}
-                    </HUXStack>
-                  </HUXStack>
-                ))}
-              </HUYStack>
-            )}
+                </Card.Body>
+              </Card>
+            )} */}
+            <ProviderSelection />
             <View className="flex-1">
               <EpisodeList mediaType={mediaType} provider={provider} id={id} type={type} swipeable={false} />
             </View>
