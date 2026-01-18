@@ -50,15 +50,15 @@ export const SearchBar: React.FC = () => {
             fontWeight: 700,
             // height: 50,
           }}
-          focusable>
-          <TextField.InputEndContent>
-            {searchQuery && (
-              <Button variant="ghost" onPress={handleClear}>
-                <IoniconsIcon name="close" size={20} />
-              </Button>
-            )}
-          </TextField.InputEndContent>
-        </TextField.Input>
+          focusable
+        />
+        <View className="absolute right-3.5 inset-y-0 justify-center">
+          {searchQuery ? (
+            <Button variant="ghost" onPress={handleClear} isIconOnly>
+              <IoniconsIcon name="close" size={20} />
+            </Button>
+          ) : null}
+        </View>
       </TextField>
     </View>
   );

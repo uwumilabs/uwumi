@@ -1,73 +1,47 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-import React, { useEffect, useMemo, useRef, useState, useCallback, ReactNode } from 'react';
-import { ActivityIndicator, Dimensions, StyleProp, Text, View, ViewStyle } from 'react-native'; // Removed Pressable as it's not directly used after changes
-import Video, {
-  ISO639_1,
-  SelectedTrackType,
-  TextTrackType,
-  SelectedVideoTrackType,
-  type VideoRef,
-  VideoTrack,
-  AudioTrack,
-} from 'react-native-video/src';
-import * as ScreenOrientation from 'expo-screen-orientation';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { ActivityIndicator, Dimensions, StyleProp, View, ViewStyle } from 'react-native'; // Removed Pressable as it's not directly used after changes
+import { ISO639_1, TextTrackType, OnLoadData } from 'react-native-video/src';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import ControlsOverlay from './ControlsOverlay';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
-import { ISubtitle } from 'react-native-consumet';
-import { ThemedView, HUYStack, EpisodeList } from '@/components';
+import { ISubtitle, TvType } from 'react-native-consumet';
+import { EpisodeList, HUYStack, ThemedView } from '@/components';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
+import { Gesture } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 import * as Brightness from 'expo-brightness';
 import { VolumeManager } from 'react-native-volume-manager';
 import {
   useEpisodesIdStore,
   useWatchProgressStore,
-  useDoubleTapGesture,
   useWatchAnimeEpisodes,
   useWatchMoviesEpisodes,
   useServerStore,
-  useCurrentTheme,
-  usePureBlackBackground,
   useExternalSubtitles,
   useCustomBackHandler,
   useMediaInfoStore,
 } from '@/hooks';
 import { toast } from 'sonner-native';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
-import FullscreenModule from '../../../modules/fullscreen-module';
-import { SystemBars, SystemBarsEntry } from 'react-native-edge-to-edge';
 import { SUB_LANGUAGE } from '@/constants/config';
-import { setVisibilityAsync } from 'expo-navigation-bar';
 import { useProviderSelectionStore } from './components';
+import { VideoPlayer, DefaultLayout, useVideo, useFullscreen, CustomVideoTrack } from 'react-native-video-toolkit';
 import ProviderSelection from './components/ProviderSelection';
 
-const SeekText = ({ children }: { children: (string | number)[] }) => {
-  return <Text className="text-sm font-bold text-white p-2.5 rounded-3xl bg-black/50">{children}</Text>;
-};
-
-type OverlayedViewProps = {
-  children: ReactNode;
-  style?: StyleProp<ViewStyle>;
-};
-
-const OverlayedView = React.forwardRef<any, OverlayedViewProps>(({ children, style }, ref) => {
-  return (
-    <Animated.View
-      ref={ref}
-      className="absolute top-0 w-1/2 h-full justify-center items-center pointer-events-none z-10 overflow-hidden rounded-full"
-      style={[{ transform: [{ scale: 1.5 }] }, style]}>
-      {children}
-    </Animated.View>
-  );
-});
-OverlayedView.displayName = 'OverlayedView';
-
 const Watch = () => {
-  const { mediaType, provider, id, mediaId, episodeId, uniqueId, isDubbed, poster, type, episodeNumber, seasonNumber } =
-    useLocalSearchParams() as unknown as WatchSearchParams;
+  const {
+    mediaType,
+    provider,
+    id,
+    mediaId,
+    episodeId,
+    uniqueId,
+    isDubbed,
+    title,
+    poster,
+    type,
+    episodeNumber,
+    seasonNumber,
+  } = useLocalSearchParams() as unknown as WatchSearchParams;
   // console.log(useLocalSearchParams(), 'useLocalSearchParams');
   const { top } = useSafeAreaInsets();
   const { setProgress, getProgress } = useWatchProgressStore();
@@ -75,11 +49,12 @@ const Watch = () => {
   const { setServers, setCurrentServer, currentServer, clearServers } = useServerStore();
   const [serverInitialized, setServerInitialized] = useState(false);
   const { mediaInfo } = useMediaInfoStore();
+  const { state: videoState } = useVideo();
+  const { fullscreen, videoRef } = videoState;
+  const { exitFullscreen } = useFullscreen();
 
   const setEpisodeIds = useEpisodesIdStore((state) => state.setEpisodeIds);
   const currentEpisodeId = useEpisodesIdStore((state) => state.currentEpisodeId);
-  const currentTheme = useCurrentTheme();
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
 
   useFocusEffect(
     useCallback(() => {
@@ -92,21 +67,11 @@ const Watch = () => {
     }, [uniqueId, episodeId, setEpisodeIds]),
   );
 
-  const videoRef = useRef<VideoRef>(null);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [seekableDuration, setSeekableDuration] = useState(0);
-  const [isVideoReady, setIsVideoReady] = useState(false);
-  const [playerDimensions, setPlayerDimensions] = useState({ width: 0, height: 0 });
   const [dimensions, setDimensions] = useState({
     width: Dimensions.get('screen').width,
     height: Dimensions.get('screen').height,
   });
   const { dub, isEmbed, setDub, setIsEmbed } = useProviderSelectionStore();
-  const [wrapperDimensions, setWrapperDimensions] = useState({ width: 0, height: 0 }); // Not actively used
   // console.log({currentEpisodeId , episodeId})
   const animeQuery =
     mediaType === MediaType.ANIME
@@ -135,17 +100,6 @@ const Watch = () => {
   // Track the current provider to detect changes
   const currentProvider = getProvider(mediaType);
 
-  /**
-   * keep it for future reference
-   */
-  // const {
-  //   data: serverData,
-  //   isLoading: isServerLoading,
-  //   error: serverError,
-  // } = mediaType === MediaType.MOVIE
-  //   ? useMoviesEpisodesServers({ tmdbId: id, episodeNumber, seasonNumber, type, provider, embed: isEmbed })
-  //   : { data: undefined, isLoading: false, error: null };
-
   useEffect(() => {
     // Reset server initialization when provider/embed changes
     setServerInitialized(false);
@@ -173,16 +127,9 @@ const Watch = () => {
   }, [data, serverInitialized, setCurrentServer, setServers, clearServers, currentServer, currentProvider]);
 
   const [subtitleTracks, setSubtitleTracks] = useState<(SubtitleTrack | ISubtitle)[] | undefined>([]);
-  const [nullSubtitleIndex, setNullSubtitleIndex] = useState<number | undefined>(0);
-  const [selectedSubtitleIndex, setSelectedSubtitleIndex] = useState<number | undefined>(0);
   const [shouldFetchExternalSubs, setShouldFetchExternalSubs] = useState(false);
   const [externalSubtitleLanguage, setExternalSubtitleLanguage] = useState<string | null>(null);
-  const [videoTracks, setVideoTracks] = useState<VideoTrack[]>();
-  const [selectedVideoTrackIndex, setSelectedVideoTrackIndex] = useState<number | undefined>(0);
-  const [nullAudioTrackIndex, setNullAudioTrackIndex] = useState<number | undefined>(0);
-  const [audioTracks, setAudioTracks] = useState<AudioTrack[]>();
-  const [selectedAudioTrackIndex, setSelectedAudioTrackIndex] = useState<number | undefined>(0);
-  const [isBuffering, setIsBuffering] = useState(false);
+  const [videoTracks, setVideoTracks] = useState<CustomVideoTrack[]>();
   const [brightness, setBrightness] = useState(1);
   const [volume, setVolume] = useState(1);
   const [systemVolume, setSystemVolume] = useState(1);
@@ -204,85 +151,14 @@ const Watch = () => {
   });
   // console.log('externalSubtitles', externalSubtitles, isExternalSubtitlesLoading, isExternalSubtitlesError);
 
-  useCustomBackHandler(isFullscreen, () => {
+  useCustomBackHandler(fullscreen, () => {
     // If in fullscreen, exit fullscreen instead of going back
-    if (isFullscreen) {
+    if (fullscreen) {
       exitFullscreen();
       return true;
     }
     return false;
   });
-
-  const systemBarsStackEntry = useRef<SystemBarsEntry | null>(null);
-
-  /**
-   * systemBarsStackEntry is used to manage the system bars state due to the edge-to-edge support.
-   */
-
-  useEffect(() => {
-    // Set initial SystemBars state for normal mode
-    systemBarsStackEntry.current = SystemBars.pushStackEntry({
-      style: 'auto',
-      hidden: false,
-    });
-
-    const subscription = Dimensions.addEventListener('change', ({ screen }) => {
-      setDimensions({ width: screen.width, height: screen.height });
-    });
-
-    return () => {
-      subscription?.remove();
-      if (systemBarsStackEntry.current) {
-        SystemBars.popStackEntry(systemBarsStackEntry.current);
-        systemBarsStackEntry.current = null;
-      }
-      Promise.all([
-        setVisibilityAsync('visible'),
-        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP),
-        FullscreenModule.exitFullscreen(),
-      ]).catch((err) => console.error('Cleanup failed:', err));
-    };
-  }, [pureBlackBackground, currentTheme]);
-
-  const enterFullscreen = useCallback(async () => {
-    try {
-      setIsFullscreen(true);
-      if (systemBarsStackEntry.current) {
-        systemBarsStackEntry.current = SystemBars.replaceStackEntry(systemBarsStackEntry.current, {
-          style: 'dark',
-          hidden: true,
-        });
-      }
-      setVisibilityAsync('hidden');
-      await Promise.all([
-        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE),
-        FullscreenModule.enterFullscreen(),
-      ]);
-    } catch (err) {
-      console.error('Failed to enter fullscreen:', err);
-      setIsFullscreen(false);
-    }
-  }, []);
-
-  const exitFullscreen = useCallback(async () => {
-    try {
-      setIsFullscreen(false);
-      if (systemBarsStackEntry.current) {
-        systemBarsStackEntry.current = SystemBars.replaceStackEntry(systemBarsStackEntry.current, {
-          style: 'auto',
-          hidden: false,
-        });
-      }
-
-      await Promise.all([
-        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP),
-        FullscreenModule.exitFullscreen(),
-      ]);
-    } catch (err) {
-      console.error('Failed to exit fullscreen:', err);
-      setIsFullscreen(true);
-    }
-  }, [pureBlackBackground, currentTheme]);
 
   const lastProgressUpdateRef = useRef({ currentTime: 0, seekableDuration: 0 });
 
@@ -290,13 +166,12 @@ const Watch = () => {
     ({ currentTime: newTime, seekableDuration: newDuration }: { currentTime: number; seekableDuration: number }) => {
       // Only update state if the time has changed by at least 0.5 seconds to prevent excessive re-renders
       const lastUpdate = lastProgressUpdateRef.current;
-
       if (Math.abs(newTime - lastUpdate.currentTime) >= 0.5) {
-        setCurrentTime(newTime);
+        // setCurrentTime(newTime);
         lastUpdate.currentTime = newTime;
       }
       if (Math.abs(newDuration - lastUpdate.seekableDuration) >= 0.5) {
-        setSeekableDuration(newDuration);
+        // setSeekableDuration(newDuration);
         lastUpdate.seekableDuration = newDuration;
       }
 
@@ -313,40 +188,8 @@ const Watch = () => {
         }
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [uniqueId],
   );
-
-  const handlePlayPress = useCallback(() => {
-    if (isPlaying) {
-      setIsPlaying(false);
-    } else {
-      setIsPlaying(true);
-    }
-  }, [isPlaying]);
-
-  const handleMutePress = useCallback(() => {
-    setIsMuted((prev) => !prev);
-  }, []);
-
-  const handleSeek = useCallback((value: number) => {
-    videoRef.current?.seek(value);
-    setCurrentTime(value);
-  }, []);
-
-  const {
-    doubleTapGesture,
-    doubleTapValue,
-    backwardRippleRef,
-    forwardRippleRef,
-    backwardAnimatedRipple,
-    forwardAnimatedRipple,
-  } = useDoubleTapGesture({
-    videoRef,
-    seekInterval: 10,
-    onSeekStart: () => console.log('Seek started'),
-    onSeekEnd: () => console.log('Seek ended'),
-  });
 
   useEffect(() => {
     const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
@@ -438,39 +281,24 @@ const Watch = () => {
   //   [dimensions.width, seekableDuration, currentTime, handleSeek],
   // );
 
-  const toggleControls = useCallback(() => {
-    setShowControls((isShowControls) => !isShowControls);
-  }, []);
-
-  const singleTapGesture = useMemo(
-    () =>
-      Gesture.Tap()
-        .maxDuration(250)
-        .numberOfTaps(1)
-        .onEnd(() => {
-          'worklet';
-          scheduleOnRN(toggleControls);
-        }),
-    [toggleControls],
-  );
   const videoStyle = useMemo<StyleProp<ViewStyle>>(
     () => ({
-      width: isFullscreen ? dimensions.width : '100%',
-      height: isFullscreen ? dimensions.height : undefined,
-      aspectRatio: isFullscreen ? undefined : 16 / 9,
+      width: dimensions.width,
+      height: fullscreen ? dimensions.height : undefined,
+      aspectRatio: 16 / 9,
       backgroundColor: 'black',
       position: 'absolute' as const,
       top: 0,
       left: 0,
       right: 0,
     }),
-    [isFullscreen, dimensions],
+    [fullscreen, dimensions],
   );
 
   const source = useMemo(() => {
     // Build video quality tracks from data.sources
     if (data?.sources && data.sources.length > 0) {
-      const tracks: VideoTrack[] = [];
+      const tracks: CustomVideoTrack[] = [];
       data.sources.forEach((track, index) => {
         if (track?.url) {
           // Extract height from quality string (e.g., "1080p" -> 1080)
@@ -480,25 +308,30 @@ const Watch = () => {
           const height = match ? Number(match[1]) : qualityStr === 'auto' || qualityStr === 'default' ? 9999 : 0;
 
           tracks.push({
-            width: undefined,
-            height,
             index,
-          });
+            height,
+            label: qualityStr === 'auto' || qualityStr === 'default' ? 'Auto' : qualityStr.toUpperCase(),
+            uri: track.url,
+          } as CustomVideoTrack);
         }
       });
-      setVideoTracks(tracks.sort((a, b) => (b.height || 0) - (a.height || 0)));
+      const sortedTracks = tracks.sort((a, b) => (b.height || 0) - (a.height || 0));
+      sortedTracks.forEach((track, idx) => {
+        (track as CustomVideoTrack & { index: number }).index = idx;
+      });
+      setVideoTracks(sortedTracks);
     }
 
     // Return the selected quality URL or default to 'auto' or first available
     return (
-      data?.sources?.[selectedVideoTrackIndex ?? 0]?.url ||
+      data?.sources?.[0]?.url ||
       data?.sources?.find((s) => s.quality === 'auto' || s.quality === 'default')?.url ||
       data?.sources?.[0]?.url ||
       ''
     );
-  }, [data, selectedVideoTrackIndex]);
+  }, [data]);
 
-  const gestures = Gesture.Exclusive(doubleTapGesture, brightnessVolumeGesture, singleTapGesture);
+  // const gestures = Gesture.Exclusive(doubleTapGesture, brightnessVolumeGesture, singleTapGesture);
 
   useEffect(() => {
     if (data?.subtitles && data?.subtitles?.length > 0) {
@@ -538,7 +371,7 @@ const Watch = () => {
   }, [getProvider(mediaType)]);
 
   useEffect(() => {
-    if (!isLoading && !source && isVideoReady) {
+    if (!isLoading && !source) {
       toast.error('No video source found', { description: 'Please try changing servers or quality.' });
     }
     if (!isLoading && error) {
@@ -551,7 +384,7 @@ const Watch = () => {
         description: 'Please try changing the subtitle language or check your internet connection.',
       });
     }
-  }, [source, isLoading, error, isVideoReady, isExternalSubtitlesError]);
+  }, [source, isLoading, error, isExternalSubtitlesError]);
 
   if (isLoading) {
     return (
@@ -563,257 +396,84 @@ const Watch = () => {
 
   return (
     <ThemedView
-      useSafeArea
-      useStatusBar={!isFullscreen}
-      style={{ flex: 1, backgroundColor: pureBlackBackground ? '#000' : currentTheme?.background }}>
-      <View className="h-full" style={{ top: top }}>
-        <GestureDetector gesture={gestures}>
-          <View
-            // This View is the main container for the video player and overlays
-            // It should define the aspect ratio or take full screen dimensions
-            className="overflow-hidden aspect-video"
-            style={{ backgroundColor: 'black', pointerEvents: 'box-none' }}>
-            <View
-              style={{ height: playerDimensions.height, position: 'relative' }}
-              // style={{height:"100%", position: 'relative' }} //keep for future ref
-              onLayout={(e) => {
-                setWrapperDimensions({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height });
-              }}>
-              <Video
-                ref={videoRef}
-                source={{
-                  uri: source,
-                  textTracks: subtitleTracks?.map((track, index) => ({
-                    title:
-                      ('title' in track ? track.title : undefined) ||
-                      ('lang' in track ? track.lang : track.language) ||
-                      'Untitled',
-                    language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
-                    type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : TextTrackType.VTT,
-                    uri: ('url' in track ? track.url : track.uri) || '',
-                    index,
-                  })),
-                  textTracksAllowChunklessPreparation: false,
-                  bufferConfig: {
-                    minBufferMs: 85000, // 85s minimum buffer (VLC-like for smooth seeking)
-                    maxBufferMs: 120000, // 120s maximum buffer (prevents excessive memory usage)
-                    bufferForPlaybackMs: 2500, // 2.5s initial buffer before playback starts
-                    bufferForPlaybackAfterRebufferMs: 5000, // 5s buffer after rebuffering for stability
-                    backBufferDurationMs: 120000, // Keep 120s of back buffer for smooth seeking backwards
-                    maxHeapAllocationPercent: 0.25, // Use max 25% of heap for buffering
-                    cacheSizeMB: 512, // 512MB cache size for better performance
-                  },
-                }}
-                style={videoStyle}
-                resizeMode={'contain'}
-                // poster={{ source: { uri: poster }, resizeMode: 'contain' }}
-                onProgress={handleProgress}
-                paused={!isPlaying}
-                volume={isMuted ? 0 : volume}
-                // onPlaybackStateChanged={handlePlaybackStateChange}
-                onLayout={(e) => {
-                  setPlayerDimensions({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height });
-                }}
-                onBuffer={({ isBuffering }) => setIsBuffering(isBuffering)}
-                reportBandwidth={true}
-                automaticallyWaitsToMinimizeStalling={true}
-                preventsDisplaySleepDuringVideoPlayback={true}
-                allowsExternalPlayback={true}
-                mixWithOthers={'mix'}
-                onError={(error) => {
-                  toast.error('Video Error', { description: 'Try changing servers' });
-                  //console.log('Video Error:', error);
-                }}
-                onLoad={(value) => {
-                  // console.log(getProgress(uniqueId)?.currentTime, 'Video loaded:', value);
-                  setIsVideoReady(true);
-                  // to find how much of the textTracks have null language and title
-                  const nullTextTrackCount =
-                    value.textTracks?.filter((track) => !track.language || !track.title).length || 0;
-                  const nullAudioTrackCount =
-                    value.audioTracks?.filter((track) => !track.language || !track.title).length || 0;
-                  const uniqueAudioTrack = value.audioTracks.slice(nullAudioTrackCount)?.reduce((acc, track) => {
-                    const exists = acc.some(
-                      (existingTrack) =>
-                        existingTrack.language === track.language && existingTrack.title === track.title,
-                    );
-                    if (!exists) {
-                      acc.push(track);
-                    }
-                    return acc;
-                  }, [] as AudioTrack[]);
-                  setNullSubtitleIndex(nullTextTrackCount);
-                  // console.log('nullTextTrackCount:', nullTextTrackCount);
-                  setNullAudioTrackIndex(nullAudioTrackCount);
-                  // console.log('nullAudioTrackCount:', nullAudioTrackCount, uniqueAudioTrack);
-                  setAudioTracks(uniqueAudioTrack);
-                  videoRef?.current?.seek(getProgress(uniqueId)?.currentTime || 0);
-                  // videoRef?.current?.resume();
-                  setIsPlaying(true);
-                  // console.log("selected text tracks index is: ",(selectedSubtitleIndex ?? 0) + nullSubtitleIndex!)
-                }}
-                selectedVideoTrack={{ type: SelectedVideoTrackType.INDEX, value: selectedVideoTrackIndex ?? 0 }}
-                selectedTextTrack={{
-                  type: SelectedTrackType.INDEX,
-                  value: (selectedSubtitleIndex ?? 0) + nullSubtitleIndex!,
-                }}
-                selectedAudioTrack={
-                  audioTracks && audioTracks.length > 0
-                    ? {
-                        type: SelectedTrackType.INDEX,
-                        value: (selectedAudioTrackIndex ?? 0) + nullAudioTrackIndex!,
-                      }
-                    : undefined
-                }
-                // onVideoTracks={(tracks) => {
-                //   console.log('Video Tracks:', tracks);
-                // }}
-                // onTextTracks={(tracks) => {
-                //   console.log('Text Tracks:', tracks);
-                // }}
-                subtitleStyle={{ paddingBottom: 50, fontSize: 20, opacity: 0.8 }}
-              />
+      useStatusBar={false}
+      onLayout={(e) => {
+        setDimensions({
+          width: e.nativeEvent.layout.width,
+          height: e.nativeEvent.layout.height,
+        });
+      }}
+      style={{
+        top: 0,
+      }}>
+      <VideoPlayer
+        onLayout={(e) => {
+          setDimensions({
+            width: e.nativeEvent.layout.width,
+            height: e.nativeEvent.layout.height,
+          });
+        }}
+        videoProps={{
+          resizeMode: 'contain',
+          poster: { source: { uri: poster }, resizeMode: 'contain' },
+          onProgress: handleProgress,
+          reportBandwidth: true,
+          automaticallyWaitsToMinimizeStalling: true,
+          preventsDisplaySleepDuringVideoPlayback: true,
+          allowsEaxternalPlayback: true,
+          mixWithOthers: 'mix',
+          onError: () => {
+            toast.error('Video Error', { description: 'Try changing servers' });
+            //console.log('Video Error:', error);
+          },
+          onLoad: (value: OnLoadData) => {
+            console.log('Video loaded:', value);
 
-              <ControlsOverlay
-                showControls={showControls}
-                isPlaying={isPlaying}
-                isMuted={isMuted}
-                isFullscreen={isFullscreen}
-                currentTime={currentTime}
-                seekableDuration={seekableDuration}
-                isBuffering={isBuffering}
-                subtitleTracks={subtitleTracks}
-                selectedSubtitleIndex={selectedSubtitleIndex}
-                setSelectedSubtitleIndex={setSelectedSubtitleIndex}
-                isExternalSubtitlesLoading={isExternalSubtitlesLoading}
-                setShouldFetchExternalSubs={setShouldFetchExternalSubs}
-                externalSubtitleLanguage={externalSubtitleLanguage}
-                setExternalSubtitleLanguage={setExternalSubtitleLanguage}
-                videoTracks={videoTracks}
-                selectedVideoTrackIndex={selectedVideoTrackIndex}
-                setSelectedVideoTrackIndex={setSelectedVideoTrackIndex}
-                audioTracks={audioTracks}
-                selectedAudioTrackIndex={selectedAudioTrackIndex}
-                setSelectedAudioTrackIndex={setSelectedAudioTrackIndex}
-                onPlayPress={handlePlayPress}
-                onMutePress={handleMutePress}
-                onFullscreenPress={isFullscreen ? exitFullscreen : enterFullscreen}
-                onSeek={handleSeek}
-                brightness={brightness}
-                volume={volume}
-                setBrightness={updateBrightness}
-                setVolume={updateVolume}
-              />
-              <OverlayedView ref={backwardRippleRef} style={{ left: '-15%' }}>
-                <Animated.View style={[backwardAnimatedRipple]}>
-                  <SeekText>-{doubleTapValue.backward}s</SeekText>
-                </Animated.View>
-              </OverlayedView>
-              <OverlayedView ref={forwardRippleRef} style={{ right: '-15%' }}>
-                <Animated.View style={[forwardAnimatedRipple]}>
-                  <SeekText>+{doubleTapValue.forward}s</SeekText>
-                </Animated.View>
-              </OverlayedView>
-            </View>
+            videoRef?.current?.seek(getProgress(uniqueId)?.currentTime || 0);
+          },
+
+          subtitleStyle: { paddingBottom: 50, fontSize: 20, opacity: 0.8 },
+        }}
+        videoStyle={videoStyle}
+        customVideoTracks={videoTracks}
+        source={{
+          uri: source,
+          textTracks: subtitleTracks?.map((track, index) => ({
+            title:
+              ('title' in track ? track.title : undefined) ||
+              ('lang' in track ? track.lang : track.language) ||
+              'Untitled',
+            language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
+            type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : TextTrackType.VTT,
+            uri: ('url' in track ? track.url : track.uri) || '',
+            index,
+          })),
+          textTracksAllowChunklessPreparation: false,
+          bufferConfig: {
+            minBufferMs: 85000, // 85s minimum buffer (VLC-like for smooth seeking)
+            maxBufferMs: 120000, // 120s maximum buffer (prevents excessive memory usage)
+            bufferForPlaybackMs: 2500, // 2.5s initial buffer before playback starts
+            bufferForPlaybackAfterRebufferMs: 5000, // 5s buffer after rebuffering for stability
+            backBufferDurationMs: 120000, // Keep 120s of back buffer for smooth seeking backwards
+            maxHeapAllocationPercent: 0.25, // Use max 25% of heap for buffering
+            cacheSizeMB: 512, // 512MB cache size for better performance
+          },
+        }}>
+        <DefaultLayout
+          title={title}
+          subtitle={
+            type !== TvType.MOVIE ? `${seasonNumber ? `Season ${seasonNumber}` : ''} Episode ${episodeNumber}` : ''
+          }
+        />
+      </VideoPlayer>
+      {!fullscreen && (
+        <HUYStack className="flex-1 gap-2">
+          <ProviderSelection />
+          <View className="flex-1">
+            <EpisodeList mediaType={mediaType} provider={provider} id={id} type={type} swipeable={false} />
           </View>
-        </GestureDetector>
-        {!isFullscreen && (
-          <HUYStack className="flex-1 gap-2">
-            {/* {description && (
-            <>
-              <Text textAlign="justify" padding="$2">
-                {description}
-              </Text>
-            </>
-          )} */}
-            {/* {mediaType === MediaType.ANIME && (
-              <Card className="mx-2 rounded-2xl">
-                <Card.Body className="pt-2 px-2">
-                  {[{ label: 'Sub', key: 'sub' }, isDubbed === 'true' && { label: 'Dub', key: 'dub' }]
-                    // @ts-ignore
-                    .map(({ label, key }, index) => (
-                      <HUXStack key={`${key}-${index}`} className="items-center justify-between mb-2">
-                        {key && <Text className="text-foreground font-bold w-12.5">{label}:</Text>}
-                        <HUXStack className="flex-wrap flex-1 gap-1">
-                          {PROVIDERS[mediaType].map(({ name, value, subbed, dubbed }) => {
-                            const isAvailable = key === 'sub' ? subbed : key === 'dub' ? dubbed : false;
-                            const isSelected = getProvider(mediaType) === value && dub === (key === 'dub');
-                            if (!isAvailable) return null;
-                            return (
-                              <Button
-                                key={value}
-                                onPress={() => {
-                                  setDub(key === 'dub');
-                                  setProvider(mediaType, value);
-                                }}
-                                className={cn(
-                                  'w-48/100 grow shrink-0 justify-center bg-accent-soft-foreground',
-                                  isSelected && 'bg-accent',
-                                )}>
-                                <HUXStack className="items-center">
-                                  {isSelected && <IoniconsIcon name="checkmark" className="text-accent-foreground" />}
-                                  <Button.Label>{name}</Button.Label>
-                                </HUXStack>
-                              </Button>
-                            );
-                          })}
-                        </HUXStack>
-                      </HUXStack>
-                    ))}
-                </Card.Body>
-              </Card>
-            )}
-
-            {mediaType === MediaType.MOVIE && (
-              <Card className="mx-2 rounded-2xl">
-                <Card.Body className="pt-2 px-2">
-                  {[
-                    { label: 'Embed', key: 'embed' },
-                    { label: 'Direct', key: 'nonEmbed' },
-                  ].map(({ label, key }) => (
-                    <HUXStack key={key} className="items-center justify-between mb-2">
-                      {key && <Text className="text-foreground font-bold w-12.5">{label}:</Text>}
-                      <HUXStack className="flex-wrap flex-1 gap-1">
-                        {PROVIDERS[mediaType].map(({ name, value, embed, nonEmbed }) => {
-                          const isAvailable = key === 'embed' ? embed : key === 'nonEmbed' ? nonEmbed : false;
-                          const isSelected =
-                            getProvider(mediaType) === value &&
-                            ((key === 'embed' && isEmbed) || (key === 'nonEmbed' && !isEmbed));
-                          // console.log('isEmbed:', isEmbed, isSelected);
-
-                          if (!isAvailable) return null;
-
-                          return (
-                            <Button
-                              key={`${value}-${key}`}
-                              onPress={() => {
-                                setProvider(mediaType, value);
-                                setIsEmbed(key === 'embed');
-                              }}
-                              className={cn(
-                                'w-48/100 grow shrink-0 justify-center bg-accent-soft-foreground',
-                                isSelected && 'bg-accent',
-                              )}>
-                              <HUXStack className="items-center">
-                                {isSelected && <IoniconsIcon name="checkmark" className="text-accent-foreground" />}
-                                <Button.Label>{name}</Button.Label>
-                              </HUXStack>
-                            </Button>
-                          );
-                        })}
-                      </HUXStack>
-                    </HUXStack>
-                  ))}
-                </Card.Body>
-              </Card>
-            )} */}
-            <ProviderSelection />
-            <View className="flex-1">
-              <EpisodeList mediaType={mediaType} provider={provider} id={id} type={type} swipeable={false} />
-            </View>
-          </HUYStack>
-        )}
-      </View>
+        </HUYStack>
+      )}
     </ThemedView>
   );
 };

@@ -133,24 +133,26 @@ export const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
                 <Select.Close />
               </View>
               <TextField>
+                <View className="absolute z-10 left-3.5 inset-y-0 justify-center">
+                  <IoniconsIcon name="search" size={16} color={theme.foreground} />
+                </View>
                 <TextField.Input
                   ref={inputRef}
                   placeholder="Search languages..."
-                  value={searchQuery}
+                  // value={searchQuery}
                   autoCorrect={false}
                   autoCapitalize="none"
                   autoComplete="off"
                   placeholderTextColor={theme.divider}
-                  onChangeText={setSearchQuery}>
-                  <TextField.InputStartContent>
-                    <IoniconsIcon name="search" size={18} color={theme.foreground} />
-                  </TextField.InputStartContent>
-                  <TextField.InputEndContent>
-                    {searchQuery ? (
-                      <IoniconsIcon name="close" size={16} color={theme.foreground} onPress={handleClearSearch} />
-                    ) : null}
-                  </TextField.InputEndContent>
-                </TextField.Input>
+                  onChangeText={setSearchQuery}
+                  style={{ paddingHorizontal: 32 }}
+                />
+
+                <View className="absolute right-3.5 inset-y-0 justify-center">
+                  {searchQuery ? (
+                    <IoniconsIcon name="close" size={16} color={theme.foreground} onPress={handleClearSearch} />
+                  ) : null}
+                </View>
               </TextField>
 
               <ScrollShadow

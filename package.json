@@ -98,6 +98,7 @@
     "react-native-screens": "^4.19.0",
     "react-native-svg": "15.12.1",
     "react-native-video": "github:pigeonmal/react-native-video#ajami1.4.1",
+    "react-native-video-toolkit": "^0.6.0",
     "react-native-volume-manager": "^2.0.8",
     "react-native-web": "^0.21.0",
     "react-native-webview": "13.15.0",

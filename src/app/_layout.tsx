@@ -13,7 +13,6 @@ import {
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useThemeStore, useUpdateChecker } from '@/hooks';
 import * as WebBrowser from 'expo-web-browser';
-import { SystemBars } from 'react-native-edge-to-edge';
 import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import StoragePermissionModule from '../../modules/storage-permission-module';
@@ -24,6 +23,7 @@ import { useUniwind } from 'uniwind';
 import { CustomSheetProvider } from '@/components';
 import { IoniconsIcon } from '@/components';
 import { themes } from '@/themes/theme';
+import { VideoProvider } from 'react-native-video-toolkit';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -211,13 +211,15 @@ const AppContent = () => {
         )}
       </HeroUINativeProvider>
       <Toaster position="bottom-center" invert autoWiggleOnUpdate="always" richColors swipeToDismissDirection="left" />
-      <SystemBars hidden={false} />
     </>
   );
 };
 
 export default function RootLayout() {
-  LogBox.ignoreLogs(['StatusBar backgroundColor is not supported with edge-to-edge enabled']);
+  LogBox.ignoreLogs([
+    'StatusBar backgroundColor is not supported with edge-to-edge enabled',
+    'HeroUI Native Styling Principles',
+  ]);
 
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -236,7 +238,12 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <QueryClientProvider client={queryClient}>
-          <AppContent />
+          <VideoProvider
+            config={{
+              useCustomVideoTracks: true,
+            }}>
+            <AppContent />
+          </VideoProvider>
         </QueryClientProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>

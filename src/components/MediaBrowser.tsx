@@ -7,6 +7,7 @@ import { useCurrentTheme, useTabsStore } from '@/hooks';
 import { IconTitle, HUYStack, IoniconProps } from '@/components';
 import SearchBar from '@/components/SearchBar';
 import { MediaFeedType, MediaType } from '@/constants/types';
+import Animated, { Easing, FadeInUp, FadeOutUp } from 'react-native-reanimated';
 
 interface MediaBrowserProps {
   mediaType: MediaType;
@@ -81,7 +82,13 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
 
   return (
     <HUYStack className="gap-2">
-      <SearchBar />
+      {currentTab === 'tab3' && (
+        <Animated.View
+          entering={FadeInUp.duration(300).easing(Easing.inOut(Easing.quad))}
+          exiting={FadeOutUp.duration(300).easing(Easing.inOut(Easing.quad))}>
+          <SearchBar />
+        </Animated.View>
+      )}
       <Tabs value={currentTab} onValueChange={handleTabChange} variant="pill">
         {TabList}
         {tabsContent}

@@ -11,6 +11,7 @@ import { StatusBar, StatusBarProps } from 'expo-status-bar';
 import { Link } from 'expo-router';
 import { cn, PressableFeedback, PressableFeedbackProps } from 'heroui-native';
 import { IoniconProps, IoniconsIcon } from './Icons';
+import { SystemBars } from 'react-native-edge-to-edge';
 
 /* ============================================
  * IconTitle - Icon with text label
@@ -120,6 +121,8 @@ export function ThemedView({
   useSafeArea = false, // because of edge-to-edge we won't be using safe area insets
   useStatusBar = true,
   statusBarProps,
+  style,
+  ...props
 }: ThemedViewProps) {
   const isDark = useThemeStore((state) => state.isDark);
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
@@ -129,11 +132,15 @@ export function ThemedView({
   return (
     <>
       <View
-        style={{
-          paddingTop: useSafeArea ? 0 : insets.top,
-          backgroundColor: pureBlackBackground ? '#000' : currentTheme?.background,
-        }}
-        className="flex-1">
+        style={[
+          {
+            paddingTop: useSafeArea ? 0 : insets.top,
+            backgroundColor: pureBlackBackground ? '#000' : currentTheme?.background,
+          },
+          style,
+        ]}
+        className="flex-1"
+        {...props}>
         {children}
       </View>
 
@@ -145,6 +152,7 @@ export function ThemedView({
         backgroundColor={pureBlackBackground ? '#000' : currentTheme?.background}
         {...statusBarProps}
       />
+      <SystemBars hidden={!useStatusBar} />
     </>
   );
 }

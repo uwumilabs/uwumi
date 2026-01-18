@@ -42,7 +42,7 @@ export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
     useImperativeHandle(ref, () => ({ present, dismiss }), [present, dismiss]);
 
     return (
-      <BottomSheet isOpen={open} onOpenChange={onOpenChange} closeDelay={300}>
+      <BottomSheet isOpen={open} onOpenChange={onOpenChange}>
         <BottomSheet.Portal>
           <BottomSheet.Overlay />
           <BottomSheet.Content

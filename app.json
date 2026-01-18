@@ -69,16 +69,8 @@
         }
       ],
       "expo-web-browser",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/notification.png",
-          "color": "#000",
-          "defaultChannel": "default",
-          "enableBackgroundRemoteNotifications": false
-        }
-      ],
-      "expo-navigation-bar"
+      "expo-navigation-bar",
+      "react-native-orientation-director"
     ],
     "experiments": {
       "typedRoutes": true,
