@@ -42,9 +42,7 @@
     },
     "plugins": {
       "@release-it/conventional-changelog": {
-        "preset": {
-          "name": "conventionalcommits"
-        },
+        "preset": "conventionalcommits",
         "infile": "CHANGELOG.md"
       }
     }
@@ -116,7 +114,7 @@
     "@commitlint/config-conventional": "^19.7.1",
     "@react-native-community/cli": "latest",
     "@react-native/metro-config": "^0.81.1",
-    "@release-it/conventional-changelog": "^10.0.0",
+    "@release-it/conventional-changelog": "^9.0.2",
     "@tanstack/eslint-plugin-query": "^5.60.1",
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.14",
@@ -137,7 +135,7 @@
     "lint-staged": "^15.4.3",
     "prettier": "^3.4.2",
     "react-test-renderer": "19.1.0",
-    "release-it": "^18.1.2",
+    "release-it": "^19.2.3",
     "typescript": "~5.9.2"
   },
   "private": true,
