@@ -46,10 +46,10 @@ export const CustomSelect = ({
         <Button>
           {selectedOption ? (
             <View className="flex-row items-center gap-2">
-              <Text className="text-base">{selectedOption.label}</Text>
+              <Button.Label>{selectedOption.label}</Button.Label>
             </View>
           ) : (
-            <Text className="text-foreground">{SelectLabel}</Text>
+            <Button.Label className="text-foreground">{SelectLabel}</Button.Label>
           )}
           <IoniconsIcon name="chevron-down" size={20} className="text-accent-foreground" />
         </Button>

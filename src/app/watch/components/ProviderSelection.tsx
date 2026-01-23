@@ -26,24 +26,28 @@ const ProviderSelection = () => {
   const { setProvider, getProvider } = useProviderStore();
   const { dub, isEmbed, setDub, setIsEmbed } = useProviderSelectionStore();
   const { mediaType, isDubbed } = useLocalSearchParams() as unknown as WatchSearchParams;
+  // const mediaType = MediaType.ANIME; // for testing
+  // const isDubbed = dub ? 'true' : 'false'; // for testing
   const pureBlackBackground = usePureBlackBackground();
   return (
     <View>
       <Dialog>
-        <Dialog.Trigger>
+        <Dialog.Trigger asChild>
           <Button variant="secondary">Provider Selection</Button>
         </Dialog.Trigger>
         <Dialog.Portal>
           <Dialog.Overlay />
-          <Dialog.Content>
-            <Dialog.Close>
-              <IoniconsIcon name="close" />
-            </Dialog.Close>
-            <Dialog.Title>Provider Selection</Dialog.Title>
-            {mediaType === MediaType.ANIME && (
-              <Card className={cn('mx-2 rounded-2xl', pureBlackBackground && 'bg-black')}>
-                <Card.Body className="pt-2 px-2">
-                  {[{ label: 'Sub', key: 'sub' }, isDubbed === 'true' && { label: 'Dub', key: 'dub' }]
+          <Dialog.Content className={cn(pureBlackBackground && 'bg-black', 'px-0')}>
+            <HUXStack className="items-center justify-between px-4">
+              <Dialog.Title>Provider Selection</Dialog.Title>
+              <Dialog.Close>
+                <IoniconsIcon name="close" />
+              </Dialog.Close>
+            </HUXStack>
+            <Card className={cn(pureBlackBackground && 'bg-black')}>
+              <Card.Body className="pt-2 px-0">
+                {mediaType === MediaType.ANIME &&
+                  [{ label: 'Sub', key: 'sub' }, isDubbed === 'true' && { label: 'Dub', key: 'dub' }]
                     // @ts-ignore
                     .map(({ label, key }, index) => (
                       <HUXStack key={`${key}-${index}`} className="items-center justify-between mb-2">
@@ -74,14 +78,8 @@ const ProviderSelection = () => {
                         </HUXStack>
                       </HUXStack>
                     ))}
-                </Card.Body>
-              </Card>
-            )}
-
-            {mediaType === MediaType.MOVIE && (
-              <Card className="mx-2 rounded-2xl">
-                <Card.Body className="pt-2 px-2">
-                  {[
+                {mediaType === MediaType.MOVIE &&
+                  [
                     { label: 'Embed', key: 'embed' },
                     { label: 'Direct', key: 'nonEmbed' },
                   ].map(({ label, key }) => (
@@ -118,9 +116,8 @@ const ProviderSelection = () => {
                       </HUXStack>
                     </HUXStack>
                   ))}
-                </Card.Body>
-              </Card>
-            )}
+              </Card.Body>
+            </Card>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog>

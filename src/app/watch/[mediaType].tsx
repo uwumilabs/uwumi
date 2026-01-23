@@ -26,6 +26,7 @@ import { SUB_LANGUAGE } from '@/constants/config';
 import { useProviderSelectionStore } from './components';
 import { VideoPlayer, DefaultLayout, useVideo, useFullscreen, CustomVideoTrack } from 'react-native-video-toolkit';
 import ProviderSelection from './components/ProviderSelection';
+import { Button } from 'heroui-native';
 
 const Watch = () => {
   const {
@@ -346,14 +347,18 @@ const Watch = () => {
     // console.log(
     //   subtitleTracks,
     //   'subtitleTracks',
-    //   subtitleTracks?.map((track, index) => ({
-    //     title:
-    //       ('title' in track ? track.title : undefined) || ('lang' in track ? track.lang : track.language) || 'Untitled',
-    //     language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
-    //     type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : TextTrackType.VTT,
-    //     uri: ('url' in track ? track.url : track.uri) || '',
-    //     index,
-    //   })),
+    //   subtitleTracks
+    //     ?.filter((track) => track.kind !== 'thumbnails' && track.lang !== 'thumbnails')
+    //     .map((track, index) => ({
+    //       title:
+    //         ('title' in track ? track.title : undefined) ||
+    //         ('lang' in track ? track.lang : track.language) ||
+    //         'Untitled',
+    //       language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
+    //       type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : TextTrackType.VTT,
+    //       uri: ('url' in track ? track.url : track.uri) || '',
+    //       index,
+    //     })),
     // );
   }, [data?.subtitles, externalSubtitles]);
 
@@ -407,12 +412,6 @@ const Watch = () => {
         top: 0,
       }}>
       <VideoPlayer
-        onLayout={(e) => {
-          setDimensions({
-            width: e.nativeEvent.layout.width,
-            height: e.nativeEvent.layout.height,
-          });
-        }}
         videoProps={{
           resizeMode: 'contain',
           poster: { source: { uri: poster }, resizeMode: 'contain' },
@@ -427,27 +426,30 @@ const Watch = () => {
             //console.log('Video Error:', error);
           },
           onLoad: (value: OnLoadData) => {
-            console.log('Video loaded:', value);
+            // console.log('Video loaded:', value);
 
             videoRef?.current?.seek(getProgress(uniqueId)?.currentTime || 0);
           },
 
           subtitleStyle: { paddingBottom: 50, fontSize: 20, opacity: 0.8 },
         }}
-        videoStyle={videoStyle}
+        // videoStyle={videoStyle}
         customVideoTracks={videoTracks}
         source={{
           uri: source,
-          textTracks: subtitleTracks?.map((track, index) => ({
-            title:
-              ('title' in track ? track.title : undefined) ||
-              ('lang' in track ? track.lang : track.language) ||
-              'Untitled',
-            language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
-            type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : TextTrackType.VTT,
-            uri: ('url' in track ? track.url : track.uri) || '',
-            index,
-          })),
+          textTracks: subtitleTracks
+            // @ts-ignore
+            ?.filter((track) => track.kind !== 'thumbnails' && track.lang !== 'thumbnails')
+            .map((track, index) => ({
+              title:
+                ('title' in track ? track.title : undefined) ||
+                ('lang' in track ? track.lang : track.language) ||
+                'Untitled',
+              language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
+              type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : TextTrackType.VTT,
+              uri: ('url' in track ? track.url : track.uri) || '',
+              index,
+            })),
           textTracksAllowChunklessPreparation: false,
           bufferConfig: {
             minBufferMs: 85000, // 85s minimum buffer (VLC-like for smooth seeking)
@@ -461,9 +463,21 @@ const Watch = () => {
         }}>
         <DefaultLayout
           title={title}
+          titleStyle={{ width: dimensions.width * 0.4 }}
           subtitle={
             type !== TvType.MOVIE ? `${seasonNumber ? `Season ${seasonNumber}` : ''} Episode ${episodeNumber}` : ''
           }
+          slots={{
+            beforeFullscreenButton: (
+              <Button variant="secondary" onPress={() => videoRef?.current?.seek(85)}>
+                +85s
+              </Button>
+              // <HUXStack>
+              //   {/* This view is just to take the whole space */}
+              //   <View className="flex-1 w-full" />
+              // </HUXStack>
+            ),
+          }}
         />
       </VideoPlayer>
       {!fullscreen && (
