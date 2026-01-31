@@ -1,5 +1,10 @@
 
 
+## 3.5.0 (2026-01-31)
+
+* feat(video): theme video player and improve ui ([7bcf64a](https://github.com/uwumilabs/uwumi/commit/7bcf64a))
+* feat(watch-screen): add seek forward button and improve provider selection ([642903f](https://github.com/uwumilabs/uwumi/commit/642903f))
+
 ## 3.5.0-rc.2 (2026-01-18)
 
 * chore(release-it): update release-it deps ([c808401](https://github.com/uwumilabs/uwumi/commit/c808401))
