@@ -53,18 +53,19 @@ export const RippleButton = forwardRef<View, RippleButtonProps>(
         className={cn('rounded-full p-2', className)}
         style={containerStyle}
         animation={{
-          // ripple: {
-          //   backgroundColor: { value: currentTheme.accent },
-          //   opacity: { value: [0, 0.3, 0] },
-          //   progress: { baseDuration: 600 },
-          // },
           scale: {
             value: 0.98,
             timingConfig: { duration: 150 },
           },
         }}
         {...props}>
-        <PressableFeedback.Ripple />
+        <PressableFeedback.Ripple
+          animation={{
+            backgroundColor: { value: currentTheme.default },
+            opacity: { value: [0, 0.3, 0] },
+            progress: { baseDuration: 600 },
+          }}
+        />
         {children}
       </PressableFeedback>
     );

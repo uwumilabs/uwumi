@@ -4,7 +4,7 @@ import { ISO639_1, TextTrackType, OnLoadData } from 'react-native-video/src';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
 import { ISubtitle, TvType } from 'react-native-consumet';
-import { EpisodeList, HUYStack, ThemedView } from '@/components';
+import { EpisodeList, HUXStack, HUYStack, ThemedView } from '@/components';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Gesture } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -463,19 +463,19 @@ const Watch = () => {
         }}>
         <DefaultLayout
           title={title}
-          titleStyle={{ width: dimensions.width * 0.4 }}
+          titleProps={{ style: { width: dimensions.width * 0.75 }, numberOfLines: 1 }}
           subtitle={
             type !== TvType.MOVIE ? `${seasonNumber ? `Season ${seasonNumber}` : ''} Episode ${episodeNumber}` : ''
           }
           slots={{
-            beforeFullscreenButton: (
-              <Button variant="secondary" onPress={() => videoRef?.current?.seek(85)}>
-                +85s
-              </Button>
-              // <HUXStack>
-              //   {/* This view is just to take the whole space */}
-              //   <View className="flex-1 w-full" />
-              // </HUXStack>
+            beforeProgressBar: (
+              <HUXStack>
+                {/* This view is just to take the whole space */}
+                <View className="flex-1 w-full" />
+                <Button variant="secondary" onPress={() => videoRef?.current?.seek(85)}>
+                  +85s
+                </Button>
+              </HUXStack>
             ),
           }}
         />

@@ -11,7 +11,7 @@ import {
   Inter_800ExtraBold as InterBold,
 } from '@expo-google-fonts/inter';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useThemeStore, useUpdateChecker } from '@/hooks';
+import { useCurrentTheme, useThemeStore, useUpdateChecker } from '@/hooks';
 import * as WebBrowser from 'expo-web-browser';
 import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
@@ -23,7 +23,7 @@ import { useUniwind } from 'uniwind';
 import { CustomSheetProvider } from '@/components';
 import { IoniconsIcon } from '@/components';
 import { themes } from '@/themes/theme';
-import { VideoProvider } from 'react-native-video-toolkit';
+import { VideoProvider, defaultTheme } from 'react-native-video-toolkit';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -220,7 +220,7 @@ export default function RootLayout() {
     'StatusBar backgroundColor is not supported with edge-to-edge enabled',
     'HeroUI Native Styling Principles',
   ]);
-
+  const currentTheme = useCurrentTheme();
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -239,6 +239,15 @@ export default function RootLayout() {
       <KeyboardProvider>
         <QueryClientProvider client={queryClient}>
           <VideoProvider
+            theme={{
+              colors: {
+                ...defaultTheme.colors,
+                primary: currentTheme.accent,
+                secondary: currentTheme.default,
+                border: currentTheme.border,
+                background: currentTheme.default,
+              },
+            }}
             config={{
               useCustomVideoTracks: true,
             }}>

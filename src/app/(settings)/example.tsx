@@ -5,13 +5,13 @@
  * It is used to test the functionality of library, stores,hooks other screens etc.
  */
 import React, { useEffect } from 'react';
-import { ThemedView, HUYStack } from '@/components';
+import { ThemedView, HUYStack, RippleButton } from '@/components';
 import { storage } from '@/hooks/stores/MMKV';
 import { ScrollView, Text } from 'react-native';
 import { Button } from 'heroui-native';
 import { useUniwind } from 'uniwind';
 import { useProviderStore } from '@/constants/provider';
-import ProviderSelection, { useProviderSelectionStore } from '@/app/watch/components/ProviderSelection';
+import { useProviderSelectionStore } from '@/app/watch/components/ProviderSelection';
 
 const Example = () => {
   const uni = useUniwind();
@@ -59,7 +59,10 @@ const Example = () => {
             delete All MMKV Keys
           </Button>
         </HUYStack>
-        <ProviderSelection />
+        {/* <ProviderSelection /> */}
+        <RippleButton className="bg-white">
+          <Text className="text-black">jijijijijij</Text>
+        </RippleButton>
       </ScrollView>
     </ThemedView>
   );

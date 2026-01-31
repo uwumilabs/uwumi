@@ -42,10 +42,10 @@ const StyledSheetButton: React.FC<SheetButtonProps> = memo(({ onPress, icon, lab
       <RippleButton className="flex-1 p-3.5 rounded-lg bg-default" onPress={onPress}>
         <HUXStack className="items-center gap-3">
           {icon ? icon : null}
-          <Text className="text-base font-medium text-accent">{label}</Text>
+          <Text className="text-base font-medium text-accent flex-1">{label}</Text>
+          {rightIcon ? rightIcon : null}
         </HUXStack>
       </RippleButton>
-      {rightIcon ? rightIcon : null}
     </HUXStack>
   );
 });
