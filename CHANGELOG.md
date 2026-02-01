@@ -1,5 +1,12 @@
 
 
+## 3.6.0 (2026-02-01)
+
+* feat(player): add episode navigation and resolve video controls bug ([4c9e107](https://github.com/uwumilabs/uwumi/commit/4c9e107))
+
+# Changelog
+
+
 ## 3.5.0 (2026-01-31)
 
 * feat(video): theme video player and improve ui ([7bcf64a](https://github.com/uwumilabs/uwumi/commit/7bcf64a))
@@ -13,8 +20,6 @@
 * refactor: remove unused react-native-system-navigation-bar and update theme colors ([d3828d2](https://github.com/uwumilabs/uwumi/commit/d3828d2))
 * refactor(player): integrate react-native-video-toolkit for video playback ([be03a37](https://github.com/uwumilabs/uwumi/commit/be03a37))
 * feat: implement provider selection dialog and other ui tweaks ([640cc98](https://github.com/uwumilabs/uwumi/commit/640cc98))
-
-# Changelog
 
 ## 3.5.0-rc.1 (2025-12-31)
 
