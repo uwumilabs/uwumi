@@ -54,12 +54,6 @@
         }
       ],
       [
-        "expo-screen-orientation",
-        {
-          "initialOrientation": "DEFAULT"
-        }
-      ],
-      [
         "react-native-edge-to-edge",
         {
           "android": {

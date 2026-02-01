@@ -39,14 +39,17 @@ import { Card, cn } from 'heroui-native';
 import Progress from '../Progress';
 import { IoniconsIcon, MaterialIconsIcon } from '../Icons';
 
-const LoadingState = () => (
-  <Card className="mx-4 mt-6 bg-background">
-    <HUYStack className="items-center gap-3 px-6 py-10">
-      <ActivityIndicator size="large" />
-      <Text className="text-sm font-semibold text-foreground/80">Fetching episodes…</Text>
-    </HUYStack>
-  </Card>
-);
+const LoadingState = () => {
+  const pureBlackBackground = usePureBlackBackground();
+  return (
+    <Card className={cn('mx-4 mt-6 bg-background', pureBlackBackground && 'bg-black')}>
+      <HUYStack className="items-center gap-3 px-6 py-10">
+        <ActivityIndicator size="large" />
+        <Text className="text-sm font-semibold text-foreground/80">Fetching episodes…</Text>
+      </HUYStack>
+    </Card>
+  );
+};
 
 const StyledText = ({ children, ...props }: { children: ReactNode } & TextProps) => {
   return (
@@ -164,13 +167,43 @@ export const EpisodeList = ({
   }, [mediaType, movieSeasons, seasonNumber, animeEpisodes]);
   // console.log('episodes', episodes);
 
-  const { currentUniqueId } = useEpisodesIdStore();
+  const { currentUniqueId, setEpisodeIds } = useEpisodesIdStore();
   const { progresses, setProgress } = useWatchProgressStore();
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const { displayMode, setDisplayMode } = useEpisodeDisplayStore();
   const { setCurrentServer, getCurrentServer, servers } = useServerStore();
+  // subscribe to servers array to trigger re-renders when it changes
+  const getServers = useServerStore((state) => state.getServers);
 
-  // console.log('servers', servers[0], getCurrentServer());
+  // Track the last synced uniqueId to prevent infinite loops
+  const lastSyncedUniqueIdRef = useRef<string | null>(null);
+
+  // Sync adjacent episode IDs to store whenever currentUniqueId changes
+  // Uses ref to prevent infinite re-renders from episodes array reference changes
+  useEffect(() => {
+    // Skip if no uniqueId, no episodes, or already synced this uniqueId
+    if (!currentUniqueId || episodes.length === 0) return;
+    if (lastSyncedUniqueIdRef.current === currentUniqueId) return;
+
+    const currentIndex = episodes.findIndex((ep) => ep.uniqueId === currentUniqueId);
+    if (currentIndex === -1) return;
+
+    const currentEp = episodes[currentIndex];
+    const prevEp = currentIndex > 0 ? episodes[currentIndex - 1] : null;
+    const nextEp = currentIndex < episodes.length - 1 ? episodes[currentIndex + 1] : null;
+
+    // Mark as synced before calling setEpisodeIds to prevent loops
+    lastSyncedUniqueIdRef.current = currentUniqueId;
+
+    setEpisodeIds(
+      currentEp?.id ?? null,
+      currentUniqueId,
+      (prevEp?.uniqueId as string) ?? null,
+      (nextEp?.uniqueId as string) ?? null,
+    );
+  }, [currentUniqueId, episodes, setEpisodeIds]);
+
+  // console.log('servers', servers[0], getCurrentServer(), servers, getServers());
 
   const [listKey, setListKey] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -570,12 +603,14 @@ export const EpisodeList = ({
                 }}
               />
             )}
-            {servers && servers.length > 0 && !swipeable && (
+            {getServers() && getServers().length > 0 && !swipeable && (
               <CustomSelect
-                SelectItem={servers.map((server) => ({ name: server.name, value: server.name })) || []}
+                SelectItem={getServers().map((server) => ({ name: server.name, value: server.name })) || []}
                 SelectLabel="Servers"
                 value={getCurrentServer()?.name!}
-                onValueChange={(value: string) => setCurrentServer(value || servers[0].name)}
+                onValueChange={(value: string) =>
+                  setCurrentServer(value || getCurrentServer()?.name! || getServers()[0].name)
+                }
               />
             )}
             {swipeable && (

@@ -143,7 +143,7 @@ export function useWatchMoviesEpisodes({
             server?.name as StreamingServers,
           )) as ISource;
         }
-        // console.log('useWatchMovieEpisodes', { ...data, servers });
+        console.log('useWatchMovieEpisodes', { ...data, servers });
         return { ...data, servers };
       } catch (error) {
         throw new Error(`Error fetching movies episode sources: ${error}`);

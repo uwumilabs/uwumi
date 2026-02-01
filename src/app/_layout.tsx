@@ -189,6 +189,9 @@ const AppContent = () => {
           toast: {
             contentWrapper,
           },
+          devInfo: {
+            stylingPrinciples: false,
+          },
         }}>
         <CustomSheetProvider>
           <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">

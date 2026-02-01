@@ -4,14 +4,15 @@ import { ISO639_1, TextTrackType, OnLoadData } from 'react-native-video/src';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
 import { ISubtitle, TvType } from 'react-native-consumet';
-import { EpisodeList, HUXStack, HUYStack, ThemedView } from '@/components';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { EpisodeList, HUXStack, HUYStack, MaterialIconsIcon, ThemedView } from '@/components';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Gesture } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 import * as Brightness from 'expo-brightness';
 import { VolumeManager } from 'react-native-volume-manager';
 import {
   useEpisodesIdStore,
+  useEpisodesStore,
   useWatchProgressStore,
   useWatchAnimeEpisodes,
   useWatchMoviesEpisodes,
@@ -24,11 +25,21 @@ import { toast } from 'sonner-native';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import { SUB_LANGUAGE } from '@/constants/config';
 import { useProviderSelectionStore } from './components';
-import { VideoPlayer, DefaultLayout, useVideo, useFullscreen, CustomVideoTrack } from 'react-native-video-toolkit';
+import {
+  VideoPlayer,
+  DefaultLayout,
+  useVideo,
+  useFullscreen,
+  CustomVideoTrack,
+  BaseButton,
+  useProgress,
+  BaseIconButton,
+} from 'react-native-video-toolkit';
 import ProviderSelection from './components/ProviderSelection';
 import { Button } from 'heroui-native';
 
 const Watch = () => {
+  const router = useRouter();
   const {
     mediaType,
     provider,
@@ -53,9 +64,71 @@ const Watch = () => {
   const { state: videoState } = useVideo();
   const { fullscreen, videoRef } = videoState;
   const { exitFullscreen } = useFullscreen();
+  const { currentTime, duration, seek } = useProgress();
 
   const setEpisodeIds = useEpisodesIdStore((state) => state.setEpisodeIds);
   const currentEpisodeId = useEpisodesIdStore((state) => state.currentEpisodeId);
+  const currentUniqueId = useEpisodesIdStore((state) => state.currentUniqueId);
+
+  // Episode navigation - get adjacent episodes and navigation helpers from store
+  const getAdjacentEpisodes = useEpisodesStore((state) => state.getAdjacentEpisodes);
+  const buildEpisodeRouteParams = useEpisodesStore((state) => state.buildEpisodeRouteParams);
+  // Subscribe to episodes length only to avoid re-renders on reference changes
+  const episodesLength = useEpisodesStore((state) => state.episodes.length);
+
+  // Compute adjacent episodes reactively
+  // Note: We use episodesLength instead of episodes array to avoid infinite loops
+  // getAdjacentEpisodes reads current episodes from store internally
+  const adjacentEpisodes = useMemo(
+    () => getAdjacentEpisodes(currentUniqueId ?? uniqueId),
+    [getAdjacentEpisodes, currentUniqueId, uniqueId, episodesLength],
+  );
+
+  const { prevEpisode, nextEpisode, hasPrev, hasNext } = adjacentEpisodes;
+
+  // Navigation context for building route params
+  const navigationContext = useMemo(
+    () => ({
+      mediaType,
+      provider: getProvider(mediaType) ?? provider,
+      id,
+      mediaId,
+      type: type as string,
+    }),
+    [mediaType, provider, id, mediaId, type, getProvider],
+  );
+
+  // Navigate to previous episode
+  const handlePrevEpisode = useCallback(() => {
+    if (!hasPrev || !prevEpisode) return;
+
+    const routeParams = buildEpisodeRouteParams(prevEpisode, navigationContext);
+    if (!routeParams) {
+      toast.error('Unable to navigate', { description: 'Previous episode data is invalid' });
+      return;
+    }
+
+    router.replace({
+      pathname: '/watch/[mediaType]',
+      params: routeParams,
+    });
+  }, [hasPrev, prevEpisode, buildEpisodeRouteParams, navigationContext, router]);
+
+  // Navigate to next episode
+  const handleNextEpisode = useCallback(() => {
+    if (!hasNext || !nextEpisode) return;
+
+    const routeParams = buildEpisodeRouteParams(nextEpisode, navigationContext);
+    if (!routeParams) {
+      toast.error('Unable to navigate', { description: 'Next episode data is invalid' });
+      return;
+    }
+
+    router.replace({
+      pathname: '/watch/[mediaType]',
+      params: routeParams,
+    });
+  }, [hasNext, nextEpisode, buildEpisodeRouteParams, navigationContext, router]);
 
   useFocusEffect(
     useCallback(() => {
@@ -472,10 +545,30 @@ const Watch = () => {
               <HUXStack>
                 {/* This view is just to take the whole space */}
                 <View className="flex-1 w-full" />
-                <Button variant="secondary" onPress={() => videoRef?.current?.seek(85)}>
-                  +85s
-                </Button>
+                <BaseButton onTap={() => seek(Math.round(currentTime) + 85)}>
+                  <Button variant="secondary">+85s</Button>
+                </BaseButton>
               </HUXStack>
+            ),
+            beforeCenterPlayButton: (
+              <BaseIconButton
+                onTap={handlePrevEpisode}
+                IconComponent={() => (
+                  <MaterialIconsIcon
+                    name="skip-previous"
+                    size={30}
+                    color={hasPrev ? 'white' : 'rgba(255,255,255,0.3)'}
+                  />
+                )}
+              />
+            ),
+            afterCenterPlayButton: (
+              <BaseIconButton
+                onTap={handleNextEpisode}
+                IconComponent={() => (
+                  <MaterialIconsIcon name="skip-next" size={30} color={hasNext ? 'white' : 'rgba(255,255,255,0.3)'} />
+                )}
+              />
             ),
           }}
         />
