@@ -2,7 +2,6 @@
 
 ## Project map
 - Expo + Expo Router app: screens live in `src/app/**` (route groups like `(tabs)` / `(settings)` and dynamic routes like `[mediaType].tsx`).
-- UI is Tamagui-first: prefer `View`, `Text`, `YStack`, `XStack`, `Sheet`, `Tabs`, etc. over React Native primitives.
 - Shared UI components: `src/components/**` (examples: `HorizontalTabs.tsx`, `CustomSelect.tsx`, `ui-primitives.tsx`).
 - “Server state” lives in React Query hooks: `src/hooks/queries/**`.
 - “App state” lives in Zustand stores (often MMKV-backed): `src/hooks/stores/**` and re-exported via `src/hooks/stores/index.ts` + `src/hooks/index.ts`.
@@ -13,9 +12,6 @@
 - Manga providers are currently hard-mapped via `createProviderInstance()` in `src/constants/provider.ts`.
 - Example query keys: `['anime','episodes',id,provider]`, `[mediaType,'info',id,metaProvider,type,provider]` (see `src/hooks/queries/infoQueries.ts`).
 
-## Styling conventions
-- Use theme tokens (`$color`, `$color1`, `$color2`, spacing `$1..$10`) and Tamagui animations (`animation="quick"` etc.). Config lives in `tamagui.config.ts`; generated themes in `src/constants/theme-out.ts`.
-- Prefer absolute imports via `@/…` (repo uses module-resolver).
 
 ## Gesture + Sheet gotcha (Android)
 - In `Sheet` UIs, keep interactive headers (e.g., `Tabs.List`) OUTSIDE any `Sheet.ScrollView` to avoid pan/scroll gestures stealing taps.
@@ -76,8 +72,8 @@ When adding or modifying a theme:
 ## Coding Conventions
 
 ### UI & Styling
-- **Library:** Uses `heroui-native` for core components (Card, Button, etc.) and `tamagui` for layout primitives.
-- **Styling:** Prefer `uniwind` classes (Tailwind-like) or Tamagui props.
+- **Library:** Uses `heroui-native` for core components (Card, Button, etc.) .
+- **Styling:** Prefer `uniwind` classes (Tailwind-like).
 - **Performance:** Heavily use `memo`, `useMemo`, and `useCallback` for UI components, especially in lists (`CustomFlashlist`).
 
 ### Data Fetching
@@ -99,29 +95,7 @@ When adding or modifying a theme:
 ## Component Development
 
 #### HeroUI Components
-- [Accordion](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/accordion/accordion.md)
-- [Avatar](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/avatar/avatar.md)
-- [Button](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/button/button.md)
-- [Card](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/card/card.md)
-- [Checkbox](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/checkbox/checkbox.md)
-- [Chip](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/chip/chip.md)
-- [Dialog](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/dialog/dialog.md)
-- [Divider](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/divider/divider.md)
-- [Error View](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/error-view/error-view.md)
-- [Form Field](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/form-field/form-field.md)
-- [Popover](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/popover/popover.md)
-- [Pressable Feedback](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/pressable-feedback/pressable-feedback.md)
-- [Radio Group](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/radio-group/radio-group.md)
-- [Scroll Shadow](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/scroll-shadow/scroll-shadow.md)
-- [Select](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/select/select.md)
-- [Skeleton](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/skeleton/skeleton.md)
-- [Skeleton Group](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/skeleton-group/skeleton-group.md)
-- [Spinner](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/spinner/spinner.md)
-- [Surface](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/surface/surface.md)
-- [Switch](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/switch/switch.md)
-- [Tabs](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/tabs/tabs.md)
-- [Text Field](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/text-field/text-field.md)
-- [Toast](https://raw.githubusercontent.com/heroui-inc/heroui-native/refs/heads/beta/src/components/toast/toast.md)
+https://v3.heroui.com/docs/native/components
 
 #### Performance Optimization
 - Use `memo()` for expensive components that receive stable props

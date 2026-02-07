@@ -68,7 +68,7 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
           });
         }}>
         <AnimatedStyledCard
-          entering={FadeInDown.delay(50 * index)}
+          entering={index < 12 ? FadeInDown.delay(50 * index).duration(300) : undefined}
           className="flex-1 w-full aspect-2/3 rounded-lg overflow-hidden p-0">
           <Card.Body className="w-full h-full p-0 relative">
             <AnimatedCustomImage
@@ -172,7 +172,7 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
           fetchNextPage?.();
         }
       }}
-      onEndReachedThreshold={0.5}
+      onEndReachedThreshold={1.5}
       ListFooterComponent={
         hasNextPage ? (
           <HUXStack className="p-2 justify-center">

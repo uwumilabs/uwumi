@@ -18,7 +18,10 @@ export const CustomImage = forwardRef<Image, CustomImageProps>((props, ref) => {
       ref={ref}
       source={imageSource}
       cachePolicy="memory-disk"
-      transition={1000}
+      transition={200}
+      recyclingKey={typeof source === 'string' ? source : source?.uri}
+      placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+      placeholderContentFit="cover"
       style={[{ overflow: 'hidden' }, style]}
       {...rest}
     />

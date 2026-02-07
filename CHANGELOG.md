@@ -1,11 +1,9 @@
+# Changelog
 
 
 ## 3.6.0 (2026-02-01)
 
 * feat(player): add episode navigation and resolve video controls bug ([4c9e107](https://github.com/uwumilabs/uwumi/commit/4c9e107))
-
-# Changelog
-
 
 ## 3.5.0 (2026-01-31)
 

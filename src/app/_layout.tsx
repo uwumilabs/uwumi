@@ -1,7 +1,7 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { Toaster } from 'sonner-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -224,18 +224,21 @@ export default function RootLayout() {
     'HeroUI Native Styling Principles',
   ]);
   const currentTheme = useCurrentTheme();
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: 1,
-        staleTime: 10 * 60 * 1000, // 10 minutes
-        gcTime: 60 * 60 * 1000, // 1 hour
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        retryDelay: 1000,
-      },
-    },
-  });
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: 1,
+            staleTime: 10 * 60 * 1000, // 10 minutes
+            gcTime: 60 * 60 * 1000, // 1 hour
+            refetchOnWindowFocus: false,
+            refetchOnMount: false,
+            retryDelay: 1000,
+          },
+        },
+      }),
+  );
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
