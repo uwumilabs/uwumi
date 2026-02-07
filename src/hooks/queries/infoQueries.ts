@@ -2377,11 +2377,20 @@ export function useInfo({
   });
 }
 
-export function useAnimeEpisodes({ id, provider = DEFAULT_PROVIDERS.anime }: { id: string; provider: string }) {
+export function useAnimeEpisodes({
+  id,
+  provider = DEFAULT_PROVIDERS.anime,
+  enabled = true,
+}: {
+  id: string;
+  provider: string;
+  enabled?: boolean;
+}) {
   // console.log('useAnimeEpisodes is called');
   const { providerManager, readExtensionCode } = useConsumetExtensions();
   return useQuery<IAnimeEpisode>({
     queryKey: ['anime', 'episodes', id, provider],
+    enabled: enabled && !!id,
     queryFn: async () => {
       try {
         const content = await readExtensionCode(provider);
@@ -2750,14 +2759,17 @@ export function useMoviesEpisodes({
   id,
   type,
   provider = DEFAULT_PROVIDERS.movie,
+  enabled = true,
 }: {
   id: string;
   type: MediaFormat | TvType;
   provider: string;
+  enabled?: boolean;
 }) {
   const { providerManager, readExtensionCode } = useConsumetExtensions();
   return useQuery<IMovieInfo>({
     queryKey: ['movies', 'episodes', id, type, provider],
+    enabled: enabled && !!id,
     queryFn: async () => {
       // let url = `${getFetchUrl().episodeApiUrl}/movies/tmdb/episodes/${id}?type=${type.split(' ')[0]}&provider=${provider}`;
       // console.log(url);

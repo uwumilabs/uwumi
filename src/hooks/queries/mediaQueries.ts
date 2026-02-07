@@ -70,7 +70,7 @@ export function useMediaFeed<T>(
   });
 }
 
-export function useAnimeAndMangaSearch<T>(mediaType: MediaType, query: string) {
+export function useAnimeAndMangaSearch<T>(mediaType: MediaType, query: string, options?: { enabled?: boolean }) {
   return useInfiniteQuery({
     queryKey: [mediaType, query],
     queryFn: async ({ pageParam = 1 }) => {
@@ -94,7 +94,7 @@ export function useAnimeAndMangaSearch<T>(mediaType: MediaType, query: string) {
       )) as unknown as ISearch<T>;
       return data;
     },
-    enabled: query.length > 0,
+    enabled: (options?.enabled ?? true) && query.length > 0,
     getNextPageParam: (lastPage: ISearch<T>, pages) => {
       if (lastPage.hasNextPage) {
         return pages.length + 1;
@@ -104,7 +104,7 @@ export function useAnimeAndMangaSearch<T>(mediaType: MediaType, query: string) {
     initialPageParam: 1,
   });
 }
-export function useMovieSearch<T>(mediaType: MediaType, query: string) {
+export function useMovieSearch<T>(mediaType: MediaType, query: string, options?: { enabled?: boolean }) {
   return useInfiniteQuery({
     queryKey: [mediaType, query],
     queryFn: async ({ pageParam = 1 }) => {
@@ -124,7 +124,7 @@ export function useMovieSearch<T>(mediaType: MediaType, query: string) {
       data = (await new META.TMDB().search(query, pageParam)) as unknown as ISearch<T>;
       return data;
     },
-    enabled: query.length > 0,
+    enabled: (options?.enabled ?? true) && query.length > 0,
     getNextPageParam: (lastPage: ISearch<T>, pages) => {
       if (lastPage.hasNextPage) {
         return pages.length + 1;

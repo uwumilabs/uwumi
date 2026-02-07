@@ -24,6 +24,7 @@ import { CustomSheetProvider } from '@/components';
 import { IoniconsIcon } from '@/components';
 import { themes } from '@/themes/theme';
 import { VideoProvider, defaultTheme } from 'react-native-video-toolkit';
+import RNOrientationDirector, { Orientation } from 'react-native-orientation-director';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -161,6 +162,9 @@ const AppContent = () => {
     };
 
     requestPermissions();
+    if (Orientation.landscape) {
+      RNOrientationDirector.lockTo(Orientation.portrait);
+    }
   }, []);
 
   useEffect(() => {
@@ -196,8 +200,20 @@ const AppContent = () => {
         <CustomSheetProvider>
           <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="info/[mediaType]" />
-            <Stack.Screen name="watch/[mediaType]" />
+            <Stack.Screen
+              name="info/[mediaType]"
+              options={{
+                animation: 'slide_from_right',
+                animationDuration: 250,
+              }}
+            />
+            <Stack.Screen
+              name="watch/[mediaType]"
+              options={{
+                animation: 'fade',
+                animationDuration: 200,
+              }}
+            />
             <Stack.Screen name="read/[id]" />
             <Stack.Screen name="(settings)" />
             <Stack.Screen name="+not-found" />

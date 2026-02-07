@@ -36,7 +36,7 @@ import {
   BaseIconButton,
 } from 'react-native-video-toolkit';
 import ProviderSelection from './components/ProviderSelection';
-import { Button } from 'heroui-native';
+import { Button, cn } from 'heroui-native';
 
 const Watch = () => {
   const router = useRouter();
@@ -147,27 +147,23 @@ const Watch = () => {
   });
   const { dub, isEmbed, setDub, setIsEmbed } = useProviderSelectionStore();
   // console.log({currentEpisodeId , episodeId})
-  const animeQuery =
-    mediaType === MediaType.ANIME
-      ? useWatchAnimeEpisodes({
-          episodeId: currentEpisodeId ?? episodeId,
-          provider: getProvider(mediaType),
-          server: currentServer!,
-          dub,
-        })
-      : { data: undefined, isLoading: false, error: null };
+  const animeQuery = useWatchAnimeEpisodes({
+    episodeId: currentEpisodeId ?? episodeId,
+    provider: getProvider(mediaType),
+    server: currentServer!,
+    dub,
+    enabled: mediaType === MediaType.ANIME,
+  });
 
-  const movieQuery =
-    mediaType === MediaType.MOVIE
-      ? useWatchMoviesEpisodes({
-          episodeId: currentEpisodeId ?? episodeId,
-          mediaId,
-          type,
-          provider: getProvider(mediaType),
-          server: currentServer!,
-          embed: isEmbed,
-        })
-      : { data: undefined, isLoading: false, error: null };
+  const movieQuery = useWatchMoviesEpisodes({
+    episodeId: currentEpisodeId ?? episodeId,
+    mediaId,
+    type,
+    provider: getProvider(mediaType),
+    server: currentServer!,
+    embed: isEmbed,
+    enabled: mediaType === MediaType.MOVIE,
+  });
 
   const { data, isLoading, error } = mediaType === MediaType.ANIME ? animeQuery : movieQuery;
 
@@ -203,7 +199,6 @@ const Watch = () => {
   const [subtitleTracks, setSubtitleTracks] = useState<(SubtitleTrack | ISubtitle)[] | undefined>([]);
   const [shouldFetchExternalSubs, setShouldFetchExternalSubs] = useState(false);
   const [externalSubtitleLanguage, setExternalSubtitleLanguage] = useState<string | null>(null);
-  const [videoTracks, setVideoTracks] = useState<CustomVideoTrack[]>();
   const [brightness, setBrightness] = useState(1);
   const [volume, setVolume] = useState(1);
   const [systemVolume, setSystemVolume] = useState(1);
@@ -262,7 +257,7 @@ const Watch = () => {
         }
       }
     },
-    [uniqueId],
+    [uniqueId, getProgress, setProgress],
   );
 
   useEffect(() => {
@@ -369,34 +364,30 @@ const Watch = () => {
     [fullscreen, dimensions],
   );
 
+  const videoTracks = useMemo(() => {
+    if (!data?.sources || data.sources.length === 0) return undefined;
+    const tracks: CustomVideoTrack[] = [];
+    data.sources.forEach((track, index) => {
+      if (track?.url) {
+        const qualityStr = track.quality?.toLowerCase() || '';
+        const match = qualityStr.match(/(\d{3,4})p/);
+        const height = match ? Number(match[1]) : qualityStr === 'auto' || qualityStr === 'default' ? 9999 : 0;
+        tracks.push({
+          index,
+          height,
+          label: qualityStr === 'auto' || qualityStr === 'default' ? 'Auto' : qualityStr.toUpperCase(),
+          uri: track.url,
+        } as CustomVideoTrack);
+      }
+    });
+    const sortedTracks = tracks.sort((a, b) => (b.height || 0) - (a.height || 0));
+    sortedTracks.forEach((track, idx) => {
+      (track as CustomVideoTrack & { index: number }).index = idx;
+    });
+    return sortedTracks;
+  }, [data]);
+
   const source = useMemo(() => {
-    // Build video quality tracks from data.sources
-    if (data?.sources && data.sources.length > 0) {
-      const tracks: CustomVideoTrack[] = [];
-      data.sources.forEach((track, index) => {
-        if (track?.url) {
-          // Extract height from quality string (e.g., "1080p" -> 1080)
-          // For "auto" or "default", use a very high value (9999) to sort it to the top
-          const qualityStr = track.quality?.toLowerCase() || '';
-          const match = qualityStr.match(/(\d{3,4})p/);
-          const height = match ? Number(match[1]) : qualityStr === 'auto' || qualityStr === 'default' ? 9999 : 0;
-
-          tracks.push({
-            index,
-            height,
-            label: qualityStr === 'auto' || qualityStr === 'default' ? 'Auto' : qualityStr.toUpperCase(),
-            uri: track.url,
-          } as CustomVideoTrack);
-        }
-      });
-      const sortedTracks = tracks.sort((a, b) => (b.height || 0) - (a.height || 0));
-      sortedTracks.forEach((track, idx) => {
-        (track as CustomVideoTrack & { index: number }).index = idx;
-      });
-      setVideoTracks(sortedTracks);
-    }
-
-    // Return the selected quality URL or default to 'auto' or first available
     return (
       data?.sources?.[0]?.url ||
       data?.sources?.find((s) => s.quality === 'auto' || s.quality === 'default')?.url ||
@@ -557,7 +548,8 @@ const Watch = () => {
                   <MaterialIconsIcon
                     name="skip-previous"
                     size={30}
-                    color={hasPrev ? 'white' : 'rgba(255,255,255,0.3)'}
+                    color={hasPrev ? 'white' : 'rgba(255,255,255,0.5)'}
+                    className={cn('mr-10', !fullscreen && 'mr-5')}
                   />
                 )}
               />
@@ -566,7 +558,12 @@ const Watch = () => {
               <BaseIconButton
                 onTap={handleNextEpisode}
                 IconComponent={() => (
-                  <MaterialIconsIcon name="skip-next" size={30} color={hasNext ? 'white' : 'rgba(255,255,255,0.3)'} />
+                  <MaterialIconsIcon
+                    name="skip-next"
+                    size={30}
+                    color={hasNext ? 'white' : 'rgba(255,255,255,0.5)'}
+                    className={cn('ml-10', !fullscreen && 'ml-5')}
+                  />
                 )}
               />
             ),
@@ -577,7 +574,7 @@ const Watch = () => {
         <HUYStack className="flex-1 gap-2">
           <ProviderSelection />
           <View className="flex-1">
-            <EpisodeList mediaType={mediaType} provider={provider} id={id} type={type} swipeable={false} />
+            <EpisodeList />
           </View>
         </HUYStack>
       )}

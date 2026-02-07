@@ -1,19 +1,17 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable react/display-name */
 import React, { memo, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AnimatedCustomImage } from './CustomImage';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
 import { IAnimeResult, IMovieResult, ISearch } from 'react-native-consumet';
-import { ActivityIndicator, Pressable, RefreshControl, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, Text, useWindowDimensions, View } from 'react-native';
 import { InfiniteData } from '@tanstack/react-query';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { HUXStack, HUYStack, NoResults } from './ui-primitives';
 import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch, useSearchStore } from '@/hooks';
 import { DEFAULT_PROVIDERS, useProviderStore } from '@/constants/provider';
 import CustomFlashlist from './CustomFlashlist';
-import { Card } from 'heroui-native';
+import { Card, SkeletonGroup } from 'heroui-native';
 
 export interface CardListProps {
   staticData?: (IAnimeResult | IMovieResult)[] | undefined;
@@ -32,91 +30,109 @@ interface CardProps {
 const AnimatedStyledCard = Animated.createAnimatedComponent(Card);
 const AnimatedStyledCardTitle = Animated.createAnimatedComponent(Card.Title);
 
+const CardSkeleton = ({ isLoading }: { isLoading: boolean }) => (
+  <SkeletonGroup isLoading={isLoading}>
+    <View className="flex-row flex-wrap px-2 gap-2">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <View key={i} className="flex-1 min-w-[30%] aspect-2/3">
+          <SkeletonGroup.Item className="w-full h-full rounded-lg" />
+        </View>
+      ))}
+    </View>
+  </SkeletonGroup>
+);
+
 const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProvider }) => {
   const { getProvider } = useProviderStore();
   const router = useRouter();
   const provider = getProvider(mediaType);
   return (
-    item.image &&
-    !item.image.includes('/originalundefined') &&
-    !item.image.includes('/originalnull') && (
-      <Pressable
-        className="p-0 rounded-none"
-        onPress={() => {
-          router.push({
-            pathname: '/info/[mediaType]',
-            params: {
-              mediaType: mediaType,
-              metaProvider: metaProvider,
-              type: item?.type,
-              provider: (() => {
-                switch (mediaType) {
-                  case MediaType.ANIME:
-                    return provider ?? DEFAULT_PROVIDERS.anime;
-                  case MediaType.MANGA:
-                    return provider ?? DEFAULT_PROVIDERS.manga;
-                  case MediaType.MOVIE:
-                    return provider ?? DEFAULT_PROVIDERS.movie;
-                  default:
-                    return provider ?? DEFAULT_PROVIDERS.anime;
-                }
-              })(),
-              id: item.id,
-              image: item.image,
-              title: typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english,
-            },
-          });
-        }}>
-        <AnimatedStyledCard
-          entering={index < 12 ? FadeInDown.delay(50 * index).duration(300) : undefined}
-          className="flex-1 w-full aspect-2/3 rounded-lg overflow-hidden p-0">
-          <Card.Body className="w-full h-full p-0 relative">
-            <AnimatedCustomImage
-              source={{ uri: item.image }}
-              style={{ borderRadius: 10, zIndex: 0 }}
-              width="100%"
-              height="100%"
-              sharedTransitionTag={`shared-image-${item.id}`}
-              className="absolute inset-0"
-            />
-            <LinearGradient
-              className="w-full h-full absolute inset-0 z-10l"
-              colors={['rgba(0,0,0,0.8)', 'transparent']}
-              start={[0, 1]}
-              end={[0, 0.3]}
-              style={{ borderRadius: 10 }}
-            />
-            <AnimatedStyledCardTitle
-              className="absolute bottom-0 left-0 right-0 z-20 py-2 px-2 text-sm font-medium m-0 text-white"
-              numberOfLines={2}
-              sharedTransitionTag={`shared-title-${item.id}`}
-              ellipsizeMode="tail">
-              {typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english}
-            </AnimatedStyledCardTitle>
-          </Card.Body>
-        </AnimatedStyledCard>
-      </Pressable>
-    )
+    <Pressable
+      className="p-0 rounded-none"
+      onPress={() => {
+        router.push({
+          pathname: '/info/[mediaType]',
+          params: {
+            mediaType: mediaType,
+            metaProvider: metaProvider,
+            type: item?.type,
+            provider: (() => {
+              switch (mediaType) {
+                case MediaType.ANIME:
+                  return provider ?? DEFAULT_PROVIDERS.anime;
+                case MediaType.MANGA:
+                  return provider ?? DEFAULT_PROVIDERS.manga;
+                case MediaType.MOVIE:
+                  return provider ?? DEFAULT_PROVIDERS.movie;
+                default:
+                  return provider ?? DEFAULT_PROVIDERS.anime;
+              }
+            })(),
+            id: item.id,
+            image: item.image,
+            title: typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english,
+          },
+        });
+      }}>
+      <AnimatedStyledCard
+        entering={index < 12 ? FadeInDown.delay(50 * index).duration(300) : undefined}
+        className="flex-1 w-full aspect-2/3 rounded-lg overflow-hidden p-0">
+        <Card.Body className="w-full h-full p-0 relative">
+          <AnimatedCustomImage
+            source={{ uri: item.image }}
+            style={{ borderRadius: 10, zIndex: 0 }}
+            width="100%"
+            height="100%"
+            sharedTransitionTag={`shared-image-${item.id}`}
+            className="absolute inset-0"
+          />
+          <LinearGradient
+            className="w-full h-full absolute inset-0 z-10l"
+            colors={['rgba(0,0,0,0.8)', 'transparent']}
+            start={[0, 1]}
+            end={[0, 0.3]}
+            style={{ borderRadius: 10 }}
+          />
+          <AnimatedStyledCardTitle
+            className="absolute bottom-0 left-0 right-0 z-20 py-2 px-2 text-sm font-medium m-0 text-white"
+            numberOfLines={2}
+            sharedTransitionTag={`shared-title-${item.id}`}
+            ellipsizeMode="tail">
+            {typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english}
+          </AnimatedStyledCardTitle>
+        </Card.Body>
+      </AnimatedStyledCard>
+    </Pressable>
   );
 });
 
 export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, mediaType, metaProvider }) => {
   const debouncedQuery = useSearchStore((state) => state.debouncedQuery);
 
-  const {
-    data: dynamicData,
-    isLoading,
-    error,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-  } = staticData
+  const isSearch = mediaFeedType === 'search';
+  const isMovieSearch = isSearch && mediaType === MediaType.MOVIE;
+  const isAnimeSearch = isSearch && !isMovieSearch;
+  const isFeed = !staticData && !isSearch;
+
+  const movieSearchResult = useMovieSearch<IAnimeResult | IMovieResult>(mediaType, debouncedQuery, {
+    enabled: !staticData && isMovieSearch,
+  });
+  const animeSearchResult = useAnimeAndMangaSearch<IAnimeResult | IMovieResult>(mediaType, debouncedQuery, {
+    enabled: !staticData && isAnimeSearch,
+  });
+  const feedResult = useMediaFeed<IAnimeResult | IMovieResult>(mediaType, metaProvider, mediaFeedType!, {
+    enabled: !staticData && isFeed,
+  });
+
+  const activeResult = staticData
     ? { data: undefined, isLoading: false, error: null, refetch: () => {}, fetchNextPage: () => {}, hasNextPage: false }
-    : mediaFeedType === 'search' && mediaType === MediaType.MOVIE
-      ? useMovieSearch<IAnimeResult | IMovieResult>(mediaType, debouncedQuery)
-      : mediaFeedType === 'search'
-        ? useAnimeAndMangaSearch<IAnimeResult | IMovieResult>(mediaType, debouncedQuery)
-        : useMediaFeed<IAnimeResult | IMovieResult>(mediaType, metaProvider, mediaFeedType!);
+    : isMovieSearch
+      ? movieSearchResult
+      : isAnimeSearch
+        ? animeSearchResult
+        : feedResult;
+
+  const { data: dynamicData, isLoading, error, refetch, fetchNextPage, hasNextPage } = activeResult;
 
   const data = staticData || dynamicData;
   const isInfiniteData = (
@@ -131,18 +147,25 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
     }
     return data;
   }, [data]);
-  // console.log(getItems, 'data cardlist');
 
+  const filteredItems = useMemo(
+    () =>
+      getItems?.filter(
+        (item) => item.image && !item.image.includes('/originalundefined') && !item.image.includes('/originalnull'),
+      ) || [],
+    [getItems],
+  );
+
+  /*
+  this is used in key to force re-render of flashlist when screen width changes,
+   to fix layout issues on orientation change from /watch/[mediaType] screen
+  */
+  const { width: screenWidth } = useWindowDimensions();
   if (isLoading && !data) {
-    return (
-      <HUXStack className="p-2 justify-center">
-        <ActivityIndicator size="large" />
-      </HUXStack>
-    );
+    return <CardSkeleton isLoading={isLoading} />;
   }
 
   if (error) {
-    //console.log(error);
     return (
       <HUYStack className="justify-center items-center">
         <NoResults />
@@ -151,13 +174,14 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
     );
   }
 
+  if (!filteredItems.length && !isLoading) {
+    return <NoResults />;
+  }
+
   return (
     <CustomFlashlist<IAnimeResult | IMovieResult>
-      data={
-        getItems?.filter(
-          (item) => item.image && !item.image.includes('/originalundefined') && !item.image.includes('/originalnull'),
-        ) || []
-      }
+      key={screenWidth}
+      data={filteredItems}
       renderItem={({ item, index }) => (
         <View className="flex-1 p-1">
           <CustomCard item={item} index={index} mediaType={mediaType} metaProvider={metaProvider} />

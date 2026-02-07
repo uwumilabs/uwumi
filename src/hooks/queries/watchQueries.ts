@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 import { DEFAULT_PROVIDERS } from '@/constants/provider';
 import {
   AnimeProvider,
@@ -18,6 +17,94 @@ import { TextTrackType } from 'react-native-video/src/types/video';
 import { SubtitleTrack } from '@/constants/types';
 import { useConsumetExtensions } from '../stores';
 
+async function fetchAnimeEpisodeSources(
+  episodeId: string,
+  provider: string,
+  server: IEpisodeServer | undefined,
+  dub: boolean,
+  providerManager: ReturnType<typeof useConsumetExtensions>['providerManager'],
+  extractorManager: ReturnType<typeof useConsumetExtensions>['extractorManager'],
+  readExtensionCode: ReturnType<typeof useConsumetExtensions>['readExtensionCode'],
+  readExtractorCode: ReturnType<typeof useConsumetExtensions>['readExtractorCode'],
+): Promise<ISource & { servers?: IEpisodeServer[] }> {
+  const extensionCode = await readExtensionCode(provider);
+  const animeProviderMetadata = providerManager.getExtensionMetadata(provider);
+  const animeProvider = await providerManager.executeProviderCode<AnimeProvider>(
+    extensionCode!,
+    animeProviderMetadata.factoryName,
+    animeProviderMetadata as typeof animeProviderMetadata & { id: AnimeProvider },
+  );
+  const servers = (await animeProvider.fetchEpisodeServers(
+    episodeId,
+    dub ? SubOrDub.DUB : SubOrDub.SUB,
+  )) as IEpisodeServer[];
+
+  if (!servers || servers.length === 0) {
+    throw new Error('No servers available for this episode');
+  }
+
+  const baseExtractorName = extractorManager.extractBaseExtractorName(servers[0].name ?? server?.name!);
+  const extractorCode = await readExtractorCode(baseExtractorName!);
+  const metadata = extractorManager.getExtractorMetadata(baseExtractorName!);
+  const extractor = await extractorManager.executeExtractorCode(extractorCode!, metadata!);
+
+  let data: ISource;
+  if (animeProviderMetadata.haveMultiServers) {
+    try {
+      data = (await extractor.extract(new PolyURL(server?.url!), animeProviderMetadata.baseUrl)) as ISource;
+    } catch {
+      data = (await animeProvider.fetchEpisodeSources(
+        episodeId,
+        server?.name as StreamingServers,
+        dub ? SubOrDub.DUB : SubOrDub.SUB,
+      )) as ISource;
+    }
+  } else {
+    data = (await animeProvider.fetchEpisodeSources(
+      episodeId,
+      server?.name as StreamingServers,
+      dub ? SubOrDub.DUB : SubOrDub.SUB,
+    )) as ISource;
+  }
+  return { ...data, servers };
+}
+
+async function fetchMovieEpisodeSources(
+  episodeId: string,
+  mediaId: string,
+  provider: string,
+  server: IEpisodeServer | undefined,
+  providerManager: ReturnType<typeof useConsumetExtensions>['providerManager'],
+  extractorManager: ReturnType<typeof useConsumetExtensions>['extractorManager'],
+  readExtensionCode: ReturnType<typeof useConsumetExtensions>['readExtensionCode'],
+  readExtractorCode: ReturnType<typeof useConsumetExtensions>['readExtractorCode'],
+): Promise<ISource & { servers: IEpisodeServer[] }> {
+  const extensionCode = await readExtensionCode(provider);
+  const movieProviderMetadata = providerManager.getExtensionMetadata(provider);
+  const movieProvider = await providerManager.executeProviderCode<MovieProvider>(
+    extensionCode!,
+    movieProviderMetadata.factoryName,
+    movieProviderMetadata as typeof movieProviderMetadata & { id: MovieProvider },
+  );
+  const servers = (await movieProvider.fetchEpisodeServers(episodeId, mediaId)) as IEpisodeServer[];
+  const baseExtractorName = extractorManager.extractBaseExtractorName(servers[0].name ?? server?.name!);
+  const extractorCode = await readExtractorCode(baseExtractorName!);
+  const metadata = extractorManager.getExtractorMetadata(baseExtractorName!);
+  const extractor = await extractorManager.executeExtractorCode(extractorCode!, metadata!);
+
+  let data: ISource;
+  if (movieProviderMetadata.haveMultiServers) {
+    try {
+      data = (await extractor.extract(new PolyURL(server?.url!), movieProviderMetadata.baseUrl)) as ISource;
+    } catch {
+      data = (await movieProvider.fetchEpisodeSources(episodeId, mediaId, server?.name as StreamingServers)) as ISource;
+    }
+  } else {
+    data = (await movieProvider.fetchEpisodeSources(episodeId, mediaId, server?.name as StreamingServers)) as ISource;
+  }
+  return { ...data, servers };
+}
+
 export function useWatchAnimeEpisodes({
   episodeId,
   provider = DEFAULT_PROVIDERS.anime,
@@ -31,61 +118,21 @@ export function useWatchAnimeEpisodes({
   dub: boolean;
   enabled?: boolean;
 }) {
-  // console.log('from anime watch query', episodeId, server, provider);
   const { providerManager, readExtensionCode, extractorManager, readExtractorCode } = useConsumetExtensions();
   return useQuery<ISource & { servers?: IEpisodeServer[] }>({
     queryKey: ['watch', episodeId, provider, dub, server],
     enabled: enabled && !!episodeId,
-    queryFn: async () => {
-      try {
-        // let url = `${getFetchUrl().apiUrl}/anime/${provider}/watch/${episodeId}?dub=${dub}`;
-        // console.log(url);
-        // const { data } = await axios.get(url);
-        const extensionCode = await readExtensionCode(provider);
-        const animeProviderMetadata = providerManager.getExtensionMetadata(provider);
-        const animeProvider = await providerManager.executeProviderCode<AnimeProvider>(
-          extensionCode!,
-          animeProviderMetadata.factoryName,
-          animeProviderMetadata as typeof animeProviderMetadata & { id: AnimeProvider },
-        );
-        const servers = (await animeProvider.fetchEpisodeServers(
-          episodeId,
-          dub ? SubOrDub.DUB : SubOrDub.SUB,
-        )) as IEpisodeServer[];
-        // Check if servers exist before accessing
-        if (!servers || servers.length === 0) {
-          throw new Error('No servers available for this episode');
-        }
-
-        const baseExtractorName = extractorManager.extractBaseExtractorName(servers[0].name ?? server?.name!);
-        const extractorCode = await readExtractorCode(baseExtractorName!);
-        const metadata = extractorManager.getExtractorMetadata(baseExtractorName!);
-        const extractor = await extractorManager.executeExtractorCode(extractorCode!, metadata!);
-        let data;
-        if (animeProviderMetadata.haveMultiServers) {
-          try {
-            data = (await extractor.extract(new PolyURL(server?.url!), animeProviderMetadata.baseUrl)) as ISource;
-          } catch {
-            data = (await animeProvider.fetchEpisodeSources(
-              episodeId,
-              server?.name as StreamingServers,
-              dub ? SubOrDub.DUB : SubOrDub.SUB,
-            )) as ISource;
-          }
-        } else {
-          data = (await animeProvider.fetchEpisodeSources(
-            episodeId,
-            server?.name as StreamingServers,
-            dub ? SubOrDub.DUB : SubOrDub.SUB,
-          )) as ISource;
-        }
-        // console.log('useWatchAnimeEpisodes', { ...data, servers });
-        return { ...data, servers };
-      } catch (error) {
-        console.error('Error fetching episode sources:', error);
-        throw error;
-      }
-    },
+    queryFn: () =>
+      fetchAnimeEpisodeSources(
+        episodeId,
+        provider,
+        server,
+        dub,
+        providerManager,
+        extractorManager,
+        readExtensionCode,
+        readExtractorCode,
+      ),
   });
 }
 
@@ -106,49 +153,21 @@ export function useWatchMoviesEpisodes({
   embed: boolean;
   enabled?: boolean;
 }) {
-  // console.log('from movie watch query', episodeId, mediaId, server, provider);
   const { providerManager, extractorManager, readExtensionCode, readExtractorCode } = useConsumetExtensions();
   return useQuery<ISource & { servers: IEpisodeServer[] }>({
     queryKey: ['watch', episodeId, mediaId, server, provider, embed],
     enabled: enabled && !!episodeId,
-    queryFn: async () => {
-      try {
-        const extensionCode = await readExtensionCode(provider);
-        const movieProviderMetadata = providerManager.getExtensionMetadata(provider);
-        const movieProvider = await providerManager.executeProviderCode<MovieProvider>(
-          extensionCode!,
-          movieProviderMetadata.factoryName,
-          movieProviderMetadata as typeof movieProviderMetadata & { id: MovieProvider },
-        );
-        const servers = (await movieProvider.fetchEpisodeServers(episodeId, mediaId)) as IEpisodeServer[];
-        const baseExtractorName = extractorManager.extractBaseExtractorName(servers[0].name ?? server?.name!);
-        const extractorCode = await readExtractorCode(baseExtractorName!);
-        const metadata = extractorManager.getExtractorMetadata(baseExtractorName!);
-        const extractor = await extractorManager.executeExtractorCode(extractorCode!, metadata!);
-        let data;
-        if (movieProviderMetadata.haveMultiServers) {
-          try {
-            data = (await extractor.extract(new PolyURL(server?.url!), movieProviderMetadata.baseUrl)) as ISource;
-          } catch {
-            data = (await movieProvider.fetchEpisodeSources(
-              episodeId,
-              mediaId,
-              server?.name as StreamingServers,
-            )) as ISource;
-          }
-        } else {
-          data = (await movieProvider.fetchEpisodeSources(
-            episodeId,
-            mediaId,
-            server?.name as StreamingServers,
-          )) as ISource;
-        }
-        console.log('useWatchMovieEpisodes', { ...data, servers });
-        return { ...data, servers };
-      } catch (error) {
-        throw new Error(`Error fetching movies episode sources: ${error}`);
-      }
-    },
+    queryFn: () =>
+      fetchMovieEpisodeSources(
+        episodeId,
+        mediaId,
+        provider,
+        server,
+        providerManager,
+        extractorManager,
+        readExtensionCode,
+        readExtractorCode,
+      ),
   });
 }
 // export function useMoviesEpisodesServers({

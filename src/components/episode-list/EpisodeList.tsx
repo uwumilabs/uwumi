@@ -1,10 +1,8 @@
-/* eslint-disable react/display-name */
-/* eslint-disable react-hooks/rules-of-hooks */
 import { ActivityIndicator, Pressable, StyleSheet, View, Text, TextProps } from 'react-native';
 import { FlashListRef } from '@shopify/flash-list';
 import React, { useEffect, useRef, useMemo, useState, useCallback, memo, ReactNode } from 'react';
 import CustomImage from '@/components/CustomImage';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, {
   SharedValue,
@@ -125,35 +123,99 @@ const ListPressable = memo(
   },
 );
 
-export const EpisodeList = ({
-  mediaType,
-  provider,
-  id,
-  type,
-  swipeable = false,
-}: {
-  mediaType: MediaType;
-  provider: string;
-  id: string;
-  type?: MediaFormat | TvType;
-  swipeable?: boolean;
-}) => {
+const SwipeAction = memo(
+  ({
+    drag,
+    isCompleted,
+    backgroundColor,
+  }: {
+    drag: SharedValue<number>;
+    isCompleted: boolean;
+    backgroundColor: string | undefined;
+  }) => {
+    const THRESHOLD = 100;
+
+    const animatedStyle = useAnimatedStyle(() => {
+      const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
+      return {
+        transform: [{ scale: withSpring(0.9 + progress * 0.1, { mass: 0.5, damping: 20, stiffness: 200 }) }],
+        opacity: withSpring(progress > 0 ? 1 : 0.7),
+      };
+    });
+
+    const firstIconStyle = useAnimatedStyle(() => {
+      const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
+      const opacity = interpolate(progress, [0, 0.5], [1, 0], Extrapolation.CLAMP);
+      return { opacity };
+    });
+
+    const secondIconStyle = useAnimatedStyle(() => {
+      const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
+      const opacity = interpolate(progress, [0.5, 1], [0, 1], Extrapolation.CLAMP);
+      return { opacity };
+    });
+
+    return (
+      <Animated.View
+        style={[animatedStyle, { width: 100, justifyContent: 'center', alignItems: 'center', backgroundColor }]}>
+        {/* Show current state icon (fades out) */}
+        <Animated.View
+          style={[
+            { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+            firstIconStyle,
+          ]}>
+          {isCompleted ? (
+            <IoniconsIcon name="eye-off-outline" color="white" size={24} />
+          ) : (
+            <IoniconsIcon name="eye-outline" color="white" size={24} />
+          )}
+        </Animated.View>
+
+        {/* Show new state icon (fades in) */}
+        <Animated.View
+          style={[
+            { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+            secondIconStyle,
+          ]}>
+          {isCompleted ? (
+            <IoniconsIcon name="eye-outline" color="white" size={24} />
+          ) : (
+            <IoniconsIcon name="eye-off-outline" color="white" size={24} />
+          )}
+        </Animated.View>
+      </Animated.View>
+    );
+  },
+);
+
+export const EpisodeList = () => {
   const swipeableRefs = useRef<Map<string, React.RefObject<SwipeableMethods | null>>>(new Map());
-  const router = useRouter();
+  const pathname = usePathname();
+  const { mediaType, type, provider, id } = useLocalSearchParams<{
+    mediaType: MediaType;
+    type: MediaFormat | TvType;
+    provider: string;
+    id: string;
+  }>();
+  const swipeable = pathname.includes('/info/'); // Only enable swipe actions on the /info/[mediaType] screen, not in the episode list inside /watch/[mediaType]
   const currentTheme = useCurrentTheme();
   const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
   const { setProvider, getProvider } = useProviderStore();
   useEffect(() => {
     setProvider(mediaType, getProvider(mediaType) ?? provider);
   }, [mediaType, provider, setProvider, getProvider]);
-  const { data: episodeData, isLoading } =
-    mediaType === MediaType.ANIME
-      ? useAnimeEpisodes({ id, provider: getProvider(mediaType) })
-      : useMoviesEpisodes({
-          id,
-          type: type!,
-          provider: getProvider(mediaType),
-        });
+  const animeResult = useAnimeEpisodes({
+    id,
+    provider: getProvider(mediaType),
+    enabled: mediaType === MediaType.ANIME,
+  });
+  const movieResult = useMoviesEpisodes({
+    id,
+    type: type!,
+    provider: getProvider(mediaType),
+    enabled: mediaType === MediaType.MOVIE,
+  });
+  const { data: episodeData, isLoading } = mediaType === MediaType.ANIME ? animeResult : movieResult;
   const { seasonNumber, setSeasonNumber, resetSeasonNumber } = useSeasonStore();
   const movieSeasons = episodeData?.seasons as IMovieSeason[];
   // console.log('movieSeasons', movieSeasons);
@@ -268,67 +330,10 @@ export const EpisodeList = ({
   const rightActions = useCallback(
     (item: IAnimeEpisode | IMovieEpisode) => {
       return (_prog: SharedValue<number>, drag: SharedValue<number>) => {
-        const THRESHOLD = 100;
-
-        // Check if episode is already completed
         const progress = progresses[item?.uniqueId as string];
         const isCompleted = progress?.isCompleted ?? false;
 
-        const animatedStyle = useAnimatedStyle(() => {
-          const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
-          return {
-            transform: [{ scale: withSpring(0.9 + progress * 0.1, { mass: 0.5, damping: 20, stiffness: 200 }) }],
-            opacity: withSpring(progress > 0 ? 1 : 0.7),
-          };
-        });
-
-        const firstIconStyle = useAnimatedStyle(() => {
-          const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
-          // If completed: show IoniconsIcon name="eye-off-outline" first (fade out), else show Eye first (fade out)
-          const opacity = interpolate(progress, [0, 0.5], [1, 0], Extrapolation.CLAMP);
-          return { opacity };
-        });
-
-        const secondIconStyle = useAnimatedStyle(() => {
-          const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
-          // If completed: show Eye after (fade in), else show IoniconsIcon name="eye-off-outline" after (fade in)
-          const opacity = interpolate(progress, [0.5, 1], [0, 1], Extrapolation.CLAMP);
-          return { opacity };
-        });
-
-        return (
-          <Animated.View
-            style={[
-              animatedStyle,
-              { width: 100, justifyContent: 'center', alignItems: 'center', backgroundColor: currentTheme?.default },
-            ]}>
-            {/* Show current state icon (fades out) */}
-            <Animated.View
-              style={[
-                { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
-                firstIconStyle,
-              ]}>
-              {isCompleted ? (
-                <IoniconsIcon name="eye-off-outline" color="white" size={24} />
-              ) : (
-                <IoniconsIcon name="eye-outline" color="white" size={24} />
-              )}
-            </Animated.View>
-
-            {/* Show new state icon (fades in) */}
-            <Animated.View
-              style={[
-                { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
-                secondIconStyle,
-              ]}>
-              {isCompleted ? (
-                <IoniconsIcon name="eye-outline" color="white" size={24} />
-              ) : (
-                <IoniconsIcon name="eye-off-outline" color="white" size={24} />
-              )}
-            </Animated.View>
-          </Animated.View>
-        );
+        return <SwipeAction drag={drag} isCompleted={isCompleted} backgroundColor={currentTheme?.default} />;
       };
     },
     [progresses, currentTheme],
@@ -450,7 +455,7 @@ export const EpisodeList = ({
         </HUYStack>
       );
     },
-    [ProgressAndAirDate],
+    [ProgressAndAirDate, pureBlackBackground],
   );
 
   const renderNumberOnlyPressableItem = useCallback(
@@ -471,7 +476,7 @@ export const EpisodeList = ({
         </HUYStack>
       );
     },
-    [ProgressAndAirDate],
+    [ProgressAndAirDate, pureBlackBackground],
   );
 
   const renderItemContent = useCallback(

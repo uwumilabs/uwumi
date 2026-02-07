@@ -13,7 +13,7 @@ const Episodes = () => {
   }>();
   return (
     <View className="h-full">
-      <EpisodeList mediaType={mediaType} provider={provider} id={id} type={type} swipeable />
+      <EpisodeList />
     </View>
   );
 };
