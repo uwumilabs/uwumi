@@ -5,7 +5,7 @@ import { openBrowserAsync } from 'expo-web-browser';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import { useCurrentTheme } from '@/hooks';
 import { toast } from 'sonner-native';
-import { Card, Divider } from 'heroui-native';
+import { Card, Separator } from 'heroui-native';
 import { ActivityIndicator, ScrollView, Text } from 'react-native';
 
 const About = () => {
@@ -37,7 +37,7 @@ const About = () => {
             />
           </HUYStack>
 
-          <Divider />
+          <Separator />
           {process.env.NODE_ENV && (
             <Card className="self-center my-2 w-64 rounded-3xl p-2">
               <Card.Body>

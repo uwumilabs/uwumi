@@ -6,10 +6,6 @@ import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
 import { ISubtitle, TvType } from 'react-native-consumet';
 import { EpisodeList, HUXStack, HUYStack, MaterialIconsIcon, ThemedView } from '@/components';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { Gesture } from 'react-native-gesture-handler';
-import { scheduleOnRN } from 'react-native-worklets';
-import * as Brightness from 'expo-brightness';
-import { VolumeManager } from 'react-native-volume-manager';
 import {
   useEpisodesIdStore,
   useEpisodesStore,
@@ -259,96 +255,6 @@ const Watch = () => {
     },
     [uniqueId, getProgress, setProgress],
   );
-
-  useEffect(() => {
-    const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
-
-    const initBrightness = async () => {
-      const result = await Brightness.getBrightnessAsync();
-      setBrightness(clamp01(result));
-    };
-
-    initBrightness();
-
-    const brightnessListener = Brightness.addBrightnessListener((result) => {
-      setBrightness(clamp01(result.brightness));
-    });
-
-    return () => brightnessListener.remove();
-  }, []);
-
-  const updateBrightness = useCallback(async (value: number) => {
-    const clamped = Math.max(0, Math.min(1, value));
-    await Brightness.setBrightnessAsync(clamped);
-    setBrightness(clamped);
-    //console.log('bright:', value);
-  }, []);
-
-  useEffect(() => {
-    const initVolume = async () => {
-      const result = await VolumeManager.getVolume();
-      setVolume(result.volume);
-      setSystemVolume(result.volume);
-    };
-
-    initVolume();
-
-    const volumeListener = VolumeManager.addVolumeListener((result) => {
-      setVolume(result.volume);
-      setSystemVolume(result.volume);
-    });
-
-    return () => volumeListener.remove();
-  }, []);
-
-  const updateVolume = useCallback(async (value: number) => {
-    try {
-      await VolumeManager.setVolume(value, { showUI: false });
-      setVolume(value);
-      //console.log('volume:', value * 100);
-    } catch (error) {
-      console.error('Failed to update volume:', error);
-    }
-  }, []);
-
-  // Vertical gesture handler for brightness/volume
-  const brightnessVolumeGesture = useMemo(
-    () =>
-      Gesture.Pan()
-        .activeOffsetY([-10, 10])
-        .onUpdate((event) => {
-          'worklet';
-          const side = event.x < dimensions.width / 2 ? 'brightness' : 'volume';
-          const delta = -event.translationY / 200;
-          if (side === 'brightness') {
-            const newBrightness = Math.max(0, Math.min(1, brightness + delta));
-            scheduleOnRN(updateBrightness, newBrightness);
-          } else {
-            const newVolume = Math.max(0, Math.min(1, volume + delta));
-            scheduleOnRN(updateVolume, newVolume);
-          }
-        }),
-    [brightness, volume, dimensions.width, updateBrightness, updateVolume],
-  );
-
-  // Horizontal gesture handler for seeking
-  // const seekGesture = useMemo(
-  //   () =>
-  //     Gesture.Pan()
-  //       .activeOffsetX([-10, 10])
-  //       .onUpdate((event) => {
-  //         'worklet';
-  //         const MAX_SEEK_SECONDS = 15;
-  //         const direction = Math.sign(event.translationX);
-  //         const absTranslation = Math.abs(event.translationX);
-  //         // Non-linear scaling for smoother control
-  //         const scale = Math.min(absTranslation / dimensions.width, 1);
-  //         const seekDelta = direction * scale * MAX_SEEK_SECONDS;
-  //         const newTime = Math.max(0, Math.min(seekableDuration, currentTime + seekDelta));
-  //         scheduleOnRN (handleSeek)(newTime);
-  //       }),
-  //   [dimensions.width, seekableDuration, currentTime, handleSeek],
-  // );
 
   const videoStyle = useMemo<StyleProp<ViewStyle>>(
     () => ({

@@ -89,7 +89,7 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
           <SearchBar />
         </Animated.View>
       )}
-      <Tabs value={currentTab} onValueChange={handleTabChange} variant="pill">
+      <Tabs value={currentTab} onValueChange={handleTabChange} variant="primary">
         {TabList}
         {tabsContent}
       </Tabs>

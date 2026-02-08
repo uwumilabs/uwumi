@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useExtensionStore, useCurrentTheme } from '@/hooks';
-import { Avatar, Button, Card, Chip, Divider, Switch } from 'heroui-native';
+import { Avatar, Button, Card, Chip, Separator, Switch } from 'heroui-native';
 import { CustomImage, CustomSheet, HUXStack, HUYStack, RippleButton, IoniconsIcon } from '@/components';
 
 interface ExtensionCardProps {
@@ -43,7 +43,7 @@ function ExtensionCard({
       className="rounded-3xl p-4"
       style={{
         borderWidth: isInstalled ? 2 : 1,
-        borderColor: !isInstalled ? currentTheme?.divider : hasUpdate ? currentTheme?.warning : currentTheme?.success,
+        borderColor: !isInstalled ? currentTheme?.separator : hasUpdate ? currentTheme?.warning : currentTheme?.success,
       }}>
       <Card.Body>
         <HUYStack className="gap-3">
@@ -161,16 +161,16 @@ function ExtensionDetailsSheet({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  if (!extension) return null;
   const theme = useCurrentTheme();
-
   const sourceLabel = useMemo(() => {
     if (!extension?.baseUrl) return '';
     return extension.baseUrl.replace('https://', '').replace('http://', '');
-  }, [extension?.baseUrl]);
+  }, [extension.baseUrl]);
 
   const statusColor: 'success' | 'warning' | 'danger' | 'default' =
-    extension.status === 'stable' ? 'success' : extension.status === 'beta' ? 'warning' : 'danger';
+    extension?.status === 'stable' ? 'success' : extension?.status === 'beta' ? 'warning' : 'danger';
+
+  if (!extension) return null;
 
   return (
     <CustomSheet
@@ -200,7 +200,7 @@ function ExtensionDetailsSheet({
           </HUYStack>
         </HUXStack>
 
-        <Divider />
+        <Separator />
 
         {!!extension.description && (
           <HUYStack className="gap-2">
@@ -443,7 +443,7 @@ export default function Extensions() {
         {/* Header Stats */}
         <HUXStack
           className="px-4 py-3 items-center justify-between border-b"
-          style={{ borderColor: currentTheme.divider }}>
+          style={{ borderColor: currentTheme.separator }}>
           <HUYStack>
             <Text className="text-foreground/70 text-xs">
               {installedCount} installed • {filteredExtensions.length} available

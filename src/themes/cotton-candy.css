@@ -65,9 +65,10 @@
             /* Android: outlineVariant (from default.css) */
             --border: #C5C6D0;
             /* Android: outlineVariant (from default.css) */
-            --divider: #C5C6D0;
+            --separator: #C5C6D0;
             /* Android: primary */
             --link: #9A4058;
+            --focus: var(--accent);
 
             /* Shadows */
             /* --surface-shadow: 0 0px 0px 0 rgba(24, 24, 27, 0.03), 0 2px 10px 0 rgba(24, 24, 27, 0.08); */
@@ -147,9 +148,10 @@
             /* Android: outlineVariant (from default.css) */
             --border: #44464F;
             /* Android: outlineVariant (from default.css) */
-            --divider: #44464F;
+            --separator: #44464F;
             /* Android: primary */
             --link: #FFB1C1;
+            --focus: var(--accent);
 
             /* Shadows */
             /* --surface-shadow: 0 0px 0px 0 rgba(24, 24, 27, 0.03), 0 2px 10px 0 rgba(24, 24, 27, 0.08); */

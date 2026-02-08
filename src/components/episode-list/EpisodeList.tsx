@@ -651,7 +651,7 @@ export const EpisodeList = () => {
         keyExtractor={getItemKey}
         renderItem={renderItem}
       />
-      {swipeable && sheetOpen && (
+      {swipeable && (
         <EpisodeActionsSheet
           open={sheetOpen}
           onOpenChange={setSheetOpen}

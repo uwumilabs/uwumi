@@ -27,7 +27,7 @@ export const HorizontalTabs: React.FC<HorizontalTabsProps> = ({ items, initialTa
 
   const orderedItems = useMemo(() => items, [items]);
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} variant="line" className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} variant="secondary" className="w-full">
       <Tabs.List>
         <Tabs.Indicator />
         {orderedItems.map((item) => (

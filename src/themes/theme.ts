@@ -27,8 +27,14 @@ export const themes = {
     fieldPlaceholder: '#44464F',
     fieldBorder: '#757780',
     border: '#757780',
-    divider: '#C5C6D0',
+    separator: '#C5C6D0',
     link: '#0058CA',
+    focus: 'var(--accent)',
+    surfaceShadow:
+      '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),\r\n        0 0 1px 0 rgba(0, 0, 0, 0.06)',
+    overlayShadow: '0 4px 16px 0 rgba(24, 24, 27, 0.08), 0 8px 24px 0 rgba(24, 24, 27, 0.09)',
+    fieldShadow:
+      '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),\r\n        0 0 1px 0 rgba(0, 0, 0, 0.06)',
   },
   'default-dark': {
     background: '#1B1B1F',
@@ -55,8 +61,14 @@ export const themes = {
     fieldPlaceholder: '#C5C6D0',
     fieldBorder: '#44464F',
     border: '#44464F',
-    divider: '#44464F',
+    separator: '#44464F',
     link: '#B0C6FF',
+    focus: 'var(--accent)',
+    surfaceShadow:
+      '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),\r\n        0 0 1px 0 rgba(0, 0, 0, 0.06)',
+    overlayShadow: '0 4px 16px 0 rgba(24, 24, 27, 0.08), 0 8px 24px 0 rgba(24, 24, 27, 0.09)',
+    fieldShadow:
+      '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),\r\n        0 0 1px 0 rgba(0, 0, 0, 0.06)',
   },
   'cloudflare-dark': {
     background: '#1B1B22',
@@ -83,8 +95,14 @@ export const themes = {
     fieldPlaceholder: '#FFFFFF',
     fieldBorder: '#44464F',
     border: '#44464F',
-    divider: '#44464F',
+    separator: '#44464F',
     link: '#F38020',
+    surfaceShadow:
+      '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),\r\n        0 0 1px 0 rgba(0, 0, 0, 0.06)',
+    overlayShadow: '0 4px 16px 0 rgba(24, 24, 27, 0.08), 0 8px 24px 0 rgba(24, 24, 27, 0.09)',
+    fieldShadow:
+      '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),\r\n        0 0 1px 0 rgba(0, 0, 0, 0.06)',
+    focus: '',
   },
   'cloudflare-light': {
     background: '#EFF2F5',
@@ -111,8 +129,14 @@ export const themes = {
     fieldPlaceholder: '#49454E',
     fieldBorder: '#C5C6D0',
     border: '#C5C6D0',
-    divider: '#C5C6D0',
+    separator: '#C5C6D0',
     link: '#F38020',
+    surfaceShadow:
+      '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),\r\n        0 0 1px 0 rgba(0, 0, 0, 0.06)',
+    overlayShadow: '0 4px 16px 0 rgba(24, 24, 27, 0.08), 0 8px 24px 0 rgba(24, 24, 27, 0.09)',
+    fieldShadow:
+      '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),\r\n        0 0 1px 0 rgba(0, 0, 0, 0.06)',
+    focus: '',
   },
   'cotton-candy-dark': {
     background: '#201A1B',
@@ -139,8 +163,14 @@ export const themes = {
     fieldPlaceholder: '#D6C2C4',
     fieldBorder: '#44464F',
     border: '#44464F',
-    divider: '#44464F',
+    separator: '#44464F',
     link: '#FFB1C1',
+    focus: 'var(--accent)',
+    surfaceShadow:
+      '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),\r\n                0 0 1px 0 rgba(0, 0, 0, 0.06)',
+    overlayShadow: '0 4px 16px 0 rgba(24, 24, 27, 0.08), 0 8px 24px 0 rgba(24, 24, 27, 0.09)',
+    fieldShadow:
+      '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),\r\n                0 0 1px 0 rgba(0, 0, 0, 0.06)',
   },
   'cotton-candy-light': {
     background: '#FFFFFB',
@@ -167,8 +197,14 @@ export const themes = {
     fieldPlaceholder: '#524345',
     fieldBorder: '#C5C6D0',
     border: '#C5C6D0',
-    divider: '#C5C6D0',
+    separator: '#C5C6D0',
     link: '#9A4058',
+    focus: 'var(--accent)',
+    surfaceShadow:
+      '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),\r\n                0 0 1px 0 rgba(0, 0, 0, 0.06)',
+    overlayShadow: '0 4px 16px 0 rgba(24, 24, 27, 0.08), 0 8px 24px 0 rgba(24, 24, 27, 0.09)',
+    fieldShadow:
+      '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),\r\n                0 0 1px 0 rgba(0, 0, 0, 0.06)',
   },
 } as const;
 

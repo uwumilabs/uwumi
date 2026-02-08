@@ -2,7 +2,7 @@ import React, { memo, useCallback, useMemo } from 'react';
 import { useThemeStore, usePureBlackBackground } from '@/hooks';
 import { ThemedView, HUYStack, HUXStack, IoniconsIcon } from '@/components';
 import { Pressable, StyleProp, ViewStyle, View, Text, FlatList } from 'react-native';
-import { Divider, Switch } from 'heroui-native';
+import { Separator, Switch } from 'heroui-native';
 import { themes, ThemeName } from '@/themes/theme';
 
 interface ThemeButtonProps {
@@ -74,7 +74,7 @@ const ThemeSelector = memo(() => {
     <View className="items-center justify-center">
       <HUXStack className="w-1/2 border-2 overflow-hidden rounded-4xl border-muted">
         <ThemeButton isSelected={!isDark} label="Light" onPress={handleLightPress} />
-        <Divider orientation="vertical" />
+        <Separator orientation="vertical" />
         <ThemeButton isSelected={isDark} label="Dark" onPress={handleDarkPress} />
       </HUXStack>
     </View>
@@ -90,7 +90,7 @@ const AccentCard = memo(({ themeName, currentTheme, pureBlackBackground, onPress
       height: 150,
       width: 100,
       borderRadius: 10,
-      borderColor: isSelected ? theme?.accent : theme?.divider,
+      borderColor: isSelected ? theme?.accent : theme?.separator,
       backgroundColor: pureBlackBackground ? '#000' : theme?.background,
       borderWidth: 2,
       overflow: 'hidden',

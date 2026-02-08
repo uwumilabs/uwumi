@@ -40,9 +40,7 @@ const ProviderSelection = () => {
           <Dialog.Content className={cn(pureBlackBackground && 'bg-black', 'px-0')}>
             <HUXStack className="items-center justify-between px-4">
               <Dialog.Title>Provider Selection</Dialog.Title>
-              <Dialog.Close>
-                <IoniconsIcon name="close" />
-              </Dialog.Close>
+              <Dialog.Close />
             </HUXStack>
             <Card className={cn(pureBlackBackground && 'bg-black')}>
               <Card.Body className="pt-2 px-0">

@@ -1,7 +1,6 @@
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import { Easing } from 'react-native-reanimated';
-import { Button, cn, ScrollShadow, Select, TextField } from 'heroui-native';
+import { Button, cn, Input, ScrollShadow, Select, TextField } from 'heroui-native';
 import { SUB_LANGUAGE } from '@/constants/config';
 import { useCurrentTheme, useCustomBackHandler } from '@/hooks';
 import { HUXStack, IoniconsIcon, RippleButton } from '@/components';
@@ -102,16 +101,16 @@ export const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
         onValueChange={handleValueChange}
         isOpen={open}
         onOpenChange={handleOpenChange}
-        closeDelay={300}
-        animation={{
-          exiting: {
-            type: 'timing',
-            config: {
-              duration: 250,
-              easing: Easing.out(Easing.quad),
-            },
-          },
-        }}>
+        // animation={{
+        //   exiting: {
+        //     type: 'timing',
+        //     config: {
+        //       duration: 250,
+        //       easing: Easing.out(Easing.quad),
+        //     },
+        //   },
+        // }}
+      >
         <Select.Trigger asChild>
           <RippleButton>
             <HUXStack className="items-center justify-center gap-3">
@@ -136,14 +135,14 @@ export const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
                 <View className="absolute z-10 left-3.5 inset-y-0 justify-center">
                   <IoniconsIcon name="search" size={16} color={theme.foreground} />
                 </View>
-                <TextField.Input
+                <Input
                   ref={inputRef}
                   placeholder="Search languages..."
                   // value={searchQuery}
                   autoCorrect={false}
                   autoCapitalize="none"
                   autoComplete="off"
-                  placeholderTextColor={theme.divider}
+                  placeholderTextColor={theme.separator}
                   onChangeText={setSearchQuery}
                   style={{ paddingHorizontal: 32 }}
                 />
@@ -175,35 +174,35 @@ export const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
                 </ScrollView>
               </ScrollShadow>
               <HUXStack className="self-stretch justify-between gap-4">
-                <Select.Close asChild>
-                  <Button
-                    variant="danger-soft"
-                    onPress={() => {
-                      setExternalSubtitleLanguage(null);
-                      setOpen(false);
-                    }}>
-                    Cancel
-                  </Button>
+                <Select.Close
+                  size="md"
+                  isIconOnly={false}
+                  variant="danger-soft"
+                  onPress={() => {
+                    setExternalSubtitleLanguage(null);
+                    setOpen(false);
+                  }}>
+                  Cancel
                 </Select.Close>
 
-                <Select.Close asChild>
-                  <Button
-                    isDisabled={!externalSubtitleLanguage?.trim()}
-                    onPress={() => {
-                      if (externalSubtitleLanguage?.trim()) {
-                        setShouldFetchExternalSubs(true);
-                        // setOpen(false);
-                      }
-                    }}>
-                    {isExternalSubtitlesLoading ? (
-                      <HUXStack className="gap-2 items-center">
-                        <ActivityIndicator size="small" />
-                        <Button.Label>Fetching...</Button.Label>
-                      </HUXStack>
-                    ) : (
-                      <Button.Label>Fetch Subtitles</Button.Label>
-                    )}
-                  </Button>
+                <Select.Close
+                  size="md"
+                  isIconOnly={false}
+                  isDisabled={!externalSubtitleLanguage?.trim()}
+                  onPress={() => {
+                    if (externalSubtitleLanguage?.trim()) {
+                      setShouldFetchExternalSubs(true);
+                      // setOpen(false);
+                    }
+                  }}>
+                  {isExternalSubtitlesLoading ? (
+                    <HUXStack className="gap-2 items-center">
+                      <ActivityIndicator size="small" />
+                      <Button.Label>Fetching...</Button.Label>
+                    </HUXStack>
+                  ) : (
+                    <Button.Label>Fetch Subtitles</Button.Label>
+                  )}
                 </Select.Close>
               </HUXStack>
             </View>

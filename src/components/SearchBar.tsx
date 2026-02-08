@@ -1,7 +1,7 @@
 import { useCurrentTheme, useSearchStore, useTabsStore } from '@/hooks';
 import React, { useCallback, useRef } from 'react';
 import { TextInput, View } from 'react-native';
-import { Button, TextField } from 'heroui-native';
+import { Button, Input, TextField } from 'heroui-native';
 import { IoniconsIcon } from './Icons';
 
 export const SearchBar: React.FC = () => {
@@ -34,7 +34,7 @@ export const SearchBar: React.FC = () => {
   return (
     <View className="w-full">
       <TextField className="p-2 mt-4 mx-4">
-        <TextField.Input
+        <Input
           ref={inputRef}
           onChangeText={handleTextChange}
           value={searchQuery}

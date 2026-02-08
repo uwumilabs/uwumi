@@ -49,7 +49,7 @@ export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
             snapPoints={resolvedSnapPoints}
             // Keep parity with prior styling.
             backgroundStyle={{ backgroundColor: sheetColor }}
-            handleIndicatorStyle={{ backgroundColor: theme?.divider }}
+            handleIndicatorStyle={{ backgroundColor: theme?.separator }}
             topInset={insets.top}
             detached
             {...(modalProps as any)}>

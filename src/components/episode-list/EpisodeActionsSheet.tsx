@@ -15,7 +15,7 @@ import { MediaType } from '@/constants/types';
 import { useProviderStore } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { HUXStack, HUYStack, RippleButton } from '../ui-primitives';
-import { Divider } from 'heroui-native';
+import { Separator } from 'heroui-native';
 import { CustomSheet } from '../CustomSheet';
 import { IoniconsIcon } from '../Icons';
 
@@ -202,126 +202,114 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
     const handleOpenWithQuality = useCallback(
       async (videoUrl: string) => {
+        const subtitles = data?.subtitles || [];
+        const hasSubtitles = subtitles.length > 0;
+        const progress = getProgress(episode?.uniqueId!);
+        const episodeTitle = episode?.title || `Episode ${episode?.number ?? episode?.episode}`;
+        const extras: Record<string, any> = {
+          title: episodeTitle,
+          position: progress ? Math.floor(progress.currentTime * 1000) : 0,
+          return_result: true,
+          filename: episode?.title?.toLowerCase().replace(/\s/g, ' ') || episodeTitle,
+        };
+
+        if (hasSubtitles) {
+          const subtitleUrls = subtitles.map((sub) => sub.url).filter(Boolean);
+          const subtitleNames = subtitles.map((sub) => sub.lang || 'Unknown').filter(Boolean);
+
+          if (subtitleUrls.length > 0) {
+            extras['subs'] = subtitleUrls;
+            extras['subs.enable'] = subtitleUrls;
+            extras['subs.name'] = subtitleNames;
+            extras['subs.filename'] = subtitleUrls;
+            extras['subtitle'] = subtitleUrls[0];
+            extras['subtitles_location'] = subtitleUrls[0];
+          }
+        }
+
+        const uniqueId = episode?.uniqueId;
+
+        let result: IntentLauncher.IntentLauncherResult | null = null;
         try {
           if (Platform.OS === 'android') {
-            // Get subtitles if available
-            const subtitles = data?.subtitles || [];
-            const hasSubtitles = subtitles.length > 0;
-            const progress = getProgress(episode?.uniqueId!);
-            // Prepare extras for external players
-            const extras: Record<string, any> = {
-              title: episode?.title || `Episode ${episode?.number ?? episode?.episode}`,
-              position: progress ? Math.floor(progress.currentTime * 1000) : 0, // in ms
-              return_result: true,
-              filename:
-                episode?.title?.toLowerCase().replace(/\s/g, ' ') || `Episode ${episode?.number ?? episode?.episode}`,
-            };
-
-            // Add subtitle URLs if available (for MX Player, VLC, etc.)
-            if (hasSubtitles) {
-              const subtitleUrls = subtitles.map((sub) => sub.url).filter(Boolean);
-              const subtitleNames = subtitles.map((sub) => sub.lang || 'Unknown').filter(Boolean);
-
-              if (subtitleUrls.length > 0) {
-                // MX Player format
-                extras['subs'] = subtitleUrls;
-                extras['subs.enable'] = subtitleUrls;
-                extras['subs.name'] = subtitleNames;
-                extras['subs.filename'] = subtitleUrls;
-                // VLC and other players
-                extras['subtitle'] = subtitleUrls[0];
-                extras['subtitles_location'] = subtitleUrls[0];
-              }
-            }
-
-            // Use IntentLauncher to open video in external player apps (VLC, MX Player, etc.)
-            // This returns a Promise with the result when the user returns to the app
-            const result = await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+            result = await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
               data: videoUrl,
               type: 'video/*',
               flags: 1,
               extra: extras,
             });
-            // Check if player returned any useful data
-            if (result.extra) {
-              // @ts-ignore
-              const position = result.extra.extra_position ?? result.extra.position;
-              // @ts-ignore
-              const duration = result.extra.extra_duration ?? result.extra.duration;
-
-              // console.log('🎥 Playback Info from External Player:');
-              // if (position !== undefined) console.log('  ⏱️  Position:', position / 1000, 's');
-              // if (duration !== undefined) console.log('  ⏱️  Duration:', duration / 1000, 's');
-
-              // You can use this data to update watch progress
-              // Example: if position and duration are available, update progress store
-              if (position && duration && episode?.uniqueId) {
-                setProgress(episode.uniqueId, {
-                  currentTime: position / 1000, // Convert ms to seconds
-                  duration: duration / 1000,
-                  progress: (position / duration) * 100,
-                  isCompleted: position / duration >= 90,
-                });
-              }
-            } else {
-              console.log('No extras returned from external player');
-            }
           } else if (Platform.OS === 'ios') {
             await Linking.openURL(videoUrl);
           }
-          onOpenChange(false);
-        } catch (error) {
-          console.error('❌ Error opening external player:', error);
-          toast.error('Failed to open external player', {
-            description: error instanceof Error ? error.message : 'Unknown error',
-          });
+        } catch (e) {
+          console.error('❌ Error opening external player:', e);
+          const message = String((e as Error).message || 'Unknown error');
+          toast.error('Failed to open external player', { description: message });
+          return;
         }
+
+        if (result?.extra) {
+          // @ts-ignore
+          const position = result.extra.extra_position ?? result.extra.position;
+          // @ts-ignore
+          const duration = result.extra.extra_duration ?? result.extra.duration;
+
+          if (position && duration && uniqueId) {
+            setProgress(uniqueId, {
+              currentTime: position / 1000,
+              duration: duration / 1000,
+              progress: (position / duration) * 100,
+              isCompleted: position / duration >= 90,
+            });
+          }
+        } else if (result) {
+          console.log('No extras returned from external player');
+        }
+        onOpenChange(false);
       },
-      [onOpenChange, data?.subtitles, episode],
+      [onOpenChange, data, episode, getProgress, setProgress],
     );
 
     const handleDownloadWithQuality = useCallback(
       async (videoUrl: string) => {
+        if (!episode) return;
+
+        const episodeNumber = Number(episode.number ?? episode.episode ?? 1);
+        const episodeName = episode.title || `Episode ${episodeNumber}`;
+
+        let showName: string | undefined;
+        if (mediaInfo?.title) {
+          showName =
+            typeof mediaInfo.title === 'object'
+              ? mediaInfo.title.english || mediaInfo.title.romaji || mediaInfo.title.native
+              : mediaInfo.title;
+        }
+
+        // @ts-ignore - Some episode objects may have season property
+        const seasonFromEpisode = episode.season;
+        // @ts-ignore - Some media info objects may have season property
+        const seasonFromMedia = mediaInfo?.season;
+        const season =
+          seasonFromEpisode !== undefined
+            ? Number(seasonFromEpisode)
+            : seasonFromMedia !== undefined
+              ? Number(seasonFromMedia)
+              : undefined;
+
+        const subtitles = data?.subtitles || [];
+        const externalSubtitles = subtitles.map((sub) => ({
+          title: sub.lang || 'Unknown',
+          language: (sub.lang || 'en') as any,
+          type: 'application/x-subrip' as any,
+          uri: sub.url,
+        }));
+
+        const resolvedSubtitles = externalSubtitles.length > 0 ? (externalSubtitles as any) : undefined;
+        const successDescription = showName
+          ? `${showName} - ${episodeName}`
+          : `${episodeName} - Episode ${episodeNumber}`;
+
         try {
-          if (!episode) return;
-
-          // Extract episode number and title
-          const episodeNumber = Number(episode.number ?? episode.episode ?? 1);
-          const episodeName = episode.title || `Episode ${episodeNumber}`;
-
-          // Get show name from media info store
-          let showName: string | undefined;
-          if (mediaInfo?.title) {
-            showName =
-              typeof mediaInfo.title === 'object'
-                ? mediaInfo.title.english || mediaInfo.title.romaji || mediaInfo.title.native
-                : mediaInfo.title;
-          }
-
-          // Get season from episode or media info
-          // @ts-ignore - Some episode objects may have season property
-          const seasonFromEpisode = episode.season;
-          // @ts-ignore - Some media info objects may have season property
-          const seasonFromMedia = mediaInfo?.season;
-          const season =
-            seasonFromEpisode !== undefined
-              ? Number(seasonFromEpisode)
-              : seasonFromMedia !== undefined
-                ? Number(seasonFromMedia)
-                : undefined;
-
-          // Get subtitles if available
-          const subtitles = data?.subtitles || [];
-
-          // Convert subtitles to TextTracks format for download
-          const externalSubtitles = subtitles.map((sub) => ({
-            title: sub.lang || 'Unknown',
-            language: (sub.lang || 'en') as any, // Cast to avoid ISO639_1 type issues
-            type: 'application/x-subrip' as any,
-            uri: sub.url,
-          }));
-
-          // Add download to queue
           const downloadId = addDownload({
             url: videoUrl,
             name: episodeName,
@@ -330,25 +318,21 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
             episode: episodeNumber,
             uniqueId: episode.uniqueId,
             episodeId: episode.id,
-            externalSubtitles: externalSubtitles.length > 0 ? (externalSubtitles as any) : undefined,
+            externalSubtitles: resolvedSubtitles,
           });
 
-          // Start download immediately
           await startDownload(downloadId);
-
-          toast.success('Download started', {
-            description: showName ? `${showName} - ${episodeName}` : `${episodeName} - Episode ${episodeNumber}`,
-          });
-
-          onOpenChange(false);
-        } catch (error) {
-          console.error('❌ Error starting download:', error);
-          toast.error('Failed to start download', {
-            description: error instanceof Error ? error.message : 'Unknown error',
-          });
+        } catch (e) {
+          console.error('❌ Error starting download:', e);
+          const message = String((e as Error).message || 'Unknown error');
+          toast.error('Failed to start download', { description: message });
+          return;
         }
+
+        toast.success('Download started', { description: successDescription });
+        onOpenChange(false);
       },
-      [episode, data?.subtitles, mediaInfo, addDownload, startDownload, onOpenChange],
+      [episode, data, mediaInfo, addDownload, startDownload, onOpenChange],
     );
 
     const handleBackToMainMenu = useCallback(() => {
@@ -398,124 +382,125 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
     const shouldShowBack = showQualitySelection || showServerSelection;
 
-    if (!episode) return null;
     return (
       <CustomSheet open={open} onOpenChange={onOpenChange} snapPoints={snapPoints}>
-        <HUYStack className="gap-2">
-          {/* Header */}
-          <HUXStack className="justify-between items-center mb-2">
-            <Text className="text-lg font-bold text-accent w-4/5" numberOfLines={1}>
-              {headerTitle}
-            </Text>
-            {/* <HUYStack className="flex-1">
+        {episode ? (
+          <HUYStack className="gap-2">
+            {/* Header */}
+            <HUXStack className="justify-between items-center mb-2">
+              <Text className="text-lg font-bold text-accent w-4/5" numberOfLines={1}>
+                {headerTitle}
+              </Text>
+              {/* <HUYStack className="flex-1">
             </HUYStack> */}
-            <RippleButton onPress={() => (shouldShowBack ? handleBackToMainMenu() : onOpenChange(false))}>
-              {shouldShowBack ? (
-                <IoniconsIcon name="chevron-back" size={24} className="text-foreground" />
-              ) : (
-                <IoniconsIcon name="close" size={24} className="text-foreground" />
-              )}
-            </RippleButton>
-          </HUXStack>
-
-          <Divider />
-
-          {/* Main Menu */}
-          {!showQualitySelection && !showServerSelection && (
-            <HUYStack className="gap-1 mt-2">
-              {/* Mark as Complete/Incomplete */}
-              <StyledSheetButton
-                onPress={handleMarkComplete}
-                icon={<IoniconsIcon name="checkmark" size={20} />}
-                label={isCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}
-              />
-
-              {/* Open in External Player */}
-
-              <StyledSheetButton
-                onPress={() => handleShowQualityOptions('external-player')}
-                icon={<IoniconsIcon name="play" size={20} />}
-                label="Open in External Player"
-              />
-              {/* Download */}
-              <StyledSheetButton
-                onPress={() => handleShowQualityOptions('download')}
-                icon={<IoniconsIcon name="download-outline" size={20} />}
-                label="Download"
-              />
-            </HUYStack>
-          )}
-
-          {/* Server Selection Menu */}
-          {showServerSelection && (
-            <ScrollView style={{ maxHeight: 400 }}>
-              <HUYStack className="gap-1 mt-2">
-                {isLoading ? (
-                  <ListState loading title="Loading servers..." />
-                ) : error ? (
-                  <ListState title="Failed to load servers" subtitle="Please try again" severity="error" />
-                ) : availableServers.length === 0 ? (
-                  <ListState title="No servers available" subtitle="Please try again later" severity="error" />
+              <RippleButton onPress={() => (shouldShowBack ? handleBackToMainMenu() : onOpenChange(false))}>
+                {shouldShowBack ? (
+                  <IoniconsIcon name="chevron-back" size={24} className="text-foreground" />
                 ) : (
-                  availableServers.map((server) => (
-                    <StyledSheetButton
-                      key={server.name}
-                      onPress={() => handleServerSelect(server)}
-                      icon={<IoniconsIcon name="server-outline" size={20} />}
-                      label={server.name}
-                    />
-                  ))
+                  <IoniconsIcon name="close" size={24} className="text-foreground" />
                 )}
-              </HUYStack>
-            </ScrollView>
-          )}
+              </RippleButton>
+            </HUXStack>
 
-          {/* Quality Selection Menu */}
-          {showQualitySelection && (
-            <ScrollView style={{ maxHeight: 400 }}>
+            <Separator />
+
+            {/* Main Menu */}
+            {!showQualitySelection && !showServerSelection && (
               <HUYStack className="gap-1 mt-2">
-                {isLoading ? (
-                  <ListState loading title="Loading video sources..." />
-                ) : error ? (
-                  <ListState
-                    title="Failed to load video sources"
-                    subtitle="Please try again or try different server"
-                    severity="error"
-                  />
-                ) : videoSources.length === 0 ? (
-                  <ListState
-                    title="No video sources available"
-                    subtitle="Please try different server"
-                    severity="error"
-                  />
-                ) : (
-                  videoSources.map((source, index) => {
-                    const quality = source.quality || `Source ${index + 1}`;
-                    const url = source.url;
+                {/* Mark as Complete/Incomplete */}
+                <StyledSheetButton
+                  onPress={handleMarkComplete}
+                  icon={<IoniconsIcon name="checkmark" size={20} />}
+                  label={isCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}
+                />
 
-                    return (
+                {/* Open in External Player */}
+
+                <StyledSheetButton
+                  onPress={() => handleShowQualityOptions('external-player')}
+                  icon={<IoniconsIcon name="play" size={20} />}
+                  label="Open in External Player"
+                />
+                {/* Download */}
+                <StyledSheetButton
+                  onPress={() => handleShowQualityOptions('download')}
+                  icon={<IoniconsIcon name="download-outline" size={20} />}
+                  label="Download"
+                />
+              </HUYStack>
+            )}
+
+            {/* Server Selection Menu */}
+            {showServerSelection && (
+              <ScrollView style={{ maxHeight: 400 }}>
+                <HUYStack className="gap-1 mt-2">
+                  {isLoading ? (
+                    <ListState loading title="Loading servers..." />
+                  ) : error ? (
+                    <ListState title="Failed to load servers" subtitle="Please try again" severity="error" />
+                  ) : availableServers.length === 0 ? (
+                    <ListState title="No servers available" subtitle="Please try again later" severity="error" />
+                  ) : (
+                    availableServers.map((server) => (
                       <StyledSheetButton
-                        key={quality}
-                        onPress={() =>
-                          actionMode === 'download' ? handleDownloadWithQuality(url) : handleOpenWithQuality(url)
-                        }
-                        icon={
-                          actionMode === 'download' ? (
-                            <IoniconsIcon name="download-outline" size={18} />
-                          ) : (
-                            <IoniconsIcon name="play" size={18} />
-                          )
-                        }
-                        label={quality}
-                        rightIcon={<IoniconsIcon name="chevron-forward" size={18} className="text-foreground" />}
+                        key={server.name}
+                        onPress={() => handleServerSelect(server)}
+                        icon={<IoniconsIcon name="server-outline" size={20} />}
+                        label={server.name}
                       />
-                    );
-                  })
-                )}
-              </HUYStack>
-            </ScrollView>
-          )}
-        </HUYStack>
+                    ))
+                  )}
+                </HUYStack>
+              </ScrollView>
+            )}
+
+            {/* Quality Selection Menu */}
+            {showQualitySelection && (
+              <ScrollView style={{ maxHeight: 400 }}>
+                <HUYStack className="gap-1 mt-2">
+                  {isLoading ? (
+                    <ListState loading title="Loading video sources..." />
+                  ) : error ? (
+                    <ListState
+                      title="Failed to load video sources"
+                      subtitle="Please try again or try different server"
+                      severity="error"
+                    />
+                  ) : videoSources.length === 0 ? (
+                    <ListState
+                      title="No video sources available"
+                      subtitle="Please try different server"
+                      severity="error"
+                    />
+                  ) : (
+                    videoSources.map((source, index) => {
+                      const quality = source.quality || `Source ${index + 1}`;
+                      const url = source.url;
+
+                      return (
+                        <StyledSheetButton
+                          key={quality}
+                          onPress={() =>
+                            actionMode === 'download' ? handleDownloadWithQuality(url) : handleOpenWithQuality(url)
+                          }
+                          icon={
+                            actionMode === 'download' ? (
+                              <IoniconsIcon name="download-outline" size={18} />
+                            ) : (
+                              <IoniconsIcon name="play" size={18} />
+                            )
+                          }
+                          label={quality}
+                          rightIcon={<IoniconsIcon name="chevron-forward" size={18} className="text-foreground" />}
+                        />
+                      );
+                    })
+                  )}
+                </HUYStack>
+              </ScrollView>
+            )}
+          </HUYStack>
+        ) : null}
       </CustomSheet>
     );
   },

@@ -12,7 +12,7 @@ import {
 import { useDownloadStore, usePureBlackBackground, useSheetColor, useCurrentTheme } from '@/hooks';
 import { formatTime } from '@/constants/utils';
 import { ActivityIndicator, Text } from 'react-native';
-import { Divider, Dialog, Button, Card, cn } from 'heroui-native';
+import { Separator, Dialog, Button, Card, cn } from 'heroui-native';
 import { MaterialIconsIcon } from '@/components/Icons';
 
 // Reusable Confirm Dialog Component
@@ -199,7 +199,7 @@ const Downloads = () => {
     cancelText = 'Cancel',
     onConfirm,
   }) => (
-    <Dialog isOpen={open} onOpenChange={onOpenChange} closeDelay={200}>
+    <Dialog isOpen={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="bg-black/50" />
         <Dialog.Content className="rounded-3xl bg-background p-4">
@@ -208,12 +208,10 @@ const Downloads = () => {
             <Dialog.Title className="text-lg font-semibold text-foreground">{title}</Dialog.Title>
             <Dialog.Description className="text-base text-foreground/80">{description}</Dialog.Description>
             <HUXStack className="flex-row justify-end gap-3">
-              <Dialog.Close asChild>
-                <Button variant="ghost" className="min-w-[100px]">
-                  {cancelText}
-                </Button>
+              <Dialog.Close size="md" variant="ghost" isIconOnly={false} className="min-w-25">
+                {cancelText}
               </Dialog.Close>
-              <Button onPress={onConfirm} className="min-w-[100px]" variant="primary">
+              <Button onPress={onConfirm} className="min-w-25" variant="primary">
                 {confirmText}
               </Button>
             </HUXStack>
@@ -451,7 +449,7 @@ const Downloads = () => {
     <HUYStack className="flex-1 items-center justify-center gap-4 p-8">
       <IoniconsIcon name="folder-outline" size={64} className="text-foreground" />
       <Text className="text-center text-2xl font-semibold text-foreground/50">No Downloads</Text>
-      <Text className="max-w-[300px] text-center text-base text-foreground/40">
+      <Text className="max-w-75 text-center text-base text-foreground/40">
         Downloaded episodes will appear here. Long press an episode to access download options.
       </Text>
     </HUYStack>
@@ -509,7 +507,7 @@ const Downloads = () => {
         )}
       </HUYStack>
 
-      <Divider />
+      <Separator />
 
       {/* Downloads List */}
       <CustomFlashlist

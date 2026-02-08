@@ -37,7 +37,7 @@ export const AnimatedFavoriteButton = () => {
     } else {
       addFavorite({ id, image, type, mediaType, provider, metaProvider, title });
     }
-  }, [addFavorite, id, idKey, isFavorited, removeFavorite]);
+  }, [addFavorite, id, idKey, isFavorited, removeFavorite, image, type, mediaType, provider, metaProvider, title]);
 
   return (
     <RippleButton onPress={handleFavorite}>

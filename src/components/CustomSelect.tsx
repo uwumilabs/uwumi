@@ -41,7 +41,7 @@ export const CustomSelect = ({
   );
 
   return (
-    <Select value={selectedOption} onValueChange={handleValueChange} closeDelay={150}>
+    <Select value={selectedOption} onValueChange={handleValueChange} presentation="bottom-sheet">
       <Select.Trigger asChild>
         <Button>
           {selectedOption ? (

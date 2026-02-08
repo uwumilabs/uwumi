@@ -9,7 +9,7 @@ export function useSheetColor() {
     isDark && pureBlackBackground
       ? currentTheme.amoledSurfaceVariant
       : //   : isDark && !pureBlackBackground
-        //     ? currentTheme.divider
+        //     ? currentTheme.separator
         currentTheme.background;
 
   return sheetColor;

@@ -80,7 +80,7 @@ const DownloadDialog = ({
   setShowUpdateDialog,
 }: DownloadDialogProps) => {
   return (
-    <Dialog isOpen={showUpdateDialog} onOpenChange={setShowUpdateDialog} closeDelay={200}>
+    <Dialog isOpen={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
       <Dialog.Portal>
         <Dialog.Overlay className="bg-black/50" />
         <Dialog.Content className="rounded-3xl bg-background p-5">
@@ -121,10 +121,8 @@ const DownloadDialog = ({
                 Update Now
               </Button>
 
-              <Dialog.Close asChild>
-                <Button variant="ghost" className="w-full">
-                  Not Now
-                </Button>
+              <Dialog.Close size="md" variant="ghost" isIconOnly={false} className="w-full">
+                Not Now
               </Dialog.Close>
             </View>
           </View>

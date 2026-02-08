@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { HUXStack, HUYStack, IoniconsIcon, ThemedView, IoniconProps } from '@/components';
 import { Route, useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
-import { Divider } from 'heroui-native';
+import { Separator } from 'heroui-native';
 import { useCurrentTheme } from '@/hooks';
 
 const MenuItem = ({ href, icon, label }: { href: Route; icon: IoniconProps['name']; label: string }) => {
@@ -52,7 +52,7 @@ const More = () => {
           {menuItems.map((item, index) => (
             <View key={item.label} style={{ width: '100%' }}>
               <MenuItem href={item.href} icon={item.icon} label={item.label} />
-              {index < totalItems - 1 && <Divider />}
+              {index < totalItems - 1 && <Separator />}
             </View>
           ))}
         </HUYStack>
