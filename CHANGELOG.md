@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.7.0 (2026-02-08)
+
+* refactor: fix react compiler hooks violations and ux polish ([c3c8cbc](https://github.com/uwumilabs/uwumi/commit/c3c8cbc))
+* refactor: improve performance and resolve bugs ([f0fab65](https://github.com/uwumilabs/uwumi/commit/f0fab65))
+* feat: improve query client initialization, and enhance custom-image component ([693df39](https://github.com/uwumilabs/uwumi/commit/693df39))
 
 ## 3.6.0 (2026-02-01)
 
