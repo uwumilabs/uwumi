@@ -25,6 +25,7 @@ interface CardProps {
   index: number;
   mediaType: MediaType;
   metaProvider: MetaProvider;
+  isSearch?: boolean;
 }
 
 const AnimatedStyledCard = Animated.createAnimatedComponent(Card);
@@ -42,7 +43,7 @@ const CardSkeleton = ({ isLoading }: { isLoading: boolean }) => (
   </SkeletonGroup>
 );
 
-const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProvider }) => {
+const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProvider, isSearch }) => {
   const { getProvider } = useProviderStore();
   const router = useRouter();
   const provider = getProvider(mediaType);
@@ -75,7 +76,7 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
         });
       }}>
       <AnimatedStyledCard
-        entering={index < 12 ? FadeInDown.delay(50 * index).duration(300) : undefined}
+        entering={!isSearch && index < 12 ? FadeInDown.delay(50 * index).duration(300) : undefined}
         className="flex-1 w-full aspect-2/3 rounded-lg overflow-hidden p-0">
         <Card.Body className="w-full h-full p-0 relative">
           <AnimatedCustomImage
@@ -83,7 +84,7 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
             style={{ borderRadius: 10, zIndex: 0 }}
             width="100%"
             height="100%"
-            sharedTransitionTag={`shared-image-${item.id}`}
+            sharedTransitionTag={isSearch ? undefined : `shared-image-${item.id}`}
             className="absolute inset-0"
           />
           <LinearGradient
@@ -96,7 +97,7 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
           <AnimatedStyledCardTitle
             className="absolute bottom-0 left-0 right-0 z-20 py-2 px-2 text-sm font-medium m-0 text-white"
             numberOfLines={2}
-            sharedTransitionTag={`shared-title-${item.id}`}
+            sharedTransitionTag={isSearch ? undefined : `shared-title-${item.id}`}
             ellipsizeMode="tail">
             {typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english}
           </AnimatedStyledCardTitle>
@@ -143,18 +144,15 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
   const getItems = useMemo(() => {
     if (!data) return [];
     if (isInfiniteData(data)) {
-      return data.pages.flatMap((page) => page.results as (IAnimeResult | IMovieResult)[]);
+      return data.pages.flatMap((page) => (page.results ?? []) as (IAnimeResult | IMovieResult)[]);
     }
     return data;
   }, [data]);
 
-  const filteredItems = useMemo(
-    () =>
-      getItems?.filter(
-        (item) => item.image && !item.image.includes('/originalundefined') && !item.image.includes('/originalnull'),
-      ) || [],
-    [getItems],
-  );
+  const filteredItems =
+    getItems?.filter(
+      (item) => item.image && !item.image.includes('/originalundefined') && !item.image.includes('/originalnull'),
+    ) || [];
 
   /*
   this is used in key to force re-render of flashlist when screen width changes,
@@ -174,21 +172,17 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
     );
   }
 
-  if (!filteredItems.length && !isLoading) {
-    return <NoResults />;
-  }
-
   return (
     <CustomFlashlist<IAnimeResult | IMovieResult>
-      key={screenWidth}
+      key={`${screenWidth}-${mediaType}-${mediaFeedType}`}
       data={filteredItems}
       renderItem={({ item, index }) => (
         <View className="flex-1 p-1">
-          <CustomCard item={item} index={index} mediaType={mediaType} metaProvider={metaProvider} />
+          <CustomCard item={item} index={index} mediaType={mediaType} metaProvider={metaProvider} isSearch={isSearch} />
         </View>
       )}
       numColumns={3}
-      keyExtractor={(item) => item.id.toString()}
+      keyExtractor={(item, index) => (item.id != null ? item.id.toString() : `fallback-${index}`)}
       contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 4 }}
       refreshControl={<RefreshControl refreshing={!!isLoading} onRefresh={refetch} />}
       onEndReached={() => {

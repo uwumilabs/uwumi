@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import debounce from 'lodash/debounce';
 
 interface SearchStore {
   searchQuery: string;
@@ -17,9 +16,7 @@ export const useSearchStore = create<SearchStore>((set) => ({
   searchQuery: '',
   debouncedQuery: '',
   setSearchQuery: (query: string) => set({ searchQuery: query }),
-  setDebouncedQuery: debounce((query: string) => {
-    set({ debouncedQuery: query });
-  }, 1000),
+  setDebouncedQuery: (query: string) => set({ debouncedQuery: query }),
 }));
 
 export const useTabsStore = create<TabsStore>((set) => ({

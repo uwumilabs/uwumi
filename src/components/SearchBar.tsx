@@ -14,7 +14,6 @@ export const SearchBar: React.FC = () => {
 
   const handleTextChange = useCallback((text: string) => {
     setSearchQuery(text);
-    setDebouncedQuery(text);
   }, []);
 
   const handleClear = useCallback(() => {
@@ -24,12 +23,13 @@ export const SearchBar: React.FC = () => {
 
   // Handle manual search submission
   const handleSearch = useCallback(() => {
-    if (searchQuery.trim()) {
-      setSearchQuery(searchQuery.trim());
-      setDebouncedQuery(searchQuery.trim());
+    const trimmed = searchQuery.trim();
+    if (trimmed) {
+      setSearchQuery(trimmed);
+      setDebouncedQuery(trimmed);
     }
     setCurrentTab('tab3');
-  }, [searchQuery]);
+  }, [searchQuery, setSearchQuery, setDebouncedQuery, setCurrentTab]);
 
   return (
     <View className="w-full">

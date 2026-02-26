@@ -4,6 +4,7 @@ import { NoResults } from './ui-primitives';
 import { View } from 'react-native';
 
 export const CustomFlashlist = forwardRef(<T,>(props: FlashListProps<T>, ref: React.Ref<FlashListRef<T>>) => {
+  const hasData = props.data && props.data.length > 0;
   return (
     <View className="h-full">
       <FlashList
@@ -12,6 +13,7 @@ export const CustomFlashlist = forwardRef(<T,>(props: FlashListProps<T>, ref: Re
         ListFooterComponent={<View className="mb-32" />}
         showsVerticalScrollIndicator={true}
         {...props}
+        numColumns={hasData ? props.numColumns : 1}
       />
     </View>
   );

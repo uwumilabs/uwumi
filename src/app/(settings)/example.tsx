@@ -12,10 +12,12 @@ import { Button } from 'heroui-native';
 import { useUniwind } from 'uniwind';
 import { useProviderStore } from '@/constants/provider';
 import { useProviderSelectionStore } from '@/app/watch/components/ProviderSelection';
+import { useSettings } from 'react-native-video-toolkit';
 
 const Example = () => {
   const uni = useUniwind();
   const setProvider = useProviderStore((state) => state.setProvider);
+  const { openSettings, closeSettings } = useSettings();
   const { setDub, isEmbed } = useProviderSelectionStore();
   useEffect(() => {
     setDub(true);
@@ -60,7 +62,10 @@ const Example = () => {
           </Button>
         </HUYStack>
         {/* <ProviderSelection /> */}
-        <RippleButton className="bg-white">
+        <RippleButton onPress={openSettings} className="bg-white">
+          <Text className="text-black">jijijijijij</Text>
+        </RippleButton>
+        <RippleButton onPress={closeSettings} className="bg-white">
           <Text className="text-black">jijijijijij</Text>
         </RippleButton>
       </ScrollView>

@@ -68,6 +68,7 @@
       --separator: #C5C6D0;
       /* Android: primary */
       --link: #F38020;
+      --focus: var(--accent);
 
       /* Shadows */
       /* --surface-shadow: 0 0px 0px 0 rgba(24, 24, 27, 0.03), 0 2px 10px 0 rgba(24, 24, 27, 0.08); */
@@ -150,6 +151,7 @@
       --separator: #44464F;
       /* Android: primary */
       --link: #F38020;
+      --focus: var(--accent);
 
       /* Shadows */
       /* --surface-shadow: 0 0px 0px 0 rgba(24, 24, 27, 0.03), 0 2px 10px 0 rgba(24, 24, 27, 0.08); */
