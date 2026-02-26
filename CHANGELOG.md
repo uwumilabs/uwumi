@@ -1,5 +1,9 @@
 # Changelog
 
+## <small>3.7.1 (2026-02-26)</small>
+
+* fix: resolve flashlist addviewat crash on empty search results ([f0736da](https://github.com/uwumilabs/uwumi/commit/f0736da))
+
 ## 3.7.0 (2026-02-08)
 
 * refactor: fix react compiler hooks violations and ux polish ([c3c8cbc](https://github.com/uwumilabs/uwumi/commit/c3c8cbc))
