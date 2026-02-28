@@ -1,5 +1,11 @@
 # Changelog
 
+## <small>3.7.2 (2026-02-28)</small>
+
+* chore: add missing theme variables and update dependencies ([9106c2a](https://github.com/uwumilabs/uwumi/commit/9106c2a))
+* chore: upgrade expo version to latest ([137486c](https://github.com/uwumilabs/uwumi/commit/137486c))
+* fix: resolve zustand state reactivity issues across components ([960a674](https://github.com/uwumilabs/uwumi/commit/960a674))
+
 ## <small>3.7.1 (2026-02-26)</small>
 
 * fix: resolve flashlist addviewat crash on empty search results ([f0736da](https://github.com/uwumilabs/uwumi/commit/f0736da))
