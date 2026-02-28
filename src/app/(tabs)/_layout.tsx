@@ -1,4 +1,4 @@
-import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import React from 'react';
 import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { hexToRGB } from '@/constants/utils';
@@ -21,20 +21,20 @@ export default function TabLayout() {
       iconColor={currentTheme?.foreground}
       labelVisibilityMode="labeled">
       <NativeTabs.Trigger name="index">
-        <Label>Anime</Label>
-        <Icon drawable="anime_icon" />
+        <NativeTabs.Trigger.Label>Anime</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon drawable="anime_icon" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="manga">
-        <Label>Manga</Label>
-        <Icon drawable="manga_icon" />
+        <NativeTabs.Trigger.Label>Manga</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon drawable="manga_icon" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="movies">
-        <Label>Movies</Label>
-        <Icon drawable="movies_icon" />
+        <NativeTabs.Trigger.Label>Movies</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon drawable="movies_icon" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="more">
-        <Label>More</Label>
-        <Icon drawable="more_icon" />
+        <NativeTabs.Trigger.Label>More</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon drawable="more_icon" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

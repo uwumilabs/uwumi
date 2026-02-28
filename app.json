@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "uwumi",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
@@ -19,8 +18,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.x2004durgesh.uwumi",
-      "versionCode": 30,
-      "edgeToEdgeEnabled": true
+      "versionCode": 30
     },
     "web": {
       "bundler": "metro",
@@ -64,7 +62,8 @@
       ],
       "expo-web-browser",
       "expo-navigation-bar",
-      "react-native-orientation-director"
+      "react-native-orientation-director",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,
