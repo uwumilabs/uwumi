@@ -12,6 +12,16 @@
             /* Android: onSurface */
             --surface-foreground: #201A1B;
 
+            /* Android: surfaceContainerLow (from default.css) */
+            --surface-secondary: #F7F2FA;
+            /* Android: onSurface */
+            --surface-secondary-foreground: #201A1B;
+
+            /* Android: surfaceContainerLowest (from default.css) */
+            --surface-tertiary: #F5F1F8;
+            /* Android: onSurface */
+            --surface-tertiary-foreground: #201A1B;
+
             /* Android: surfaceContainerHigh (Dialogs) (from default.css) */
             --overlay: #FCF7FF;
             /* Android: onSurface */
@@ -94,6 +104,16 @@
             --surface: #211F26;
             /* Android: onSurface */
             --surface-foreground: #ECE0E0;
+
+            /* Android: surfaceContainerLow (from default.css) */
+            --surface-secondary: #1E1C22;
+            /* Android: onSurface */
+            --surface-secondary-foreground: #ECE0E0;
+
+            /* Android: surfaceContainerLowest (from default.css) */
+            --surface-tertiary: #1A181D;
+            /* Android: onSurface */
+            --surface-tertiary-foreground: #ECE0E0;
 
             /* Android: surfaceContainerHigh (from default.css) */
             --overlay: #292730;

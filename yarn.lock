@@ -6599,10 +6599,10 @@ hermes-parser@0.33.3:
   dependencies:
     hermes-estree "0.33.3"
 
-heroui-native@1.0.0-beta.13:
-  version "1.0.0-beta.13"
-  resolved "https://registry.yarnpkg.com/heroui-native/-/heroui-native-1.0.0-beta.13.tgz#20fea7c09fc4635f506ad26b93e6f2813bb9d726"
-  integrity sha512-bpR/R1V5cJZpzcFIdPBaJyl/OpiEClFFcAdKU6sTX7OAQRgbgBXz1vHcA3pB1jaj1ilk9KLUa7MGDevDGAASnw==
+heroui-native@1.0.0-rc.3:
+  version "1.0.0-rc.3"
+  resolved "https://registry.yarnpkg.com/heroui-native/-/heroui-native-1.0.0-rc.3.tgz#3428e5de799b0657edf4a13a7c237065ae0541b3"
+  integrity sha512-UjQCUrNjpuWJva8rmqxB9rUw3Man/el4hYJVIMc5zLazEQU3gw22yGUSPvNcque96PUtdeKKngQnkjJytcbRpw==
 
 hoist-non-react-statics@^3.3.0:
   version "3.3.2"
@@ -11395,7 +11395,7 @@ universalify@^0.2.0:
   resolved "https://registry.yarnpkg.com/universalify/-/universalify-0.2.0.tgz#6451760566fa857534745ab1dde952d1b1761be0"
   integrity sha512-CJ1QgKmNg3CwvAv/kOFmtnEN05f0D/cn9QntgNOQlQF9dgvVTHj3t+8JPdjqawCHk7V/KA+fbUqzZ9XWhcqPUg==
 
-uniwind@^1.2.2:
+uniwind@1.4.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/uniwind/-/uniwind-1.4.0.tgz#305b388c137401aef1fe5a026710787aa9731e3a"
   integrity sha512-t0bAbWWVVTCGVn+vU3Nqrn7RmAA9JhEZiMMwXUk2+Rp8eacm3OdmFY3SqJ5mLDSuFwXLmBydISumR6uR5MbSJA==
