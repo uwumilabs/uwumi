@@ -13,8 +13,8 @@ const Read = () => {
     mediaType: MediaType;
     id: string;
   }>();
-  const { getProvider } = useProviderStore();
-  const { data, isLoading } = useMangaChapterRead({ id: id, provider: getProvider(mediaType) });
+  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
+  const { data, isLoading } = useMangaChapterRead({ id: id, provider: currentProvider });
 
   const renderItem = useCallback(
     ({ item }: { item: { img: string } }) => (

@@ -44,9 +44,9 @@ const CardSkeleton = ({ isLoading }: { isLoading: boolean }) => (
 );
 
 const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProvider, isSearch }) => {
-  const { getProvider } = useProviderStore();
+  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
   const router = useRouter();
-  const provider = getProvider(mediaType);
+  const provider = currentProvider;
   return (
     <Pressable
       className="p-0 rounded-none"

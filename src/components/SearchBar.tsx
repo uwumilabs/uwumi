@@ -12,14 +12,17 @@ export const SearchBar: React.FC = () => {
   const currentTheme = useCurrentTheme();
   const inputRef = useRef<TextInput>(null);
 
-  const handleTextChange = useCallback((text: string) => {
-    setSearchQuery(text);
-  }, []);
+  const handleTextChange = useCallback(
+    (text: string) => {
+      setSearchQuery(text);
+    },
+    [setSearchQuery],
+  );
 
   const handleClear = useCallback(() => {
     setSearchQuery('');
     setDebouncedQuery('');
-  }, []);
+  }, [setSearchQuery, setDebouncedQuery]);
 
   // Handle manual search submission
   const handleSearch = useCallback(() => {

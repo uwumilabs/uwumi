@@ -200,19 +200,24 @@ export const EpisodeList = () => {
   const swipeable = pathname.includes('/info/'); // Only enable swipe actions on the /info/[mediaType] screen, not in the episode list inside /watch/[mediaType]
   const currentTheme = useCurrentTheme();
   const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
-  const { setProvider, getProvider } = useProviderStore();
+  const setProvider = useProviderStore((state) => state.setProvider);
+  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
+  const providerToUse = currentProvider ?? provider;
+
   useEffect(() => {
-    setProvider(mediaType, getProvider(mediaType) ?? provider);
-  }, [mediaType, provider, setProvider, getProvider]);
+    if (!currentProvider) {
+      setProvider(mediaType, provider);
+    }
+  }, [mediaType, provider, setProvider, currentProvider]);
   const animeResult = useAnimeEpisodes({
     id,
-    provider: getProvider(mediaType),
+    provider: providerToUse,
     enabled: mediaType === MediaType.ANIME,
   });
   const movieResult = useMoviesEpisodes({
     id,
     type: type!,
-    provider: getProvider(mediaType),
+    provider: providerToUse,
     enabled: mediaType === MediaType.MOVIE,
   });
   const { data: episodeData, isLoading } = mediaType === MediaType.ANIME ? animeResult : movieResult;
@@ -233,9 +238,9 @@ export const EpisodeList = () => {
   const { progresses, setProgress } = useWatchProgressStore();
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const { displayMode, setDisplayMode } = useEpisodeDisplayStore();
-  const { setCurrentServer, getCurrentServer, servers } = useServerStore();
-  // subscribe to servers array to trigger re-renders when it changes
-  const getServers = useServerStore((state) => state.getServers);
+  const setCurrentServer = useServerStore((state) => state.setCurrentServer);
+  const servers = useServerStore((state) => state.servers);
+  const currentServer = useServerStore((state) => state.currentServer);
 
   // Track the last synced uniqueId to prevent infinite loops
   const lastSyncedUniqueIdRef = useRef<string | null>(null);
@@ -531,7 +536,7 @@ export const EpisodeList = () => {
           <ListPressable
             item={item}
             mediaType={mediaType}
-            provider={getProvider(mediaType) ?? provider}
+            provider={providerToUse}
             id={id}
             episodeDataId={episodeData?.id}
             type={type as string}
@@ -545,7 +550,7 @@ export const EpisodeList = () => {
         <ListPressable
           item={item}
           mediaType={mediaType}
-          provider={getProvider(mediaType) ?? provider}
+          provider={providerToUse}
           id={id}
           episodeDataId={episodeData?.id}
           type={type as string}
@@ -563,8 +568,7 @@ export const EpisodeList = () => {
       rightActions,
       renderItemContent,
       mediaType,
-      getProvider,
-      provider,
+      providerToUse,
       id,
       episodeData?.id,
       type,
@@ -588,7 +592,7 @@ export const EpisodeList = () => {
               <CustomSelect
                 SelectItem={mediaType === MediaType.ANIME ? PROVIDERS.anime : PROVIDERS.movie}
                 SelectLabel="Provider"
-                value={getProvider(mediaType)}
+                value={providerToUse}
                 onValueChange={handleProviderChange}
               />
             )}
@@ -608,14 +612,12 @@ export const EpisodeList = () => {
                 }}
               />
             )}
-            {getServers() && getServers().length > 0 && !swipeable && (
+            {servers && servers.length > 0 && !swipeable && (
               <CustomSelect
-                SelectItem={getServers().map((server) => ({ name: server.name, value: server.name })) || []}
+                SelectItem={servers.map((server) => ({ name: server.name, value: server.name })) || []}
                 SelectLabel="Servers"
-                value={getCurrentServer()?.name!}
-                onValueChange={(value: string) =>
-                  setCurrentServer(value || getCurrentServer()?.name! || getServers()[0].name)
-                }
+                value={currentServer?.name || ''}
+                onValueChange={(value: string) => setCurrentServer(value || currentServer?.name || servers[0].name)}
               />
             )}
             {swipeable && (
@@ -657,7 +659,7 @@ export const EpisodeList = () => {
           onOpenChange={setSheetOpen}
           episode={selectedEpisode}
           mediaType={mediaType}
-          provider={getProvider(mediaType) ?? provider}
+          provider={providerToUse}
           mediaId={episodeData?.id ?? id}
           type={type as string}
         />

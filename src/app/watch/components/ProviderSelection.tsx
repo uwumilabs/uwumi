@@ -23,7 +23,8 @@ export const useProviderSelectionStore = create<ProviderSelectionState>((set) =>
 }));
 
 const ProviderSelection = () => {
-  const { setProvider, getProvider } = useProviderStore();
+  const setProvider = useProviderStore((state) => state.setProvider);
+  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
   const { dub, isEmbed, setDub, setIsEmbed } = useProviderSelectionStore();
   const { mediaType, isDubbed } = useLocalSearchParams() as unknown as WatchSearchParams;
   // const mediaType = MediaType.ANIME; // for testing
@@ -53,7 +54,7 @@ const ProviderSelection = () => {
                         <HUXStack className="flex-wrap flex-1 gap-1">
                           {PROVIDERS[mediaType].map(({ name, value, subbed, dubbed }) => {
                             const isAvailable = key === 'sub' ? subbed : key === 'dub' ? dubbed : false;
-                            const isSelected = getProvider(mediaType) === value && dub === (key === 'dub');
+                            const isSelected = currentProvider === value && dub === (key === 'dub');
                             if (!isAvailable) return null;
                             return (
                               <Button
@@ -87,7 +88,7 @@ const ProviderSelection = () => {
                         {PROVIDERS[mediaType].map(({ name, value, embed, nonEmbed }) => {
                           const isAvailable = key === 'embed' ? embed : key === 'nonEmbed' ? nonEmbed : false;
                           const isSelected =
-                            getProvider(mediaType) === value &&
+                            currentProvider === value &&
                             ((key === 'embed' && isEmbed) || (key === 'nonEmbed' && !isEmbed));
                           // console.log('isEmbed:', isEmbed, isSelected);
 

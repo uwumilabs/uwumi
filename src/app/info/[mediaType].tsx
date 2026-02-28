@@ -44,12 +44,12 @@ const Info = () => {
     image: string;
     title?: string;
   }>();
-  const { getProvider } = useProviderStore();
+  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
   const { getExtensionInfo } = useExtensionStore();
   const { episodes } = useEpisodesStore();
   const { setMediaInfo, clearMediaInfo } = useMediaInfoStore();
   const insets = useSafeAreaInsets();
-  const { data, isLoading } = useInfo({ mediaType, id, metaProvider, type, provider: getProvider(mediaType) });
+  const { data, isLoading } = useInfo({ mediaType, id, metaProvider, type, provider: currentProvider });
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const currentTheme = useCurrentTheme();
   const router = useRouter();
@@ -137,9 +137,7 @@ const Info = () => {
                   {data?.status && <IconTitle iconName="time-outline" text={data?.status} />}
                   {episodes.length > 0 && (
                     <RippleButton
-                      onPress={() =>
-                        openBrowserAsync(episodes[0].url! || getExtensionInfo(getProvider(mediaType))?.baseUrl!)
-                      }>
+                      onPress={() => openBrowserAsync(episodes[0].url! || getExtensionInfo(currentProvider)?.baseUrl!)}>
                       <IconTitle iconName="globe-outline" text="Webview" />
                     </RippleButton>
                   )}

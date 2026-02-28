@@ -53,7 +53,8 @@ const Watch = () => {
   // console.log(useLocalSearchParams(), 'useLocalSearchParams');
   const { top } = useSafeAreaInsets();
   const { setProgress, getProgress } = useWatchProgressStore();
-  const { setProvider, getProvider } = useProviderStore();
+  const setProvider = useProviderStore((state) => state.setProvider);
+  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
   const { setServers, setCurrentServer, currentServer, clearServers } = useServerStore();
   const [serverInitialized, setServerInitialized] = useState(false);
   const { mediaInfo } = useMediaInfoStore();
@@ -86,12 +87,12 @@ const Watch = () => {
   const navigationContext = useMemo(
     () => ({
       mediaType,
-      provider: getProvider(mediaType) ?? provider,
+      provider: currentProvider ?? provider,
       id,
       mediaId,
       type: type as string,
     }),
-    [mediaType, provider, id, mediaId, type, getProvider],
+    [mediaType, provider, id, mediaId, type, currentProvider],
   );
 
   // Navigate to previous episode
@@ -145,7 +146,7 @@ const Watch = () => {
   // console.log({currentEpisodeId , episodeId})
   const animeQuery = useWatchAnimeEpisodes({
     episodeId: currentEpisodeId ?? episodeId,
-    provider: getProvider(mediaType),
+    provider: currentProvider,
     server: currentServer!,
     dub,
     enabled: mediaType === MediaType.ANIME,
@@ -155,7 +156,7 @@ const Watch = () => {
     episodeId: currentEpisodeId ?? episodeId,
     mediaId,
     type,
-    provider: getProvider(mediaType),
+    provider: currentProvider,
     server: currentServer!,
     embed: isEmbed,
     enabled: mediaType === MediaType.MOVIE,
@@ -164,7 +165,6 @@ const Watch = () => {
   const { data, isLoading, error } = mediaType === MediaType.ANIME ? animeQuery : movieQuery;
 
   // Track the current provider to detect changes
-  const currentProvider = getProvider(mediaType);
 
   useEffect(() => {
     // Reset server initialization when provider/embed changes
@@ -334,16 +334,16 @@ const Watch = () => {
 
   useEffect(() => {
     // Set initial embed state based on provider capabilities
-    const currentProvider = PROVIDERS[mediaType].find((p) => p.value === getProvider(mediaType));
-    if (currentProvider) {
+    const currentProviderObj = PROVIDERS[mediaType].find((p) => p.value === currentProvider);
+    if (currentProviderObj) {
       // If provider only supports one type, set accordingly
-      if (currentProvider.embed && !currentProvider.nonEmbed) {
+      if (currentProviderObj.embed && !currentProviderObj.nonEmbed) {
         setIsEmbed(true);
-      } else if (!currentProvider.embed && currentProvider.nonEmbed) {
+      } else if (!currentProviderObj.embed && currentProviderObj.nonEmbed) {
         setIsEmbed(false);
       }
     }
-  }, [getProvider(mediaType)]);
+  }, [currentProvider, mediaType, setIsEmbed]);
 
   useEffect(() => {
     if (!isLoading && !source) {

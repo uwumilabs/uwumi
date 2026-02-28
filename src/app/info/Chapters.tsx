@@ -13,8 +13,8 @@ const Chapters = () => {
     provider: string;
     id: string;
   }>();
-  const { setProvider } = useProviderStore();
-  const currentProvider = useProviderStore((state) => state.getProvider(mediaType));
+  const setProvider = useProviderStore((state) => state.setProvider);
+  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
   const { data, isLoading } = useMangaChapters({ id, provider: currentProvider });
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const router = useRouter();
