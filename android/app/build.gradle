@@ -12,7 +12,7 @@ def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 react {
     entryFile = file(["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"].execute(null, rootDir).text.trim())
     reactNativeDir = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
-    hermesCommand = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/sdks/hermesc/%OS-BIN%/hermesc"
+    hermesCommand = new File(["node", "--print", "require.resolve('hermes-compiler/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/hermesc/%OS-BIN%/hermesc"
     codegenDir = new File(["node", "--print", "require.resolve('@react-native/codegen/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
 
     enableBundleCompression = (findProperty('android.enableBundleCompression') ?: false).toBoolean()
@@ -115,7 +115,10 @@ android {
         debug {
             signingConfig signingConfigs.debug
             versionNameSuffix "-debug"
-            applicationIdSuffix ".debug"
+            // Only add .debug suffix when -PdebugSuffix is passed (for real devices)
+            if (project.hasProperty('debugSuffix')) {
+                applicationIdSuffix ".debug"
+            }
         }
         release {
             // Caution! In production, you need to generate your own keystore file.
@@ -143,23 +146,25 @@ android {
         abi {
             enable true
             reset()
-            include 'armeabi-v7a', 'arm64-v8a'
+            include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
             universalApk false
         }
     }
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            // Get the version name from defaultConfig
-            def versionName = variant.versionName
-            
-            // Get ABI name if it exists (like arm64-v8a)
-            def abiName = output.getFilter(com.android.build.OutputFile.ABI)
-            
-            // Set the filename to uwumi-archname-versionname.apk format
-            if (abiName != null) {
-                outputFileName = "uwumi-${abiName}-v${versionName}.apk"
-            } else {
-                outputFileName = "uwumi-universal-v${versionName}.apk"
+            if (variant.buildType.name == "release") {
+                // Get the version name from defaultConfig
+                def versionName = variant.versionName
+                
+                // Get ABI name if it exists (like arm64-v8a)
+                def abiName = output.getFilter(com.android.build.OutputFile.ABI)
+                
+                // Set the filename to uwumi-archname-versionname.apk format
+                if (abiName != null) {
+                    outputFileName = "uwumi-${abiName}-v${versionName}.apk"
+                } else {
+                    outputFileName = "uwumi-universal-v${versionName}.apk"
+                }
             }
         }
     }

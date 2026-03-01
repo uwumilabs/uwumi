@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <application
+  <application
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -8,5 +8,5 @@
         android:debuggable="true"
         android:networkSecurityConfig="@xml/network_security_config"
         tools:ignore="GoogleAppIndexingWarning"
-        tools:replace="android:usesCleartextTraffic,android:debuggable" />
+        tools:replace="android:usesCleartextTraffic,android:debuggable,android:icon,android:roundIcon" />
 </manifest>
