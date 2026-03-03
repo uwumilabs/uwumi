@@ -3,8 +3,16 @@
  * This file contains lightweight, frequently-used components that don't warrant separate files
  */
 
-import React, { ReactNode, forwardRef } from 'react';
-import { View, ViewProps, Text, StyleProp, ViewStyle } from 'react-native';
+import React, { ReactNode, forwardRef, useCallback, useState } from 'react';
+import {
+  View,
+  ViewProps,
+  Text,
+  StyleProp,
+  ViewStyle,
+  type NativeSyntheticEvent,
+  type TargetedEvent,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { StatusBar, StatusBarProps } from 'expo-status-bar';
@@ -12,6 +20,7 @@ import { Link } from 'expo-router';
 import { cn, PressableFeedback, PressableFeedbackProps } from 'heroui-native';
 import { IoniconProps, IoniconsIcon } from './Icons';
 import { SystemBars } from 'react-native-edge-to-edge';
+import { isTV } from '@/constants/utils';
 
 /* ============================================
  * IconTitle - Icon with text label
@@ -41,17 +50,57 @@ type RippleButtonProps = Omit<PressableFeedbackProps, 'onPress'> & {
   children?: React.ReactNode;
   containerStyle?: StyleProp<ViewStyle>;
   className?: string;
+  /** Whether this element should receive initial focus when the screen mounts (TV only). */
+  hasTVPreferredFocus?: boolean;
 };
 
 export const RippleButton = forwardRef<View, RippleButtonProps>(
-  ({ onPress, children, containerStyle, className, ...props }, ref) => {
+  ({ onPress, children, containerStyle, className, hasTVPreferredFocus, ...props }, ref) => {
     const currentTheme = useCurrentTheme();
+    const [isFocused, setIsFocused] = useState(false);
+
+    const handleFocus = useCallback(
+      (e: NativeSyntheticEvent<TargetedEvent>) => {
+        setIsFocused(true);
+        if (typeof props.onFocus === 'function') {
+          props.onFocus(e);
+        }
+      },
+      [props.onFocus],
+    );
+
+    const handleBlur = useCallback(
+      (e: NativeSyntheticEvent<TargetedEvent>) => {
+        setIsFocused(false);
+        if (typeof props.onBlur === 'function') {
+          props.onBlur(e);
+        }
+      },
+      [props.onBlur],
+    );
+
     return (
       <PressableFeedback
         ref={ref}
         onPress={onPress}
         className={cn('rounded-full p-2', className)}
-        style={containerStyle}
+        style={[
+          containerStyle,
+          isTV && {
+            borderWidth: 2,
+            borderColor: 'transparent',
+            borderRadius: 12,
+          },
+          isTV &&
+            isFocused && {
+              borderColor: currentTheme?.accent,
+              transform: [{ scale: 1.05 }],
+            },
+        ]}
+        focusable={isTV ? true : undefined}
+        hasTVPreferredFocus={isTV ? hasTVPreferredFocus : undefined}
+        onFocus={isTV ? handleFocus : props.onFocus}
+        onBlur={isTV ? handleBlur : props.onBlur}
         animation={{
           scale: {
             value: 0.98,

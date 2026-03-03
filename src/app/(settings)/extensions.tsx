@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useExtensionStore, useCurrentTheme } from '@/hooks';
+import { isTV } from '@/constants/utils';
 import { Avatar, Button, Card, Chip, Separator, Switch } from 'heroui-native';
 import { CustomImage, CustomSheet, HUXStack, HUYStack, RippleButton, IoniconsIcon } from '@/components';
 
@@ -464,7 +465,7 @@ export default function Extensions() {
         {/* Extensions List */}
         <ScrollView
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}>
+          refreshControl={isTV ? undefined : <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}>
           <HUYStack className="gap-3 p-4 pb-8">
             {filteredExtensions.map((extension) => {
               const extensionIsInstalled = isExtensionInstalled(extension.id);

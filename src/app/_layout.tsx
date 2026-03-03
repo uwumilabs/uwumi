@@ -25,7 +25,7 @@ import { IoniconsIcon } from '@/components';
 import { themes } from '@/themes/theme';
 import { VideoProvider, defaultTheme } from 'react-native-video-toolkit';
 import RNOrientationDirector, { Orientation } from 'react-native-orientation-director';
-
+import { isTV, isTVOS } from '@/constants/utils';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -160,8 +160,11 @@ const AppContent = () => {
     };
 
     requestPermissions();
-    if (Orientation.landscape) {
+    if (Orientation.landscape && !isTV && !isTVOS) {
       RNOrientationDirector.lockTo(Orientation.portrait);
+    }
+    if (isTV || isTVOS) {
+      RNOrientationDirector.lockTo(Orientation.landscape);
     }
   }, []);
 
@@ -227,7 +230,13 @@ const AppContent = () => {
           />
         )}
       </HeroUINativeProvider>
-      <Toaster position="bottom-center" invert autoWiggleOnUpdate="always" richColors swipeToDismissDirection="left" />
+      <Toaster
+        position="bottom-center"
+        invert
+        autoWiggleOnUpdate="always"
+        richColors
+        {...(!isTV && { swipeToDismissDirection: 'left' as const })}
+      />
     </>
   );
 };

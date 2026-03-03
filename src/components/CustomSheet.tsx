@@ -3,6 +3,8 @@ import { ScrollView, View, type ViewProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCurrentTheme, useSheetColor } from '@/hooks';
 import { BottomSheet } from 'heroui-native';
+import { isTV } from '@/constants/utils';
+import { useCustomBackHandler } from '@/hooks/useCustomBackHandler';
 
 export type CustomSheetRef = {
   present: () => void;
@@ -38,6 +40,15 @@ export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
 
     const present = useCallback(() => onOpenChange(true), [onOpenChange]);
     const dismiss = useCallback(() => onOpenChange(false), [onOpenChange]);
+
+    // TV: hardware back button dismisses the sheet (can't swipe/drag on TV)
+    useCustomBackHandler(
+      isTV && open,
+      useCallback(() => {
+        onOpenChange(false);
+        return true;
+      }, [onOpenChange]),
+    );
 
     useImperativeHandle(ref, () => ({ present, dismiss }), [present, dismiss]);
 

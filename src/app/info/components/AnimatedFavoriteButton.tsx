@@ -1,12 +1,14 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { forwardRef, useCallback, useMemo } from 'react';
+import { View } from 'react-native';
 import { MediaType, MetaProvider } from '@/constants/types';
 import { MediaFormat, TvType } from 'react-native-consumet';
 import { IoniconsIcon, RippleButton } from '@/components';
 import { useCurrentTheme, useFavoriteStore } from '@/hooks';
 import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
 import { useLocalSearchParams } from 'expo-router';
+import { isTV } from '@/constants/utils';
 
-export const AnimatedFavoriteButton = () => {
+export const AnimatedFavoriteButton = forwardRef<View, Record<string, any>>((props, ref) => {
   // const { id, ...itemData } = props;
   const { mediaType, metaProvider, type, provider, id, image, title } = useLocalSearchParams<{
     mediaType: MediaType;
@@ -26,10 +28,12 @@ export const AnimatedFavoriteButton = () => {
   const currentTheme = useCurrentTheme();
 
   const handleFavorite = useCallback(async () => {
-    try {
-      await impactAsync(ImpactFeedbackStyle.Light);
-    } catch (error) {
-      console.warn('Haptic feedback failed:', error);
+    if (!isTV) {
+      try {
+        await impactAsync(ImpactFeedbackStyle.Light);
+      } catch (error) {
+        console.warn('Haptic feedback failed:', error);
+      }
     }
 
     if (isFavorited) {
@@ -40,7 +44,7 @@ export const AnimatedFavoriteButton = () => {
   }, [addFavorite, id, idKey, isFavorited, removeFavorite, image, type, mediaType, provider, metaProvider, title]);
 
   return (
-    <RippleButton onPress={handleFavorite}>
+    <RippleButton ref={ref} onPress={handleFavorite} {...props}>
       {isFavorited ? (
         <IoniconsIcon name="heart-sharp" color={currentTheme.default} />
       ) : (
@@ -48,6 +52,6 @@ export const AnimatedFavoriteButton = () => {
       )}
     </RippleButton>
   );
-};
+});
 
 export default AnimatedFavoriteButton;

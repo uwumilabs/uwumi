@@ -8,6 +8,7 @@ import { IconTitle, HUYStack, IoniconProps } from '@/components';
 import SearchBar from '@/components/SearchBar';
 import { MediaFeedType, MediaType } from '@/constants/types';
 import Animated, { Easing, FadeInUp, FadeOutUp } from 'react-native-reanimated';
+import FocusableTrigger from '@/components/FocusableTrigger';
 
 interface MediaBrowserProps {
   mediaType: MediaType;
@@ -57,13 +58,11 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
     return (
       <Tabs.List className="justify-center mx-auto">
         <Tabs.Indicator />
-        {TABS.map(({ id, icon, text }) => {
-          return (
-            <Tabs.Trigger key={id} value={id}>
-              <IconTitle iconName={icon} text={text} />
-            </Tabs.Trigger>
-          );
-        })}
+        {TABS.map(({ id, icon, text }, index) => (
+          <FocusableTrigger key={id} value={id} isFirst={index === 0}>
+            <IconTitle iconName={icon} text={text} />
+          </FocusableTrigger>
+        ))}
       </Tabs.List>
     );
   }, [currentTab, currentTheme, TABS]);

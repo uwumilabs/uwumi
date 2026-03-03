@@ -28,11 +28,12 @@ import WavyAnimation from './WavyAnimation';
 import EpisodeActionsSheet from './EpisodeActionsSheet';
 import { EpisodeDisplayMode, MediaType } from '@/constants/types';
 import { IAnimeEpisode, IMovieSeason, IMovieEpisode, MediaFormat, TvType } from 'react-native-consumet';
-import { formatTime } from '@/constants/utils';
+import { formatTime, isTV } from '@/constants/utils';
 import CustomSelect from '../CustomSelect';
 import { PROVIDERS, useProviderStore } from '@/constants/provider';
 import CustomFlashlist from '../CustomFlashlist';
-import { HUYStack, HUXStack } from '../ui-primitives';
+import { HUYStack, HUXStack, RippleButton } from '../ui-primitives';
+import TVFocusWrapper from '../TVFocusWrapper';
 import { Card, cn } from 'heroui-native';
 import Progress from '../Progress';
 import { IoniconsIcon, MaterialIconsIcon } from '../Icons';
@@ -82,7 +83,8 @@ const ListPressable = memo(
     setSheetOpen: (open: boolean) => void;
   }) => {
     const router = useRouter();
-    const navigateToEpisode = () => {
+
+    const navigateToEpisode = useCallback(() => {
       const routerParams = {
         pathname: '/watch/[mediaType]' as const,
         params: {
@@ -107,18 +109,35 @@ const ListPressable = memo(
       } else {
         router.replace(routerParams);
       }
-    };
+    }, [router, mediaType, provider, id, episodeDataId, item, type, swipeable]);
 
-    const handleLongPress = () => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const handleLongPress = useCallback(() => {
+      if (!isTV) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setSelectedEpisode(item);
       setSheetOpen(true);
-    };
+    }, [item, setSelectedEpisode, setSheetOpen]);
+
+    const handleActionsPress = useCallback(() => {
+      setSelectedEpisode(item);
+      setSheetOpen(true);
+    }, [item, setSelectedEpisode, setSheetOpen]);
 
     return (
-      <Pressable onPress={navigateToEpisode} onLongPress={handleLongPress} className="rounded-2xl py-1 w-full">
-        {children}
-      </Pressable>
+      <HUXStack className="items-center gap-1">
+        <TVFocusWrapper
+          onPress={navigateToEpisode}
+          onLongPress={isTV ? undefined : handleLongPress}
+          focusScale={1}
+          className="rounded-2xl py-1 flex-1">
+          {children}
+        </TVFocusWrapper>
+        {/* On TV, show a visible "⋮" button */}
+        {isTV && swipeable && (
+          <RippleButton onPress={handleActionsPress} className="p-2">
+            <IoniconsIcon name="ellipsis-vertical" size={20} />
+          </RippleButton>
+        )}
+      </HUXStack>
     );
   },
 );
@@ -327,7 +346,7 @@ export const EpisodeList = () => {
 
       setProgress(item.uniqueId, newProgress);
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (!isTV) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
     [progresses, setProgress],
   );
@@ -517,7 +536,7 @@ export const EpisodeList = () => {
           return newRef;
         })();
 
-      return swipeable ? (
+      return swipeable && !isTV ? (
         <ReanimatedSwipeable
           ref={itemRef}
           friction={2}

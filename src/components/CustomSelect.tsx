@@ -1,8 +1,9 @@
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import { Button, Select } from 'heroui-native';
 import { ScrollView, Text, View } from 'react-native';
-import { useSheetColor } from '@/hooks';
+import { useCustomBackHandler, useCurrentTheme, useSheetColor } from '@/hooks';
 import { IoniconsIcon } from './Icons';
+import { isTV } from '@/constants/utils';
 
 type SelectOption = {
   name: string;
@@ -31,6 +32,21 @@ export const CustomSelect = ({
 
   const selectedOption = useMemo(() => selectOptions.find((item) => item.value === value), [selectOptions, value]);
   const sheetColor = useSheetColor();
+  const currentTheme = useCurrentTheme();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+  };
+
+  // TV: hardware back button dismisses the sheet (can't swipe/drag on TV)
+  useCustomBackHandler(
+    isTV && isOpen,
+    useCallback(() => {
+      handleOpenChange(false);
+      return true;
+    }, [handleOpenChange]),
+  );
   const handleValueChange = useCallback(
     (option?: { value: string }) => {
       if (option?.value) {
@@ -40,10 +56,30 @@ export const CustomSelect = ({
     [onValueChange],
   );
 
+  const handleFocus = useCallback(() => setIsFocused(true), []);
+  const handleBlur = useCallback(() => setIsFocused(false), []);
+
   return (
-    <Select value={selectedOption} onValueChange={handleValueChange} presentation="bottom-sheet">
-      <Select.Trigger asChild>
-        <Button>
+    <Select
+      value={selectedOption}
+      isOpen={isOpen}
+      onOpenChange={handleOpenChange}
+      onValueChange={handleValueChange}
+      presentation="bottom-sheet">
+      <Select.Trigger variant="unstyled" asChild>
+        <Button
+          variant="primary"
+          onFocus={isTV ? handleFocus : undefined}
+          onBlur={isTV ? handleBlur : undefined}
+          style={
+            isTV
+              ? {
+                  borderWidth: 5,
+                  borderColor: isFocused ? currentTheme?.accentForeground : 'transparent',
+                  transform: [{ scale: isFocused ? 1.05 : 1 }],
+                }
+              : undefined
+          }>
           {selectedOption ? (
             <View className="flex-row items-center gap-2">
               <Button.Label>{selectedOption.label}</Button.Label>

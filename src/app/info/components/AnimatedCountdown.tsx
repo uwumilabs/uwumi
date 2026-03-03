@@ -1,4 +1,5 @@
 import { HUXStack } from '@/components';
+import { isTV } from '@/constants/utils';
 import { useMediaInfoStore } from '@/hooks';
 import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
@@ -53,7 +54,7 @@ export const AnimatedCountdown = () => {
   });
 
   return (
-    <HUXStack className="gap-2 items-center">
+    <HUXStack className="gap-2 items-center" props={{ focusable: isTV ? false : undefined }}>
       {unitsToShow.map(([key, value]) => (
         <HUXStack className="items-center gap-1" key={key}>
           <View>

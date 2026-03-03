@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { useThemeStore, usePureBlackBackground } from '@/hooks';
-import { ThemedView, HUYStack, HUXStack, IoniconsIcon } from '@/components';
-import { Pressable, StyleProp, ViewStyle, View, Text, FlatList } from 'react-native';
+import { ThemedView, HUYStack, HUXStack, IoniconsIcon, TVFocusWrapper } from '@/components';
+import { StyleProp, ViewStyle, View, Text, FlatList } from 'react-native';
 import { Separator, Switch } from 'heroui-native';
 import { themes, ThemeName } from '@/themes/theme';
 
@@ -39,15 +39,14 @@ Circle.displayName = 'Circle';
 
 const ThemeButton = memo(({ isSelected, label, onPress }: ThemeButtonProps) => {
   return (
-    <Pressable
-      style={{
-        flex: 1,
-        // backgroundColor: isSelected ? currentTheme?.color4 : 'transparent',
-      }}
+    <TVFocusWrapper
+      style={{ flex: 1 }}
       className={isSelected ? 'bg-default' : 'transparent'}
-      onPress={onPress}>
+      onPress={onPress}
+      focusScale={1}
+      focusBorderRadius={8}>
       <Text className="text-foreground font-medium text-lg text-center">{label}</Text>
-    </Pressable>
+    </TVFocusWrapper>
   );
 });
 ThemeButton.displayName = 'ThemeButton';
@@ -85,7 +84,7 @@ ThemeSelector.displayName = 'ThemeSelector';
 const AccentCard = memo(({ themeName, currentTheme, pureBlackBackground, onPress }: AccentCardProps) => {
   const theme = themes[themeName];
   const isSelected = currentTheme.startsWith(themeName.replace(/-(light|dark)$/i, ''));
-  const cardStyle = useMemo(
+  const cardStyle = useMemo<StyleProp<ViewStyle>>(
     () => ({
       height: 150,
       width: 100,
@@ -95,41 +94,50 @@ const AccentCard = memo(({ themeName, currentTheme, pureBlackBackground, onPress
       borderWidth: 2,
       overflow: 'hidden',
     }),
-    [isSelected, theme],
+    [isSelected, theme, pureBlackBackground],
   );
 
   return (
     <HUYStack key={themeName}>
-      <Pressable onPress={onPress} style={cardStyle as StyleProp<ViewStyle>}>
-        <HUYStack className="flex-1">
-          <HUYStack className="flex-1 justify-between">
-            <HUYStack className="gap-4 p-2">
-              <HUXStack className="h-5 gap-4">
-                <View className="w-12 rounded-3xl bg-foreground" />
-                {isSelected && (
-                  <Circle size={15} backgroundColor={theme?.accent}>
-                    <IoniconsIcon name="checkmark" size={14} className="text-accent-foreground" />
-                  </Circle>
-                )}
-              </HUXStack>
-              <View className="w-1/2 h-12 rounded-xl bg-muted">
-                <HUXStack className="m-2">
-                  <View className="h-3 w-full rounded-md" style={{ backgroundColor: theme?.accent }} />
+      <TVFocusWrapper
+        onPress={onPress}
+        focusBorderColor={theme?.accent}
+        focusBorderRadius={14}
+        focusBorderWidth={3}
+        focusScale={1}
+        containerStyle={{ padding: 2 }}
+        hasTVPreferredFocus={isSelected}>
+        <View style={cardStyle}>
+          <HUYStack className="flex-1">
+            <HUYStack className="flex-1 justify-between">
+              <HUYStack className="gap-4 p-2">
+                <HUXStack className="h-5 gap-4">
+                  <View className="w-12 rounded-3xl bg-foreground" />
+                  {isSelected && (
+                    <Circle size={15} backgroundColor={theme?.accent}>
+                      <IoniconsIcon name="checkmark" size={14} className="text-accent-foreground" />
+                    </Circle>
+                  )}
+                </HUXStack>
+                <View className="w-1/2 h-12 rounded-xl bg-muted">
+                  <HUXStack className="m-2">
+                    <View className="h-3 w-full rounded-md" style={{ backgroundColor: theme?.accent }} />
+                  </HUXStack>
+                </View>
+              </HUYStack>
+              <View className="h-5 items-center justify-center" style={{ backgroundColor: theme?.default }}>
+                <HUXStack className="px-2 gap-4">
+                  <Circle size={15} backgroundColor={theme?.accent} />
+                  <View
+                    className="flex-1 rounded-lg"
+                    style={{ backgroundColor: pureBlackBackground ? theme?.muted : theme?.surface }}
+                  />
                 </HUXStack>
               </View>
             </HUYStack>
-            <View className="h-5 items-center justify-center" style={{ backgroundColor: theme?.default }}>
-              <HUXStack className="px-2 gap-4">
-                <Circle size={15} backgroundColor={theme?.accent} />
-                <View
-                  className="flex-1 rounded-lg"
-                  style={{ backgroundColor: pureBlackBackground ? theme?.muted : theme?.surface }}
-                />
-              </HUXStack>
-            </View>
           </HUYStack>
-        </HUYStack>
-      </Pressable>
+        </View>
+      </TVFocusWrapper>
       <Text className="text-accent font-medium text-center capitalize">{themeName.replace(/-(light|dark)$/i, '')}</Text>
     </HUYStack>
   );

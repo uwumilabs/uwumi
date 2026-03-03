@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 // export const getFetchUrl = () => {
 //   if (process.env.NODE_ENV === 'production') {
 //     return {
@@ -86,3 +87,6 @@ export const normalizeRating = (rating?: number) => {
   if (!rating) return 0; // handle undefined/null
   return rating <= 10 ? rating.toFixed(2) : (rating / 10).toFixed(2);
 };
+
+export const isTV = Platform.isTV;
+export const isTVOS = Platform.isTVOS;

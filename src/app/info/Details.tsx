@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Text, View, ScrollView } from 'react-native';
 import React, { ReactNode, useState } from 'react';
 import { WebView } from 'react-native-webview';
-import { hexToRGB } from '@/constants/utils';
+import { hexToRGB, isTV } from '@/constants/utils';
 import { useCurrentTheme, usePureBlackBackground, useMediaInfoStore } from '@/hooks';
 import { RippleButton, HUXStack, HUYStack, IoniconsIcon } from '@/components';
 
@@ -80,12 +80,19 @@ const Details = () => {
                   overflow: 'hidden',
                   height: isExpanded ? contentHeight + contentHeight * 0.5 : contentHeight,
                 }}>
-                <WebView
-                  bounces={false}
-                  scrollEnabled={false}
-                  originWhitelist={['*']}
-                  source={{
-                    html: `
+                {isTV ? (
+                  <Text
+                    style={{ color: currentTheme?.foreground, fontWeight: '500' }}
+                    className="px-2 leading-1 text-justify">
+                    {(data?.description || 'No Description').replace(/<[^>]*>/g, '')}
+                  </Text>
+                ) : (
+                  <WebView
+                    bounces={false}
+                    scrollEnabled={false}
+                    originWhitelist={['*']}
+                    source={{
+                      html: `
                                     <html>
                                       <head>
                                         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -99,13 +106,14 @@ const Details = () => {
                                       </body>
                                     </html>
                                   `,
-                  }}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: 'transparent',
-                  }}
-                />
+                    }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      backgroundColor: 'transparent',
+                    }}
+                  />
+                )}
               </View>
             </View>
             <View className="h-full">
@@ -145,41 +153,43 @@ const Details = () => {
                       <StatisticItem label="Country" value={String(data?.countryOfOrigin || '')} />
                       <StatisticItem label="Season" value={`${data?.season || ''} ${data?.releaseDate}`} />
                       <StatisticItem label="Duration" value={`${data?.duration}m`} />
-                      <HUYStack className="h-50 relative">
-                        <View className="absolute h-50">
-                          <WebView
-                            bounces={false}
-                            scrollEnabled={false}
-                            originWhitelist={['*']}
-                            source={{
-                              html: `
-                                <html>
-                                  <head>
-                                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-                                    <style>
-                                      * { margin: 0; padding: 0; overflow: hidden; }
-                                      body { width: 100vw; height: 100vh; }
-                                      iframe { width: 100%; height: 100%; border: 0; }
-                                    </style>
-                                  </head>
-                                  <body>
-                                    <iframe
-                                      src="https://www.youtube.com/embed/${data?.trailer?.id}"
-                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                      allowfullscreen>
-                                    </iframe>
-                                  </body>
-                                </html>
-                              `,
-                            }}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                            }}
-                          />
-                          <View className="w-full h-full" />
-                        </View>
-                      </HUYStack>
+                      {!isTV && (
+                        <HUYStack className="h-50 relative">
+                          <View className="absolute h-50">
+                            <WebView
+                              bounces={false}
+                              scrollEnabled={false}
+                              originWhitelist={['*']}
+                              source={{
+                                html: `
+                                  <html>
+                                    <head>
+                                      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                                      <style>
+                                        * { margin: 0; padding: 0; overflow: hidden; }
+                                        body { width: 100vw; height: 100vh; }
+                                        iframe { width: 100%; height: 100%; border: 0; }
+                                      </style>
+                                    </head>
+                                    <body>
+                                      <iframe
+                                        src="https://www.youtube.com/embed/${data?.trailer?.id}"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowfullscreen>
+                                      </iframe>
+                                    </body>
+                                  </html>
+                                `,
+                              }}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                              }}
+                            />
+                            <View className="w-full h-full" />
+                          </View>
+                        </HUYStack>
+                      )}
                     </HUYStack>
                   </View>
                 </LinearGradient>
