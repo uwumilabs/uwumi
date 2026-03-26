@@ -22,19 +22,19 @@ export default function TabLayout() {
       labelVisibilityMode="labeled">
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Anime</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon drawable="anime_icon" />
+        <NativeTabs.Trigger.Icon src={require('../../../assets/images/anime.png')} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="manga">
         <NativeTabs.Trigger.Label>Manga</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon drawable="manga_icon" />
+        <NativeTabs.Trigger.Icon src={require('../../../assets/images/manga.png')} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="movies">
         <NativeTabs.Trigger.Label>Movies</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon drawable="movies_icon" />
+        <NativeTabs.Trigger.Icon src={require('../../../assets/images/movies.png')} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="more">
         <NativeTabs.Trigger.Label>More</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon drawable="more_icon" />
+        <NativeTabs.Trigger.Icon src={require('../../../assets/images/more.png')} />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

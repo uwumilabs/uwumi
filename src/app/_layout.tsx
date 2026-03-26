@@ -201,20 +201,8 @@ const AppContent = () => {
         <CustomSheetProvider>
           <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen
-              name="info/[mediaType]"
-              options={{
-                animation: 'slide_from_right',
-                animationDuration: 250,
-              }}
-            />
-            <Stack.Screen
-              name="watch/[mediaType]"
-              options={{
-                animation: 'fade',
-                animationDuration: 200,
-              }}
-            />
+            <Stack.Screen name="info/[mediaType]" />
+            <Stack.Screen name="watch/[mediaType]" />
             <Stack.Screen name="read/[id]" />
             <Stack.Screen name="(settings)" />
             <Stack.Screen name="+not-found" />

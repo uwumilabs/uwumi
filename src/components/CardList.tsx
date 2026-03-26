@@ -1,19 +1,20 @@
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AnimatedCustomImage } from './CustomImage';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
 import { IAnimeResult, IMovieResult, ISearch } from 'react-native-consumet';
-import { ActivityIndicator, Pressable, RefreshControl, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
 import { isTV } from '@/constants/utils';
 import { InfiniteData } from '@tanstack/react-query';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { HUXStack, HUYStack, NoResults } from './ui-primitives';
-import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch, useSearchStore, useCurrentTheme } from '@/hooks';
+import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch, useSearchStore } from '@/hooks';
 import { useCardGridDimensions } from '@/hooks/useCardGridDimensions';
 import { DEFAULT_PROVIDERS, useProviderStore } from '@/constants/provider';
 import CustomFlashlist from './CustomFlashlist';
 import { Card, SkeletonGroup } from 'heroui-native';
+import TVFocusWrapper from './TVFocusWrapper';
 
 export interface CardListProps {
   staticData?: (IAnimeResult | IMovieResult)[] | undefined;
@@ -33,32 +34,36 @@ interface CardProps {
 const AnimatedStyledCard = Animated.createAnimatedComponent(Card);
 const AnimatedStyledCardTitle = Animated.createAnimatedComponent(Card.Title);
 
-const CardSkeleton = ({ isLoading }: { isLoading: boolean }) => (
-  <SkeletonGroup isLoading={isLoading}>
-    <View className="flex-row flex-wrap px-2 gap-2">
-      {Array.from({ length: 12 }).map((_, i) => (
-        <View key={i} className="flex-1 min-w-[30%] aspect-2/3">
-          <SkeletonGroup.Item className="w-full h-full rounded-lg" />
-        </View>
-      ))}
-    </View>
-  </SkeletonGroup>
-);
+const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnType<typeof useCardGridDimensions> }) => {
+  const cardHeight = grid.itemWidth * (isTV ? 3.2 / 2 : 3 / 2);
+  const usableHeight = Math.max(grid.screenHeight - grid.verticalPadding * 2, cardHeight);
+  const rows = Math.max(2, Math.ceil(usableHeight / (cardHeight + grid.itemSpacing * 2)));
+  const skeletonCount = rows * grid.numColumns;
+
+  return (
+    <SkeletonGroup isLoading={isLoading}>
+      <View
+        className="flex-row flex-wrap"
+        style={{
+          paddingHorizontal: grid.horizontalPadding,
+          paddingVertical: grid.verticalPadding,
+        }}>
+        {Array.from({ length: skeletonCount }).map((_, i) => (
+          <View key={i} style={{ width: grid.itemWidth, padding: grid.itemSpacing }}>
+            <View className={isTV ? 'aspect-[2/3.2]' : 'aspect-2/3'}>
+              <SkeletonGroup.Item className="w-full h-full rounded-lg" />
+            </View>
+          </View>
+        ))}
+      </View>
+    </SkeletonGroup>
+  );
+};
 
 const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProvider, isSearch }) => {
   const currentProvider = useProviderStore((state) => state.providers[mediaType]);
-  const currentTheme = useCurrentTheme();
   const router = useRouter();
   const provider = currentProvider;
-  const [isFocused, setIsFocused] = useState(false);
-
-  const handleFocus = useCallback(() => {
-    setIsFocused(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    setIsFocused(false);
-  }, []);
 
   const handlePress = useCallback(() => {
     router.push({
@@ -87,27 +92,10 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
   }, [router, mediaType, metaProvider, item, provider]);
 
   return (
-    <Pressable
+    <TVFocusWrapper
       className={isTV ? 'p-0' : 'p-0 rounded-none'}
-      focusable={isTV ? true : undefined}
       hasTVPreferredFocus={isTV && index === 0 ? true : undefined}
-      onFocus={isTV ? handleFocus : undefined}
-      onBlur={isTV ? handleBlur : undefined}
-      onPress={handlePress}
-      style={[
-        // Always reserve space for the border + radius so focus doesn't cause layout jumps
-        isTV && {
-          borderWidth: 2,
-          borderColor: 'transparent',
-          borderRadius: 12,
-          overflow: 'hidden' as const,
-        },
-        isTV &&
-          isFocused && {
-            borderColor: currentTheme?.accent,
-            transform: [{ scale: 1.05 }],
-          },
-      ]}>
+      onPress={handlePress}>
       <AnimatedStyledCard
         entering={!isSearch && index < 12 ? FadeInDown.delay(50 * index).duration(300) : undefined}
         className={`flex-1 w-full rounded-lg overflow-hidden p-0 ${isTV ? 'aspect-[2/3.2]' : 'aspect-2/3'}`}>
@@ -136,7 +124,7 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
           </AnimatedStyledCardTitle>
         </Card.Body>
       </AnimatedStyledCard>
-    </Pressable>
+    </TVFocusWrapper>
   );
 });
 
@@ -193,7 +181,7 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
   */
   const grid = useCardGridDimensions();
   if (isLoading && !data) {
-    return <CardSkeleton isLoading={isLoading} />;
+    return <CardSkeleton isLoading={isLoading} grid={grid} />;
   }
 
   if (error) {
