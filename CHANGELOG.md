@@ -1,5 +1,9 @@
 # Changelog
 
+## <small>3.8.1 (2026-04-19)</small>
+
+* chore: upgrade rnvt ([d596e40](https://github.com/uwumilabs/uwumi/commit/d596e40))
+
 ## 3.8.0 (2026-04-19)
 
 * fix(android): tv-support work started ([ded98fe](https://github.com/uwumilabs/uwumi/commit/ded98fe))
