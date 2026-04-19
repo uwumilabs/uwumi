@@ -389,7 +389,11 @@ const Watch = () => {
           reportBandwidth: true,
           automaticallyWaitsToMinimizeStalling: true,
           preventsDisplaySleepDuringVideoPlayback: true,
-          allowsEaxternalPlayback: true,
+          allowsExternalPlayback: true,
+          ignoreSilentSwitch: 'ignore',
+          muted: false,
+          volume: 1.0,
+          audioOutput: 'speaker',
           mixWithOthers: 'mix',
           onError: () => {
             toast.error('Video Error', { description: 'Try changing servers' });
