@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.8.0 (2026-04-19)
+
+* fix(android): tv-support work started ([ded98fe](https://github.com/uwumilabs/uwumi/commit/ded98fe))
+* fix(card-skeleton): adjust width calculation for skeleton items ([bcce00f](https://github.com/uwumilabs/uwumi/commit/bcce00f))
+* feat: add android tv d-pad navigation and focus management ([00070c6](https://github.com/uwumilabs/uwumi/commit/00070c6))
+* feat(video-player): new version of rnvt ([3532aff](https://github.com/uwumilabs/uwumi/commit/3532aff))
+* chore: add new image assets and update tab icons in layout ([8f6f8c9](https://github.com/uwumilabs/uwumi/commit/8f6f8c9))
+
 ## <small>3.7.2 (2026-02-28)</small>
 
 * chore: add missing theme variables and update dependencies ([9106c2a](https://github.com/uwumilabs/uwumi/commit/9106c2a))
