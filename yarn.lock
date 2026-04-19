@@ -10618,10 +10618,10 @@ react-native-svg@15.15.3:
     css-tree "^1.1.3"
     warn-once "0.1.1"
 
-react-native-video-toolkit@^0.8.0:
-  version "0.8.0"
-  resolved "https://registry.yarnpkg.com/react-native-video-toolkit/-/react-native-video-toolkit-0.8.0.tgz#6074820b6e6a517760c7b195cd55e8b5d28d9e15"
-  integrity sha512-WG46cUhkVPJWjpi9mMqRrPgkkBdcA7VzCE6Hut2ydrIqo+9GosH4GL+8YesCe2MdVxtjh69hSuwIO2Ya2265RQ==
+react-native-video-toolkit@^0.8.2:
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/react-native-video-toolkit/-/react-native-video-toolkit-0.8.2.tgz#8d23f29a1a4f5ed8ca6b4a73efb6b4a283523b93"
+  integrity sha512-1UUTrYNgmpKlUvK5Hhiotu6E7DQ24MVHJa/iDWIn26zM85wQp5jqdDoXSPmaNzsNmoroKbt9NqTkDsBVThiN9g==
   dependencies:
     "@rn-primitives/popover" "^1.4.0"
     "@rn-primitives/portal" "^1.4.0"
