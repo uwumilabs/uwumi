@@ -49,7 +49,7 @@ const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnTyp
           paddingVertical: grid.verticalPadding,
         }}>
         {Array.from({ length: skeletonCount }).map((_, i) => (
-          <View key={i} style={{ width: grid.itemWidth, padding: grid.itemSpacing }}>
+          <View key={i} style={{ width: `${100 / grid.numColumns}%`, padding: grid.itemSpacing }}>
             <View className={isTV ? 'aspect-[2/3.2]' : 'aspect-2/3'}>
               <SkeletonGroup.Item className="w-full h-full rounded-lg" />
             </View>
