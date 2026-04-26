@@ -1,5 +1,9 @@
 # Changelog
 
+## <small>3.8.2 (2026-04-26)</small>
+
+* chore: bump rnvt version ([e611457](https://github.com/uwumilabs/uwumi/commit/e611457))
+
 ## <small>3.8.1 (2026-04-19)</small>
 
 * chore: upgrade rnvt ([d596e40](https://github.com/uwumilabs/uwumi/commit/d596e40))
