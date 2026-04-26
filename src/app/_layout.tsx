@@ -11,7 +11,7 @@ import {
   Inter_800ExtraBold as InterBold,
 } from '@expo-google-fonts/inter';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useCurrentTheme, useThemeStore, useUpdateChecker } from '@/hooks';
+import { useCurrentTheme, useThemeStore, useUpdateChecker, useSheetColor } from '@/hooks';
 import * as WebBrowser from 'expo-web-browser';
 import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
@@ -235,6 +235,7 @@ export default function RootLayout() {
     'HeroUI Native Styling Principles',
   ]);
   const currentTheme = useCurrentTheme();
+  const sheetColor = useSheetColor();
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -259,10 +260,11 @@ export default function RootLayout() {
             theme={{
               colors: {
                 ...defaultTheme.colors,
-                primary: currentTheme.accent,
-                secondary: currentTheme.default,
+                sliderTrackActive: currentTheme.accent,
+                sliderTrackInactive: currentTheme.default,
+                spinner: currentTheme.accent,
                 border: currentTheme.border,
-                background: currentTheme.default,
+                menuBackground: sheetColor,
               },
             }}
             config={{

@@ -443,7 +443,7 @@ const Watch = () => {
                 {/* This view is just to take the whole space */}
                 <View className="flex-1 w-full" />
                 <BaseButton onTap={() => seek(Math.round(currentTime) + 85)}>
-                  <Button variant="secondary">+85s</Button>
+                  <Button variant="primary">+85s</Button>
                 </BaseButton>
               </HUXStack>
             ),
