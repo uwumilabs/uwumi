@@ -2,7 +2,7 @@ import { View, Text } from 'react-native';
 import React from 'react';
 import { Button, Card, cn, Dialog } from 'heroui-native';
 import { HUXStack, IoniconsIcon } from '@/components';
-import { PROVIDERS, useProviderStore } from '@/constants/provider';
+import { useProviders, useProviderStore } from '@/constants/provider';
 import { useLocalSearchParams } from 'expo-router';
 import { WatchSearchParams, MediaType } from '@/constants/types';
 import { create } from 'zustand';
@@ -27,6 +27,7 @@ const ProviderSelection = () => {
   const currentProvider = useProviderStore((state) => state.providers[mediaType]);
   const { dub, isEmbed, setDub, setIsEmbed } = useProviderSelectionStore();
   const { mediaType, isDubbed } = useLocalSearchParams() as unknown as WatchSearchParams;
+  const providers = useProviders();
   // const mediaType = MediaType.ANIME; // for testing
   // const isDubbed = dub ? 'true' : 'false'; // for testing
   const pureBlackBackground = usePureBlackBackground();
@@ -52,7 +53,7 @@ const ProviderSelection = () => {
                       <HUXStack key={`${key}-${index}`} className="items-center justify-between mb-2">
                         {key && <Text className="text-foreground font-bold w-12.5">{label}:</Text>}
                         <HUXStack className="flex-wrap flex-1 gap-1">
-                          {PROVIDERS[mediaType].map(({ name, value, subbed, dubbed }) => {
+                          {providers[mediaType].map(({ name, value, subbed, dubbed }) => {
                             const isAvailable = key === 'sub' ? subbed : key === 'dub' ? dubbed : false;
                             const isSelected = currentProvider === value && dub === (key === 'dub');
                             if (!isAvailable) return null;
@@ -85,7 +86,7 @@ const ProviderSelection = () => {
                     <HUXStack key={key} className="items-center justify-between mb-2">
                       {key && <Text className="text-foreground font-bold w-12.5">{label}:</Text>}
                       <HUXStack className="flex-wrap flex-1 gap-1">
-                        {PROVIDERS[mediaType].map(({ name, value, embed, nonEmbed }) => {
+                        {providers[mediaType].map(({ name, value, embed, nonEmbed }) => {
                           const isAvailable = key === 'embed' ? embed : key === 'nonEmbed' ? nonEmbed : false;
                           const isSelected =
                             currentProvider === value &&

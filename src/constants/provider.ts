@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { create } from 'zustand';
 import { storage } from '@/hooks/stores/MMKV';
 import { MediaType } from '@/constants/types';
@@ -19,33 +20,46 @@ interface ProviderGroups {
   [MediaType.MOVIE]: Provider[];
 }
 
-// Define all providers in one place
-const PROVIDERS: ProviderGroups = {
-  [MediaType.ANIME]: useExtensionStore
-    .getState()
-    .getInstalledExtensions()
-    .filter((ext) => ext.category === 'anime')
-    .map((ext) => ({
-      name: ext.name,
-      value: ext.id,
-      subbed: ext.subbed,
-      dubbed: ext.dubbed,
-    })),
-  [MediaType.MANGA]: [
-    { name: 'Mangadex', value: 'mangadex' },
-    { name: 'Mangakakalot', value: 'mangakakalot' },
-  ],
-  [MediaType.MOVIE]: useExtensionStore
-    .getState()
-    .getInstalledExtensions()
-    .filter((ext) => ext.category === 'movies')
-    .map((ext) => ({
-      name: ext.name,
-      value: ext.id,
-      embed: ext.isSourceEmbed,
-      nonEmbed: ext.isSourceDirect,
-    })),
+// Build providers dynamically from the extension store (reads live state each call)
+const getProviders = (): ProviderGroups => {
+  const installed = useExtensionStore.getState().getInstalledExtensions();
+  return {
+    [MediaType.ANIME]: installed
+      .filter((ext) => ext.category === 'anime')
+      .map((ext) => ({
+        name: ext.name,
+        value: ext.id,
+        subbed: ext.subbed,
+        dubbed: ext.dubbed,
+      })),
+    [MediaType.MANGA]: [
+      { name: 'Mangadex', value: 'mangadex' },
+      { name: 'Mangakakalot', value: 'mangakakalot' },
+    ],
+    [MediaType.MOVIE]: installed
+      .filter((ext) => ext.category === 'movies')
+      .map((ext) => ({
+        name: ext.name,
+        value: ext.id,
+        embed: ext.isSourceEmbed,
+        nonEmbed: ext.isSourceDirect,
+      })),
+  };
 };
+
+// Reactive hook — re-renders when extensions change in the store
+const useProviders = (): ProviderGroups => {
+  const registry = useExtensionStore((state) => state.registry);
+  return useMemo(() => getProviders(), [registry]);
+};
+
+// Legacy compat: PROVIDERS is now a getter-backed object so existing non-component
+// code that reads PROVIDERS[mediaType] still works and always gets fresh data.
+const PROVIDERS: ProviderGroups = new Proxy({} as ProviderGroups, {
+  get(_target, prop) {
+    return getProviders()[prop as keyof ProviderGroups];
+  },
+});
 
 // Default providers for each media type
 const DEFAULT_PROVIDERS = {
@@ -123,7 +137,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   },
 
   getAvailableProviders: (mediaType) => {
-    return PROVIDERS[mediaType] || [];
+    return getProviders()[mediaType] || [];
   },
 
   getDefaultProvider: (mediaType) => {
@@ -136,4 +150,4 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
 }));
 
 // Export providers for direct access if needed
-export { PROVIDERS, DEFAULT_PROVIDERS, META_PROVIDERS };
+export { PROVIDERS, getProviders, useProviders, DEFAULT_PROVIDERS, META_PROVIDERS };

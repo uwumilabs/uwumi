@@ -1,5 +1,5 @@
 /* eslint-disable react/display-name */
-import React, { memo, useMemo, useCallback } from 'react';
+import React, { Activity, memo, useMemo, useCallback } from 'react';
 import { View } from 'react-native';
 import { Tabs } from 'heroui-native';
 import CardList from '@/components/CardList';
@@ -70,13 +70,13 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
   const tabsContent = useMemo(
     () =>
       TABS.map(({ id, mediaFeedType }) => (
-        <Tabs.Content value={id} key={id}>
+        <Activity key={id} mode={currentTab === id ? 'visible' : 'hidden'}>
           <View className="h-full">
             <CardList mediaFeedType={mediaFeedType} mediaType={mediaType} metaProvider={metaProvider} />
           </View>
-        </Tabs.Content>
+        </Activity>
       )),
-    [TABS, mediaType, metaProvider],
+    [TABS, mediaType, metaProvider, currentTab],
   );
 
   return (
@@ -90,8 +90,8 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
       )}
       <Tabs value={currentTab} onValueChange={handleTabChange} variant="primary">
         {TabList}
-        {tabsContent}
       </Tabs>
+      {tabsContent}
     </HUYStack>
   );
 };

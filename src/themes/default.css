@@ -3,71 +3,71 @@
     @variant default-light {
       /* Theme-Specific Base Colors */
       /* Android: background */
-      --background: #FEFBFF;
+      --background: #fefbff;
       /* Android: onBackground */
-      --foreground: #1B1B1F;
+      --foreground: #1b1b1f;
 
       /* Android: surfaceContainer (Nav bar/Cards) */
-      --surface: #F3EDF7;
+      --surface: #f3edf7;
       /* Android: onSurface */
-      --surface-foreground: #1B1B1F;
+      --surface-foreground: #1b1b1f;
 
       /* Android: surfaceContainerLow */
-      --surface-secondary: #F7F2FA;
+      --surface-secondary: #f7f2fa;
       /* Android: onSurface */
-      --surface-secondary-foreground: #1B1B1F;
+      --surface-secondary-foreground: #1b1b1f;
 
       /* Android: surfaceContainerLowest */
-      --surface-tertiary: #F5F1F8;
+      --surface-tertiary: #f5f1f8;
       /* Android: onSurface */
-      --surface-tertiary-foreground: #1B1B1F;
+      --surface-tertiary-foreground: #1b1b1f;
 
       /* Android: surfaceContainerHigh (Dialogs) */
-      --overlay: #FCF7FF;
+      --overlay: #fcf7ff;
       /* Android: onSurface */
-      --overlay-foreground: #1B1B1F;
+      --overlay-foreground: #1b1b1f;
 
       /* Android: onSurfaceVariant */
-      --muted: #44464F;
+      --muted: #44464f;
 
       /* Android: secondaryContainer */
-      --default: #D9E2FF;
+      --default: #d9e2ff;
       /* Android: onSecondaryContainer */
       --default-foreground: #001945;
 
       /* Align with surfaceVariant for cards/segments */
-      --segment: #F3EDF7;
+      --segment: #f3edf7;
       /* Text on segment */
-      --segment-foreground: #1B1B1F;
+      --segment-foreground: #1b1b1f;
 
       /* Android: primary */
-      --accent: #0058CA;
+      --accent: #0058ca;
       /* Android: onPrimary */
-      --accent-foreground: #FFFFFF;
+      --accent-foreground: #ffffff;
 
       /* Status Colors */
       /* Android: tertiary (Downloaded badge) */
-      --success: #006E1B;
+      --success: #006e1b;
       /* Android: onTertiary */
-      --success-foreground: #FFFFFF;
+      --success-foreground: #ffffff;
 
       /* Generated (Missing in input) */
-      --warning: #7D5700;
+      --warning: #7d5700;
       /* Generated */
-      --warning-foreground: #FFFFFF;
+      --warning-foreground: #ffffff;
 
       /* Android: error */
-      --danger: #BA1A1A;
+      --danger: #ba1a1a;
       /* Android: onError */
-      --danger-foreground: #FFFFFF;
+      --danger-foreground: #ffffff;
 
       /* Form Field Base Colors */
       /* Android: surfaceContainerHighest */
-      --field-background: #FCF7FF;
+      --field-background: #fcf7ff;
       /* Android: onSurface */
-      --field-foreground: #1B1B1F;
+      --field-foreground: #1b1b1f;
       /* Android: onSurfaceVariant */
-      --field-placeholder: #44464F;
+      --field-placeholder: #44464f;
       /* Android: outline */
       --field-border: #757780;
 
@@ -75,115 +75,105 @@
       /* Android: outline */
       --border: #757780;
       /* Android: outlineVariant (from default.css) */
-      --separator: #C5C6D0;
+      --separator: #c5c6d0;
       /* Android: primary */
-      --link: #0058CA;
+      --link: #0058ca;
       --focus: var(--accent);
 
       /* Shadows */
       /* --surface-shadow: 0 0px 0px 0 rgba(24, 24, 27, 0.03), 0 2px 10px 0 rgba(24, 24, 27, 0.08); */
-      --surface-shadow:
-        0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),
-        0 0 1px 0 rgba(0, 0, 0, 0.06);
+      --surface-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06), 0 0 1px 0 rgba(0, 0, 0, 0.06);
       /* Overlay shadow */
-      --overlay-shadow:
-        0 4px 16px 0 rgba(24, 24, 27, 0.08), 0 8px 24px 0 rgba(24, 24, 27, 0.09);
-      --field-shadow:
-        0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),
-        0 0 1px 0 rgba(0, 0, 0, 0.06);
+      --overlay-shadow: 0 4px 16px 0 rgba(24, 24, 27, 0.08), 0 8px 24px 0 rgba(24, 24, 27, 0.09);
+      --field-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06), 0 0 1px 0 rgba(0, 0, 0, 0.06);
     }
 
     @variant default-dark {
       /* Theme-Specific Base Colors */
       /* Android: background */
-      --background: #1B1B1F;
+      --background: #1b1b1f;
       /* Android: onBackground */
-      --foreground: #E3E2E6;
+      --foreground: #e3e2e6;
 
       /* Android: surfaceContainer */
-      --surface: #211F26;
+      --surface: #211f26;
       /* Android: onSurface */
-      --surface-foreground: #E3E2E6;
+      --surface-foreground: #e3e2e6;
 
       /* Android: surfaceContainerLow */
-      --surface-secondary: #1E1C22;
+      --surface-secondary: #1e1c22;
       /* Android: onSurface */
-      --surface-secondary-foreground: #E3E2E6;
+      --surface-secondary-foreground: #e3e2e6;
 
       /* Android: surfaceContainerLowest */
-      --surface-tertiary: #1A181D;
+      --surface-tertiary: #1a181d;
       /* Android: onSurface */
-      --surface-tertiary-foreground: #E3E2E6;
+      --surface-tertiary-foreground: #e3e2e6;
 
       /* Android: surfaceContainerHigh */
       --overlay: #292730;
       /* Android: onSurface */
-      --overlay-foreground: #E3E2E6;
+      --overlay-foreground: #e3e2e6;
 
       /* Android: onSurfaceVariant */
-      --muted: #C5C6D0;
+      --muted: #c5c6d0;
 
       /* Android: secondaryContainer */
-      --default: #00429B;
+      --default: #00429b;
       /* Android: onSecondaryContainer */
-      --default-foreground: #D9E2FF;
+      --default-foreground: #d9e2ff;
 
       /* Android: primary */
-      --accent: #B0C6FF;
+      --accent: #b0c6ff;
       /* Android: onPrimary */
-      --accent-foreground: #002D6E;
+      --accent-foreground: #002d6e;
 
       /* Align with surfaceContainerHigh for segments */
       --segment: #292730;
       /* Text on segment */
-      --segment-foreground: #E3E2E6;
+      --segment-foreground: #e3e2e6;
 
       /* Status Colors */
       /* Android: tertiary (Downloaded badge) */
-      --success: #7ADC77;
+      --success: #7adc77;
       /* Android: onTertiary */
       --success-foreground: #003909;
 
       /* Generated (Missing in input) */
-      --warning: #EFB000;
+      --warning: #efb000;
       /* Generated */
-      --warning-foreground: #422F00;
+      --warning-foreground: #422f00;
 
       /* Android: error */
-      --danger: #FFB4AB;
+      --danger: #ffb4ab;
       /* Android: onError */
       --danger-foreground: #690005;
 
       /* Form Field Base Colors */
       /* Android: surfaceContainerHighest */
-      --field-background: #302E38;
+      --field-background: #302e38;
       /* Android: onSurface */
-      --field-foreground: #E3E2E6;
+      --field-foreground: #e3e2e6;
       /* Android: onSurfaceVariant */
-      --field-placeholder: #C5C6D0;
+      --field-placeholder: #c5c6d0;
       /* Android: outlineVariant (from default.css) */
-      --field-border: #44464F;
+      --field-border: #44464f;
 
       /* Miscellaneous Colors */
       /* Android: outlineVariant (from default.css) */
-      --border: #44464F;
+      --border: #44464f;
       /* Android: outlineVariant (from default.css) */
-      --separator: #44464F;
+      --separator: #44464f;
       /* Android: primary */
-      --link: #B0C6FF;
+      --link: #b0c6ff;
       --focus: var(--accent);
 
       /* Shadows */
       /* --surface-shadow: 0 0px 0px 0 rgba(24, 24, 27, 0.03), 0 2px 10px 0 rgba(24, 24, 27, 0.08); */
-      --surface-shadow:
-        0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),
-        0 0 1px 0 rgba(0, 0, 0, 0.06);
+      --surface-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06), 0 0 1px 0 rgba(0, 0, 0, 0.06);
       /* Overlay shadow */
-      --overlay-shadow:
-        0 4px 16px 0 rgba(24, 24, 27, 0.08), 0 8px 24px 0 rgba(24, 24, 27, 0.09);
-      --field-shadow:
-        0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),
-        0 0 1px 0 rgba(0, 0, 0, 0.06);
+      --overlay-shadow: 0 4px 16px 0 rgba(24, 24, 27, 0.08), 0 8px 24px 0 rgba(24, 24, 27, 0.09);
+      --field-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06), 0 0 1px 0 rgba(0, 0, 0, 0.06);
     }
   }
 }

@@ -30,7 +30,7 @@ import { EpisodeDisplayMode, MediaType } from '@/constants/types';
 import { IAnimeEpisode, IMovieSeason, IMovieEpisode, MediaFormat, TvType } from 'react-native-consumet';
 import { formatTime, isTV } from '@/constants/utils';
 import CustomSelect from '../CustomSelect';
-import { PROVIDERS, useProviderStore } from '@/constants/provider';
+import { useProviders, useProviderStore } from '@/constants/provider';
 import CustomFlashlist from '../CustomFlashlist';
 import { HUYStack, HUXStack, RippleButton } from '../ui-primitives';
 import TVFocusWrapper from '../TVFocusWrapper';
@@ -221,6 +221,7 @@ export const EpisodeList = () => {
   const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
   const setProvider = useProviderStore((state) => state.setProvider);
   const currentProvider = useProviderStore((state) => state.providers[mediaType]);
+  const providers = useProviders();
   const providerToUse = currentProvider ?? provider;
 
   useEffect(() => {
@@ -609,7 +610,7 @@ export const EpisodeList = () => {
           <HUXStack className="w-full items-center justify-center gap-5 px-4 py-2">
             {swipeable && (
               <CustomSelect
-                SelectItem={mediaType === MediaType.ANIME ? PROVIDERS.anime : PROVIDERS.movie}
+                SelectItem={mediaType === MediaType.ANIME ? providers.anime : providers.movie}
                 SelectLabel="Provider"
                 value={providerToUse}
                 onValueChange={handleProviderChange}

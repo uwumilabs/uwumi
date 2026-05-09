@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Activity, useEffect, useMemo, useState } from 'react';
 import { Tabs } from 'heroui-native';
 import { View, type FocusDestination } from 'react-native';
 import FocusableTrigger from './FocusableTrigger';
@@ -30,27 +30,29 @@ export const HorizontalTabs = React.forwardRef<View, HorizontalTabsProps>(({ ite
 
   const orderedItems = useMemo(() => items, [items]);
   return (
-    <Tabs ref={ref} value={activeTab} onValueChange={setActiveTab} variant="secondary" className="w-full">
-      <Tabs.List>
-        <Tabs.Indicator />
-        {orderedItems.map((item, index) => (
-          <FocusableTrigger
-            key={item.key}
-            value={item.key}
-            isFirst={index === 0}
-            nextFocusUp={nextFocusUp}
-            className="flex-1 py-2">
-            <Tabs.Label className="text-center text-base font-semibold">{item.label}</Tabs.Label>
-          </FocusableTrigger>
-        ))}
-      </Tabs.List>
+    <>
+      <Tabs ref={ref} value={activeTab} onValueChange={setActiveTab} variant="secondary" className="w-full">
+        <Tabs.List>
+          <Tabs.Indicator />
+          {orderedItems.map((item, index) => (
+            <FocusableTrigger
+              key={item.key}
+              value={item.key}
+              isFirst={index === 0}
+              nextFocusUp={nextFocusUp}
+              className="flex-1 py-2">
+              <Tabs.Label className="text-center text-base font-semibold">{item.label}</Tabs.Label>
+            </FocusableTrigger>
+          ))}
+        </Tabs.List>
+      </Tabs>
 
       {orderedItems.map((item) => (
-        <Tabs.Content key={item.key} value={item.key} className="h-full w-full">
-          <View className="flex-1">{item.content}</View>
-        </Tabs.Content>
+        <Activity key={item.key} mode={activeTab === item.key ? 'visible' : 'hidden'}>
+          <View className="flex-1 h-full w-full">{item.content}</View>
+        </Activity>
       ))}
-    </Tabs>
+    </>
   );
 });
 

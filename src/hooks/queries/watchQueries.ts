@@ -43,7 +43,9 @@ async function fetchAnimeEpisodeSources(
     throw new Error('No servers available for this episode');
   }
 
-  const baseExtractorName = extractorManager.extractBaseExtractorName(servers[0].name ?? server?.name!);
+  const selectedServer = (server?.name ? servers.find((s) => s.name === server.name) : servers[0]) || servers[0];
+
+  const baseExtractorName = extractorManager.extractBaseExtractorName(selectedServer.name);
   const extractorCode = await readExtractorCode(baseExtractorName!);
   const metadata = extractorManager.getExtractorMetadata(baseExtractorName!);
   const extractor = await extractorManager.executeExtractorCode(extractorCode!, metadata!);
@@ -51,18 +53,18 @@ async function fetchAnimeEpisodeSources(
   let data: ISource;
   if (animeProviderMetadata.haveMultiServers) {
     try {
-      data = (await extractor.extract(new PolyURL(server?.url!), animeProviderMetadata.baseUrl)) as ISource;
+      data = (await extractor.extract(new PolyURL(selectedServer.url), animeProviderMetadata.baseUrl)) as ISource;
     } catch {
       data = (await animeProvider.fetchEpisodeSources(
         episodeId,
-        server?.name as StreamingServers,
+        selectedServer.name as StreamingServers,
         dub ? SubOrDub.DUB : SubOrDub.SUB,
       )) as ISource;
     }
   } else {
     data = (await animeProvider.fetchEpisodeSources(
       episodeId,
-      server?.name as StreamingServers,
+      selectedServer.name as StreamingServers,
       dub ? SubOrDub.DUB : SubOrDub.SUB,
     )) as ISource;
   }
@@ -87,7 +89,14 @@ async function fetchMovieEpisodeSources(
     movieProviderMetadata as typeof movieProviderMetadata & { id: MovieProvider },
   );
   const servers = (await movieProvider.fetchEpisodeServers(episodeId, mediaId)) as IEpisodeServer[];
-  const baseExtractorName = extractorManager.extractBaseExtractorName(servers[0].name ?? server?.name!);
+
+  if (!servers || servers.length === 0) {
+    throw new Error('No servers available for this episode');
+  }
+
+  const selectedServer = (server?.name ? servers.find((s) => s.name === server.name) : servers[0]) || servers[0];
+
+  const baseExtractorName = extractorManager.extractBaseExtractorName(selectedServer.name);
   const extractorCode = await readExtractorCode(baseExtractorName!);
   const metadata = extractorManager.getExtractorMetadata(baseExtractorName!);
   const extractor = await extractorManager.executeExtractorCode(extractorCode!, metadata!);
@@ -95,12 +104,20 @@ async function fetchMovieEpisodeSources(
   let data: ISource;
   if (movieProviderMetadata.haveMultiServers) {
     try {
-      data = (await extractor.extract(new PolyURL(server?.url!), movieProviderMetadata.baseUrl)) as ISource;
+      data = (await extractor.extract(new PolyURL(selectedServer.url), movieProviderMetadata.baseUrl)) as ISource;
     } catch {
-      data = (await movieProvider.fetchEpisodeSources(episodeId, mediaId, server?.name as StreamingServers)) as ISource;
+      data = (await movieProvider.fetchEpisodeSources(
+        episodeId,
+        mediaId,
+        selectedServer.name as StreamingServers,
+      )) as ISource;
     }
   } else {
-    data = (await movieProvider.fetchEpisodeSources(episodeId, mediaId, server?.name as StreamingServers)) as ISource;
+    data = (await movieProvider.fetchEpisodeSources(
+      episodeId,
+      mediaId,
+      selectedServer.name as StreamingServers,
+    )) as ISource;
   }
   return { ...data, servers };
 }

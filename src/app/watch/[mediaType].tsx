@@ -18,7 +18,7 @@ import {
   useMediaInfoStore,
 } from '@/hooks';
 import { toast } from 'sonner-native';
-import { PROVIDERS, useProviderStore } from '@/constants/provider';
+import { useProviders, useProviderStore } from '@/constants/provider';
 import { SUB_LANGUAGE } from '@/constants/config';
 import { useProviderSelectionStore } from './components';
 import {
@@ -57,6 +57,7 @@ const Watch = () => {
   const currentProvider = useProviderStore((state) => state.providers[mediaType]);
   const { setServers, setCurrentServer, currentServer, clearServers } = useServerStore();
   const [serverInitialized, setServerInitialized] = useState(false);
+  const providers = useProviders();
   const { mediaInfo } = useMediaInfoStore();
   const { state: videoState } = useVideo();
   const { fullscreen, videoRef } = videoState;
@@ -145,7 +146,7 @@ const Watch = () => {
   const { dub, isEmbed, setDub, setIsEmbed } = useProviderSelectionStore();
   // console.log({currentEpisodeId , episodeId})
   const animeQuery = useWatchAnimeEpisodes({
-    episodeId: currentEpisodeId ?? episodeId,
+    episodeId: (episodeId as string) || (currentEpisodeId as string) || '',
     provider: currentProvider,
     server: currentServer!,
     dub,
@@ -153,7 +154,7 @@ const Watch = () => {
   });
 
   const movieQuery = useWatchMoviesEpisodes({
-    episodeId: currentEpisodeId ?? episodeId,
+    episodeId: (episodeId as string) || (currentEpisodeId as string) || '',
     mediaId,
     type,
     provider: currentProvider,
@@ -334,7 +335,7 @@ const Watch = () => {
 
   useEffect(() => {
     // Set initial embed state based on provider capabilities
-    const currentProviderObj = PROVIDERS[mediaType].find((p) => p.value === currentProvider);
+    const currentProviderObj = providers[mediaType].find((p) => p.value === currentProvider);
     if (currentProviderObj) {
       // If provider only supports one type, set accordingly
       if (currentProviderObj.embed && !currentProviderObj.nonEmbed) {
@@ -382,6 +383,7 @@ const Watch = () => {
         top: 0,
       }}>
       <VideoPlayer
+        key={(episodeId as string) || (currentEpisodeId as string) || 'video'}
         videoProps={{
           resizeMode: 'contain',
           poster: { source: { uri: poster }, resizeMode: 'contain' },

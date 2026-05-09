@@ -1,6 +1,0 @@
-{
-  "platforms": ["android"],
-  "android": {
-    "modules": ["com.x2004durgesh.uwumi.storagepermission.StoragePermissionModule"]
-  }
-}

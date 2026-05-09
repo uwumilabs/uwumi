@@ -15,7 +15,6 @@ import { useCurrentTheme, useThemeStore, useUpdateChecker, useSheetColor } from 
 import * as WebBrowser from 'expo-web-browser';
 import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
-import StoragePermissionModule from '../../modules/storage-permission-module';
 import { Button, Dialog, HeroUINativeProvider } from 'heroui-native';
 import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
 import '../../global.css';
@@ -30,34 +29,12 @@ import { isTV, isTVOS } from '@/constants/utils';
 SplashScreen.preventAutoHideAsync();
 
 // Storage Permission Utility using native module
-export const requestStoragePermission = async (): Promise<boolean> => {
+export const requestPermission = async (): Promise<boolean> => {
   if (Platform.OS !== 'android') return true;
 
   try {
     await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
-    // Check if we already have permission
-    const hasPermission = await StoragePermissionModule.hasStoragePermission();
-    if (hasPermission) {
-      return true;
-    }
-
-    // Get Android version for logging
-    const androidVersion = StoragePermissionModule.getAndroidVersion();
-
-    // Request permission
-    const result = await StoragePermissionModule.requestStoragePermission();
-
-    if (result.status === 'needs_settings') {
-      // Optionally open settings automatically or show a dialog
-      await StoragePermissionModule.openAppSettings();
-      return false;
-    }
-
-    if (result.granted) {
-      return true;
-    } else {
-      return false;
-    }
+    return true;
   } catch (error) {
     console.error('❌ Error requesting storage permission:', error);
     return false;
@@ -152,7 +129,7 @@ const AppContent = () => {
   // Request storage permissions on app startup
   useEffect(() => {
     const requestPermissions = async () => {
-      const granted = await requestStoragePermission();
+      const granted = await requestPermission();
       if (granted) {
       } else {
         console.warn('⚠️ Storage permissions denied');
@@ -263,8 +240,8 @@ export default function RootLayout() {
                 sliderTrackActive: currentTheme.accent,
                 sliderTrackInactive: currentTheme.default,
                 spinner: currentTheme.accent,
-                border: currentTheme.border,
                 menuBackground: sheetColor,
+                menuBorder: currentTheme.border,
               },
             }}
             config={{

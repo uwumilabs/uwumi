@@ -121,9 +121,7 @@ export const SUB_LANGUAGE = {
   Welsh: 'wel',
 } as const;
 
-export const UWUMI_DIR = __DEV__
-  ? `${RNFS.ExternalStorageDirectoryPath}/uwumi-dev`
-  : `${RNFS.ExternalStorageDirectoryPath}/uwumi`;
+export const UWUMI_DIR = __DEV__ ? `${RNFS.DocumentDirectoryPath}/uwumi-dev` : `${RNFS.DocumentDirectoryPath}/uwumi`;
 
 export const constants = {
   PROGRESS_COMPLETION_PERCENTAGE: 85,

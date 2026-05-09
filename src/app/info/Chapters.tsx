@@ -1,5 +1,5 @@
 import { IconTitle, RippleButton, CustomSelect, CustomFlashlist, HUXStack, HUYStack } from '@/components';
-import { PROVIDERS, useProviderStore } from '@/constants/provider';
+import { useProviders, useProviderStore } from '@/constants/provider';
 import { MediaType } from '@/constants/types';
 import { useMangaChapters, usePureBlackBackground } from '@/hooks';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,6 +15,7 @@ const Chapters = () => {
   }>();
   const setProvider = useProviderStore((state) => state.setProvider);
   const currentProvider = useProviderStore((state) => state.providers[mediaType]);
+  const providers = useProviders();
   const { data, isLoading } = useMangaChapters({ id, provider: currentProvider });
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const router = useRouter();
@@ -43,7 +44,7 @@ const Chapters = () => {
       ListHeaderComponent={
         <HUXStack className="px-4 p-2 gap-1.5 items-center justify-center">
           <CustomSelect
-            SelectItem={PROVIDERS.manga}
+            SelectItem={providers.manga}
             SelectLabel="Provider"
             value={currentProvider}
             onValueChange={handleProviderChange}
