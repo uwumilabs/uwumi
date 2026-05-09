@@ -5,7 +5,7 @@
  * It is used to test the functionality of library, stores,hooks other screens etc.
  */
 import React, { useEffect } from 'react';
-import { ThemedView, HUYStack, RippleButton } from '@/components';
+import { ThemedView, HUYStack } from '@/components';
 import { storage } from '@/hooks/stores/MMKV';
 import { ScrollView, Text } from 'react-native';
 import { Button } from 'heroui-native';
@@ -61,13 +61,6 @@ const Example = () => {
             delete All MMKV Keys
           </Button>
         </HUYStack>
-        {/* <ProviderSelection /> */}
-        <RippleButton onPress={openSettings} className="bg-white">
-          <Text className="text-black">jijijijijij</Text>
-        </RippleButton>
-        <RippleButton onPress={closeSettings} className="bg-white">
-          <Text className="text-black">jijijijijij</Text>
-        </RippleButton>
       </ScrollView>
     </ThemedView>
   );

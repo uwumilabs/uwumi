@@ -1,10 +1,10 @@
-import React, { forwardRef, useCallback, useImperativeHandle, useMemo } from 'react';
+import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState, useEffect } from 'react';
 import { ScrollView, View, type ViewProps } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCurrentTheme, useSheetColor } from '@/hooks';
-import { BottomSheet } from 'heroui-native';
-import { isTV } from '@/constants/utils';
-import { useCustomBackHandler } from '@/hooks/useCustomBackHandler';
+import { Host, ModalBottomSheet as NativeSheet, Column, RNHostView } from '@expo/ui/jetpack-compose';
+
+// Import ModalBottomSheetRef type for Android
+type NativeSheetRef = { hide: () => Promise<void> };
 
 export type CustomSheetRef = {
   present: () => void;
@@ -31,58 +31,68 @@ export type CustomSheetProps = {
 };
 
 export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
-  ({ open, onOpenChange, snapPoints, header, children, scrollable = true, modalProps, contentContainerProps }, ref) => {
-    const insets = useSafeAreaInsets();
+  ({ open, onOpenChange, header, children, scrollable = true, contentContainerProps }, ref) => {
     const theme = useCurrentTheme();
     const sheetColor = useSheetColor();
+    const nativeRef = useRef<NativeSheetRef>(null);
+    const [visible, setVisible] = useState(open);
 
-    const resolvedSnapPoints = useMemo(() => snapPoints ?? ['55%'], [snapPoints]);
+    // Sync visibility when `open` prop changes
+    useEffect(() => {
+      if (open) {
+        setVisible(true);
+      } else if (visible) {
+        // Animate out, then unmount
+        nativeRef.current
+          ?.hide()
+          .then(() => setVisible(false))
+          .catch(() => setVisible(false));
+      }
+    }, [open]);
 
     const present = useCallback(() => onOpenChange(true), [onOpenChange]);
     const dismiss = useCallback(() => onOpenChange(false), [onOpenChange]);
 
-    // TV: hardware back button dismisses the sheet (can't swipe/drag on TV)
-    useCustomBackHandler(
-      isTV && open,
-      useCallback(() => {
-        onOpenChange(false);
-        return true;
-      }, [onOpenChange]),
-    );
-
     useImperativeHandle(ref, () => ({ present, dismiss }), [present, dismiss]);
 
-    return (
-      <BottomSheet isOpen={open} onOpenChange={onOpenChange}>
-        <BottomSheet.Portal>
-          <BottomSheet.Overlay />
-          <BottomSheet.Content
-            snapPoints={resolvedSnapPoints}
-            // Keep parity with prior styling.
-            backgroundStyle={{ backgroundColor: sheetColor }}
-            handleIndicatorStyle={{ backgroundColor: theme?.separator }}
-            topInset={insets.top}
-            detached
-            {...(modalProps as any)}>
-            {/* Header must stay outside scrollable area to avoid gesture/tap conflicts on Android */}
-            {!!header && <View>{header}</View>}
+    const handleDismiss = useCallback(() => {
+      setVisible(false);
+      onOpenChange(false);
+    }, [onOpenChange]);
 
-            {scrollable ? (
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingBottom: 16 }}
-                keyboardShouldPersistTaps="handled"
-                {...(contentContainerProps as any)}>
-                {children}
-              </ScrollView>
-            ) : (
-              <View style={{ flex: 1 }} {...contentContainerProps}>
-                {children}
+    if (!visible) return null;
+
+    return (
+      <Host matchContents style={{ position: 'absolute', zIndex: 9999 }}>
+        <NativeSheet
+          ref={nativeRef}
+          onDismissRequest={handleDismiss}
+          containerColor={sheetColor}
+          contentColor={theme?.foreground}
+          skipPartiallyExpanded={false}
+          showDragHandle>
+          <Column>
+            <RNHostView>
+              <View style={{ width: '100%' }}>
+                {/* Header stays outside scroll area */}
+                {!!header && <View>{header}</View>}
+
+                {scrollable ? (
+                  <ScrollView
+                    style={{ maxHeight: 500 }}
+                    contentContainerStyle={{ paddingBottom: 16 }}
+                    keyboardShouldPersistTaps="handled"
+                    {...(contentContainerProps as any)}>
+                    {children}
+                  </ScrollView>
+                ) : (
+                  <View {...contentContainerProps}>{children}</View>
+                )}
               </View>
-            )}
-          </BottomSheet.Content>
-        </BottomSheet.Portal>
-      </BottomSheet>
+            </RNHostView>
+          </Column>
+        </NativeSheet>
+      </Host>
     );
   },
 );
@@ -90,6 +100,5 @@ export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
 CustomSheet.displayName = 'CustomSheet';
 
 export const CustomSheetProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // HeroUI BottomSheet uses an internal portal; no provider needed here.
   return <>{children}</>;
 };

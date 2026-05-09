@@ -54,6 +54,7 @@
   "dependencies": {
     "@dr.pogodin/react-native-fs": "^2.36.0",
     "@expo-google-fonts/inter": "^0.2.3",
+    "@expo/ui": "^55.0.15",
     "@expo/vector-icons": "^15.0.3",
     "@gorhom/bottom-sheet": "^5",
     "@react-navigation/bottom-tabs": "^7.0.0",

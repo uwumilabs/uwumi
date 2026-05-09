@@ -385,7 +385,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     return (
       <CustomSheet open={open} onOpenChange={onOpenChange} snapPoints={snapPoints}>
         {episode ? (
-          <HUYStack className="gap-2">
+          <HUYStack className="gap-2 px-4">
             {/* Header */}
             <HUXStack className="justify-between items-center mb-2">
               <Text className="text-lg font-bold text-accent w-4/5" numberOfLines={1}>

@@ -1,9 +1,11 @@
 import React, { memo, useCallback, useMemo, useState } from 'react';
-import { Button, Select } from 'heroui-native';
-import { ScrollView, Text, View } from 'react-native';
+import { Button } from 'heroui-native';
+import { Text, View } from 'react-native';
 import { useCustomBackHandler, useCurrentTheme, useSheetColor } from '@/hooks';
 import { IoniconsIcon } from './Icons';
 import { isTV } from '@/constants/utils';
+import { CustomSheet } from './CustomSheet';
+import { RippleButton } from './ui-primitives';
 
 type SelectOption = {
   name: string;
@@ -39,19 +41,18 @@ export const CustomSelect = ({
     setIsOpen(open);
   };
 
-  // TV: hardware back button dismisses the sheet (can't swipe/drag on TV)
   useCustomBackHandler(
     isTV && isOpen,
     useCallback(() => {
       handleOpenChange(false);
       return true;
-    }, [handleOpenChange]),
+    }, []),
   );
+
   const handleValueChange = useCallback(
-    (option?: { value: string }) => {
-      if (option?.value) {
-        onValueChange(option.value);
-      }
+    (option: { value: string; label: string }) => {
+      onValueChange(option.value);
+      setIsOpen(false);
     },
     [onValueChange],
   );
@@ -60,52 +61,47 @@ export const CustomSelect = ({
   const handleBlur = useCallback(() => setIsFocused(false), []);
 
   return (
-    <Select
-      value={selectedOption}
-      isOpen={isOpen}
-      onOpenChange={handleOpenChange}
-      onValueChange={handleValueChange}
-      presentation="bottom-sheet">
-      <Select.Trigger variant="unstyled" asChild>
-        <Button
-          variant="primary"
-          onFocus={isTV ? handleFocus : undefined}
-          onBlur={isTV ? handleBlur : undefined}
-          style={
-            isTV
-              ? {
-                  borderWidth: 5,
-                  borderColor: isFocused ? currentTheme?.accentForeground : 'transparent',
-                  transform: [{ scale: isFocused ? 1.05 : 1 }],
-                }
-              : undefined
-          }>
-          {selectedOption ? (
-            <View className="flex-row items-center gap-2">
-              <Button.Label>{selectedOption.label}</Button.Label>
-            </View>
-          ) : (
-            <Button.Label className="text-foreground">{SelectLabel}</Button.Label>
-          )}
-          <IoniconsIcon name="chevron-down" size={20} className="text-accent-foreground" />
-        </Button>
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Overlay />
-        <Select.Content detached backgroundStyle={{ backgroundColor: sheetColor }} presentation="bottom-sheet">
-          <ScrollView>
-            {selectOptions.map((item) => (
-              <Select.Item key={item.value} value={item.value} label={item.label}>
-                <View className="flex-row items-center gap-3 flex-1">
+    <View>
+      <Button
+        variant="primary"
+        onPress={() => setIsOpen(true)}
+        onFocus={isTV ? handleFocus : undefined}
+        onBlur={isTV ? handleBlur : undefined}
+        style={
+          isTV
+            ? {
+                borderWidth: 5,
+                borderColor: isFocused ? currentTheme?.accentForeground : 'transparent',
+                transform: [{ scale: isFocused ? 1.05 : 1 }],
+              }
+            : undefined
+        }>
+        {selectedOption ? (
+          <View className="flex-row items-center gap-2">
+            <Button.Label>{selectedOption.label}</Button.Label>
+          </View>
+        ) : (
+          <Button.Label className="text-foreground">{SelectLabel}</Button.Label>
+        )}
+        <IoniconsIcon name="chevron-down" size={20} className="text-accent-foreground" />
+      </Button>
+
+      <CustomSheet open={isOpen} onOpenChange={handleOpenChange} scrollable>
+        <View className="flex-1 gap-1">
+          {selectOptions.map((item) => {
+            const isSelected = item.value === selectedOption?.value;
+            return (
+              <RippleButton key={item.value} onPress={() => handleValueChange(item)}>
+                <View className="flex-row items-center gap-3 flex-1 py-3 px-4">
                   <Text className="text-base text-foreground flex-1">{item.label}</Text>
+                  {isSelected && <IoniconsIcon name="checkmark" size={20} className="text-accent" />}
                 </View>
-                <Select.ItemIndicator />
-              </Select.Item>
-            ))}
-          </ScrollView>
-        </Select.Content>
-      </Select.Portal>
-    </Select>
+              </RippleButton>
+            );
+          })}
+        </View>
+      </CustomSheet>
+    </View>
   );
 };
 

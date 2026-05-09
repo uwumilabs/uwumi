@@ -1,9 +1,9 @@
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import { Button, cn, Input, ScrollShadow, Select, TextField } from 'heroui-native';
+import { Button, cn, Input, ScrollShadow, TextField } from 'heroui-native';
 import { SUB_LANGUAGE } from '@/constants/config';
 import { useCurrentTheme, useCustomBackHandler } from '@/hooks';
-import { HUXStack, IoniconsIcon, RippleButton } from '@/components';
+import { HUXStack, IoniconsIcon, RippleButton, CustomDialog } from '@/components';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -64,11 +64,6 @@ export const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
       [filteredLanguages],
     );
 
-    const selectedOption = useMemo<LanguageOption | undefined>(() => {
-      if (!externalSubtitleLanguage) return undefined;
-      return { value: externalSubtitleLanguage, label: externalSubtitleLanguage };
-    }, [externalSubtitleLanguage]);
-
     const handleOpenChange = useCallback(
       (nextOpen: boolean) => {
         setOpen(nextOpen);
@@ -96,40 +91,24 @@ export const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
     }, []);
 
     return (
-      <Select
-        value={selectedOption}
-        onValueChange={handleValueChange}
-        isOpen={open}
-        onOpenChange={handleOpenChange}
-        // animation={{
-        //   exiting: {
-        //     type: 'timing',
-        //     config: {
-        //       duration: 250,
-        //       easing: Easing.out(Easing.quad),
-        //     },
-        //   },
-        // }}
-      >
-        <Select.Trigger asChild>
-          <RippleButton>
-            <HUXStack className="items-center justify-center gap-3">
-              <IoniconsIcon name="add-circle-outline" color={theme.foreground} size={16} />
-              <Text className="text-foreground text-base font-semibold">Add External Subtitle</Text>
-            </HUXStack>
-          </RippleButton>
-        </Select.Trigger>
+      <View>
+        <RippleButton onPress={() => handleOpenChange(true)}>
+          <HUXStack className="items-center justify-center gap-3">
+            <IoniconsIcon name="add-circle-outline" color={theme.foreground} size={16} />
+            <Text className="text-foreground text-base font-semibold">Add External Subtitle</Text>
+          </HUXStack>
+        </RippleButton>
 
-        <Select.Portal>
-          <Select.Overlay className="bg-black/50" />
-          <Select.Content
-            presentation="dialog"
-            className={cn('relative rounded-3xl bg-background p-5')}
+        <CustomDialog open={open} onOpenChange={handleOpenChange}>
+          <View
+            className={cn('relative rounded-3xl bg-background p-5 w-[85vw] max-w-[400px]')}
             style={{ height: maxDialogHeight }}>
             <View className="flex-1 gap-3">
               <View className="flex-row items-center justify-between">
-                <Select.ListLabel>Subtitle language</Select.ListLabel>
-                <Select.Close />
+                <Text className="text-lg font-bold text-foreground">Subtitle language</Text>
+                <Button isIconOnly variant="ghost" onPress={() => handleOpenChange(false)}>
+                  <IoniconsIcon name="close" size={24} className="text-foreground" />
+                </Button>
               </View>
               <TextField>
                 <View className="absolute z-10 left-3.5 inset-y-0 justify-center">
@@ -154,45 +133,44 @@ export const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
                 </View>
               </TextField>
 
-              <ScrollShadow
-                className="flex-1"
-                LinearGradientComponent={LinearGradient}
-                // color={isDark ? themeColorSurface : themeColorOverlay}
-              >
+              <ScrollShadow className="flex-1" LinearGradientComponent={LinearGradient}>
                 <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 12 }}>
-                  {options.map((item) => (
-                    <Select.Item key={item.value} value={item.value} label={item.label}>
-                      <View className="flex-row items-center gap-3 flex-1">
-                        <Text className="text-base text-foreground flex-1">{item.label}</Text>
-                      </View>
-                      <Select.ItemIndicator />
-                    </Select.Item>
-                  ))}
+                  {options.map((item) => {
+                    const isSelected = item.value === externalSubtitleLanguage;
+                    return (
+                      <RippleButton key={item.value} onPress={() => handleValueChange(item)}>
+                        <View className="flex-row items-center gap-3 flex-1 py-3 px-2">
+                          <Text className="text-base text-foreground flex-1">{item.label}</Text>
+                          {isSelected && <IoniconsIcon name="checkmark" size={20} className="text-accent" />}
+                        </View>
+                      </RippleButton>
+                    );
+                  })}
                   {options.length === 0 ? (
                     <Text className="text-foreground/70 text-center mt-8">No languages found</Text>
                   ) : null}
                 </ScrollView>
               </ScrollShadow>
               <HUXStack className="self-stretch justify-between gap-4">
-                <Select.Close
+                <Button
                   size="md"
                   isIconOnly={false}
                   variant="danger-soft"
                   onPress={() => {
                     setExternalSubtitleLanguage(null);
-                    setOpen(false);
+                    handleOpenChange(false);
                   }}>
                   Cancel
-                </Select.Close>
+                </Button>
 
-                <Select.Close
+                <Button
                   size="md"
                   isIconOnly={false}
                   isDisabled={!externalSubtitleLanguage?.trim()}
                   onPress={() => {
                     if (externalSubtitleLanguage?.trim()) {
                       setShouldFetchExternalSubs(true);
-                      // setOpen(false);
+                      // handleOpenChange(false);
                     }
                   }}>
                   {isExternalSubtitlesLoading ? (
@@ -203,12 +181,12 @@ export const ExternalSubDialog: React.FC<ExternalSubDialogProps> = memo(
                   ) : (
                     <Button.Label>Fetch Subtitles</Button.Label>
                   )}
-                </Select.Close>
+                </Button>
               </HUXStack>
             </View>
-          </Select.Content>
-        </Select.Portal>
-      </Select>
+          </View>
+        </CustomDialog>
+      </View>
     );
   },
 );

@@ -11,6 +11,7 @@ export { CustomImage, AnimatedCustomImage } from './CustomImage';
 export { CustomFlashlist } from './CustomFlashlist';
 export { CustomSelect } from './CustomSelect';
 export { CustomSheet, CustomSheetProvider } from './CustomSheet';
+export { CustomDialog } from './CustomDialog';
 export { SearchBar } from './SearchBar';
 export { Progress } from './Progress';
 export {
