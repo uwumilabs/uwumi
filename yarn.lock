@@ -10477,10 +10477,10 @@ react-native-background-actions@^4.0.1:
   dependencies:
     eventemitter3 "^4.0.7"
 
-react-native-consumet@^1.3.0:
-  version "1.3.0"
-  resolved "https://registry.yarnpkg.com/react-native-consumet/-/react-native-consumet-1.3.0.tgz#c22706f667d6e887ddc9ebf19fa6fa7ca33e279e"
-  integrity sha512-IbKmLPe+B2SfgI4cv/T01q72Ooh89zLoroW3XIdHonsIcbYoYl5rpMmesWJYftFYv4S+yd5tFkfnJ5NULxhjGg==
+react-native-consumet@1.3.1:
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/react-native-consumet/-/react-native-consumet-1.3.1.tgz#642c087ecc55274c4789c8ffbc0d7fa2425c6505"
+  integrity sha512-P62VsSD+APNwEwgGPy/lQIaxANYxjKKSdIFkDz+rKgwD7JM4lY/bn9FnwiZd1mtkMf5ziYkWWc41x3WLlJTtow==
   dependencies:
     ascii-url-encoder "^1.2.0"
     axios "^1.8.4"
