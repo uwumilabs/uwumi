@@ -10,7 +10,8 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
-      "buildNumber": "35"
+      "buildNumber": "35",
+      "bundleIdentifier": "com.x2004durgesh.uwumi"
     },
     "android": {
       "adaptiveIcon": {
@@ -47,7 +48,7 @@
           },
           "ios": {
             "useFrameworks": "static",
-            "deploymentTarget": "15.2"
+            "deploymentTarget": "16.4"
           }
         }
       ],
@@ -74,13 +75,13 @@
           "androidTVBanner": "./assets/images/tv/tv_banner.png",
           "androidTVIcon": "./assets/images/tv/tv_icon.png",
           "appleTVImages": {
-            "icon": "./assets/images/myimage-tvos-1280x768.png",
-            "iconSmall": "./assets/images/myimage-tvos-400x240.png",
-            "iconSmall2x": "./assets/images/myimage-tvos-800x480.png",
-            "topShelf": "./assets/images/myimage-tvos-1920x720.png",
-            "topShelf2x": "./assets/images/myimage-tvos-3840x1440.png",
-            "topShelfWide": "./assets/images/myimage-tvos-2320x720.png",
-            "topShelfWide2x": "./assets/images/myimage-tvos-4640x1440.png"
+            "icon": "./assets/images/tv/myimage-tvos-1280x768.png",
+            "iconSmall": "./assets/images/tv/myimage-tvos-400x240.png",
+            "iconSmall2x": "./assets/images/tv/myimage-tvos-800x480.png",
+            "topShelf": "./assets/images/tv/myimage-tvos-1920x720.png",
+            "topShelf2x": "./assets/images/tv/myimage-tvos-3840x1440.png",
+            "topShelfWide": "./assets/images/tv/myimage-tvos-2320x720.png",
+            "topShelfWide2x": "./assets/images/tv/myimage-tvos-4640x1440.png"
           }
         }
       ]

@@ -7,7 +7,7 @@ import {
   useWatchMoviesEpisodes,
   useServerStore,
   useSheetColor,
-  useDownloadStore,
+  // useDownloadStore,
   useMediaInfoStore,
 } from '@/hooks';
 import { toast } from 'sonner-native';
@@ -85,7 +85,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const { setProgress, getProgress, progresses } = useWatchProgressStore();
     const currentServer = useServerStore((state) => state.currentServer);
     const currentProvider = useProviderStore((state) => state.providers[mediaType]);
-    const { addDownload, startDownload } = useDownloadStore();
+    // const { addDownload, startDownload } = useDownloadStore();
     const mediaInfo = useMediaInfoStore((state) => state.mediaInfo);
     const sheetColor = useSheetColor();
 
@@ -269,70 +269,70 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
       [onOpenChange, data, episode, getProgress, setProgress],
     );
 
-    const handleDownloadWithQuality = useCallback(
-      async (videoUrl: string) => {
-        if (!episode) return;
+    // const handleDownloadWithQuality = useCallback(
+    //   async (videoUrl: string) => {
+    //     if (!episode) return;
 
-        const episodeNumber = Number(episode.number ?? episode.episode ?? 1);
-        const episodeName = episode.title || `Episode ${episodeNumber}`;
+    //     const episodeNumber = Number(episode.number ?? episode.episode ?? 1);
+    //     const episodeName = episode.title || `Episode ${episodeNumber}`;
 
-        let showName: string | undefined;
-        if (mediaInfo?.title) {
-          showName =
-            typeof mediaInfo.title === 'object'
-              ? mediaInfo.title.english || mediaInfo.title.romaji || mediaInfo.title.native
-              : mediaInfo.title;
-        }
+    //     let showName: string | undefined;
+    //     if (mediaInfo?.title) {
+    //       showName =
+    //         typeof mediaInfo.title === 'object'
+    //           ? mediaInfo.title.english || mediaInfo.title.romaji || mediaInfo.title.native
+    //           : mediaInfo.title;
+    //     }
 
-        // @ts-ignore - Some episode objects may have season property
-        const seasonFromEpisode = episode.season;
-        // @ts-ignore - Some media info objects may have season property
-        const seasonFromMedia = mediaInfo?.season;
-        const season =
-          seasonFromEpisode !== undefined
-            ? Number(seasonFromEpisode)
-            : seasonFromMedia !== undefined
-              ? Number(seasonFromMedia)
-              : undefined;
+    //     // @ts-ignore - Some episode objects may have season property
+    //     const seasonFromEpisode = episode.season;
+    //     // @ts-ignore - Some media info objects may have season property
+    //     const seasonFromMedia = mediaInfo?.season;
+    //     const season =
+    //       seasonFromEpisode !== undefined
+    //         ? Number(seasonFromEpisode)
+    //         : seasonFromMedia !== undefined
+    //           ? Number(seasonFromMedia)
+    //           : undefined;
 
-        const subtitles = data?.subtitles || [];
-        const externalSubtitles = subtitles.map((sub) => ({
-          title: sub.lang || 'Unknown',
-          language: (sub.lang || 'en') as any,
-          type: 'application/x-subrip' as any,
-          uri: sub.url,
-        }));
+    //     const subtitles = data?.subtitles || [];
+    //     const externalSubtitles = subtitles.map((sub) => ({
+    //       title: sub.lang || 'Unknown',
+    //       language: (sub.lang || 'en') as any,
+    //       type: 'application/x-subrip' as any,
+    //       uri: sub.url,
+    //     }));
 
-        const resolvedSubtitles = externalSubtitles.length > 0 ? (externalSubtitles as any) : undefined;
-        const successDescription = showName
-          ? `${showName} - ${episodeName}`
-          : `${episodeName} - Episode ${episodeNumber}`;
+    //     const resolvedSubtitles = externalSubtitles.length > 0 ? (externalSubtitles as any) : undefined;
+    //     const successDescription = showName
+    //       ? `${showName} - ${episodeName}`
+    //       : `${episodeName} - Episode ${episodeNumber}`;
 
-        try {
-          const downloadId = addDownload({
-            url: videoUrl,
-            name: episodeName,
-            showName: showName,
-            season: season,
-            episode: episodeNumber,
-            uniqueId: episode.uniqueId,
-            episodeId: episode.id,
-            externalSubtitles: resolvedSubtitles,
-          });
+    //     try {
+    //       const downloadId = addDownload({
+    //         url: videoUrl,
+    //         name: episodeName,
+    //         showName: showName,
+    //         season: season,
+    //         episode: episodeNumber,
+    //         uniqueId: episode.uniqueId,
+    //         episodeId: episode.id,
+    //         externalSubtitles: resolvedSubtitles,
+    //       });
 
-          await startDownload(downloadId);
-        } catch (e) {
-          console.error('❌ Error starting download:', e);
-          const message = String((e as Error).message || 'Unknown error');
-          toast.error('Failed to start download', { description: message });
-          return;
-        }
+    //       await startDownload(downloadId);
+    //     } catch (e) {
+    //       console.error('❌ Error starting download:', e);
+    //       const message = String((e as Error).message || 'Unknown error');
+    //       toast.error('Failed to start download', { description: message });
+    //       return;
+    //     }
 
-        toast.success('Download started', { description: successDescription });
-        onOpenChange(false);
-      },
-      [episode, data, mediaInfo, addDownload, startDownload, onOpenChange],
-    );
+    //     toast.success('Download started', { description: successDescription });
+    //     onOpenChange(false);
+    //   },
+    //   [episode, data, mediaInfo, addDownload, startDownload, onOpenChange],
+    // );
 
     const handleBackToMainMenu = useCallback(() => {
       if (showQualitySelection) {
@@ -480,7 +480,8 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                         <StyledSheetButton
                           key={quality}
                           onPress={() =>
-                            actionMode === 'download' ? handleDownloadWithQuality(url) : handleOpenWithQuality(url)
+                            // actionMode === 'download' ? handleDownloadWithQuality(url) : handleOpenWithQuality(url)
+                            handleOpenWithQuality(url)
                           }
                           icon={
                             actionMode === 'download' ? (

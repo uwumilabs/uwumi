@@ -34,8 +34,8 @@ cd android
 # ./gradlew clean
 
 # Generate FFMPEG AAR
-print_step "STEP 4: GENERATING FFMPEG AAR"
-./gradlew :app:downloadAar
+# print_step "STEP 4: GENERATING FFMPEG AAR"
+# ./gradlew :app:downloadAar
 
 # Build release APK
 print_step "STEP 5: BUILDING RELEASE APK"
