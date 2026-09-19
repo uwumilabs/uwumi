@@ -119,7 +119,6 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
     // const sourcesQuery = mediaType === MediaType.ANIME ? animeSourcesQuery : movieSourcesQuery;
     const { data, isLoading, error } = mediaType === MediaType.ANIME ? animeSourcesQuery : movieSourcesQuery;
-
     // Reset all states when sheet closes
     useEffect(() => {
       if (!open) {

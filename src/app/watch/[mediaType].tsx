@@ -303,6 +303,13 @@ const Watch = () => {
     );
   }, [data]);
 
+  const sourceHeaders = useMemo<Record<string, string> | undefined>(() => {
+    const h = data?.headers;
+    if (!h || typeof h !== 'object') return undefined;
+    // Flatten to Record<string, string>, dropping any non-string values
+    return Object.fromEntries(Object.entries(h).filter(([, v]) => typeof v === 'string')) as Record<string, string>;
+  }, [data?.headers]);
+
   // const gestures = Gesture.Exclusive(doubleTapGesture, brightnessVolumeGesture, singleTapGesture);
 
   useEffect(() => {
@@ -409,6 +416,7 @@ const Watch = () => {
         customVideoTracks={videoTracks}
         source={{
           uri: source,
+          headers: sourceHeaders,
           textTracks: subtitleTracks
             // @ts-ignore
             ?.filter((track) => track.kind !== 'thumbnails' && track.lang !== 'thumbnails')
