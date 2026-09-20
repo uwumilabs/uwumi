@@ -15,8 +15,7 @@
     "prepare": "husky install",
     "release": "release-it",
     "sync-versions": "node ./src/scripts/sync-versions.js",
-    "build-android": "bash src/scripts/build-android.sh",
-    "downloadAar": "cd android && ./gradlew :app:downloadAar && cd .."
+    "build-android": "bash src/scripts/build-android.sh"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,md,html,css}": [
@@ -84,7 +83,7 @@
     "react-native-background-actions": "^4.0.1",
     "react-native-consumet": "^1.5.0",
     "react-native-edge-to-edge": "^1.7.0",
-    "react-native-ffmpeg-kit": "^6.1.1",
+    "react-native-ffmpeg-kit": "7.0.0-beta.1",
     "react-native-gesture-handler": "~2.30.0",
     "react-native-keyboard-controller": "1.20.7",
     "react-native-material-ripple": "^0.9.1",
@@ -99,7 +98,6 @@
     "react-native-web": "^0.21.0",
     "react-native-webview": "13.16.0",
     "react-native-worklets": "^0.8.3",
-    "sonner-native": "^0.16.2",
     "tailwind-merge": "^3.4.0",
     "tailwind-variants": "^3.2.2",
     "tailwindcss": "^4.1.17",

@@ -208,10 +208,10 @@ const Downloads = () => {
             <Dialog.Title className="text-lg font-semibold text-foreground">{title}</Dialog.Title>
             <Dialog.Description className="text-base text-foreground/80">{description}</Dialog.Description>
             <HUXStack className="flex-row justify-end gap-3">
-              <Dialog.Close size="md" variant="ghost" isIconOnly={false} className="min-w-25">
+              <Button onPress={() => onOpenChange(false)} variant="ghost" isIconOnly={false} className="min-w-25">
                 {cancelText}
-              </Dialog.Close>
-              <Button onPress={onConfirm} className="min-w-25" variant="primary">
+              </Button>
+              <Button onPress={onConfirm} className="min-w-25" variant="danger">
                 {confirmText}
               </Button>
             </HUXStack>
@@ -348,7 +348,7 @@ const Downloads = () => {
                     {item.season ? `S${item.season} ` : ''}
                     {`E${item.episode}`}
                   </Text>
-                  {item.fileSize && (
+                  {!!item.fileSize && (
                     <>
                       <Text className="text-sm text-foreground/50">•</Text>
                       <Text className="text-sm text-foreground/70">{formatBytes(item.fileSize)}</Text>
@@ -373,11 +373,11 @@ const Downloads = () => {
                 <HUXStack className="flex-row items-center justify-between">
                   <HUXStack className="flex-row items-center gap-3">
                     <Text className="text-sm font-semibold text-foreground">{Math.round(progress)}%</Text>
-                    {item.progress?.speed && (
+                    {!!item.progress?.speed && (
                       <Text className="text-xs text-foreground">{formatBytes(item.progress.speed)}/s</Text>
                     )}
                   </HUXStack>
-                  {item.progress?.currentTime && item.progress?.totalDuration && (
+                  {!!item.progress?.currentTime && !!item.progress?.totalDuration && (
                     <Text className="text-sm text-foreground">
                       {formatTime(item.progress.currentTime)} / {formatTime(item.progress.totalDuration)}
                     </Text>
@@ -407,7 +407,7 @@ const Downloads = () => {
                     </Text>
                   </>
                 )}
-                {item.completedAt && (
+                {!!item.completedAt && (
                   <>
                     <Text className="text-sm text-foreground/50">•</Text>
                     <Text className="text-sm text-foreground/70">

@@ -33,6 +33,7 @@ interface DownloadProgress {
 interface EpisodeDownload {
   id: string;
   url: string;
+  headers?: Record<string, string>;
   name: string;
   showName?: string;
   episode: number;
@@ -66,7 +67,7 @@ interface DownloadState {
   removeDownload: (downloadId: string) => Promise<void>;
   clearCompleted: () => Promise<void>;
   clearAll: () => Promise<void>;
-  getStreamInfo: (url: string) => Promise<StreamInfo>;
+  getStreamInfo: (url: string, headers?: Record<string, string>) => Promise<StreamInfo>;
   downloadQueue: (
     episodes: Omit<EpisodeDownload, 'id' | 'status' | 'createdAt'>[],
     onQueueProgress?: (progress: any) => void,
@@ -236,7 +237,7 @@ export const useDownloadStore = create<DownloadState>()(
           // Get stream info
           let streamInfo;
           try {
-            streamInfo = await get().getStreamInfo(download.url);
+            streamInfo = await get().getStreamInfo(download.url, download.headers);
           } catch (streamError) {
             console.error(
               `❌ FFprobe failed for: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
@@ -261,17 +262,25 @@ export const useDownloadStore = create<DownloadState>()(
             return;
           }
 
+          // Strip characters that break file paths (path separators, reserved chars, control chars)
+          const sanitizePathSegment = (s: string) =>
+            s
+              // eslint-disable-next-line no-control-regex
+              .replace(/[/\\:*?"<>|\u0000-\u001f]/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+
           // Prepare output file path with show directory structure
           let showDir = DOWNLOADS_DIR;
 
           // Create show-specific directory if showName is provided
           if (download.showName) {
-            const sanitizedShowName = download.showName;
+            const sanitizedShowName = sanitizePathSegment(download.showName);
             showDir = `${DOWNLOADS_DIR}/${sanitizedShowName}`;
             await ensureDir(showDir);
           }
 
-          const filename = `${download.name}${download.season ? `_S${download.season}` : ''}_E${download.episode}.mp4`;
+          const filename = `${sanitizePathSegment(download.name)}${download.season ? `_S${download.season}` : ''}_E${download.episode}.mp4`;
           const outputFile = `${showDir}/${filename}`;
 
           // Build FFmpeg command - Download ALL tracks with best subtitle codec
@@ -281,11 +290,27 @@ export const useDownloadStore = create<DownloadState>()(
           // -c:v copy = Copy video codec (no re-encoding)
           // -c:a copy = Copy audio codec (no re-encoding)
           // -c:s mov_text = Best subtitle codec for MP4 (supports styling, not burned in)
-          const commandParts = ['-i', download.url];
+          const headerString =
+            download.headers && Object.keys(download.headers).length > 0
+              ? Object.entries(download.headers)
+                  .map(([k, v]) => `${k}: ${v}`)
+                  .join('\r\n') + '\r\n'
+              : undefined;
 
-          // Add external subtitle inputs
+          const commandParts: string[] = [];
+          // Providers disguise HLS segments with fake extensions (.jpg/.js); allow them all
+          commandParts.push('-allowed_extensions', 'ALL');
+          if (headerString) {
+            commandParts.push('-headers', headerString);
+          }
+          commandParts.push('-i', download.url);
+
+          // Add external subtitle inputs (same CDN needs the same headers)
           if (download.externalSubtitles && download.externalSubtitles.length > 0) {
             download.externalSubtitles.forEach((sub) => {
+              if (headerString) {
+                commandParts.push('-headers', headerString);
+              }
               commandParts.push('-i', sub.uri);
             });
           }
@@ -326,16 +351,6 @@ export const useDownloadStore = create<DownloadState>()(
           }
 
           commandParts.push('-threads', '4', '-y', outputFile);
-
-          // Join command parts - wrap items with spaces in quotes
-          const command = commandParts
-            .map((part) => {
-              if (part.includes(' ') && !part.startsWith('"')) {
-                return `"${part}"`;
-              }
-              return part;
-            })
-            .join(' ');
 
           // Total duration for percentage calc
           const totalDuration = streamInfo.duration;
@@ -416,11 +431,15 @@ export const useDownloadStore = create<DownloadState>()(
           };
 
           // Execute asynchronously with completion callback for real-time progress
-          const session = await FFmpegKit.executeAsync(
-            command,
+          const session = await FFmpegKit.executeWithArgumentsAsync(
+            commandParts,
             async (completedSession) => {
               const returnCode = await completedSession.getReturnCode();
               const sessionId = completedSession.getSessionId();
+              if (!ReturnCode.isSuccess(returnCode) && !ReturnCode.isCancel(returnCode)) {
+                const logs = await completedSession.getAllLogsAsString();
+                console.error('[FFmpeg] FAILED code:', returnCode, '\n', logs?.slice(0, 500));
+              }
 
               // Check result
               if (ReturnCode.isSuccess(returnCode)) {
@@ -685,11 +704,26 @@ export const useDownloadStore = create<DownloadState>()(
       },
 
       // Get stream info
-      getStreamInfo: async (url) => {
+      getStreamInfo: async (url, headers) => {
         try {
-          const command = `-v quiet -print_format json -show_format -show_streams "${url}"`;
-          const session = await FFprobeKit.execute(command);
+          const args: string[] = ['-allowed_extensions', 'ALL'];
+          if (headers && Object.keys(headers).length > 0) {
+            const headerString =
+              Object.entries(headers)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join('\r\n') + '\r\n';
+            args.push('-headers', headerString);
+          }
+          args.push('-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', url);
+          const session = await FFprobeKit.executeWithArguments(args);
           const returnCode = await session.getReturnCode();
+
+          if (!ReturnCode.isSuccess(returnCode)) {
+            const output = await session.getOutput();
+            const logs = await session.getAllLogsAsString();
+            console.error('[FFprobe] returnCode:', returnCode, '\noutput:', output, '\nlogs:', logs);
+            throw new Error(`FFprobe exited with code ${returnCode}: ${logs?.slice(0, 300) || output?.slice(0, 300)}`);
+          }
 
           if (ReturnCode.isSuccess(returnCode)) {
             const output = await session.getOutput();
@@ -888,6 +922,7 @@ export const useDownloadStore = create<DownloadState>()(
             color: '#000',
             linkingURI: 'uwumi://(settings)/downloads',
             parameters: {},
+            foregroundServiceType: ['dataSync'] as 'dataSync'[],
           };
 
           await BackgroundService.start(backgroundTask, options);

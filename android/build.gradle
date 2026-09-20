@@ -1,5 +1,10 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
+ext {
+  ffmpegKitPackage = "https"
+  ffmpegKitReleaseTag = "ffmpeg-android-6.0.2"
+}
+
 buildscript {
   repositories {
     google()
@@ -17,9 +22,6 @@ allprojects {
     google()
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
-    flatDir {
-            dirs "$rootDir/libs"
-        }
   }
 }
 

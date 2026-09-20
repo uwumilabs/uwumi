@@ -4,8 +4,7 @@ import { useUpdateChecker } from '@/hooks/useUpdateChecker';
 import { openBrowserAsync } from 'expo-web-browser';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import { useCurrentTheme } from '@/hooks';
-import { toast } from 'sonner-native';
-import { Card, Separator } from 'heroui-native';
+import { Card, Separator, useToast } from 'heroui-native';
 import { ActivityIndicator, ScrollView, Text } from 'react-native';
 
 const About = () => {
@@ -15,15 +14,18 @@ const About = () => {
 
   const hasNewVersion = !updateInfo.isNewVersionPreRelease && updateInfo.newVersion !== updateInfo.currentVersion;
   const currentTheme = useCurrentTheme();
+  const { toast } = useToast();
 
   // Handle error state with toast notification in useEffect to avoid side effects during render
   useEffect(() => {
     if (isError) {
-      toast.error('Unable to check for updates. Please try again later.', {
+      toast.show({
+        variant: 'danger',
+        label: 'Unable to check for updates. Please try again later.',
         description: `Current version: ${updateInfo.currentVersion}`,
       });
     }
-  }, [isError, updateInfo.currentVersion]);
+  }, [isError, updateInfo.currentVersion, toast]);
 
   return (
     <ThemedView>

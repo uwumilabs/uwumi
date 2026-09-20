@@ -10,7 +10,6 @@ import {
   useDownloadStore,
   useMediaInfoStore,
 } from '@/hooks';
-import { toast } from 'sonner-native';
 import { MediaType } from '@/constants/types';
 import { useProviderStore } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
@@ -18,6 +17,7 @@ import { HUXStack, HUYStack, RippleButton } from '../ui-primitives';
 import { Separator } from 'heroui-native';
 import { CustomSheet } from '../CustomSheet';
 import { IoniconsIcon } from '../Icons';
+import { useToast } from 'heroui-native';
 
 interface EpisodeActionsSheetProps {
   open: boolean;
@@ -88,6 +88,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const { addDownload, startDownload } = useDownloadStore();
     const mediaInfo = useMediaInfoStore((state) => state.mediaInfo);
     const sheetColor = useSheetColor();
+    const { toast } = useToast();
 
     const [showQualitySelection, setShowQualitySelection] = useState(false);
     const [showServerSelection, setShowServerSelection] = useState(false);
@@ -174,9 +175,9 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
       setProgress(episode.uniqueId, newProgress);
 
-      toast.success(isCompleted ? 'Marked as incomplete' : 'Marked as complete');
+      toast.show({ variant: 'success', label: isCompleted ? 'Marked as incomplete' : 'Marked as complete' });
       onOpenChange(false);
-    }, [episode, getProgress, setProgress, onOpenChange]);
+    }, [episode, getProgress, setProgress, onOpenChange, toast]);
 
     const handleShowQualityOptions = (mode: 'external-player' | 'download') => {
       if (!episode?.id) return;
@@ -243,7 +244,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         } catch (e) {
           console.error('❌ Error opening external player:', e);
           const message = String((e as Error).message || 'Unknown error');
-          toast.error('Failed to open external player', { description: message });
+          toast.show({ variant: 'danger', label: 'Failed to open external player', description: message });
           return;
         }
 
@@ -266,7 +267,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         }
         onOpenChange(false);
       },
-      [onOpenChange, data, episode, getProgress, setProgress],
+      [onOpenChange, data, episode, getProgress, setProgress, toast],
     );
 
     const handleDownloadWithQuality = useCallback(
@@ -309,8 +310,16 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
           : `${episodeName} - Episode ${episodeNumber}`;
 
         try {
+          const sourceHeaders =
+            data?.headers && typeof data.headers === 'object'
+              ? (Object.fromEntries(
+                  Object.entries(data.headers as Record<string, unknown>).filter(([, v]) => typeof v === 'string'),
+                ) as Record<string, string>)
+              : undefined;
+
           const downloadId = addDownload({
             url: videoUrl,
+            headers: sourceHeaders,
             name: episodeName,
             showName: showName,
             season: season,
@@ -324,14 +333,14 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         } catch (e) {
           console.error('❌ Error starting download:', e);
           const message = String((e as Error).message || 'Unknown error');
-          toast.error('Failed to start download', { description: message });
+          toast.show({ variant: 'danger', label: 'Failed to start download', description: message });
           return;
         }
 
-        toast.success('Download started', { description: successDescription });
+        toast.show({ variant: 'success', label: 'Download started', description: successDescription });
         onOpenChange(false);
       },
-      [episode, data, mediaInfo, addDownload, startDownload, onOpenChange],
+      [episode, data, mediaInfo, addDownload, startDownload, onOpenChange, toast],
     );
 
     const handleBackToMainMenu = useCallback(() => {

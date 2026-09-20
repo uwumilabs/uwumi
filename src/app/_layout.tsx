@@ -3,7 +3,6 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
 import 'react-native-reanimated';
-import { Toaster } from 'sonner-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Inter_500Medium as InterMedium,
@@ -150,10 +149,6 @@ const AppContent = () => {
     }
   }, [loaded, isUpdateChecked]);
 
-  if (!loaded) {
-    return null;
-  }
-
   const contentWrapper = useCallback(
     (children: React.ReactNode) => (
       <KeyboardAvoidingView pointerEvents="box-none" behavior="padding" keyboardVerticalOffset={12} className="flex-1">
@@ -163,12 +158,19 @@ const AppContent = () => {
     [],
   );
 
+  if (!loaded) {
+    return null;
+  }
+
   return (
     <>
       <HeroUINativeProvider
         config={{
           toast: {
             contentWrapper,
+            defaultProps: {
+              placement: 'bottom',
+            },
           },
           devInfo: {
             stylingPrinciples: false,
@@ -194,13 +196,6 @@ const AppContent = () => {
           />
         )}
       </HeroUINativeProvider>
-      <Toaster
-        position="bottom-center"
-        invert
-        autoWiggleOnUpdate="always"
-        richColors
-        {...(!isTV && { swipeToDismissDirection: 'left' as const })}
-      />
     </>
   );
 };
