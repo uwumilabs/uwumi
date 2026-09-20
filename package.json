@@ -1,12 +1,12 @@
 {
   "name": "uwumi",
   "main": "expo-router/entry",
-  "version": "3.9.0",
+  "version": "3.10.0",
   "scripts": {
     "start": "expo start",
     "android:reverse": "adb reverse tcp:3000 tcp:3000 && adb reverse tcp:3001 tcp:3001 && expo run:android",
     "android": "expo run:android",
-    "android:device": "cd android && ./gradlew assembleDebug -PdebugSuffix && cd ..",
+    "android:device": "cd android && ./gradlew :app:assembleDebug -PdebugSuffix && cd ..",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",

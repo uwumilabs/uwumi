@@ -36,7 +36,7 @@ cd android
 
 # Build release APK
 print_step "STEP 5: BUILDING RELEASE APK"
-./gradlew assembleRelease
+./gradlew :app:assembleRelease
 
 # Install release APK
 # print_step "STEP 6: INSTALLING RELEASE APK"
