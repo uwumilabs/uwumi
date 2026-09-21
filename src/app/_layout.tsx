@@ -218,6 +218,7 @@ export default function RootLayout() {
             refetchOnWindowFocus: false,
             refetchOnMount: false,
             retryDelay: 1000,
+            networkMode: 'offlineFirst'
           },
         },
       }),

@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AnimatedCustomImage } from './CustomImage';
@@ -7,7 +7,7 @@ import { IAnimeResult, IMovieResult, ISearch } from 'react-native-consumet';
 import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
 import { isTV } from '@/constants/utils';
 import { InfiniteData } from '@tanstack/react-query';
-import Animated, { useSharedValue, useAnimatedStyle, withDelay, withTiming } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { HUXStack, HUYStack, NoResults } from './ui-primitives';
 import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch, useSearchStore } from '@/hooks';
 import { useCardGridDimensions } from '@/hooks/useCardGridDimensions';
@@ -41,7 +41,7 @@ const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnTyp
   const skeletonCount = rows * grid.numColumns;
 
   return (
-    <SkeletonGroup isLoading={isLoading}>
+    <SkeletonGroup isLoading={isLoading} animation={false}>
       <View
         className="flex-row flex-wrap"
         style={{
@@ -64,24 +64,6 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
   const currentProvider = useProviderStore((state) => state.providers[mediaType]);
   const router = useRouter();
   const provider = currentProvider;
-
-  const shouldAnimate = !isSearch && index < 12;
-  const progress = useSharedValue(shouldAnimate ? 0 : 1);
-
-  useEffect(() => {
-    if (shouldAnimate) {
-      progress.value = withDelay(50 * index, withTiming(1, { duration: 300 }));
-    } else {
-      progress.value = 1;
-    }
-    // Run once on mount only; recycled cells keep their final (visible) state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const enteringStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{ translateY: (1 - progress.value) * 24 }],
-  }));
 
   const handlePress = useCallback(() => {
     router.push({
@@ -115,7 +97,7 @@ const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProv
       hasTVPreferredFocus={isTV && index === 0 ? true : undefined}
       onPress={handlePress}>
       <AnimatedStyledCard
-        style={enteringStyle}
+        entering={!isSearch && index < 12 ? FadeInDown.delay(50 * index).duration(300) : undefined}
         className={`flex-1 w-full rounded-lg overflow-hidden p-0 ${isTV ? 'aspect-[2/3.2]' : 'aspect-2/3'}`}>
         <Card.Body className="w-full h-full p-0 relative">
           <AnimatedCustomImage
