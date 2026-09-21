@@ -17,7 +17,7 @@ import {
   useCustomBackHandler,
   useMediaInfoStore,
 } from '@/hooks';
-import { toast } from 'sonner-native';
+import { useToast } from 'heroui-native';
 import { useProviders, useProviderStore } from '@/constants/provider';
 import { SUB_LANGUAGE } from '@/constants/config';
 import { useProviderSelectionStore } from './components';
@@ -59,6 +59,7 @@ const Watch = () => {
   const [serverInitialized, setServerInitialized] = useState(false);
   const providers = useProviders();
   const { mediaInfo } = useMediaInfoStore();
+  const { toast } = useToast();
   const { state: videoState } = useVideo();
   const { fullscreen, videoRef } = videoState;
   const { exitFullscreen } = useFullscreen();
@@ -102,7 +103,7 @@ const Watch = () => {
 
     const routeParams = buildEpisodeRouteParams(prevEpisode, navigationContext);
     if (!routeParams) {
-      toast.error('Unable to navigate', { description: 'Previous episode data is invalid' });
+      toast.show({ variant: 'danger', label: 'Unable to navigate', description: 'Previous episode data is invalid' });
       return;
     }
 
@@ -110,6 +111,7 @@ const Watch = () => {
       pathname: '/watch/[mediaType]',
       params: routeParams,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPrev, prevEpisode, buildEpisodeRouteParams, navigationContext, router]);
 
   // Navigate to next episode
@@ -118,7 +120,7 @@ const Watch = () => {
 
     const routeParams = buildEpisodeRouteParams(nextEpisode, navigationContext);
     if (!routeParams) {
-      toast.error('Unable to navigate', { description: 'Next episode data is invalid' });
+      toast.show({ variant: 'danger', label: 'Unable to navigate', description: 'Next episode data is invalid' });
       return;
     }
 
@@ -126,6 +128,7 @@ const Watch = () => {
       pathname: '/watch/[mediaType]',
       params: routeParams,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasNext, nextEpisode, buildEpisodeRouteParams, navigationContext, router]);
 
   useFocusEffect(
@@ -355,18 +358,27 @@ const Watch = () => {
 
   useEffect(() => {
     if (!isLoading && !source) {
-      toast.error('No video source found', { description: 'Please try changing servers or quality.' });
+      toast.show({
+        variant: 'danger',
+        label: 'No video source found',
+        description: 'Please try changing servers or quality.',
+      });
     }
     if (!isLoading && error) {
-      toast.error('Error loading media', {
+      toast.show({
+        variant: 'danger',
+        label: 'Error loading media',
         description: error?.message || 'An unknown error occurred.',
       });
     }
     if (isExternalSubtitlesError) {
-      toast.error('Error loading external subtitles', {
+      toast.show({
+        variant: 'danger',
+        label: 'Error loading external subtitles',
         description: 'Please try changing the subtitle language or check your internet connection.',
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, isLoading, error, isExternalSubtitlesError]);
 
   if (isLoading) {
@@ -401,7 +413,7 @@ const Watch = () => {
           allowsEaxternalPlayback: true,
           mixWithOthers: 'mix',
           onError: () => {
-            toast.error('Video Error', { description: 'Try changing servers' });
+            toast.show({ variant: 'danger', label: 'Video Error', description: 'Try changing servers' });
             //console.log('Video Error:', error);
           },
           onLoad: (value: OnLoadData) => {

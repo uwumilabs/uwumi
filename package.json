@@ -1,12 +1,12 @@
 {
   "name": "uwumi",
   "main": "expo-router/entry",
-  "version": "3.9.0",
+  "version": "3.11.0",
   "scripts": {
     "start": "expo start",
     "android:reverse": "adb reverse tcp:3000 tcp:3000 && adb reverse tcp:3001 tcp:3001 && expo run:android",
     "android": "expo run:android",
-    "android:device": "cd android && ./gradlew assembleDebug -PdebugSuffix && cd ..",
+    "android:device": "cd android && ./gradlew :app:assembleDebug -PdebugSuffix && cd ..",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
@@ -16,7 +16,7 @@
     "release": "release-it",
     "sync-versions": "node ./src/scripts/sync-versions.js",
     "build-android": "bash src/scripts/build-android.sh"
-    },
+  },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,md,html,css}": [
       "eslint --fix .",
@@ -83,8 +83,9 @@
     "react-native-background-actions": "^4.0.1",
     "react-native-consumet": "^1.5.0",
     "react-native-edge-to-edge": "^1.7.0",
-    "react-native-gesture-handler": "~2.32.0",
-    "react-native-keyboard-controller": "1.21.9",
+    "react-native-ffmpeg-kit": "7.0.0-beta.1",
+    "react-native-gesture-handler": "~2.30.0",
+    "react-native-keyboard-controller": "1.20.7",
     "react-native-material-ripple": "^0.9.1",
     "react-native-mmkv": "^3.1.0",
     "react-native-orientation-director": "^2.6.5",
@@ -95,9 +96,8 @@
     "react-native-video": "github:pigeonmal/react-native-video#ajami1.4.1",
     "react-native-video-toolkit": "^0.9.0",
     "react-native-web": "^0.21.0",
-    "react-native-webview": "13.16.1",
-    "react-native-worklets": "0.10.1",
-    "sonner-native": "^0.16.2",
+    "react-native-webview": "13.16.0",
+    "react-native-worklets": "^0.8.3",
     "tailwind-merge": "^3.4.0",
     "tailwind-variants": "^3.2.2",
     "tailwindcss": "^4.1.17",

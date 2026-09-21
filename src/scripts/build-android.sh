@@ -23,7 +23,7 @@ print_step() {
 
 # Bundle JavaScript code
 print_step "STEP 1: BUNDLING JAVASCRIPT CODE"
-bunx react-native bundle --platform android --dev false --entry-file ./src/app/_layout.tsx --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+npx react-native bundle --platform android --dev false --entry-file ./src/app/_layout.tsx --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
 
 # Change the current directory to the android directory of the project
 print_step "STEP 2: CHANGING DIRECTORY TO ANDROID"
@@ -33,13 +33,10 @@ cd android
 # print_step "STEP 3: CLEANING PREVIOUS BUILD"
 # ./gradlew clean
 
-# Generate FFMPEG AAR
-# print_step "STEP 4: GENERATING FFMPEG AAR"
-# ./gradlew :app:downloadAar
 
 # Build release APK
 print_step "STEP 5: BUILDING RELEASE APK"
-./gradlew assembleRelease
+./gradlew :app:assembleRelease
 
 # Install release APK
 # print_step "STEP 6: INSTALLING RELEASE APK"

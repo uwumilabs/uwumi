@@ -12,8 +12,5 @@ local.properties
 *.hprof
 .cxx/
 
-# generated inline modules
-app/src/main/java/inline/
-
 # Bundle artifacts
 *.jsbundle

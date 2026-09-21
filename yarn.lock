@@ -10702,10 +10702,22 @@ react-native-edge-to-edge@^1.7.0:
   resolved "https://registry.yarnpkg.com/react-native-edge-to-edge/-/react-native-edge-to-edge-1.8.1.tgz#a1044ddbf4007a029980239e16c6a066e60756d2"
   integrity sha512-bhvsKqeX9PGkY9wBUk9vni/tJNJdKtLPbs/j3e/3CdV4JmUWfTXYYoL+4Hc8Wmej+5eJxkc8KOFa454ruFWBCA==
 
+<<<<<<< HEAD
 react-native-gesture-handler@~2.32.0:
   version "2.32.0"
   resolved "https://registry.yarnpkg.com/react-native-gesture-handler/-/react-native-gesture-handler-2.32.0.tgz#59b8658a4e1586ce6fb0ca0053ac80f6acf7f882"
   integrity sha512-uYIMOKlKENORq2SABE+jIjbPU+h5I/sQKcq2v16zRq848nwEp1fWRVwML4QWqijc8UcXJC25o54S8GQd4Mf2OA==
+=======
+react-native-ffmpeg-kit@7.0.0-beta.1:
+  version "7.0.0-beta.1"
+  resolved "https://registry.yarnpkg.com/react-native-ffmpeg-kit/-/react-native-ffmpeg-kit-7.0.0-beta.1.tgz#9c1bdf1b3b500f2d8c1307f190535cc608031f7d"
+  integrity sha512-6RHyZrH1UHHQ3JrL6Pk9dRKgfTwrzTWIZ+dHKeAzLxmQBIXThg7lN4ORyqmUi60yQUo+EkRzSt1QH+G2STgkvw==
+
+react-native-gesture-handler@~2.30.0:
+  version "2.30.1"
+  resolved "https://registry.yarnpkg.com/react-native-gesture-handler/-/react-native-gesture-handler-2.30.1.tgz#d930b8b8870cd2f5cc0c967acf94c8891ada42de"
+  integrity sha512-xIUBDo5ktmJs++0fZlavQNvDEE4PsihWhSeJsJtoz4Q6p0MiTM9TgrTgfEgzRR36qGPytFoeq+ShLrVwGdpUdA==
+>>>>>>> origin/main
   dependencies:
     "@egjs/hammerjs" "^2.0.17"
     "@types/react-test-renderer" "^19.1.0"

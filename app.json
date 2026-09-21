@@ -2,7 +2,7 @@
   "expo": {
     "name": "uwumi",
     "slug": "uwumi",
-    "version": "3.9.0",
+    "version": "3.11.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "uwumi",
@@ -19,7 +19,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.x2004durgesh.uwumi",
-      "versionCode": 35
+      "versionCode": 37
     },
     "web": {
       "bundler": "metro",

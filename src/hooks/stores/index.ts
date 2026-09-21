@@ -7,5 +7,5 @@ export * from './useServerStore';
 export * from './useFavoriteStore';
 export * from './useExternalSubtitleStore';
 export * from './useExtensionStore';
-// export * from './useDownloadStore';
+export * from './useDownloadStore';
 export * from './useMediaInfoStore';

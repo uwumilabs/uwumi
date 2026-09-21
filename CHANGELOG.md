@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.11.0 (2026-09-21)
+
+* feat: optimize use-effect dependencies and improve animation handling in card-list ([7cb9102](https://github.com/uwumilabs/uwumi/commit/7cb9102))
+
+## 3.10.0 (2026-09-20)
+
+* feat: update ffmpeg-kit and remove sonner ([5475fa5](https://github.com/uwumilabs/uwumi/commit/5475fa5))
+* feat: update react-native-consumet to version 1.5.0 and adjust related files ([2a0159e](https://github.com/uwumilabs/uwumi/commit/2a0159e))
+* chore: upgrade rnc ([63e7a53](https://github.com/uwumilabs/uwumi/commit/63e7a53))
+
 ## 3.9.0 (2026-05-09)
 
 * feat: introduce expo ui ([b68a2a2](https://github.com/uwumilabs/uwumi/commit/b68a2a2))

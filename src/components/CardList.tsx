@@ -41,7 +41,7 @@ const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnTyp
   const skeletonCount = rows * grid.numColumns;
 
   return (
-    <SkeletonGroup isLoading={isLoading}>
+    <SkeletonGroup isLoading={isLoading} animation={false}>
       <View
         className="flex-row flex-wrap"
         style={{
