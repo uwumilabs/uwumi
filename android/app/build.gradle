@@ -88,6 +88,30 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace 'com.x2004durgesh.uwumi'
+
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            universalApk false
+        }
+    }
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            if (variant.buildType.name == "release") {
+                // Customize the output file name for release builds
+                def versionName = variant.versionName
+                // Get ABI name if it exists (like arm64-v8a)
+                def abiName = output.getFilter(com.android.build.OutputFile.ABI)
+                if (abiName != null) {
+                    outputFileName = "uwumi-${abiName}-v${versionName}.apk"
+                } else {
+                    outputFileName = "uwumi-universal-v${versionName}.apk"
+                }
+            }
+        }
+    }
     defaultConfig {
         applicationId 'com.x2004durgesh.uwumi'
         minSdkVersion rootProject.ext.minSdkVersion
@@ -134,33 +158,6 @@ android {
     }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
-    }
-
-     splits {
-        abi {
-            enable true
-            reset()
-            include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
-            universalApk false
-        }
-    }
-    applicationVariants.all { variant ->
-        variant.outputs.all { output ->
-            if (variant.buildType.name == "release") {
-                // Get the version name from defaultConfig
-                def versionName = variant.versionName
-                
-                // Get ABI name if it exists (like arm64-v8a)
-                def abiName = output.getFilter(com.android.build.OutputFile.ABI)
-                
-                // Set the filename to uwumi-archname-versionname.apk format
-                if (abiName != null) {
-                    outputFileName = "uwumi-${abiName}-v${versionName}.apk"
-                } else {
-                    outputFileName = "uwumi-universal-v${versionName}.apk"
-                }
-            }
-        }
     }
 }
 
