@@ -111,7 +111,8 @@ const Watch = () => {
       pathname: '/watch/[mediaType]',
       params: routeParams,
     });
-  }, [hasPrev, prevEpisode, buildEpisodeRouteParams, navigationContext, router, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPrev, prevEpisode, buildEpisodeRouteParams, navigationContext, router]);
 
   // Navigate to next episode
   const handleNextEpisode = useCallback(() => {
@@ -127,7 +128,8 @@ const Watch = () => {
       pathname: '/watch/[mediaType]',
       params: routeParams,
     });
-  }, [hasNext, nextEpisode, buildEpisodeRouteParams, navigationContext, router, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasNext, nextEpisode, buildEpisodeRouteParams, navigationContext, router]);
 
   useFocusEffect(
     useCallback(() => {
@@ -376,7 +378,8 @@ const Watch = () => {
         description: 'Please try changing the subtitle language or check your internet connection.',
       });
     }
-  }, [source, isLoading, error, isExternalSubtitlesError, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source, isLoading, error, isExternalSubtitlesError]);
 
   if (isLoading) {
     return (

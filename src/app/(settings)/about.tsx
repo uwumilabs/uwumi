@@ -25,7 +25,8 @@ const About = () => {
         description: `Current version: ${updateInfo.currentVersion}`,
       });
     }
-  }, [isError, updateInfo.currentVersion, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isError, updateInfo.currentVersion]);
 
   return (
     <ThemedView>
