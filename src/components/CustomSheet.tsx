@@ -1,10 +1,7 @@
-import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState, useEffect } from 'react';
+import React, { forwardRef, useCallback, useImperativeHandle } from 'react';
 import { ScrollView, View, type ViewProps } from 'react-native';
+import { BottomSheet, RNHostView, type SnapPoint } from '@expo/ui';
 import { useCurrentTheme, useSheetColor } from '@/hooks';
-import { Host, ModalBottomSheet as NativeSheet, Column, RNHostView } from '@expo/ui/jetpack-compose';
-
-// Import ModalBottomSheetRef type for Android
-type NativeSheetRef = { hide: () => Promise<void> };
 
 export type CustomSheetRef = {
   present: () => void;
@@ -15,12 +12,13 @@ export type CustomSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 
+  /** `'80%'` → fraction of screen height, number → fixed height. Omit to size to content. */
   snapPoints?: (string | number)[];
 
   header?: React.ReactNode;
   children: React.ReactNode;
 
-  /** If true, wraps content in a BottomSheetScrollView. */
+  /** If true, wraps content in a ScrollView. */
   scrollable?: boolean;
 
   /** Optional props passed to HeroUI BottomSheet.Content (forwarded to underlying sheet). */
@@ -30,69 +28,51 @@ export type CustomSheetProps = {
   contentContainerProps?: ViewProps;
 };
 
+function toSnapPoint(point: string | number): SnapPoint {
+  if (typeof point === 'string' && point.endsWith('%')) {
+    return { fraction: parseFloat(point) / 100 };
+  }
+  return { height: Number(point) };
+}
+
 export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
-  ({ open, onOpenChange, header, children, scrollable = true, contentContainerProps }, ref) => {
+  ({ open, onOpenChange, snapPoints, header, children, scrollable = true, contentContainerProps }, ref) => {
     const theme = useCurrentTheme();
     const sheetColor = useSheetColor();
-    const nativeRef = useRef<NativeSheetRef>(null);
-    const [visible, setVisible] = useState(open);
-
-    // Sync visibility when `open` prop changes
-    useEffect(() => {
-      if (open) {
-        setVisible(true);
-      } else if (visible) {
-        // Animate out, then unmount
-        nativeRef.current
-          ?.hide()
-          .then(() => setVisible(false))
-          .catch(() => setVisible(false));
-      }
-    }, [open]);
 
     const present = useCallback(() => onOpenChange(true), [onOpenChange]);
     const dismiss = useCallback(() => onOpenChange(false), [onOpenChange]);
 
     useImperativeHandle(ref, () => ({ present, dismiss }), [present, dismiss]);
 
-    const handleDismiss = useCallback(() => {
-      setVisible(false);
-      onOpenChange(false);
-    }, [onOpenChange]);
-
-    if (!visible) return null;
-
     return (
-      <Host matchContents style={{ position: 'absolute', zIndex: 9999 }}>
-        <NativeSheet
-          ref={nativeRef}
-          onDismissRequest={handleDismiss}
-          containerColor={sheetColor}
-          contentColor={theme?.foreground}
-          skipPartiallyExpanded={false}
-          showDragHandle>
-          <Column>
-            <RNHostView>
-              <View style={{ width: '100%' }}>
-                {/* Header stays outside scroll area */}
-                {!!header && <View>{header}</View>}
+      <BottomSheet
+        isPresented={open}
+        onDismiss={dismiss}
+        snapPoints={snapPoints?.map(toSnapPoint)}
+        contentPadding={0}
+        containerColor={sheetColor}
+        contentColor={theme?.foreground}>
+        {/* matchContents lets content-sized sheets (no snapPoints) measure the RN content. */}
+        <RNHostView matchContents>
+          <View style={{ width: '100%' }}>
+            {/* Header stays outside scroll area */}
+            {!!header && <View>{header}</View>}
 
-                {scrollable ? (
-                  <ScrollView
-                    style={{ maxHeight: 500 }}
-                    contentContainerStyle={{ paddingBottom: 16 }}
-                    keyboardShouldPersistTaps="handled"
-                    {...(contentContainerProps as any)}>
-                    {children}
-                  </ScrollView>
-                ) : (
-                  <View {...contentContainerProps}>{children}</View>
-                )}
-              </View>
-            </RNHostView>
-          </Column>
-        </NativeSheet>
-      </Host>
+            {scrollable ? (
+              <ScrollView
+                style={{ maxHeight: 500 }}
+                contentContainerStyle={{ paddingBottom: 16 }}
+                keyboardShouldPersistTaps="handled"
+                {...(contentContainerProps as any)}>
+                {children}
+              </ScrollView>
+            ) : (
+              <View {...contentContainerProps}>{children}</View>
+            )}
+          </View>
+        </RNHostView>
+      </BottomSheet>
     );
   },
 );
