@@ -1,5 +1,5 @@
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
 import 'react-native-reanimated';
@@ -10,7 +10,7 @@ import {
   Inter_800ExtraBold as InterBold,
 } from '@expo-google-fonts/inter';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useCurrentTheme, useThemeStore, useUpdateChecker, useSheetColor } from '@/hooks';
+import { useCurrentTheme, usePureBlackBackground, useThemeStore, useUpdateChecker, useSheetColor } from '@/hooks';
 import * as WebBrowser from 'expo-web-browser';
 import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
@@ -120,6 +120,9 @@ const AppContent = () => {
   const uniwindThemeName = useUniwind();
   const setTheme = useThemeStore((state) => state.setTheme);
   const themeName = useThemeStore((state) => state.themeName);
+  const isDark = useThemeStore((state) => state.isDark);
+  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+  const currentTheme = useCurrentTheme();
   // console.log(themeName, uniwindThemeName, Object.keys(themes), Object.keys(themes).includes(uniwindThemeName.theme));
   if (!Object.keys(themes).includes(uniwindThemeName.theme)) {
     setTheme(themeName ?? 'default-dark');
@@ -162,6 +165,22 @@ const AppContent = () => {
     return null;
   }
 
+  // The navigators paint their container with this background; on iOS it shows behind a
+  // screen's rounded corners during push transitions, so it must match the app theme.
+  const baseNavigationTheme = isDark ? DarkTheme : DefaultTheme;
+  const screenBackground = pureBlackBackground ? '#000' : currentTheme.background;
+  const navigationTheme = {
+    ...baseNavigationTheme,
+    colors: {
+      ...baseNavigationTheme.colors,
+      background: screenBackground,
+      card: screenBackground,
+      text: currentTheme.foreground,
+      border: currentTheme.border,
+      primary: currentTheme.accent,
+    },
+  };
+
   return (
     <>
       <HeroUINativeProvider
@@ -177,14 +196,16 @@ const AppContent = () => {
           },
         }}>
         <CustomSheetProvider>
-          <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="info/[mediaType]" />
-            <Stack.Screen name="watch/[mediaType]" />
-            <Stack.Screen name="read/[id]" />
-            <Stack.Screen name="(settings)" />
-            <Stack.Screen name="+not-found" />
-          </Stack>
+          <ThemeProvider value={navigationTheme}>
+            <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="info/[mediaType]" />
+              <Stack.Screen name="watch/[mediaType]" />
+              <Stack.Screen name="read/[id]" />
+              <Stack.Screen name="(settings)" />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+          </ThemeProvider>
         </CustomSheetProvider>
         {isUpdateAvailable && (
           <DownloadDialog

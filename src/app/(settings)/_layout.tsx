@@ -13,9 +13,7 @@ export default function SettingsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerTransparent: true,
         contentStyle: {
-          paddingTop: insets.top * 2,
           backgroundColor: pureBlackBackground ? '#000' : currentTheme?.background,
         },
         header(props) {
