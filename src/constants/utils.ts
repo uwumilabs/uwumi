@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, type ColorValue, type ViewStyle } from 'react-native';
 // export const getFetchUrl = () => {
 //   if (process.env.NODE_ENV === 'production') {
 //     return {
@@ -90,3 +90,26 @@ export const normalizeRating = (rating?: number) => {
 
 export const isTV = Platform.isTV;
 export const isTVOS = Platform.isTVOS;
+
+// D-pad focus ring via Reanimated pseudo selectors (toggled natively, no JS); needs a Reanimated-rendered view.
+export const tvFocusRingStyle = ({
+  color,
+  scale = 1.05,
+  borderWidth = 2,
+  borderRadius,
+  duration = 100,
+}: {
+  color: ColorValue | undefined;
+  scale?: number;
+  borderWidth?: number;
+  borderRadius?: number;
+  duration?: number;
+}): ViewStyle =>
+  ({
+    borderWidth,
+    ...(borderRadius != null && { borderRadius }),
+    borderColor: { default: 'transparent', ':focus': color },
+    transform: { default: [{ scale: 1 }], ':focus': [{ scale }] },
+    transitionProperty: ['borderColor', 'transform'],
+    transitionDuration: duration,
+  }) as unknown as ViewStyle;

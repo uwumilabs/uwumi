@@ -123,10 +123,7 @@ const Info = () => {
 
   return (
     <>
-      <ThemedView
-        useSafeArea
-        statusBarProps={{ translucent: true, backgroundColor: 'transparent' }}
-        focusable={isTV ? false : undefined}>
+      <ThemedView useSafeArea focusable={isTV ? false : undefined}>
         <View className="h-75 relative" focusable={isTV ? false : undefined}>
           <View className="absolute inset-0 h-75 w-full" focusable={isTV ? false : undefined}>
             <CustomImage source={{ uri: data?.cover }} style={{ width: '100%', height: '100%' }} contentFit="cover" />

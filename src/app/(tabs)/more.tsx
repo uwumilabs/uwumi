@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { HUXStack, HUYStack, IoniconsIcon, ThemedView, TVFocusWrapper, IoniconProps } from '@/components';
-import { Route, useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
 import { Separator } from 'heroui-native';
 import { useCurrentTheme } from '@/hooks';
@@ -11,7 +11,7 @@ const MenuItem = ({
   label,
   isFirst,
 }: {
-  href: Route;
+  href: Href;
   icon: IoniconProps['name'];
   label: string;
   isFirst?: boolean;
@@ -36,20 +36,20 @@ const MenuItem = ({
 const More = () => {
   // Create menu items array with conditional development item inside useMemo
   const menuItems = useMemo(() => {
-    const baseItems: { href: Route; icon: IoniconProps['name']; label: string }[] = [
-      { href: '/(settings)/appearance' as Route, icon: 'color-palette', label: 'Appearance' },
-      { href: '/(settings)/extensions' as Route, icon: 'extension-puzzle', label: 'Extensions' },
-      // { href: '/(settings)' as Route, icon: Settings, label: 'Settings' },
-      { href: '/(settings)/favorites' as Route, icon: 'heart', label: 'Favorites' },
-      { href: '/(settings)/downloads' as Route, icon: 'download', label: 'Downloads' },
-      { href: '/(settings)/about' as Route, icon: 'information-circle-outline', label: 'About' },
+    const baseItems: { href: Href; icon: IoniconProps['name']; label: string }[] = [
+      { href: '/(settings)/appearance' as Href, icon: 'color-palette', label: 'Appearance' },
+      { href: '/(settings)/extensions' as Href, icon: 'extension-puzzle', label: 'Extensions' },
+      // { href: '/(settings)' as Href, icon: Settings, label: 'Settings' },
+      { href: '/(settings)/favorites' as Href, icon: 'heart', label: 'Favorites' },
+      { href: '/(settings)/downloads' as Href, icon: 'download', label: 'Downloads' },
+      { href: '/(settings)/about' as Href, icon: 'information-circle-outline', label: 'About' },
     ];
 
     // Add development-only menu item for testing purposes
     if (process.env.NODE_ENV === 'development') {
       return [
         ...baseItems,
-        { href: '/(settings)/example' as Route, icon: 'information' as IoniconProps['name'], label: 'Example' },
+        { href: '/(settings)/example' as Href, icon: 'information' as IoniconProps['name'], label: 'Example' },
       ];
     }
 

@@ -7,17 +7,10 @@
  * On phone: renders children as-is with zero overhead.
  */
 
-import React, { memo, useCallback } from 'react';
-import {
-  Pressable,
-  PressableProps,
-  StyleProp,
-  ViewStyle,
-  type NativeSyntheticEvent,
-  type TargetedEvent,
-} from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { isTV } from '@/constants/utils';
+import React, { memo } from 'react';
+import { Pressable, PressableProps, StyleProp, ViewStyle } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { isTV, tvFocusRingStyle } from '@/constants/utils';
 import { useCurrentTheme } from '@/hooks';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -73,35 +66,14 @@ const TVFocusWrapper: React.FC<TVFocusWrapperProps> = memo(
       );
     }
 
-    // TV path: animated focus ring
-    const scale = useSharedValue(1);
-    const borderOpacity = useSharedValue(0);
-
-    const animatedStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: scale.value }],
+    // TV path: the focus ring is driven natively by the `:focus` pseudo selector
+    const focusRing = tvFocusRingStyle({
+      color: borderColor,
+      scale: focusScale,
       borderWidth: focusBorderWidth,
-      borderColor: borderOpacity.value === 0 ? 'transparent' : borderColor,
       borderRadius: focusBorderRadius,
-    }));
-
-    const FOCUS_AND_BLUR_DURATION = 15;
-    const handleFocus = useCallback(
-      (e: NativeSyntheticEvent<TargetedEvent>) => {
-        scale.value = withTiming(focusScale, { duration: FOCUS_AND_BLUR_DURATION });
-        borderOpacity.value = withTiming(1, { duration: FOCUS_AND_BLUR_DURATION });
-        onFocusProp?.(e);
-      },
-      [focusScale, onFocusProp],
-    );
-
-    const handleBlur = useCallback(
-      (e: NativeSyntheticEvent<TargetedEvent>) => {
-        scale.value = withTiming(1, { duration: FOCUS_AND_BLUR_DURATION });
-        borderOpacity.value = withTiming(0, { duration: FOCUS_AND_BLUR_DURATION });
-        onBlurProp?.(e);
-      },
-      [onBlurProp],
-    );
+      duration: 15,
+    });
 
     return (
       <AnimatedPressable
@@ -112,9 +84,9 @@ const TVFocusWrapper: React.FC<TVFocusWrapperProps> = memo(
         nextFocusDown={nextFocusDown}
         nextFocusLeft={nextFocusLeft}
         nextFocusRight={nextFocusRight}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        style={[style, animatedStyle, containerStyle]}>
+        onFocus={onFocusProp}
+        onBlur={onBlurProp}
+        style={[style, focusRing, containerStyle]}>
         {children}
       </AnimatedPressable>
     );

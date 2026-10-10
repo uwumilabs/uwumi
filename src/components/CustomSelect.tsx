@@ -3,7 +3,7 @@ import { Button } from 'heroui-native';
 import { Text, View } from 'react-native';
 import { useCustomBackHandler, useCurrentTheme, useSheetColor } from '@/hooks';
 import { IoniconsIcon } from './Icons';
-import { isTV } from '@/constants/utils';
+import { isTV, tvFocusRingStyle } from '@/constants/utils';
 import { CustomSheet } from './CustomSheet';
 import { RippleButton } from './ui-primitives';
 
@@ -36,7 +36,6 @@ export const CustomSelect = ({
   const sheetColor = useSheetColor();
   const currentTheme = useCurrentTheme();
   const [isOpen, setIsOpen] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
   };
@@ -57,25 +56,12 @@ export const CustomSelect = ({
     [onValueChange],
   );
 
-  const handleFocus = useCallback(() => setIsFocused(true), []);
-  const handleBlur = useCallback(() => setIsFocused(false), []);
-
   return (
     <View>
       <Button
         variant="primary"
         onPress={() => setIsOpen(true)}
-        onFocus={isTV ? handleFocus : undefined}
-        onBlur={isTV ? handleBlur : undefined}
-        style={
-          isTV
-            ? {
-                borderWidth: 5,
-                borderColor: isFocused ? currentTheme?.accentForeground : 'transparent',
-                transform: [{ scale: isFocused ? 1.05 : 1 }],
-              }
-            : undefined
-        }>
+        style={isTV ? tvFocusRingStyle({ color: currentTheme?.accentForeground, borderWidth: 5 }) : undefined}>
         {selectedOption ? (
           <View className="flex-row items-center gap-2">
             <Button.Label>{selectedOption.label}</Button.Label>

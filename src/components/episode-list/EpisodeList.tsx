@@ -179,10 +179,7 @@ const SwipeAction = memo(
         style={[animatedStyle, { width: 100, justifyContent: 'center', alignItems: 'center', backgroundColor }]}>
         {/* Show current state icon (fades out) */}
         <Animated.View
-          style={[
-            { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
-            firstIconStyle,
-          ]}>
+          style={[{ ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center' }, firstIconStyle]}>
           {isCompleted ? (
             <IoniconsIcon name="eye-off-outline" color="white" size={24} />
           ) : (
@@ -192,10 +189,7 @@ const SwipeAction = memo(
 
         {/* Show new state icon (fades in) */}
         <Animated.View
-          style={[
-            { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
-            secondIconStyle,
-          ]}>
+          style={[{ ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center' }, secondIconStyle]}>
           {isCompleted ? (
             <IoniconsIcon name="eye-outline" color="white" size={24} />
           ) : (

@@ -2,9 +2,18 @@
 /// <reference types="uniwind/types" />
 
 declare module 'uniwind' {
-    export interface UniwindConfig {
-        themes: readonly ['light', 'dark', 'default-light', 'default-dark', 'cloudflare-light', 'cloudflare-dark', 'cotton-candy-light', 'cotton-candy-dark']
-    }
+  export interface UniwindConfig {
+    themes: readonly [
+      'light',
+      'dark',
+      'default-light',
+      'default-dark',
+      'cloudflare-light',
+      'cloudflare-dark',
+      'cotton-candy-light',
+      'cotton-candy-dark',
+    ];
+  }
 }
 
-export {}
+export {};
