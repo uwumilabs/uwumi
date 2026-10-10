@@ -1,5 +1,5 @@
 import React, { forwardRef, useCallback, useImperativeHandle } from 'react';
-import { ScrollView, View, type ViewProps } from 'react-native';
+import { Platform, ScrollView, View, useWindowDimensions, type ViewProps } from 'react-native';
 import { BottomSheet, RNHostView, type SnapPoint } from '@expo/ui';
 import { useCurrentTheme, useSheetColor } from '@/hooks';
 
@@ -39,6 +39,8 @@ export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
   ({ open, onOpenChange, snapPoints, header, children, scrollable = true, contentContainerProps }, ref) => {
     const theme = useCurrentTheme();
     const sheetColor = useSheetColor();
+    const { width: windowWidth } = useWindowDimensions();
+    const sheetWidth = Platform.OS === 'android' ? Math.min(windowWidth, 640) : windowWidth;
 
     const present = useCallback(() => onOpenChange(true), [onOpenChange]);
     const dismiss = useCallback(() => onOpenChange(false), [onOpenChange]);
@@ -55,7 +57,7 @@ export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
         contentColor={theme?.foreground}>
         {/* matchContents lets content-sized sheets (no snapPoints) measure the RN content. */}
         <RNHostView matchContents>
-          <View style={{ width: '100%' }}>
+          <View style={{ width: sheetWidth }}>
             {/* Header stays outside scroll area */}
             {!!header && <View>{header}</View>}
 

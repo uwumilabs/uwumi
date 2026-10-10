@@ -1,0 +1,36 @@
+diff --git a/node_modules/react-native-video/ios/Video/RCTVideoManager.swift b/node_modules/react-native-video/ios/Video/RCTVideoManager.swift
+index b408e96..eba2014 100644
+--- a/node_modules/react-native-video/ios/Video/RCTVideoManager.swift
++++ b/node_modules/react-native-video/ios/Video/RCTVideoManager.swift
+@@ -4,7 +4,8 @@ import React
+ @objc(RCTVideoManager)
+ class RCTVideoManager: RCTViewManager {
+     override func view() -> UIView {
+-        return RCTVideo(eventDispatcher: (RCTBridge.current().eventDispatcher() as! RCTEventDispatcher))
++        // Bridgeless (New Arch) has no current RCTBridge; the dispatcher is never read by RCTVideo anyway.
++        return RCTVideo(eventDispatcher: RCTBridge.current()?.eventDispatcher() as? RCTEventDispatcher)
+     }
+ 
+     func methodQueue() -> DispatchQueue {
+diff --git a/node_modules/react-native-video/src/Video.tsx b/node_modules/react-native-video/src/Video.tsx
+index 4614267..5d7bd4b 100644
+--- a/node_modules/react-native-video/src/Video.tsx
++++ b/node_modules/react-native-video/src/Video.tsx
+@@ -769,7 +769,7 @@ const Video = forwardRef<VideoRef, ReactVideoProps>(
+ 
+       // poster style
+       const baseStyle: StyleProp<ImageStyle> = {
+-        ...StyleSheet.absoluteFillObject,
++        ...StyleSheet.absoluteFill,
+         resizeMode: _posterResizeMode,
+       };
+ 
+@@ -822,7 +822,7 @@ const Video = forwardRef<VideoRef, ReactVideoProps>(
+ 
+     const _style: StyleProp<ViewStyle> = useMemo(
+       () => ({
+-        ...StyleSheet.absoluteFillObject,
++        ...StyleSheet.absoluteFill,
+       }),
+       [],
+     );

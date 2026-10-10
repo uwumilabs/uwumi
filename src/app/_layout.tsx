@@ -18,13 +18,16 @@ import { Button, Dialog, HeroUINativeProvider } from 'heroui-native';
 import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
 import '../../global.css';
 import { useUniwind } from 'uniwind';
-import { CustomSheetProvider, IoniconsIcon } from '@/components';
+import { CustomSheetProvider, IoniconsIcon, VideoSheet, VideoSlider } from '@/components';
 import { themes } from '@/themes/theme';
 import { VideoProvider, defaultTheme } from 'react-native-video-toolkit';
 import RNOrientationDirector, { Orientation } from 'react-native-orientation-director';
 import { isTV, isTVOS } from '@/constants/utils';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+// TV keeps the toolkit's defaults: a side-panel menu and a D-pad friendly slider.
+const videoComponents = isTV || isTVOS ? undefined : { Sheet: VideoSheet, Slider: VideoSlider };
 
 // Storage Permission Utility using native module
 export const requestPermission = async (): Promise<boolean> => {
@@ -262,7 +265,8 @@ export default function RootLayout() {
             }}
             config={{
               useCustomVideoTracks: true,
-            }}>
+            }}
+            components={videoComponents}>
             <AppContent />
           </VideoProvider>
         </QueryClientProvider>

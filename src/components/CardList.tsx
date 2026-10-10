@@ -31,6 +31,8 @@ interface CardProps {
   isSearch?: boolean;
 }
 
+// TMDB movie and TV ids share a numeric space, so the id alone isn't unique.
+const cardKey = (item: IAnimeResult | IMovieResult) => `${item.type}-${item.id}`;
 const AnimatedStyledCard = Animated.createAnimatedComponent(Card);
 const AnimatedStyledCardTitle = Animated.createAnimatedComponent(Card.Title);
 
@@ -164,10 +166,19 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
   };
   const getItems = useMemo(() => {
     if (!data) return [];
-    if (isInfiniteData(data)) {
-      return data.pages.flatMap((page) => (page.results ?? []) as (IAnimeResult | IMovieResult)[]);
-    }
-    return data;
+    const items = isInfiniteData(data)
+      ? data.pages.flatMap((page) => (page.results ?? []) as (IAnimeResult | IMovieResult)[])
+      : data;
+    // Paged feeds (e.g. TMDB trending) repeat items across pages as ranks shift; a duplicate
+    // key makes FlashList render the item in its later slot and leave a hole at the earlier one.
+    const seen = new Set<string>();
+    return items.filter((item) => {
+      if (item.id == null) return true;
+      const key = cardKey(item);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [data]);
 
   const filteredItems =
@@ -203,7 +214,7 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
         </View>
       )}
       numColumns={grid.numColumns}
-      keyExtractor={(item, index) => (item.id != null ? item.id.toString() : `fallback-${index}`)}
+      keyExtractor={(item, index) => (item.id != null ? cardKey(item) : `fallback-${index}`)}
       contentContainerStyle={{ paddingHorizontal: grid.horizontalPadding, paddingVertical: grid.verticalPadding }}
       refreshControl={isTV ? undefined : <RefreshControl refreshing={!!isLoading} onRefresh={refetch} />}
       onEndReached={() => {

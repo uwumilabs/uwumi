@@ -1,5 +1,5 @@
 PODS:
-  - Consumet (1.5.0):
+  - Consumet (1.6.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2722,7 +2722,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - VideoToolkit (0.9.0):
+  - VideoToolkit (0.11.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -3119,7 +3119,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  Consumet: f1d48efa477540313c53ab527df30db94f70cbb3
+  Consumet: 3d5d3790b2c7aeb37c85eb64ceeacde61356fb0a
   EXConstants: fdc6f92b1559e5bd69df9e684e8c7ba5d912890e
   EXJSONUtils: a49e3ef80dff762108e5690c7b2f360675dcf7f6
   EXManifests: 4c53b2602e03ccf44d0b4ff9c5d655b2c5acba3f
@@ -3239,7 +3239,7 @@ SPEC CHECKSUMS:
   RNScreens: 82c8a2b21dfd8b06a627ad48a543a54c2fb97abf
   RNSVG: 68c366b996064ea99cee1e55da62b8feafb33a78
   RNWorklets: f4dd214cf0fa3abc54143da6a3219c4b8ada7e94
-  VideoToolkit: 3fd41f19b0d64ec09f4a74e233fa3eb435917fa5
+  VideoToolkit: b30e304a806e7a18ce8393e04b28aeef5167a49b
   Yoga: 851840bb13ebbc8f2f3d58a08931c9a7bb263cef
 
 PODFILE CHECKSUM: 0aa234dde828540da856fb9f8e6469e5fccf1fc5

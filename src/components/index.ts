@@ -12,6 +12,7 @@ export { CustomFlashlist } from './CustomFlashlist';
 export { CustomSelect } from './CustomSelect';
 export { CustomSheet, CustomSheetProvider } from './CustomSheet';
 export { CustomDialog } from './CustomDialog';
+export { VideoSheet, VideoSlider } from './video';
 export { SearchBar } from './SearchBar';
 export { Progress } from './Progress';
 export {

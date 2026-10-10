@@ -142,7 +142,7 @@ export const NoResults = () => {
   const randomKaomoji = KAOMOJI[Math.floor(Math.random() * KAOMOJI.length)];
 
   return (
-    <HUYStack className="p-2 items-center justify-center gap-2">
+    <HUYStack className="p-2 pt-4 items-center justify-center gap-2">
       <Text className="text-5xl font-medium text-center text-foreground">{randomKaomoji}</Text>
       <Text className="text-xl text-accent">No results found</Text>
       <Text className="text-xs text-foreground text-center">
