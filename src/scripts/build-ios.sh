@@ -1,20 +1,14 @@
 #!/bin/bash
-# Fail fast so a broken build aborts `yarn release` (run from release-it's after:bump hook)
+# Builds an unsigned .ipa for sideloading (AltStore, SideStore, Sideloadly, TrollStore re-sign it on install).
 set -euo pipefail
 
-# Set environment variables
 export NODE_ENV=production
 
-# Color definitions
-RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Function for colorful logs
 print_step() {
   echo ""
   echo -e "${BLUE}╔═══════════════════════════════════════════════════════════════════════════╗${NC}"
@@ -23,33 +17,36 @@ print_step() {
   echo ""
 }
 
-# Bundle JavaScript code
-print_step "STEP 1: BUNDLING JAVASCRIPT CODE"
-npx react-native bundle --platform android --dev false --entry-file ./src/app/_layout.tsx --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+VERSION="$(node -p "require('$ROOT_DIR/package.json').version")"
+BUILD_DIR="$ROOT_DIR/ios/build"
+ARCHIVE_PATH="$BUILD_DIR/uwumi.xcarchive"
+IPA_PATH="$BUILD_DIR/uwumi-v$VERSION.ipa"
 
-# Change the current directory to the android directory of the project
-print_step "STEP 2: CHANGING DIRECTORY TO ANDROID"
-cd android
+# The Release configuration embeds the JS bundle itself ("Bundle React Native code and images" phase)
+print_step "STEP 1: ARCHIVING UNSIGNED RELEASE BUILD"
+rm -rf "$ARCHIVE_PATH"
+xcodebuild archive \
+  -quiet \
+  -workspace "$ROOT_DIR/ios/uwumi.xcworkspace" \
+  -scheme uwumi \
+  -configuration Release \
+  -destination 'generic/platform=iOS' \
+  -archivePath "$ARCHIVE_PATH" \
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGN_IDENTITY=""
 
-# Clean build
-# print_step "STEP 3: CLEANING PREVIOUS BUILD"
-# ./gradlew clean
-
-
-# Build release APK
-print_step "STEP 5: BUILDING RELEASE APK"
-./gradlew :app:assembleRelease
-
-# Install release APK
-# print_step "STEP 6: INSTALLING RELEASE APK"
-# ./gradlew installRelease
-
-# Uncomment if you need to bundle AAB
-# print_step "STEP 7: BUNDLING RELEASE AAB"
-# ./gradlew bundleRelease
+print_step "STEP 2: PACKAGING .IPA"
+STAGING_DIR="$(mktemp -d)"
+mkdir "$STAGING_DIR/Payload"
+cp -R "$ARCHIVE_PATH/Products/Applications/uwumi.app" "$STAGING_DIR/Payload/"
+rm -f "$IPA_PATH"
+(cd "$STAGING_DIR" && zip -qry "$IPA_PATH" Payload)
+rm -rf "$STAGING_DIR"
 
 echo ""
 echo -e "${GREEN}╔═══════════════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║${NC} ${GREEN}✅ BUILD COMPLETED SUCCESSFULLY${NC}"
+echo -e "${GREEN}║${NC} ${GREEN}✅ IPA READY: ios/build/uwumi-v$VERSION.ipa${NC}"
 echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════════════════╝${NC}"
 echo ""

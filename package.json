@@ -16,7 +16,8 @@
     "postinstall": "patch-package",
     "release": "release-it",
     "sync-versions": "node ./src/scripts/sync-versions.js",
-    "build-android": "bash src/scripts/build-android.sh"
+    "build-android": "bash src/scripts/build-android.sh",
+    "build-ios": "bash src/scripts/build-ios.sh"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,md,html,css}": [
@@ -34,12 +35,17 @@
     "hooks": {
       "after:bump": [
         "npm run sync-versions",
-        "npm run build-android"
+        "npm run build-android",
+        "npm run build-ios"
       ],
       "after:release": "echo Successfully released v${version}"
     },
     "github": {
-      "release": true
+      "release": true,
+      "assets": [
+        "android/app/build/outputs/apk/release/uwumi-*-v${version}.apk",
+        "ios/build/uwumi-v${version}.ipa"
+      ]
     },
     "plugins": {
       "@release-it/conventional-changelog": {
