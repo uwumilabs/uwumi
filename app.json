@@ -2,7 +2,7 @@
   "expo": {
     "name": "uwumi",
     "slug": "uwumi",
-    "version": "3.11.0",
+    "version": "3.12.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "uwumi",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
-      "buildNumber": "35",
+      "buildNumber": "38",
       "bundleIdentifier": "com.x2004durgesh.uwumi",
       "infoPlist": {
         "UIFileSharingEnabled": true,
@@ -23,7 +23,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.x2004durgesh.uwumi",
-      "versionCode": 37
+      "versionCode": 38
     },
     "web": {
       "bundler": "metro",

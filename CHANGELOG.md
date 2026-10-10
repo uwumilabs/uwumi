@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.12.0 (2026-10-10)
+
+* feat: keep android native config alive across expo prebuild ([36a742c](https://github.com/uwumilabs/uwumi/commit/36a742c))
+* feat: ship an unsigned .ipa alongside the apk's in yarn release ([ea24854](https://github.com/uwumilabs/uwumi/commit/ea24854))
+* feat: update image assets and enhance layout for settings screen' ([364f52b](https://github.com/uwumilabs/uwumi/commit/364f52b))
+* feat(ios): switch ios target from tvos to iphone and fix xcode 26 build ([8677fe4](https://github.com/uwumilabs/uwumi/commit/8677fe4))
+* refactor(tv): drive d-pad focus rings with reanimated pseudo selectors ([a8043b8](https://github.com/uwumilabs/uwumi/commit/a8043b8))
+* fix(ios): make extensions and downloads work after reinstall ([a0009df](https://github.com/uwumilabs/uwumi/commit/a0009df))
+* fix(player): make video player usable on rn-0.86 with native sheet and slider ([de7f217](https://github.com/uwumilabs/uwumi/commit/de7f217))
+* chore: update rn and expo to latest ([d7fd30d](https://github.com/uwumilabs/uwumi/commit/d7fd30d))
+
 ## 3.11.0 (2026-09-21)
 
 * feat: optimize use-effect dependencies and improve animation handling in card-list ([7cb9102](https://github.com/uwumilabs/uwumi/commit/7cb9102))
