@@ -16,6 +16,8 @@ const THROTTLE_PCT = 1;
 
 const TEMP_DIR = `${RNFS.CachesDirectoryPath}/ffmpeg_temp`; // Temporary FFmpeg files
 
+const resolveOutputFile = (file: string) => (file.startsWith('/') ? file : `${DOWNLOADS_DIR}/${file}`);
+
 // Types
 
 interface StreamInfo {
@@ -266,17 +268,21 @@ export const useDownloadStore = create<DownloadState>()(
               .replace(/\s+/g, ' ')
               .trim();
 
-          // Prepare output file path with show directory structure
+          // <Title>/Season <N>/E01 - <Episode name>.mp4 (season folder only when the source has seasons)
           let showDir = DOWNLOADS_DIR;
-
-          // Create show-specific directory if showName is provided
           if (download.showName) {
-            const sanitizedShowName = sanitizePathSegment(download.showName);
-            showDir = `${DOWNLOADS_DIR}/${sanitizedShowName}`;
+            showDir = `${DOWNLOADS_DIR}/${sanitizePathSegment(download.showName)}`;
+            if (download.season) showDir += `/Season ${download.season}`;
             await ensureDir(showDir);
           }
 
-          const filename = `${sanitizePathSegment(download.name)}${download.season ? `_S${download.season}` : ''}_E${download.episode}.mp4`;
+          const episodeLabel = `E${String(download.episode).padStart(2, '0')}`;
+          const episodeName = sanitizePathSegment(download.name ?? '');
+          // Skip names that only repeat the number, e.g. "Episode 1"
+          const filename =
+            episodeName && !/^episode\s*\d+$/i.test(episodeName)
+              ? `${episodeLabel} - ${episodeName}.mp4`
+              : `${episodeLabel}.mp4`;
           const outputFile = `${showDir}/${filename}`;
 
           // Build FFmpeg command - Download ALL tracks with best subtitle codec
@@ -433,6 +439,16 @@ export const useDownloadStore = create<DownloadState>()(
             async (completedSession) => {
               const returnCode = await completedSession.getReturnCode();
               const sessionId = completedSession.getSessionId();
+              const finishSession = (patch: Partial<EpisodeDownload>) =>
+                set((state) => {
+                  const activeSessionIds = new Set([...state.activeSessionIds].filter((id) => id !== sessionId));
+                  // The download may have been removed or cleared while FFmpeg was still running.
+                  if (!state.downloads[downloadId]) return { activeSessionIds };
+                  return {
+                    downloads: { ...state.downloads, [downloadId]: { ...state.downloads[downloadId], ...patch } },
+                    activeSessionIds,
+                  };
+                });
               if (!ReturnCode.isSuccess(returnCode) && !ReturnCode.isCancel(returnCode)) {
                 const logs = await completedSession.getAllLogsAsString();
                 console.error('[FFmpeg] FAILED code:', returnCode, '\n', logs?.slice(0, 500));
@@ -446,47 +462,20 @@ export const useDownloadStore = create<DownloadState>()(
                   // console.log(
                   //   `✅ Download completed: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
                   // );
-                  set((state) => ({
-                    downloads: {
-                      ...state.downloads,
-                      [downloadId]: {
-                        ...state.downloads[downloadId],
-                        status: 'completed',
-                        outputFile,
-                        fileSize: Number(fileStat.size),
-                        completedAt: Date.now(),
-                      },
-                    },
-                    activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
-                  }));
+                  finishSession({
+                    status: 'completed',
+                    fileSize: Number(fileStat.size),
+                    completedAt: Date.now(),
+                  });
                 } else {
                   console.error(`❌ Output file not found: ${outputFile}`);
-                  set((state) => ({
-                    downloads: {
-                      ...state.downloads,
-                      [downloadId]: {
-                        ...state.downloads[downloadId],
-                        status: 'failed',
-                        error: 'Download completed but output file not found',
-                      },
-                    },
-                    activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
-                  }));
+                  finishSession({ status: 'failed', error: 'Download completed but output file not found' });
                 }
               } else if (ReturnCode.isCancel(returnCode)) {
                 // console.log(
                 //   `🚫 Download cancelled: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
                 // );
-                set((state) => ({
-                  downloads: {
-                    ...state.downloads,
-                    [downloadId]: {
-                      ...state.downloads[downloadId],
-                      status: 'cancelled',
-                    },
-                  },
-                  activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
-                }));
+                finishSession({ status: 'cancelled' });
               } /*else {
                 // Failed
                 console.error(`❌ FFmpeg failed with return code: ${returnCode}`);
@@ -514,14 +503,22 @@ export const useDownloadStore = create<DownloadState>()(
 
           const sessionId = session.getSessionId();
 
-          // Track session immediately for cancel support and progress mapping
-          set((state) => ({
-            activeSessionIds: new Set([...state.activeSessionIds, sessionId]),
-            downloads: {
-              ...state.downloads,
-              [downloadId]: { ...state.downloads[downloadId], sessionId },
-            },
-          }));
+          // Track session immediately for cancel support and progress mapping. outputFile is recorded now
+          // (not on completion) so removing an unfinished download also deletes its partial file.
+          set((state) => {
+            if (!state.downloads[downloadId]) return {};
+            return {
+              activeSessionIds: new Set([...state.activeSessionIds, sessionId]),
+              downloads: {
+                ...state.downloads,
+                [downloadId]: {
+                  ...state.downloads[downloadId],
+                  sessionId,
+                  outputFile: outputFile.slice(DOWNLOADS_DIR.length + 1),
+                },
+              },
+            };
+          });
         } catch (error) {
           set((state) => ({
             downloads: {
@@ -611,12 +608,19 @@ export const useDownloadStore = create<DownloadState>()(
         const state = get();
         const download = state.downloads[downloadId];
 
+        // Stop FFmpeg first so it isn't still writing the file we're about to delete
+        if (download?.sessionId && state.activeSessionIds.has(download.sessionId)) {
+          await FFmpegKit.cancel(download.sessionId).catch((err) =>
+            console.error(`Failed to cancel session ${download.sessionId}:`, err),
+          );
+        }
+
         // Delete the file from filesystem if it exists
         if (download?.outputFile) {
           try {
-            const exists = await RNFS.exists(download.outputFile);
+            const exists = await RNFS.exists(resolveOutputFile(download.outputFile));
             if (exists) {
-              await RNFS.unlink(download.outputFile);
+              await RNFS.unlink(resolveOutputFile(download.outputFile));
               // console.log(`🗑️ Deleted file: ${download.outputFile}`);
             }
           } catch (error) {
@@ -627,8 +631,18 @@ export const useDownloadStore = create<DownloadState>()(
         // Remove from state
         set((state) => {
           const { [downloadId]: _, ...rest } = state.downloads;
-          return { downloads: rest };
+          return {
+            downloads: rest,
+            activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== download?.sessionId)),
+          };
         });
+
+        const hasActiveDownloads = Object.values(get().downloads).some(
+          (d) => d.status === 'downloading' || d.status === 'pending',
+        );
+        if (!hasActiveDownloads) {
+          await get().stopBackgroundService();
+        }
       },
 
       // Clear completed downloads
@@ -640,9 +654,9 @@ export const useDownloadStore = create<DownloadState>()(
         for (const download of completedDownloads) {
           if (download.outputFile) {
             try {
-              const exists = await RNFS.exists(download.outputFile);
+              const exists = await RNFS.exists(resolveOutputFile(download.outputFile));
               if (exists) {
-                await RNFS.unlink(download.outputFile);
+                await RNFS.unlink(resolveOutputFile(download.outputFile));
                 // console.log(`🗑️ Deleted file: ${download.outputFile}`);
               }
             } catch (error) {
@@ -682,9 +696,9 @@ export const useDownloadStore = create<DownloadState>()(
         for (const download of allDownloads) {
           if (download.outputFile) {
             try {
-              const exists = await RNFS.exists(download.outputFile);
+              const exists = await RNFS.exists(resolveOutputFile(download.outputFile));
               if (exists) {
-                await RNFS.unlink(download.outputFile);
+                await RNFS.unlink(resolveOutputFile(download.outputFile));
                 // console.log(`🗑️ Deleted file: ${download.outputFile}`);
               }
             } catch (error) {

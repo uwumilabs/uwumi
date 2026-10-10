@@ -19,9 +19,9 @@ interface RegistryResponse {
   extensions: ExtensionManifest[];
 }
 
+// No absolute path is stored: iOS moves the app container on reinstall, so paths are rebuilt with getFilePath.
 interface CachedItem {
   version: string;
-  fileUri: string;
   downloadedAt: string;
   fileSize?: number;
 }
@@ -220,7 +220,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
 
       if (cached?.version === extension.version) return true;
 
-      if (cached) await deleteFile(cached.fileUri);
+      if (cached) await deleteFile(getFilePath('extension', extensionId, cached.version));
 
       const filePath = getFilePath('extension', extensionId, extension.version);
       const success = await downloadFile(extension.main, filePath);
@@ -229,7 +229,6 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
         const fileSize = await getFileSize(filePath);
         const cache: CachedItem = {
           version: extension.version,
-          fileUri: filePath,
           downloadedAt: new Date().toISOString(),
           fileSize,
         };
@@ -243,7 +242,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
     uninstallExtension: async (id) => {
       const key = getCacheKey('extension', id);
       const cached = loadJSONFromStorage<CachedItem>(key);
-      if (cached) await deleteFile(cached.fileUri);
+      if (cached) await deleteFile(getFilePath('extension', id, cached.version));
       storage.delete(key);
       return true;
     },
@@ -267,7 +266,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       const cached = loadJSONFromStorage<CachedItem>(cacheKey);
       if (cached?.version === extractor.version) return true;
 
-      if (cached) await deleteFile(cached.fileUri);
+      if (cached) await deleteFile(getFilePath('extractor', name, cached.version));
 
       const path = getFilePath('extractor', name, extractor.version);
       const success = await downloadFile(extractor.main, path);
@@ -276,7 +275,6 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
         const fileSize = await getFileSize(path);
         const cache: CachedItem = {
           version: extractor.version,
-          fileUri: path,
           downloadedAt: new Date().toISOString(),
           fileSize,
         };
@@ -290,7 +288,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
     uninstallExtractor: async (name) => {
       const key = getCacheKey('extractor', name);
       const cached = loadJSONFromStorage<CachedItem>(key);
-      if (cached) await deleteFile(cached.fileUri);
+      if (cached) await deleteFile(getFilePath('extractor', name, cached.version));
       storage.delete(key);
       return true;
     },
@@ -307,7 +305,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       const cache = loadJSONFromStorage<CachedItem>(getCacheKey('extension', id));
       if (!cache) return null;
       try {
-        return await RNFS.readFile(cache.fileUri, 'utf8');
+        return await RNFS.readFile(getFilePath('extension', id, cache.version), 'utf8');
       } catch {
         return null;
       }
@@ -317,7 +315,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       const cache = loadJSONFromStorage<CachedItem>(getCacheKey('extractor', name));
       if (!cache) return null;
       try {
-        return await RNFS.readFile(cache.fileUri, 'utf8');
+        return await RNFS.readFile(getFilePath('extractor', name, cache.version), 'utf8');
       } catch {
         return null;
       }

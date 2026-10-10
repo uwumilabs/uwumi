@@ -11,7 +11,11 @@
       "supportsTablet": true,
       "requireFullScreen": true,
       "buildNumber": "35",
-      "bundleIdentifier": "com.x2004durgesh.uwumi"
+      "bundleIdentifier": "com.x2004durgesh.uwumi",
+      "infoPlist": {
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true
+      }
     },
     "android": {
       "adaptiveIcon": {

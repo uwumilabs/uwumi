@@ -44,6 +44,8 @@
 	<string>12.0</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -64,6 +66,8 @@
 	<key>RCTMetroPort</key>
 	<string>$(RCT_METRO_PORT)</string>
 	<key>RCTNewArchEnabled</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>SplashScreen</string>
