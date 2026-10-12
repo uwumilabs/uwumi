@@ -38,7 +38,7 @@ interface DownloadProgress {
   size: number;
 }
 
-interface EpisodeDownload {
+export interface EpisodeDownload {
   id: string;
   url: string;
   headers?: Record<string, string>;
