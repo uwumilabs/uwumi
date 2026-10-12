@@ -204,6 +204,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
                 style={{ maxHeight: DESCRIPTION_MAX_HEIGHT }}
                 // Android: lets this scroll inside the episode list that scrolls the page
                 nestedScrollEnabled
+                scrollsToTop={false}
                 showsVerticalScrollIndicator={false}>
                 <Text className="text-foreground/90 text-base leading-6">{description}</Text>
               </ScrollView>

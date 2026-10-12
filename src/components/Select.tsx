@@ -17,11 +17,13 @@ export const Select = ({
   SelectLabel,
   value,
   onValueChange,
+  size,
 }: {
   SelectItem: SelectOption[];
   SelectLabel: string;
   value: string;
   onValueChange: (value: string) => void;
+  size?: 'sm' | 'md' | 'lg';
 }) => {
   const selectOptions = useMemo(
     () =>
@@ -60,6 +62,7 @@ export const Select = ({
     <View>
       <Button
         variant="primary"
+        size={size}
         onPress={() => setIsOpen(true)}
         style={isTV ? tvFocusRingStyle({ color: currentTheme?.accentForeground, borderWidth: 5 }) : undefined}>
         {selectedOption ? (
@@ -69,7 +72,7 @@ export const Select = ({
         ) : (
           <Button.Label className="text-foreground">{SelectLabel}</Button.Label>
         )}
-        <IoniconsIcon name="chevron-down" size={20} className="text-accent-foreground" />
+        <IoniconsIcon name="chevron-down" size={size === 'sm' ? 16 : 20} className="text-accent-foreground" />
       </Button>
 
       <BottomSheet open={isOpen} onOpenChange={handleOpenChange} scrollable>

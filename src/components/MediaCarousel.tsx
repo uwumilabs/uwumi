@@ -90,6 +90,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
             data={items}
             keyExtractor={(item, index) => (item.id != null ? cardKey(item) : `fallback-${index}`)}
             showsHorizontalScrollIndicator={false}
+            scrollsToTop={false}
             contentContainerStyle={{ paddingHorizontal: ROW_PADDING, paddingVertical: ROW_VERTICAL_PADDING }}
             // FlashList ignores `gap` in contentContainerStyle
             ItemSeparatorComponent={() => <View style={{ width: ITEM_GAP }} />}
