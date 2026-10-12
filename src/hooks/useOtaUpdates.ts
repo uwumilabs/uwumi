@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as Application from 'expo-application';
-import { OTAUpdateManager } from 'react-native-nitro-ota';
+import { getStoredOtaVersion, OTAUpdateManager } from 'react-native-nitro-ota';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import { useOtaUpdateStore } from './stores/useOtaUpdateStore';
 
@@ -11,6 +11,12 @@ import { useOtaUpdateStore } from './stores/useOtaUpdateStore';
  */
 export const otaAssetUrl = (appVersion: string, name: string) =>
   `${EXTERNAL_LINKS.GITHUB_REPOSITORY}/releases/download/v${appVersion}/${name}`;
+
+/**
+ * The OTA bundle this session is running, or null for the built-in one. Read at startup: once an update
+ * downloads, the stored version moves ahead of what's running until the next launch.
+ */
+export const runningOtaVersion = getStoredOtaVersion();
 
 /**
  * OTA updates: once the app has rendered, confirm the running bundle and download any newer one for this

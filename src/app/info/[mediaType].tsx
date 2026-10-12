@@ -7,7 +7,7 @@ import { MediaType, MetaProvider } from '@/constants/types';
 import { isTV } from '@/constants/utils';
 import Chapters from './Chapters';
 import { MediaFormat, TvType } from 'react-native-consumet';
-import { useProviderStore } from '@/constants/provider';
+import { useActiveProvider } from '@/constants/provider';
 
 const Info = () => {
   const { mediaType, metaProvider, type, id } = useLocalSearchParams<{
@@ -21,7 +21,7 @@ const Info = () => {
     /** Set by carousel cards, whose tags include the row so duplicates across rows stay unique. */
     sharedTag?: string;
   }>();
-  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
+  const currentProvider = useActiveProvider(mediaType);
   const { setMediaInfo, clearMediaInfo } = useMediaInfoStore();
   const { data } = useInfo({ mediaType, id, metaProvider, type, provider: currentProvider });
 

@@ -18,7 +18,7 @@ import {
   RippleButton,
 } from '@/components';
 import { useCurrentTheme, useEpisodesStore, useExtensionStore, usePureBlackBackground } from '@/hooks';
-import { useProviderStore } from '@/constants/provider';
+import { useActiveProvider } from '@/constants/provider';
 import { MediaType, MetaProvider } from '@/constants/types';
 import { hexToRGB, isTV, normalizeRating } from '@/constants/utils';
 import type { MediaItem } from '@/components/CardList';
@@ -64,7 +64,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
   const insets = useSafeAreaInsets();
   const currentTheme = useCurrentTheme();
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
-  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
+  const currentProvider = useActiveProvider(mediaType);
   const { getExtensionInfo } = useExtensionStore();
   const { episodes } = useEpisodesStore();
 

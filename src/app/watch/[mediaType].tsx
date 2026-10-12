@@ -16,9 +16,10 @@ import {
   useExternalSubtitles,
   useBackHandler,
   useMediaInfoStore,
+  useContinueWatchingStore,
 } from '@/hooks';
 import { useToast } from 'heroui-native';
-import { useProviders, useProviderStore } from '@/constants/provider';
+import { useProviders, useProviderStore, useActiveProvider, META_PROVIDERS } from '@/constants/provider';
 import { SUB_LANGUAGE } from '@/constants/config';
 import { useProviderSelectionStore } from './components';
 import {
@@ -36,6 +37,7 @@ import { Button, cn } from 'heroui-native';
 
 const Watch = () => {
   const router = useRouter();
+  const watchParams = useLocalSearchParams() as unknown as WatchSearchParams;
   const {
     mediaType,
     provider,
@@ -49,16 +51,17 @@ const Watch = () => {
     type,
     episodeNumber,
     seasonNumber,
-  } = useLocalSearchParams() as unknown as WatchSearchParams;
+  } = watchParams;
   // console.log(useLocalSearchParams(), 'useLocalSearchParams');
   const { top } = useSafeAreaInsets();
   const { setProgress, getProgress } = useWatchProgressStore();
   const setProvider = useProviderStore((state) => state.setProvider);
-  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
+  const currentProvider = useActiveProvider(mediaType);
   const { setServers, setCurrentServer, currentServer, clearServers } = useServerStore();
   const [serverInitialized, setServerInitialized] = useState(false);
   const providers = useProviders();
-  const { mediaInfo } = useMediaInfoStore();
+  const { mediaInfo, mediaId: mediaInfoId } = useMediaInfoStore();
+  const recordContinueWatching = useContinueWatchingStore((state) => state.record);
   const { toast } = useToast();
   const { state: videoState } = useVideo();
   const { fullscreen, videoRef } = videoState;
@@ -230,6 +233,52 @@ const Watch = () => {
   });
 
   const lastProgressUpdateRef = useRef({ currentTime: 0, seekableDuration: 0 });
+  const recordedUniqueIdRef = useRef<string | null>(null);
+
+  // Puts this show at the front of Continue watching. The info page's media info is only there when it's
+  // underneath (not when resuming from home), so the store keeps the title and image from an earlier record.
+  const rememberEpisode = useCallback(() => {
+    const info = mediaInfoId === id ? mediaInfo : null;
+    const showTitle = info
+      ? typeof info.title === 'string'
+        ? info.title
+        : info.title?.romaji || info.title?.english
+      : undefined;
+    const showImage = info?.image;
+    const params = Object.fromEntries(
+      Object.entries(watchParams).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1] !== '',
+      ),
+    );
+    recordContinueWatching({
+      mediaType,
+      showId: id,
+      showTitle,
+      showImage,
+      uniqueId,
+      watchParams: params,
+      infoParams: {
+        mediaType,
+        id,
+        provider: currentProvider ?? provider,
+        metaProvider: META_PROVIDERS[mediaType],
+        ...(type && { type: type as string }),
+        ...(showTitle && { title: showTitle }),
+        ...(showImage && { image: showImage }),
+      },
+    });
+  }, [
+    mediaInfo,
+    mediaInfoId,
+    id,
+    watchParams,
+    recordContinueWatching,
+    mediaType,
+    uniqueId,
+    currentProvider,
+    provider,
+    type,
+  ]);
 
   const handleProgress = useCallback(
     ({ currentTime: newTime, seekableDuration: newDuration }: { currentTime: number; seekableDuration: number }) => {
@@ -255,9 +304,13 @@ const Watch = () => {
           };
           setProgress(uniqueId, progressToSave);
         }
+        if (recordedUniqueIdRef.current !== uniqueId) {
+          recordedUniqueIdRef.current = uniqueId;
+          rememberEpisode();
+        }
       }
     },
-    [uniqueId, getProgress, setProgress],
+    [uniqueId, getProgress, setProgress, rememberEpisode],
   );
 
   const videoStyle = useMemo<StyleProp<ViewStyle>>(

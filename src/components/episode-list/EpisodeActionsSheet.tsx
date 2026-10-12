@@ -11,7 +11,7 @@ import {
   useMediaInfoStore,
 } from '@/hooks';
 import { MediaType } from '@/constants/types';
-import { useProviderStore } from '@/constants/provider';
+import { useActiveProvider } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { HUXStack, HUYStack, RippleButton } from '../ui-primitives';
 import { Separator } from 'heroui-native';
@@ -84,7 +84,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
   ({ open, onOpenChange, episode, mediaType, provider, mediaId, type }) => {
     const { setProgress, getProgress, progresses } = useWatchProgressStore();
     const currentServer = useServerStore((state) => state.currentServer);
-    const currentProvider = useProviderStore((state) => state.providers[mediaType]);
+    const currentProvider = useActiveProvider(mediaType);
     const { addDownload, startDownload } = useDownloadStore();
     const mediaInfo = useMediaInfoStore((state) => state.mediaInfo);
     const sheetColor = useSheetColor();

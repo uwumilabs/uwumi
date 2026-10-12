@@ -2,7 +2,7 @@ import { View, Text } from 'react-native';
 import React, { useState } from 'react';
 import { Button, Card, cn } from 'heroui-native';
 import { HUXStack, IoniconsIcon, Dialog } from '@/components';
-import { useProviders, useProviderStore } from '@/constants/provider';
+import { useProviders, useProviderStore, useActiveProvider } from '@/constants/provider';
 import { useLocalSearchParams } from 'expo-router';
 import { WatchSearchParams, MediaType } from '@/constants/types';
 import { create } from 'zustand';
@@ -25,9 +25,9 @@ export const useProviderSelectionStore = create<ProviderSelectionState>((set) =>
 const ProviderSelection = () => {
   const [open, setOpen] = useState(false);
   const setProvider = useProviderStore((state) => state.setProvider);
-  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
   const { dub, isEmbed, setDub, setIsEmbed } = useProviderSelectionStore();
   const { mediaType, isDubbed } = useLocalSearchParams() as unknown as WatchSearchParams;
+  const currentProvider = useActiveProvider(mediaType);
   const providers = useProviders();
   // const mediaType = MediaType.ANIME; // for testing
   // const isDubbed = dub ? 'true' : 'false'; // for testing

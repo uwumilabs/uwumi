@@ -6,6 +6,7 @@ import { SearchField } from 'heroui-native';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
 import { isTV } from '@/constants/utils';
 import MediaCarousel from './MediaCarousel';
+import ContinueWatchingRow from './ContinueWatchingRow';
 import { RippleButton } from './ui-primitives';
 
 interface MediaBrowserProps {
@@ -67,6 +68,8 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
           </SearchField>
         </View>
       </RippleButton>
+
+      {mediaType !== MediaType.MANGA && <ContinueWatchingRow mediaType={mediaType} />}
 
       {rows.map(({ feed, title }, index) => (
         <MediaCarousel

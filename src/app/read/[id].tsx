@@ -5,7 +5,7 @@ import { useMangaChapterRead } from '@/hooks';
 import { FlashList } from '@shopify/flash-list';
 import { Dimensions, View, ActivityIndicator } from 'react-native';
 import { MediaType } from '@/constants/types';
-import { useProviderStore } from '@/constants/provider';
+import { useActiveProvider } from '@/constants/provider';
 
 const Read = () => {
   const { width } = Dimensions.get('window');
@@ -13,7 +13,7 @@ const Read = () => {
     mediaType: MediaType;
     id: string;
   }>();
-  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
+  const currentProvider = useActiveProvider(mediaType);
   const { data, isLoading } = useMangaChapterRead({ id: id, provider: currentProvider });
 
   const renderItem = useCallback(

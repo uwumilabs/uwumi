@@ -1,12 +1,12 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
 import * as Application from 'expo-application';
 import { openBrowserAsync } from 'expo-web-browser';
-import { getStoredOtaVersion } from 'react-native-nitro-ota';
+import { getStoredOtaVersion, reloadApp } from 'react-native-nitro-ota';
 import { Button, Chip, ListGroup, Separator } from 'heroui-native';
 import { HUXStack, HUYStack, Image, IoniconProps, IoniconsIcon, ThemedView } from '@/components';
 import { useUpdateChecker } from '@/hooks/useUpdateChecker';
-import { useCurrentTheme } from '@/hooks';
+import { runningOtaVersion, useCurrentTheme, useOtaUpdateStore } from '@/hooks';
 import { EXTERNAL_LINKS } from '@/constants/config';
 
 const COMMUNITY_LINKS: { label: string; description: string; icon: IoniconProps['name']; url: string }[] = [
@@ -59,7 +59,12 @@ const About = () => {
   const appVersion = Application.nativeApplicationVersion ?? updateInfo.currentVersion;
   const buildNumber = Application.nativeBuildVersion;
   const isPreRelease = appVersion.includes('-');
-  const otaVersion = useMemo(() => getStoredOtaVersion(), []);
+  const otaStatus = useOtaUpdateStore((state) => state.status);
+  const otaPercent = useOtaUpdateStore((state) => state.percent);
+  // Re-read on each render (otaStatus re-renders this when a download lands)
+  const downloadedOtaVersion = getStoredOtaVersion();
+  const pendingOtaVersion =
+    downloadedOtaVersion && downloadedOtaVersion !== runningOtaVersion ? downloadedOtaVersion : null;
 
   const updateStatus = isLoading ? (
     <ActivityIndicator size="small" />
@@ -116,8 +121,37 @@ const About = () => {
             <InfoRow
               icon="layers-outline"
               title="JS bundle"
-              value={<Text className="text-sm text-foreground/70">{otaVersion ?? 'Built-in'}</Text>}
+              value={
+                <Text className="text-sm text-foreground/70">
+                  {__DEV__ ? 'Metro' : (runningOtaVersion ?? 'Built-in')}
+                </Text>
+              }
             />
+            {otaStatus === 'downloading' && (
+              <>
+                <Separator className="mx-4" />
+                <InfoRow
+                  icon="cloud-download-outline"
+                  title="Downloading update"
+                  value={<Text className="text-sm text-foreground/70">{`${otaPercent ?? 0}%`}</Text>}
+                />
+              </>
+            )}
+            {pendingOtaVersion && otaStatus !== 'downloading' && (
+              <>
+                <Separator className="mx-4" />
+                <ListGroup.Item onPress={() => reloadApp()}>
+                  <ListGroup.ItemPrefix>
+                    <IoniconsIcon name="sparkles-outline" size={20} color={currentTheme?.foreground} />
+                  </ListGroup.ItemPrefix>
+                  <ListGroup.ItemContent>
+                    <ListGroup.ItemTitle>Update ready</ListGroup.ItemTitle>
+                    <ListGroup.ItemDescription>{`${pendingOtaVersion} · tap to restart`}</ListGroup.ItemDescription>
+                  </ListGroup.ItemContent>
+                  <ListGroup.ItemSuffix />
+                </ListGroup.Item>
+              </>
+            )}
             <Separator className="mx-4" />
             <ListGroup.Item onPress={() => checkForUpdates()} disabled={isLoading}>
               <ListGroup.ItemPrefix>

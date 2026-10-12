@@ -11,7 +11,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { HUXStack, HUYStack, NoResults } from './ui-primitives';
 import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch } from '@/hooks';
 import { useCardGridDimensions } from '@/hooks/useCardGridDimensions';
-import { DEFAULT_PROVIDERS, useProviderStore } from '@/constants/provider';
+import { DEFAULT_PROVIDERS, useActiveProvider } from '@/constants/provider';
 import List from './List';
 import { Card, SkeletonGroup } from 'heroui-native';
 import TVFocusWrapper from './TVFocusWrapper';
@@ -93,7 +93,7 @@ const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnTyp
 
 export const MediaCard: React.FC<MediaCardProps> = memo(
   ({ item, index, mediaType, metaProvider, isSearch, preferredFocus, animateEntry = true, sharedTag, onPress }) => {
-    const currentProvider = useProviderStore((state) => state.providers[mediaType]);
+    const currentProvider = useActiveProvider(mediaType);
     const router = useRouter();
     const provider = currentProvider;
     const transitionTag = isSearch ? undefined : (sharedTag ?? String(item.id));

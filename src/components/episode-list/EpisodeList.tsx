@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, View, Text, TextProps } from 'react-native';
-import { FlashListRef, type ViewToken } from '@shopify/flash-list';
+import { FlashListRef } from '@shopify/flash-list';
 import React, { useEffect, useRef, useMemo, useState, useCallback, memo, ReactNode } from 'react';
 import Image from '@/components/Image';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
@@ -8,15 +8,9 @@ import Animated, {
   SharedValue,
   useAnimatedStyle,
   withSpring,
-  withTiming,
   interpolate,
   Extrapolation,
-  useSharedValue,
-  useAnimatedScrollHandler,
-  useAnimatedReaction,
 } from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import {
   useEpisodesIdStore,
@@ -29,6 +23,8 @@ import {
   useMoviesEpisodes,
   useServerStore,
   useSeasonStore,
+  useListJump,
+  LIST_SHADOW_SIZE,
 } from '@/hooks';
 import WavyAnimation from './WavyAnimation';
 import EpisodeActionsSheet from './EpisodeActionsSheet';
@@ -36,19 +32,16 @@ import { EpisodeDisplayMode, MediaType } from '@/constants/types';
 import { IAnimeEpisode, IMovieSeason, IMovieEpisode, MediaFormat, TvType } from 'react-native-consumet';
 import { formatTime, isTV } from '@/constants/utils';
 import Select from '../Select';
-import { useProviders, useProviderStore } from '@/constants/provider';
+import { useActiveProvider, useProviders, useProviderStore } from '@/constants/provider';
 import List from '../List';
 import { HUYStack, HUXStack, RippleButton } from '../ui-primitives';
 import TVFocusWrapper from '../TVFocusWrapper';
 import LinearGradient from '../LinearGradient';
+import ListJumpBar from '../ListJumpBar';
+import { ProviderEmptyState } from '../ListEmptyState';
 import { Button, Card, cn, ScrollShadow } from 'heroui-native';
 import Progress from '../native/progress/Progress';
 import { IoniconsIcon, MaterialIconsIcon } from '../Icons';
-
-const EPISODE_RANGE_SIZE = 100;
-// How far down, in screens, before the jump bar shows
-const JUMP_BAR_SCREENS = 1.5;
-const SHADOW_SIZE = 48;
 
 const LoadingState = () => {
   const pureBlackBackground = usePureBlackBackground();
@@ -233,15 +226,8 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
   const currentTheme = useCurrentTheme();
   const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
   const setProvider = useProviderStore((state) => state.setProvider);
-  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
+  const providerToUse = useActiveProvider(mediaType, provider);
   const providers = useProviders();
-  const providerToUse = currentProvider ?? provider;
-
-  useEffect(() => {
-    if (!currentProvider) {
-      setProvider(mediaType, provider);
-    }
-  }, [mediaType, provider, setProvider, currentProvider]);
   const animeResult = useAnimeEpisodes({
     id,
     provider: providerToUse,
@@ -253,7 +239,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     provider: providerToUse,
     enabled: mediaType === MediaType.MOVIE,
   });
-  const { data: episodeData, isLoading } = mediaType === MediaType.ANIME ? animeResult : movieResult;
+  const { data: episodeData, isLoading, error, refetch } = mediaType === MediaType.ANIME ? animeResult : movieResult;
   const { seasonNumber, setSeasonNumber, resetSeasonNumber } = useSeasonStore();
   const movieSeasons = episodeData?.seasons as IMovieSeason[];
   // console.log('movieSeasons', movieSeasons);
@@ -309,15 +295,26 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState<IAnimeEpisode | IMovieEpisode | null>(null);
 
-  const insets = useSafeAreaInsets();
-  const scrollY = useSharedValue(0);
-  const viewportHeight = useSharedValue(0);
-  const [jumpBarVisible, setJumpBarVisible] = useState(false);
+  const episodeRangeLabel = useCallback(
+    (start: number, end: number) => {
+      const label = (index: number) => String(episodes[index].number ?? episodes[index].episode ?? index + 1);
+      return `EP ${label(start)}–${label(end)}`;
+    },
+    [episodes],
+  );
+  const {
+    listProps,
+    ranges: episodeRanges,
+    rangeValue,
+    jumpToRange,
+    resetScroll,
+    jumpBar,
+  } = useListJump({ items: episodes, listRef: flashListRef, rangeLabel: episodeRangeLabel });
 
   useEffect(() => {
     setListKey((prev) => prev + 1);
-    scrollY.set(0);
-  }, [displayMode, scrollY]);
+    resetScroll();
+  }, [displayMode, resetScroll]);
 
   const setEpisodes = useEpisodesStore((state) => state.setEpisodes);
   useEffect(() => {
@@ -356,61 +353,6 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     return -1;
   }, [autoScrollToCurrent, currentEpisodeIndex, episodes, progresses]);
   const continueEpisode = continueIndex >= 0 ? episodes[continueIndex] : undefined;
-
-  const episodeRanges = useMemo(() => {
-    if (episodes.length <= EPISODE_RANGE_SIZE) return [];
-    const label = (index: number) => String(episodes[index].number ?? episodes[index].episode ?? index + 1);
-    const ranges: { name: string; value: string }[] = [];
-    for (let start = 0; start < episodes.length; start += EPISODE_RANGE_SIZE) {
-      const end = Math.min(start + EPISODE_RANGE_SIZE, episodes.length) - 1;
-      ranges.push({ name: `EP ${label(start)}–${label(end)}`, value: String(start) });
-    }
-    return ranges;
-  }, [episodes]);
-  const [visibleRangeStart, setVisibleRangeStart] = useState(0);
-  const rangeValue = String(
-    Math.min(visibleRangeStart, Math.floor(Math.max(episodes.length - 1, 0) / EPISODE_RANGE_SIZE) * EPISODE_RANGE_SIZE),
-  );
-
-  const handleViewableItemsChanged = useCallback(
-    ({ viewableItems }: { viewableItems: ViewToken<IAnimeEpisode | IMovieEpisode>[] }) => {
-      const first = Math.min(...viewableItems.map((token) => token.index ?? Infinity));
-      if (Number.isFinite(first)) setVisibleRangeStart(Math.floor(first / EPISODE_RANGE_SIZE) * EPISODE_RANGE_SIZE);
-    },
-    [],
-  );
-
-  const jumpToRange = useCallback((value: string) => {
-    const index = Number(value);
-    setVisibleRangeStart(index);
-    flashListRef.current?.scrollToIndex({ index, animated: true, viewOffset: -SHADOW_SIZE });
-  }, []);
-
-  const onScroll = useAnimatedScrollHandler((event) => {
-    scrollY.set(event.contentOffset.y);
-    viewportHeight.set(event.layoutMeasurement.height);
-  });
-  useAnimatedReaction(
-    () => scrollY.get() > viewportHeight.get() * JUMP_BAR_SCREENS,
-    (isFar, wasFar) => {
-      if (isFar !== wasFar) scheduleOnRN(setJumpBarVisible, isFar);
-    },
-  );
-  const jumpBarStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(jumpBarVisible ? 1 : 0, { duration: 200 }),
-    transform: [{ translateY: withTiming(jumpBarVisible ? 0 : 24, { duration: 200 }) }],
-  }));
-
-  const scrollToTop = useCallback(() => {
-    const list = flashListRef.current;
-    if (!list) return;
-    if (!isTV) Haptics.selectionAsync();
-    // Jump to two screens from the top first, as FlashList's scrollToIndex does, so the animation doesn't fly
-    // past thousands of rows it can't render in time
-    const glideDistance = viewportHeight.get() * 2;
-    if (scrollY.get() > glideDistance) list.scrollToOffset({ offset: glideDistance, animated: false });
-    requestAnimationFrame(() => list.scrollToOffset({ offset: 0, animated: true }));
-  }, [scrollY, viewportHeight]);
 
   const handleProviderChange = useCallback(
     (value: string) => {
@@ -689,16 +631,28 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
         <ScrollShadow
           key={listKey}
           className="flex-1"
-          size={SHADOW_SIZE}
+          size={LIST_SHADOW_SIZE}
           color={pureBlackBackground ? '#000000' : currentTheme?.background}
           LinearGradientComponent={LinearGradient}>
           <List<IAnimeEpisode | IMovieEpisode>
             ref={flashListRef}
-            onScroll={onScroll}
-            onViewableItemsChanged={handleViewableItemsChanged}
+            {...listProps}
             data={isLoading ? [] : episodes}
-            // Loading renders inside the list so `header` stays visible meanwhile
-            {...(isLoading && { ListEmptyComponent: <LoadingState /> })}
+            // Rendered inside the list so `header` stays visible
+            ListEmptyComponent={
+              isLoading ? (
+                <LoadingState />
+              ) : (
+                <ProviderEmptyState
+                  providers={mediaType === MediaType.ANIME ? providers.anime : providers.movie}
+                  provider={providerToUse}
+                  error={error}
+                  onRetry={() => refetch()}
+                  onProviderChange={handleProviderChange}
+                  itemsLabel="episodes"
+                />
+              )
+            }
             // ItemSeparatorComponent={() => <View className="h-3" />}
             ListHeaderComponent={
               <>
@@ -794,26 +748,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
             renderItem={renderItem}
           />
         </ScrollShadow>
-        {!isTV && (
-          <Animated.View
-            pointerEvents={jumpBarVisible ? 'box-none' : 'none'}
-            style={[styles.jumpBar, { bottom: insets.bottom + 16 }, jumpBarStyle]}>
-            <HUXStack className="items-center gap-2">
-              <Button isIconOnly size="sm" onPress={scrollToTop} accessibilityLabel="Back to top">
-                <IoniconsIcon name="arrow-up" size={18} className="text-accent-foreground" />
-              </Button>
-              {episodeRanges.length > 0 && (
-                <Select
-                  size="sm"
-                  SelectItem={episodeRanges}
-                  SelectLabel="Episodes"
-                  value={rangeValue}
-                  onValueChange={jumpToRange}
-                />
-              )}
-            </HUXStack>
-          </Animated.View>
-        )}
+        <ListJumpBar {...jumpBar} rangesLabel="Episodes" />
       </View>
       {swipeable && (
         <EpisodeActionsSheet
@@ -829,9 +764,5 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  jumpBar: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-});
 
 export default memo(EpisodeList);

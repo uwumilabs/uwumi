@@ -68,6 +68,24 @@ const DEFAULT_PROVIDERS = {
   [MediaType.MOVIE]: 'himovies',
 };
 
+// A stored choice or a default can name an extension that isn't installed (the defaults predate
+// extensions), so fall back to the first one that is
+const pickProvider = (available: Provider[], mediaType: MediaType, preferred?: string | null): string => {
+  if (preferred && available.some((provider) => provider.value === preferred)) return preferred;
+  return available[0]?.value ?? preferred ?? DEFAULT_PROVIDERS[mediaType];
+};
+
+const resolveProvider = (mediaType: MediaType, preferred?: string | null): string =>
+  pickProvider(getProviders()[mediaType] ?? [], mediaType, preferred);
+
+const useResolvedProvider = (mediaType: MediaType, preferred?: string | null): string => {
+  const providers = useProviders();
+  return useMemo(
+    () => pickProvider(providers[mediaType] ?? [], mediaType, preferred),
+    [providers, mediaType, preferred],
+  );
+};
+
 // Meta providers (if needed)
 const META_PROVIDERS = {
   [MediaType.ANIME]: 'anilist',
@@ -141,7 +159,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   },
 
   getDefaultProvider: (mediaType) => {
-    return DEFAULT_PROVIDERS[mediaType];
+    return resolveProvider(mediaType);
   },
 
   getMetaProvider: (mediaType) => {
@@ -149,5 +167,21 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   },
 }));
 
+/** The provider to fetch with: the user's choice if it's still installed, else the first installed one. */
+const useActiveProvider = (mediaType: MediaType, fallback?: string | null): string => {
+  const stored = useProviderStore((state) => state.providers[mediaType]);
+  return useResolvedProvider(mediaType, stored ?? fallback);
+};
+
 // Export providers for direct access if needed
-export { PROVIDERS, getProviders, useProviders, DEFAULT_PROVIDERS, META_PROVIDERS };
+export {
+  PROVIDERS,
+  getProviders,
+  useProviders,
+  resolveProvider,
+  useResolvedProvider,
+  useActiveProvider,
+  DEFAULT_PROVIDERS,
+  META_PROVIDERS,
+};
+export type { Provider };
