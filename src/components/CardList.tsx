@@ -9,32 +9,61 @@ import { isTV } from '@/constants/utils';
 import { InfiniteData } from '@tanstack/react-query';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { HUXStack, HUYStack, NoResults } from './ui-primitives';
-import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch, useSearchStore } from '@/hooks';
+import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch } from '@/hooks';
 import { useCardGridDimensions } from '@/hooks/useCardGridDimensions';
 import { DEFAULT_PROVIDERS, useProviderStore } from '@/constants/provider';
 import CustomFlashlist from './CustomFlashlist';
 import { Card, SkeletonGroup } from 'heroui-native';
 import TVFocusWrapper from './TVFocusWrapper';
 
+export type MediaItem = IAnimeResult | IMovieResult;
+
 export interface CardListProps {
-  staticData?: (IAnimeResult | IMovieResult)[] | undefined;
+  staticData?: MediaItem[] | undefined;
   mediaFeedType?: MediaFeedType;
   mediaType: MediaType;
   metaProvider: MetaProvider;
+  searchQuery?: string;
+  onItemPress?: (item: MediaItem) => void;
 }
 
-interface CardProps {
-  item: IAnimeResult | IMovieResult;
+export interface MediaCardProps {
+  item: MediaItem;
   index: number;
   mediaType: MediaType;
   metaProvider: MetaProvider;
   isSearch?: boolean;
+  preferredFocus?: boolean;
+  animateEntry?: boolean;
+  sharedTag?: string;
+  onPress?: (item: MediaItem) => void;
 }
 
 // TMDB movie and TV ids share a numeric space, so the id alone isn't unique.
-const cardKey = (item: IAnimeResult | IMovieResult) => `${item.type}-${item.id}`;
+export const cardKey = (item: MediaItem) => `${item.type}-${item.id}`;
 const AnimatedStyledCard = Animated.createAnimatedComponent(Card);
 const AnimatedStyledCardTitle = Animated.createAnimatedComponent(Card.Title);
+
+const isInfiniteData = (
+  data: InfiniteData<ISearch<MediaItem>> | MediaItem[] | undefined,
+): data is InfiniteData<ISearch<MediaItem>> => !!data && 'pages' in data;
+
+/** Flattens feed pages into displayable cards: de-duplicated and with a usable image. */
+export const toCardItems = (data: InfiniteData<ISearch<MediaItem>> | MediaItem[] | undefined): MediaItem[] => {
+  if (!data) return [];
+  const items = isInfiniteData(data) ? data.pages.flatMap((page) => (page.results ?? []) as MediaItem[]) : data;
+  // Paged feeds (e.g. TMDB trending) repeat items across pages as ranks shift; a duplicate
+  // key makes FlashList render the item in its later slot and leave a hole at the earlier one.
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (!item.image || item.image.includes('/originalundefined') || item.image.includes('/originalnull')) return false;
+    if (item.id == null) return true;
+    const key = cardKey(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
 
 const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnType<typeof useCardGridDimensions> }) => {
   const cardHeight = grid.itemWidth * (isTV ? 3.2 / 2 : 3 / 2);
@@ -62,89 +91,102 @@ const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnTyp
   );
 };
 
-const CustomCard: React.FC<CardProps> = memo(({ item, index, mediaType, metaProvider, isSearch }) => {
-  const currentProvider = useProviderStore((state) => state.providers[mediaType]);
-  const router = useRouter();
-  const provider = currentProvider;
+export const MediaCard: React.FC<MediaCardProps> = memo(
+  ({ item, index, mediaType, metaProvider, isSearch, preferredFocus, animateEntry = true, sharedTag, onPress }) => {
+    const currentProvider = useProviderStore((state) => state.providers[mediaType]);
+    const router = useRouter();
+    const provider = currentProvider;
+    const transitionTag = isSearch ? undefined : (sharedTag ?? String(item.id));
 
-  const handlePress = useCallback(() => {
-    router.push({
-      pathname: '/info/[mediaType]',
-      params: {
-        mediaType: mediaType,
-        metaProvider: metaProvider,
-        type: item?.type,
-        provider: (() => {
-          switch (mediaType) {
-            case MediaType.ANIME:
-              return provider ?? DEFAULT_PROVIDERS.anime;
-            case MediaType.MANGA:
-              return provider ?? DEFAULT_PROVIDERS.manga;
-            case MediaType.MOVIE:
-              return provider ?? DEFAULT_PROVIDERS.movie;
-            default:
-              return provider ?? DEFAULT_PROVIDERS.anime;
-          }
-        })(),
-        id: item.id,
-        image: item.image,
-        title: typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english,
-      },
-    });
-  }, [router, mediaType, metaProvider, item, provider]);
+    const handlePress = useCallback(() => {
+      onPress?.(item);
+      router.push({
+        pathname: '/info/[mediaType]',
+        params: {
+          mediaType: mediaType,
+          metaProvider: metaProvider,
+          type: item?.type,
+          provider: (() => {
+            switch (mediaType) {
+              case MediaType.ANIME:
+                return provider ?? DEFAULT_PROVIDERS.anime;
+              case MediaType.MANGA:
+                return provider ?? DEFAULT_PROVIDERS.manga;
+              case MediaType.MOVIE:
+                return provider ?? DEFAULT_PROVIDERS.movie;
+              default:
+                return provider ?? DEFAULT_PROVIDERS.anime;
+            }
+          })(),
+          id: item.id,
+          image: item.image,
+          title: typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english,
+          ...(sharedTag && { sharedTag }),
+        },
+      });
+    }, [router, mediaType, metaProvider, item, provider, sharedTag, onPress]);
 
-  return (
-    <TVFocusWrapper
-      className={isTV ? 'p-0' : 'p-0 rounded-none'}
-      hasTVPreferredFocus={isTV && index === 0 ? true : undefined}
-      onPress={handlePress}>
-      <AnimatedStyledCard
-        entering={!isSearch && index < 12 ? FadeInDown.delay(50 * index).duration(300) : undefined}
-        className={`flex-1 w-full rounded-lg overflow-hidden p-0 ${isTV ? 'aspect-[2/3.2]' : 'aspect-2/3'}`}>
-        <Card.Body className="w-full h-full p-0 relative">
-          <AnimatedCustomImage
-            source={{ uri: item.image }}
-            style={{ borderRadius: 10, zIndex: 0 }}
-            width="100%"
-            height="100%"
-            sharedTransitionTag={isSearch ? undefined : `shared-image-${item.id}`}
-            className="absolute inset-0"
-          />
-          <LinearGradient
-            className="w-full h-full absolute inset-0 z-10l"
-            colors={['rgba(0,0,0,0.8)', 'transparent']}
-            start={[0, 1]}
-            end={[0, 0.3]}
-            style={{ borderRadius: 10 }}
-          />
-          <AnimatedStyledCardTitle
-            className="absolute bottom-0 left-0 right-0 z-20 py-2 px-2 text-sm font-medium m-0 text-white"
-            numberOfLines={2}
-            sharedTransitionTag={isSearch ? undefined : `shared-title-${item.id}`}
-            ellipsizeMode="tail">
-            {typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english}
-          </AnimatedStyledCardTitle>
-        </Card.Body>
-      </AnimatedStyledCard>
-    </TVFocusWrapper>
-  );
-});
+    return (
+      <TVFocusWrapper
+        className={isTV ? 'p-0' : 'p-0 rounded-none'}
+        hasTVPreferredFocus={isTV && (preferredFocus ?? index === 0) ? true : undefined}
+        onPress={handlePress}>
+        <AnimatedStyledCard
+          entering={animateEntry && !isSearch && index < 12 ? FadeInDown.delay(50 * index).duration(300) : undefined}
+          // Height comes from the aspect ratio alone; flex-1 let FlashList's horizontal cells collapse it to 0
+          className={`w-full rounded-lg overflow-hidden p-0 ${isTV ? 'aspect-[2/3.2]' : 'aspect-2/3'}`}>
+          <Card.Body className="w-full h-full p-0 relative">
+            <AnimatedCustomImage
+              source={{ uri: item.image }}
+              style={{ borderRadius: 10, zIndex: 0 }}
+              width="100%"
+              height="100%"
+              sharedTransitionTag={transitionTag && `shared-image-${transitionTag}`}
+              className="absolute inset-0"
+            />
+            <LinearGradient
+              className="w-full h-full absolute inset-0 z-10l"
+              colors={['rgba(0,0,0,0.8)', 'transparent']}
+              start={[0, 1]}
+              end={[0, 0.3]}
+              style={{ borderRadius: 10 }}
+            />
+            <AnimatedStyledCardTitle
+              className="absolute bottom-0 left-0 right-0 z-20 py-2 px-2 text-sm font-medium m-0 text-white"
+              numberOfLines={2}
+              sharedTransitionTag={transitionTag && `shared-title-${transitionTag}`}
+              ellipsizeMode="tail">
+              {typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english}
+            </AnimatedStyledCardTitle>
+          </Card.Body>
+        </AnimatedStyledCard>
+      </TVFocusWrapper>
+    );
+  },
+);
 
-export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, mediaType, metaProvider }) => {
-  const debouncedQuery = useSearchStore((state) => state.debouncedQuery);
+MediaCard.displayName = 'MediaCard';
 
+export const CardList: React.FC<CardListProps> = ({
+  staticData,
+  mediaFeedType,
+  mediaType,
+  metaProvider,
+  searchQuery = '',
+  onItemPress,
+}) => {
   const isSearch = mediaFeedType === 'search';
   const isMovieSearch = isSearch && mediaType === MediaType.MOVIE;
   const isAnimeSearch = isSearch && !isMovieSearch;
   const isFeed = !staticData && !isSearch;
 
-  const movieSearchResult = useMovieSearch<IAnimeResult | IMovieResult>(mediaType, debouncedQuery, {
+  const movieSearchResult = useMovieSearch<MediaItem>(mediaType, searchQuery, {
     enabled: !staticData && isMovieSearch,
   });
-  const animeSearchResult = useAnimeAndMangaSearch<IAnimeResult | IMovieResult>(mediaType, debouncedQuery, {
+  const animeSearchResult = useAnimeAndMangaSearch<MediaItem>(mediaType, searchQuery, {
     enabled: !staticData && isAnimeSearch,
   });
-  const feedResult = useMediaFeed<IAnimeResult | IMovieResult>(mediaType, metaProvider, mediaFeedType!, {
+  const feedResult = useMediaFeed<MediaItem>(mediaType, metaProvider, mediaFeedType!, {
     enabled: !staticData && isFeed,
   });
 
@@ -159,32 +201,7 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
   const { data: dynamicData, isLoading, error, refetch, fetchNextPage, hasNextPage } = activeResult;
 
   const data = staticData || dynamicData;
-  const isInfiniteData = (
-    data: InfiniteData<ISearch<IAnimeResult | IMovieResult>> | (IAnimeResult | IMovieResult)[] | undefined,
-  ): data is InfiniteData<ISearch<IAnimeResult | IMovieResult>> => {
-    return !!data && 'pages' in data;
-  };
-  const getItems = useMemo(() => {
-    if (!data) return [];
-    const items = isInfiniteData(data)
-      ? data.pages.flatMap((page) => (page.results ?? []) as (IAnimeResult | IMovieResult)[])
-      : data;
-    // Paged feeds (e.g. TMDB trending) repeat items across pages as ranks shift; a duplicate
-    // key makes FlashList render the item in its later slot and leave a hole at the earlier one.
-    const seen = new Set<string>();
-    return items.filter((item) => {
-      if (item.id == null) return true;
-      const key = cardKey(item);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [data]);
-
-  const filteredItems =
-    getItems?.filter(
-      (item) => item.image && !item.image.includes('/originalundefined') && !item.image.includes('/originalnull'),
-    ) || [];
+  const filteredItems = useMemo(() => toCardItems(data), [data]);
 
   /*
   this is used in key to force re-render of flashlist when screen width changes,
@@ -205,18 +222,29 @@ export const CardList: React.FC<CardListProps> = ({ staticData, mediaFeedType, m
   }
 
   return (
-    <CustomFlashlist<IAnimeResult | IMovieResult>
+    <CustomFlashlist<MediaItem>
       key={`${grid.screenWidth}-${mediaType}-${mediaFeedType}-${grid.numColumns}`}
       data={filteredItems}
       renderItem={({ item, index }) => (
         <View style={{ width: grid.itemWidth, padding: grid.itemSpacing }}>
-          <CustomCard item={item} index={index} mediaType={mediaType} metaProvider={metaProvider} isSearch={isSearch} />
+          <MediaCard
+            item={item}
+            index={index}
+            mediaType={mediaType}
+            metaProvider={metaProvider}
+            isSearch={isSearch}
+            // Search results must not pull TV focus away from the search input
+            preferredFocus={!isSearch && index === 0}
+            onPress={onItemPress}
+          />
         </View>
       )}
       numColumns={grid.numColumns}
       keyExtractor={(item, index) => (item.id != null ? cardKey(item) : `fallback-${index}`)}
       contentContainerStyle={{ paddingHorizontal: grid.horizontalPadding, paddingVertical: grid.verticalPadding }}
       refreshControl={isTV ? undefined : <RefreshControl refreshing={!!isLoading} onRefresh={refetch} />}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
       onEndReached={() => {
         if (hasNextPage) {
           fetchNextPage?.();

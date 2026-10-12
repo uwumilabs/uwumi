@@ -101,7 +101,7 @@
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
     "react-native-video": "github:pigeonmal/react-native-video#ajami1.4.1",
-    "react-native-video-toolkit": "^0.11.0",
+    "react-native-video-toolkit": "^0.11.1",
     "react-native-web": "^0.21.0",
     "react-native-webview": "13.16.1",
     "react-native-worklets": "0.10.1",

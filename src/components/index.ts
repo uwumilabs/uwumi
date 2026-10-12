@@ -2,7 +2,9 @@
 export { IconTitle, RippleButton, NoResults, ThemedView, HUXStack, HUYStack } from './ui-primitives';
 
 // Media Components
-export { CardList } from './CardList';
+export { CardList, MediaCard } from './CardList';
+export { MediaCarousel } from './MediaCarousel';
+export { StackHeader } from './StackHeader';
 export { MediaBrowser } from './MediaBrowser';
 export { EpisodeList, WavyAnimation } from './episode-list';
 
@@ -13,7 +15,6 @@ export { CustomSelect } from './CustomSelect';
 export { CustomSheet, CustomSheetProvider } from './CustomSheet';
 export { CustomDialog } from './CustomDialog';
 export { VideoSheet, VideoSlider } from './video';
-export { SearchBar } from './SearchBar';
 export { Progress } from './Progress';
 export {
   IoniconsIcon,

@@ -36,7 +36,7 @@ import { openBrowserAsync } from 'expo-web-browser';
 import Animated from 'react-native-reanimated';
 
 const Info = () => {
-  const { mediaType, metaProvider, type, provider, id, image, title } = useLocalSearchParams<{
+  const { mediaType, metaProvider, type, provider, id, image, title, sharedTag } = useLocalSearchParams<{
     mediaType: MediaType;
     metaProvider: MetaProvider;
     type: MediaFormat | TvType;
@@ -44,7 +44,9 @@ const Info = () => {
     id: string;
     image: string;
     title?: string;
+    sharedTag?: string;
   }>();
+  const transitionTag = sharedTag ?? id;
   const currentProvider = useProviderStore((state) => state.providers[mediaType]);
   const { getExtensionInfo } = useExtensionStore();
   const { episodes } = useEpisodesStore();
@@ -168,7 +170,7 @@ const Info = () => {
 
             <HUXStack className="gap-2.5 items-center" props={{ focusable: isTV ? false : undefined }}>
               <AnimatedCustomImage
-                sharedTransitionTag={`shared-image-${id}`}
+                sharedTransitionTag={`shared-image-${transitionTag}`}
                 source={{ uri: image }}
                 style={{ width: 115, height: 163 }}
                 focusable={isTV ? false : undefined}
@@ -177,7 +179,7 @@ const Info = () => {
                 <Animated.Text
                   className="text-foreground text-3xl font-bold"
                   numberOfLines={3}
-                  sharedTransitionTag={`shared-title-${id}`}>
+                  sharedTransitionTag={`shared-title-${transitionTag}`}>
                   {title}
                 </Animated.Text>
 

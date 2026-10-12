@@ -1,52 +1,23 @@
 import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { Stack } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View } from 'react-native';
-import { RippleButton, HUXStack, IoniconsIcon } from '@/components';
+import { StackHeader } from '@/components';
 
 export default function SettingsLayout() {
   const currentTheme = useCurrentTheme();
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
-  const insets = useSafeAreaInsets();
 
-  //making a custom header component due to edge-to-edge issues with the default header in Expo Router or may be i'm small brained
   return (
     <Stack
       screenOptions={{
         contentStyle: {
           backgroundColor: pureBlackBackground ? '#000' : currentTheme?.background,
         },
-        header(props) {
-          const canGoBack = props.navigation.canGoBack();
-          return (
-            <View
-              style={{
-                backgroundColor: pureBlackBackground ? '#000' : currentTheme?.background,
-                paddingTop: insets.top,
-              }}
-              className="z-1000">
-              <HUXStack className="items-center px-4">
-                {/* Left Section - Back Button */}
-                <HUXStack className="flex-1 items-start">
-                  {canGoBack && (
-                    // a small delay to ensure the back navigation is smooth
-                    <RippleButton onPress={() => props.navigation.goBack()}>
-                      <IoniconsIcon name="chevron-back" size={24} color={currentTheme?.foreground} />
-                    </RippleButton>
-                  )}
-                </HUXStack>
-
-                {/* Center Section - Title */}
-                <HUXStack className="flex-1 items-center justify-center">
-                  <Text className="text-foreground text-xl font-semibold text-center ">{props.options.title}</Text>
-                </HUXStack>
-
-                {/* Right Section - Empty for now */}
-                <HUXStack className="flex-1 items-end" />
-              </HUXStack>
-            </View>
-          );
-        },
+        header: (props) => (
+          <StackHeader
+            title={props.options.title}
+            onBack={props.navigation.canGoBack() ? () => props.navigation.goBack() : undefined}
+          />
+        ),
       }}>
       <Stack.Screen name="index" options={{ title: 'Settings' }} />
       <Stack.Screen name="about" options={{ title: 'About' }} />

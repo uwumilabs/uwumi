@@ -202,6 +202,8 @@ const AppContent = () => {
           <ThemeProvider value={navigationTheme}>
             <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
               <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="browse/[mediaType]" />
+              <Stack.Screen name="search/[mediaType]" />
               <Stack.Screen name="info/[mediaType]" />
               <Stack.Screen name="watch/[mediaType]" />
               <Stack.Screen name="read/[id]" />
@@ -265,6 +267,7 @@ export default function RootLayout() {
             }}
             config={{
               useCustomVideoTracks: true,
+              enablePictureInPicture: true,
             }}
             components={videoComponents}>
             <AppContent />

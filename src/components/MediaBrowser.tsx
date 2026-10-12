@@ -1,98 +1,85 @@
-/* eslint-disable react/display-name */
-import React, { Activity, memo, useMemo, useCallback } from 'react';
-import { View } from 'react-native';
-import { Tabs } from 'heroui-native';
-import CardList from '@/components/CardList';
-import { useCurrentTheme, useTabsStore } from '@/hooks';
-import { IconTitle, HUYStack, IoniconProps } from '@/components';
-import SearchBar from '@/components/SearchBar';
-import { MediaFeedType, MediaType } from '@/constants/types';
-import Animated, { Easing, FadeInUp, FadeOutUp } from 'react-native-reanimated';
-import FocusableTrigger from '@/components/FocusableTrigger';
+import React, { memo, useCallback, useMemo, useState } from 'react';
+import { RefreshControl, ScrollView, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
+import { SearchField } from 'heroui-native';
+import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
+import { isTV } from '@/constants/utils';
+import MediaCarousel from './MediaCarousel';
+import { RippleButton } from './ui-primitives';
 
 interface MediaBrowserProps {
   mediaType: MediaType;
 }
 
-type TabConfig = {
-  id: string;
-  icon: IoniconProps['name'];
-  text: string;
-  mediaFeedType: MediaFeedType;
-};
+type FeedRow = { feed: Exclude<MediaFeedType, 'search'>; title: string };
+
+export const getMetaProvider = (mediaType: MediaType): MetaProvider =>
+  mediaType === MediaType.ANIME ? 'anilist' : mediaType === MediaType.MANGA ? 'anilist-manga' : 'tmdb';
+
+export const mediaTypeLabel = (mediaType: MediaType) =>
+  mediaType === MediaType.ANIME ? 'Anime' : mediaType === MediaType.MANGA ? 'Manga' : 'Movies & TV';
 
 export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
-  const TABS = useMemo(
-    (): TabConfig[] =>
-      [
-        { id: 'tab1', icon: 'trending-up', text: 'Trending', mediaFeedType: 'trending' },
-        (mediaType === MediaType.ANIME || mediaType === MediaType.MANGA) && {
-          id: 'tab2',
-          icon: 'heart-outline',
-          text: 'Popular',
-          mediaFeedType: 'popular',
-        },
-        { id: 'tab3', icon: 'search', text: 'Search', mediaFeedType: 'search' },
-      ].filter((tab): tab is { id: string; icon: IoniconProps['name']; text: string; mediaFeedType: MediaFeedType } =>
-        Boolean(tab),
-      ),
-    [mediaType],
-  );
-  const currentTab = useTabsStore((state) => state.currentTab);
-  const setCurrentTab = useTabsStore((state) => state.setCurrentTab);
-  const currentTheme = useCurrentTheme();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const metaProvider = getMetaProvider(mediaType);
+  const label = mediaTypeLabel(mediaType);
 
-  const handleTabChange = useCallback(
-    (value: string) => {
-      setCurrentTab(value);
-    },
-    [setCurrentTab],
-  );
-
-  const metaProvider = useMemo(
-    () => (mediaType === MediaType.ANIME ? 'anilist' : mediaType === MediaType.MANGA ? 'anilist-manga' : 'tmdb'),
-    [mediaType],
-  );
-
-  const TabList = useMemo(() => {
-    return (
-      <Tabs.List className="justify-center mx-auto">
-        <Tabs.Indicator />
-        {TABS.map(({ id, icon, text }, index) => (
-          <FocusableTrigger key={id} value={id} isFirst={index === 0}>
-            <IconTitle iconName={icon} text={text} />
-          </FocusableTrigger>
-        ))}
-      </Tabs.List>
-    );
-  }, [currentTab, currentTheme, TABS]);
-
-  const tabsContent = useMemo(
+  const rows = useMemo<FeedRow[]>(
     () =>
-      TABS.map(({ id, mediaFeedType }) => (
-        <Activity key={id} mode={currentTab === id ? 'visible' : 'hidden'}>
-          <View className="h-full">
-            <CardList mediaFeedType={mediaFeedType} mediaType={mediaType} metaProvider={metaProvider} />
-          </View>
-        </Activity>
-      )),
-    [TABS, mediaType, metaProvider, currentTab],
+      // TMDB has no "popular" feed in useMediaFeed
+      mediaType === MediaType.MOVIE
+        ? [{ feed: 'trending', title: 'Trending' }]
+        : [
+            { feed: 'trending', title: 'Trending' },
+            { feed: 'popular', title: 'Popular' },
+          ],
+    [mediaType],
   );
+
+  const openSearch = useCallback(() => {
+    router.push({ pathname: '/search/[mediaType]', params: { mediaType } });
+  }, [router, mediaType]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all(
+      rows.map(({ feed }) => queryClient.refetchQueries({ queryKey: [mediaType, feed, metaProvider] })),
+    );
+    setRefreshing(false);
+  }, [queryClient, rows, mediaType, metaProvider]);
 
   return (
-    <HUYStack className="gap-2">
-      {currentTab === 'tab3' && (
-        <Animated.View
-          entering={FadeInUp.duration(300).easing(Easing.inOut(Easing.quad))}
-          exiting={FadeOutUp.duration(300).easing(Easing.inOut(Easing.quad))}>
-          <SearchBar />
-        </Animated.View>
-      )}
-      <Tabs value={currentTab} onValueChange={handleTabChange} variant="primary">
-        {TabList}
-      </Tabs>
-      {tabsContent}
-    </HUYStack>
+    <ScrollView
+      contentContainerClassName="gap-6 pb-32"
+      showsVerticalScrollIndicator={false}
+      refreshControl={isTV ? undefined : <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+      {/* Looks like the search field but only opens the search screen, so the keyboard never opens here */}
+      <RippleButton onPress={openSearch} className="mx-3 mt-3 p-0 rounded-2xl">
+        <View pointerEvents="none">
+          <SearchField value="">
+            <SearchField.Group>
+              <SearchField.SearchIcon />
+              <SearchField.Input editable={false} focusable={false} placeholder={`Search ${label.toLowerCase()}`} />
+            </SearchField.Group>
+          </SearchField>
+        </View>
+      </RippleButton>
+
+      {rows.map(({ feed, title }, index) => (
+        <MediaCarousel
+          key={feed}
+          title={title}
+          browseTitle={`${title} ${label}`}
+          feed={feed}
+          mediaType={mediaType}
+          metaProvider={metaProvider}
+          isFirstRow={index === 0}
+        />
+      ))}
+    </ScrollView>
   );
 };
 

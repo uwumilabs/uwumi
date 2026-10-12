@@ -1,6 +1,7 @@
 import React, { forwardRef, useCallback, useImperativeHandle } from 'react';
 import { Platform, ScrollView, View, useWindowDimensions, type ViewProps } from 'react-native';
 import { BottomSheet, RNHostView, type SnapPoint } from '@expo/ui';
+import { LayoutAnimationConfig } from 'react-native-reanimated';
 import { useCurrentTheme, useSheetColor } from '@/hooks';
 
 export type CustomSheetRef = {
@@ -57,22 +58,24 @@ export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
         contentColor={theme?.foreground}>
         {/* matchContents lets content-sized sheets (no snapPoints) measure the RN content. */}
         <RNHostView matchContents>
-          <View style={{ width: sheetWidth }}>
-            {/* Header stays outside scroll area */}
-            {!!header && <View>{header}</View>}
+          <LayoutAnimationConfig skipExiting>
+            <View style={{ width: sheetWidth }}>
+              {/* Header stays outside scroll area */}
+              {!!header && <View>{header}</View>}
 
-            {scrollable ? (
-              <ScrollView
-                style={{ maxHeight: 500 }}
-                contentContainerStyle={{ paddingBottom: 16 }}
-                keyboardShouldPersistTaps="handled"
-                {...(contentContainerProps as any)}>
-                {children}
-              </ScrollView>
-            ) : (
-              <View {...contentContainerProps}>{children}</View>
-            )}
-          </View>
+              {scrollable ? (
+                <ScrollView
+                  style={{ maxHeight: 500 }}
+                  contentContainerStyle={{ paddingBottom: 16 }}
+                  keyboardShouldPersistTaps="handled"
+                  {...(contentContainerProps as any)}>
+                  {children}
+                </ScrollView>
+              ) : (
+                <View {...contentContainerProps}>{children}</View>
+              )}
+            </View>
+          </LayoutAnimationConfig>
         </RNHostView>
       </BottomSheet>
     );

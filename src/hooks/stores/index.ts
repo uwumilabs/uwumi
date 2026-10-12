@@ -2,7 +2,7 @@ export * from './useAccentStore';
 export * from './useThemeStore';
 export * from './useWatchProgressStore';
 export * from './useEpisodesStore';
-export * from './useSearchStore';
+export * from './useRecentSearchesStore';
 export * from './useServerStore';
 export * from './useFavoriteStore';
 export * from './useExternalSubtitleStore';
