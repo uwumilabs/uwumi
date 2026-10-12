@@ -242,15 +242,17 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
   const { data: episodeData, isLoading, error, refetch } = mediaType === MediaType.ANIME ? animeResult : movieResult;
   const { seasonNumber, setSeasonNumber, resetSeasonNumber } = useSeasonStore();
   const movieSeasons = episodeData?.seasons as IMovieSeason[];
+  // The stored season can be out of range for another show's list; that list starts from its first season
+  const activeSeason = movieSeasons && seasonNumber >= movieSeasons.length ? 0 : seasonNumber;
   // console.log('movieSeasons', movieSeasons);
   const animeEpisodes = useMemo(() => (Array.isArray(episodeData) ? episodeData : []), [episodeData]);
   // console.log(episodeData?.mappings, 'episodeData?.mappings');
   const episodes = useMemo(() => {
-    if (mediaType === MediaType.MOVIE && movieSeasons?.[seasonNumber]?.episodes) {
-      return movieSeasons[seasonNumber].episodes;
+    if (mediaType === MediaType.MOVIE && movieSeasons?.[activeSeason]?.episodes) {
+      return movieSeasons[activeSeason].episodes;
     }
     return animeEpisodes || [];
-  }, [mediaType, movieSeasons, seasonNumber, animeEpisodes]);
+  }, [mediaType, movieSeasons, activeSeason, animeEpisodes]);
   // console.log('episodes', episodes);
 
   const { currentUniqueId, setEpisodeIds } = useEpisodesIdStore();
@@ -291,7 +293,6 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
 
   // console.log('servers', servers[0], getCurrentServer(), servers, getServers());
 
-  const [listKey, setListKey] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState<IAnimeEpisode | IMovieEpisode | null>(null);
 
@@ -311,11 +312,6 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     jumpBar,
   } = useListJump({ items: episodes, listRef: flashListRef, rangeLabel: episodeRangeLabel });
 
-  useEffect(() => {
-    setListKey((prev) => prev + 1);
-    resetScroll();
-  }, [displayMode, resetScroll]);
-
   const setEpisodes = useEpisodesStore((state) => state.setEpisodes);
   useEffect(() => {
     if (episodes) {
@@ -330,11 +326,6 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     }
   }, [id, resetSeasonNumber, swipeable]);
 
-  useEffect(() => {
-    if (movieSeasons && seasonNumber >= movieSeasons.length) {
-      resetSeasonNumber();
-    }
-  }, [episodeData, movieSeasons, seasonNumber, resetSeasonNumber]);
   // console.log('episodes', episodeData);
   const currentEpisodeIndex = useCallback(() => {
     return episodes.findIndex((episode: IAnimeEpisode | IMovieEpisode) => episode.uniqueId === currentUniqueId);
@@ -630,7 +621,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     <>
       <View className="flex-1">
         <ScrollShadow
-          key={listKey}
+          key={displayMode}
           className="flex-1"
           size={LIST_SHADOW_SIZE}
           color={pureBlackBackground ? '#000000' : currentTheme?.background}
@@ -676,7 +667,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
                         })) || []
                       }
                       SelectLabel="Season"
-                      value={String(seasonNumber)}
+                      value={String(activeSeason)}
                       onValueChange={(value: string) => {
                         setSeasonNumber(Number(value));
                         setEpisodes(movieSeasons[Number(value)].episodes);
@@ -711,6 +702,8 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
                               ? EpisodeDisplayMode.NumberOnly
                               : EpisodeDisplayMode.FullMetadata,
                         );
+                        // The new display mode remounts the list at the top
+                        resetScroll();
                       }}>
                       {displayMode === EpisodeDisplayMode.FullMetadata ? (
                         <IoniconsIcon name="list" />

@@ -61,7 +61,7 @@ interface DownloadDialogProps {
   newVersion: string;
   updateType: string;
   showUpdateDialog: boolean;
-  setShowUpdateDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowUpdateDialog: (open: boolean) => void;
 }
 
 const DownloadDialog = ({

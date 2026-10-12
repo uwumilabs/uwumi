@@ -120,8 +120,11 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
     // const sourcesQuery = mediaType === MediaType.ANIME ? animeSourcesQuery : movieSourcesQuery;
     const { data, isLoading, error } = mediaType === MediaType.ANIME ? animeSourcesQuery : movieSourcesQuery;
-    // Reset all states when sheet closes
-    useEffect(() => {
+    // Reset the menu when the sheet closes. Done while rendering rather than in an effect, so the closed sheet
+    // never paints a frame of the old menu state.
+    const [wasOpen, setWasOpen] = useState(open);
+    if (open !== wasOpen) {
+      setWasOpen(open);
       if (!open) {
         setShowQualitySelection(false);
         setShowServerSelection(false);
@@ -129,7 +132,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         setShouldFetchSources(false);
         setActionMode('external-player');
       }
-    }, [open]);
+    }
 
     // Handle successful data fetch - show appropriate menu
     useEffect(() => {

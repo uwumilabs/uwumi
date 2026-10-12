@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, type ViewProps } from 'react-native';
 import { Host, BasicAlertDialog, Column, RNHostView, Surface } from '@expo/ui/jetpack-compose';
 import { wrapContentWidth, wrapContentHeight, clip, Shapes } from '@expo/ui/jetpack-compose/modifiers';
@@ -11,19 +11,9 @@ export type DialogProps = {
 };
 
 export const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children, contentContainerProps }) => {
-  const [visible, setVisible] = useState(open);
+  if (!open) return null;
 
-  // Sync visibility when `open` prop changes
-  useEffect(() => {
-    setVisible(open);
-  }, [open]);
-
-  const handleDismiss = () => {
-    setVisible(false);
-    onOpenChange(false);
-  };
-
-  if (!visible) return null;
+  const handleDismiss = () => onOpenChange(false);
 
   return (
     <Host matchContents style={{ position: 'absolute', zIndex: 9999 }}>

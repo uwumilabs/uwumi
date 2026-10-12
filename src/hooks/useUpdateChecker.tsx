@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { compareVersions } from '@/constants/utils';
@@ -19,7 +19,7 @@ interface UpdateInfo {
 }
 
 export function useUpdateChecker(url?: string) {
-  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   const { data, isLoading, isError, error, refetch, isSuccess } = useQuery({
     queryKey: ['updateChecker', url],
@@ -58,22 +58,11 @@ export function useUpdateChecker(url?: string) {
     };
   }, [data, isSuccess]);
 
-  // Handle successful data fetch
-  useEffect(() => {
-    if (updateInfo.newVersion) {
-      // Set update available if it's not "No update available"
-      // and the new version is not a pre-release (for stable releases only)
-      const hasUpdate = !updateInfo.updateType.includes('No update') && !updateInfo.isNewVersionPreRelease;
-      setIsUpdateAvailable(hasUpdate);
-    }
-  }, [updateInfo]);
-
-  // Handle errors
-  useEffect(() => {
-    if (isError) {
-      //console.log('Update check failed:', error);
-    }
-  }, [isError, error]);
+  // Only a newer stable release counts, and closing the dialog keeps it closed for this session
+  const hasUpdate =
+    !!updateInfo.newVersion && !updateInfo.updateType.includes('No update') && !updateInfo.isNewVersionPreRelease;
+  const isUpdateAvailable = hasUpdate && !dismissed;
+  const setIsUpdateAvailable = useCallback((available: boolean) => setDismissed(!available), []);
 
   return {
     isUpdateAvailable,

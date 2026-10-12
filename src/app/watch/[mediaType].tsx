@@ -199,7 +199,6 @@ const Watch = () => {
     }
   }, [data, serverInitialized, setCurrentServer, setServers, clearServers, currentServer, currentProvider]);
 
-  const [subtitleTracks, setSubtitleTracks] = useState<(SubtitleTrack | ISubtitle)[] | undefined>([]);
   const [shouldFetchExternalSubs, setShouldFetchExternalSubs] = useState(false);
   const [externalSubtitleLanguage, setExternalSubtitleLanguage] = useState<string | null>(null);
   const [brightness, setBrightness] = useState(1);
@@ -370,32 +369,10 @@ const Watch = () => {
 
   // const gestures = Gesture.Exclusive(doubleTapGesture, brightnessVolumeGesture, singleTapGesture);
 
-  useEffect(() => {
-    if (data?.subtitles && data?.subtitles?.length > 0) {
-      //id external subtitles present add them too
-      if (externalSubtitles && externalSubtitles.length > 0) {
-        const combinedSubtitles = [...externalSubtitles, ...data.subtitles];
-        setSubtitleTracks(combinedSubtitles);
-      }
-      // If no external subtitles, just set the internal ones
-      else setSubtitleTracks(data?.subtitles);
-    }
-    // console.log(
-    //   subtitleTracks,
-    //   'subtitleTracks',
-    //   subtitleTracks
-    //     ?.filter((track) => track.kind !== 'thumbnails' && track.lang !== 'thumbnails')
-    //     .map((track, index) => ({
-    //       title:
-    //         ('title' in track ? track.title : undefined) ||
-    //         ('lang' in track ? track.lang : track.language) ||
-    //         'Untitled',
-    //       language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
-    //       type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : TextTrackType.VTT,
-    //       uri: ('url' in track ? track.url : track.uri) || '',
-    //       index,
-    //     })),
-    // );
+  // External subtitles are only offered alongside the source's own
+  const subtitleTracks = useMemo<(SubtitleTrack | ISubtitle)[]>(() => {
+    if (!data?.subtitles?.length) return [];
+    return externalSubtitles?.length ? [...externalSubtitles, ...data.subtitles] : data.subtitles;
   }, [data?.subtitles, externalSubtitles]);
 
   useEffect(() => {

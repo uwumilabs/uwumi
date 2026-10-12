@@ -1,4 +1,4 @@
-import React, { Activity, useEffect, useMemo, useState } from 'react';
+import React, { Activity, useMemo, useState } from 'react';
 import { Tabs } from 'heroui-native';
 import { View, type FocusDestination } from 'react-native';
 import FocusableTrigger from './FocusableTrigger';
@@ -17,21 +17,15 @@ interface HorizontalTabsProps {
 }
 
 export const HorizontalTabs = React.forwardRef<View, HorizontalTabsProps>(({ items, initialTab, nextFocusUp }, ref) => {
-  const [activeTab, setActiveTab] = useState(initialTab || items[0]?.key || '');
-
-  // Keep active tab in sync when items change (e.g., async data)
-  useEffect(() => {
-    const firstKey = items[0]?.key;
-    if (!firstKey) return;
-    if (!activeTab || !items.find((item) => item.key === activeTab)) {
-      setActiveTab(initialTab && items.find((i) => i.key === initialTab) ? initialTab : firstKey);
-    }
-  }, [items, activeTab, initialTab]);
+  const [selectedTab, setSelectedTab] = useState(initialTab || '');
+  // Items can arrive after mount, so fall back to the initial (or first) tab while the selection isn't among them
+  const fallbackTab = items.some((item) => item.key === initialTab) ? initialTab! : (items[0]?.key ?? '');
+  const activeTab = items.some((item) => item.key === selectedTab) ? selectedTab : fallbackTab;
 
   const orderedItems = useMemo(() => items, [items]);
   return (
     <>
-      <Tabs ref={ref} value={activeTab} onValueChange={setActiveTab} variant="secondary" className="w-full">
+      <Tabs ref={ref} value={activeTab} onValueChange={setSelectedTab} variant="secondary" className="w-full">
         <Tabs.List>
           <Tabs.Indicator />
           {orderedItems.map((item, index) => (
