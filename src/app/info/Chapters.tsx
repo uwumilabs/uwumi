@@ -4,10 +4,14 @@ import { MediaType } from '@/constants/types';
 import { useMangaChapters, usePureBlackBackground } from '@/hooks';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { cn } from 'heroui-native';
-import React, { useCallback } from 'react';
+import React, { ReactNode, useCallback } from 'react';
 import { ActivityIndicator, Text } from 'react-native';
 
-const Chapters = () => {
+interface ChaptersProps {
+  header?: ReactNode;
+}
+
+const Chapters = ({ header }: ChaptersProps) => {
   const { mediaType, provider, id } = useLocalSearchParams<{
     mediaType: MediaType;
     provider: string;
@@ -26,30 +30,34 @@ const Chapters = () => {
     },
     [mediaType, setProvider],
   );
-  if (isLoading) {
-    return (
-      <HUYStack className="justify-center items-center min-h-75">
-        <ActivityIndicator size="large" />
-      </HUYStack>
-    );
-  }
   return (
     <CustomFlashlist
-      data={data}
+      data={isLoading ? [] : data}
+      // Loading renders inside the list so `header` stays visible meanwhile
+      {...(isLoading && {
+        ListEmptyComponent: (
+          <HUYStack className="justify-center items-center min-h-75">
+            <ActivityIndicator size="large" />
+          </HUYStack>
+        ),
+      })}
       keyExtractor={(item) => item.id}
       contentContainerStyle={{
         paddingHorizontal: 16,
         paddingVertical: 8,
       }}
       ListHeaderComponent={
-        <HUXStack className="px-4 p-2 gap-1.5 items-center justify-center">
-          <CustomSelect
-            SelectItem={providers.manga}
-            SelectLabel="Provider"
-            value={currentProvider}
-            onValueChange={handleProviderChange}
-          />
-        </HUXStack>
+        <>
+          {header}
+          <HUXStack className="px-4 p-2 gap-1.5 items-center justify-center">
+            <CustomSelect
+              SelectItem={providers.manga}
+              SelectLabel="Provider"
+              value={currentProvider}
+              onValueChange={handleProviderChange}
+            />
+          </HUXStack>
+        </>
       }
       renderItem={({ item }) => (
         <RippleButton

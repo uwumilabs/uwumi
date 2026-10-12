@@ -34,7 +34,7 @@ import { useProviders, useProviderStore } from '@/constants/provider';
 import CustomFlashlist from '../CustomFlashlist';
 import { HUYStack, HUXStack, RippleButton } from '../ui-primitives';
 import TVFocusWrapper from '../TVFocusWrapper';
-import { Card, cn } from 'heroui-native';
+import { Button, Card, cn } from 'heroui-native';
 import Progress from '../Progress';
 import { IoniconsIcon, MaterialIconsIcon } from '../Icons';
 
@@ -201,7 +201,14 @@ const SwipeAction = memo(
   },
 );
 
-export const EpisodeList = () => {
+interface EpisodeListProps {
+  /** Rendered above the episode controls, inside the list, so it scrolls with the episodes. */
+  header?: ReactNode;
+  /** Jump to the episode being watched once the list loads; otherwise offer a "Continue" chip. */
+  autoScrollToCurrent?: boolean;
+}
+
+export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListProps) => {
   const swipeableRefs = useRef<Map<string, React.RefObject<SwipeableMethods | null>>>(new Map());
   const pathname = usePathname();
   const { mediaType, type, provider, id } = useLocalSearchParams<{
@@ -317,6 +324,20 @@ export const EpisodeList = () => {
   const currentEpisodeIndex = useCallback(() => {
     return episodes.findIndex((episode: IAnimeEpisode | IMovieEpisode) => episode.uniqueId === currentUniqueId);
   }, [episodes, currentUniqueId]);
+
+  // Where "Continue" points: the episode being watched, else the furthest one with progress (or the one after it if
+  // that one is finished). No progress, no chip.
+  const continueIndex = useMemo(() => {
+    if (autoScrollToCurrent) return -1;
+    const current = currentEpisodeIndex();
+    if (current >= 0) return current;
+    for (let i = episodes.length - 1; i >= 0; i--) {
+      const progress = progresses[episodes[i].uniqueId as string];
+      if (progress) return progress.isCompleted && i < episodes.length - 1 ? i + 1 : i;
+    }
+    return -1;
+  }, [autoScrollToCurrent, currentEpisodeIndex, episodes, progresses]);
+  const continueEpisode = continueIndex >= 0 ? episodes[continueIndex] : undefined;
 
   const handleProviderChange = useCallback(
     (value: string) => {
@@ -589,76 +610,90 @@ export const EpisodeList = () => {
     ],
   );
 
-  if (isLoading) {
-    return <LoadingState />;
-  }
-
   return (
     <>
       <CustomFlashlist<IAnimeEpisode | IMovieEpisode>
         key={listKey}
         ref={flashListRef}
-        data={episodes}
+        data={isLoading ? [] : episodes}
+        // Loading renders inside the list so `header` stays visible meanwhile
+        {...(isLoading && { ListEmptyComponent: <LoadingState /> })}
         // ItemSeparatorComponent={() => <View className="h-3" />}
         ListHeaderComponent={
-          <HUXStack className="w-full items-center justify-center gap-5 px-4 py-2">
-            {swipeable && (
-              <CustomSelect
-                SelectItem={mediaType === MediaType.ANIME ? providers.anime : providers.movie}
-                SelectLabel="Provider"
-                value={providerToUse}
-                onValueChange={handleProviderChange}
-              />
-            )}
-            {movieSeasons && type !== TvType.MOVIE && (
-              <CustomSelect
-                SelectItem={
-                  movieSeasons?.map((_: any, index: number): { name: string; value: string } => ({
-                    name: `Season ${index + 1}`,
-                    value: String(index),
-                  })) || []
-                }
-                SelectLabel="Season"
-                value={String(seasonNumber)}
-                onValueChange={(value: string) => {
-                  setSeasonNumber(Number(value));
-                  setEpisodes(movieSeasons[Number(value)].episodes);
-                }}
-              />
-            )}
-            {servers && servers.length > 0 && !swipeable && (
-              <CustomSelect
-                SelectItem={servers.map((server) => ({ name: server.name, value: server.name })) || []}
-                SelectLabel="Servers"
-                value={currentServer?.name || ''}
-                onValueChange={(value: string) => setCurrentServer(value || currentServer?.name || servers[0].name)}
-              />
-            )}
-            {swipeable && (
-              <Pressable
-                onPress={() => {
-                  setDisplayMode(
-                    displayMode === EpisodeDisplayMode.FullMetadata
-                      ? EpisodeDisplayMode.TitleOnly
-                      : displayMode === EpisodeDisplayMode.TitleOnly
-                        ? EpisodeDisplayMode.NumberOnly
-                        : EpisodeDisplayMode.FullMetadata,
-                  );
-                }}>
-                {displayMode === EpisodeDisplayMode.FullMetadata ? (
-                  <IoniconsIcon name="list" />
-                ) : displayMode === EpisodeDisplayMode.TitleOnly ? (
-                  <MaterialIconsIcon name="format-list-numbered" />
-                ) : (
-                  <IoniconsIcon name="image-outline" />
-                )}
-              </Pressable>
-            )}
-          </HUXStack>
+          <>
+            {header}
+            <HUXStack className="w-full flex-wrap items-center justify-center gap-5 px-4 py-2">
+              {swipeable && (
+                <CustomSelect
+                  SelectItem={mediaType === MediaType.ANIME ? providers.anime : providers.movie}
+                  SelectLabel="Provider"
+                  value={providerToUse}
+                  onValueChange={handleProviderChange}
+                />
+              )}
+              {movieSeasons && type !== TvType.MOVIE && (
+                <CustomSelect
+                  SelectItem={
+                    movieSeasons?.map((_: any, index: number): { name: string; value: string } => ({
+                      name: `Season ${index + 1}`,
+                      value: String(index),
+                    })) || []
+                  }
+                  SelectLabel="Season"
+                  value={String(seasonNumber)}
+                  onValueChange={(value: string) => {
+                    setSeasonNumber(Number(value));
+                    setEpisodes(movieSeasons[Number(value)].episodes);
+                  }}
+                />
+              )}
+              {servers && servers.length > 0 && !swipeable && (
+                <CustomSelect
+                  SelectItem={servers.map((server) => ({ name: server.name, value: server.name })) || []}
+                  SelectLabel="Servers"
+                  value={currentServer?.name || ''}
+                  onValueChange={(value: string) => setCurrentServer(value || currentServer?.name || servers[0].name)}
+                />
+              )}
+              {swipeable && (
+                <Pressable
+                  onPress={() => {
+                    setDisplayMode(
+                      displayMode === EpisodeDisplayMode.FullMetadata
+                        ? EpisodeDisplayMode.TitleOnly
+                        : displayMode === EpisodeDisplayMode.TitleOnly
+                          ? EpisodeDisplayMode.NumberOnly
+                          : EpisodeDisplayMode.FullMetadata,
+                    );
+                  }}>
+                  {displayMode === EpisodeDisplayMode.FullMetadata ? (
+                    <IoniconsIcon name="list" />
+                  ) : displayMode === EpisodeDisplayMode.TitleOnly ? (
+                    <MaterialIconsIcon name="format-list-numbered" />
+                  ) : (
+                    <IoniconsIcon name="image-outline" />
+                  )}
+                </Pressable>
+              )}
+              {continueEpisode && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onPress={() =>
+                    flashListRef.current?.scrollToIndex({ index: continueIndex, animated: true, viewPosition: 0.3 })
+                  }>
+                  <IoniconsIcon name="play" size={14} color={currentTheme?.foreground} />
+                  <Button.Label>{`Continue · EP ${(continueEpisode.number ?? continueEpisode.episode ?? '').toString()}`}</Button.Label>
+                </Button>
+              )}
+            </HUXStack>
+          </>
         }
         onLoad={() => {
+          const index = currentEpisodeIndex();
+          if (!autoScrollToCurrent || index < 0) return;
           flashListRef?.current?.scrollToIndex({
-            index: currentEpisodeIndex(),
+            index,
             animated: true,
             viewPosition: 1,
             viewOffset: 200,

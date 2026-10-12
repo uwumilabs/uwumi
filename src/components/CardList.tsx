@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from './LinearGradient';
 import { AnimatedCustomImage } from './CustomImage';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
 import { IAnimeResult, IMovieResult, ISearch } from 'react-native-consumet';
@@ -145,7 +145,7 @@ export const MediaCard: React.FC<MediaCardProps> = memo(
               className="absolute inset-0"
             />
             <LinearGradient
-              className="w-full h-full absolute inset-0 z-10l"
+              className="w-full h-full absolute inset-0 z-10"
               colors={['rgba(0,0,0,0.8)', 'transparent']}
               start={[0, 1]}
               end={[0, 0.3]}
