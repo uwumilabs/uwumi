@@ -38,7 +38,13 @@ cd android
 
 # Build release APK
 print_step "STEP 5: BUILDING RELEASE APK"
-./gradlew :app:assembleRelease
+# Full output goes to a log: release-it runs this hook through exec(), which kills it past ~1MB of output
+mkdir -p build
+echo "Full log: android/build/gradle-release.log"
+if ! ./gradlew :app:assembleRelease >build/gradle-release.log 2>&1; then
+  tail -n 40 build/gradle-release.log
+  exit 1
+fi
 
 # Install release APK
 # print_step "STEP 6: INSTALLING RELEASE APK"

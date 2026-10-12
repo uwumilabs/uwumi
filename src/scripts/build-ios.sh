@@ -26,7 +26,11 @@ IPA_PATH="$BUILD_DIR/uwumi-v$VERSION.ipa"
 # The Release configuration embeds the JS bundle itself ("Bundle React Native code and images" phase)
 print_step "STEP 1: ARCHIVING UNSIGNED RELEASE BUILD"
 rm -rf "$ARCHIVE_PATH"
-xcodebuild archive \
+mkdir -p "$BUILD_DIR"
+# Full output goes to a log: release-it runs this hook through exec(), which kills it past ~1MB of output
+LOG_FILE="$BUILD_DIR/xcodebuild.log"
+echo "Full log: ios/build/xcodebuild.log"
+if ! xcodebuild archive \
   -quiet \
   -workspace "$ROOT_DIR/ios/uwumi.xcworkspace" \
   -scheme uwumi \
@@ -35,7 +39,11 @@ xcodebuild archive \
   -archivePath "$ARCHIVE_PATH" \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
-  CODE_SIGN_IDENTITY=""
+  CODE_SIGN_IDENTITY="" >"$LOG_FILE" 2>&1; then
+  grep -E "error:" "$LOG_FILE" | head -n 20 || true
+  tail -n 30 "$LOG_FILE"
+  exit 1
+fi
 
 print_step "STEP 2: PACKAGING .IPA"
 STAGING_DIR="$(mktemp -d)"
