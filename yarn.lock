@@ -6159,6 +6159,11 @@ expect@^29.0.0, expect@^29.7.0:
     jest-message-util "^29.7.0"
     jest-util "^29.7.0"
 
+expo-application@~57.0.3:
+  version "57.0.3"
+  resolved "https://registry.yarnpkg.com/expo-application/-/expo-application-57.0.3.tgz#92d3f386e5a02b978c377a24e7eb32d1fcee1edb"
+  integrity sha512-t/CxeLio0NjY9/cOak1tQp62/hAUjzJxmhR4rVUR7K5bb9YoEtfl1ZekTn+Iuh+dYOMYzF0l72ODMSmY3CR1NA==
+
 expo-asset@~57.0.18:
   version "57.0.18"
   resolved "https://registry.yarnpkg.com/expo-asset/-/expo-asset-57.0.18.tgz#c81177df21f2e84f88a1a5ca99292bd7ba425a55"
@@ -10856,10 +10861,20 @@ react-native-material-ripple@^0.9.1:
   dependencies:
     prop-types "^15.5.10"
 
-react-native-mmkv@^3.1.0:
-  version "3.3.3"
-  resolved "https://registry.yarnpkg.com/react-native-mmkv/-/react-native-mmkv-3.3.3.tgz#1f0326f6314e23725af8145964343224d074e6cd"
-  integrity sha512-GMsfOmNzx0p5+CtrCFRVtpOOMYNJXuksBVARSQrCFaZwjUyHJdQzcN900GGaFFNTxw2fs8s5Xje//RDKj9+PZA==
+react-native-mmkv@^4.3.2:
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/react-native-mmkv/-/react-native-mmkv-4.3.2.tgz#522978d2330932c538cce36093040826870ccb49"
+  integrity sha512-49OAyfkg0/TMWiWELZN6VuVQPZPhizwL4DTmp8b7B1md3dB/s3LH3mGfC3T+lp9W0y/rqxZMEnotLFTIbOAenQ==
+
+react-native-nitro-modules@0.35.1:
+  version "0.35.1"
+  resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.35.1.tgz#99bfc160be559e3e63044574855ddf1562ef0f19"
+  integrity sha512-XIPN8+1kPCaLEQuzPCgFQwy96B97u66SHQ0hA1xWWSHUQ+GXxM4fAysqgTHvW4SU25IRZqzhaSmGsoZlNDSmRA==
+
+react-native-nitro-ota@0.14.1:
+  version "0.14.1"
+  resolved "https://registry.yarnpkg.com/react-native-nitro-ota/-/react-native-nitro-ota-0.14.1.tgz#625e77425eb0d0c8e5f4712093de4bbf5953a8ef"
+  integrity sha512-rGceiNstZG+je5CysgUjNPmoofOpByx4n79XcX6f5OkITy+HM1/bCW8yWd1QcMlahgi4om8yeLl9ZXcYsCT8mQ==
 
 react-native-orientation-director@^2.6.5:
   version "2.6.5"

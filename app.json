@@ -53,7 +53,8 @@
           },
           "ios": {
             "useFrameworks": "static",
-            "deploymentTarget": "16.4"
+            "deploymentTarget": "16.4",
+            "usePrecompiledModules": false
           }
         }
       ],
@@ -89,7 +90,8 @@
             "topShelfWide2x": "./assets/images/tv/myimage-tvos-4640x1440.png"
           }
         }
-      ]
+      ],
+      "react-native-nitro-ota"
     ],
     "experiments": {
       "typedRoutes": true,

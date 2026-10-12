@@ -40,7 +40,7 @@ export const useRecentSearchesStore = create<RecentSearchesState>()(
       storage: createJSONStorage(() => ({
         setItem: (name, value) => storage.set(name, value),
         getItem: (name) => storage.getString(name) ?? null,
-        removeItem: (name) => storage.delete(name),
+        removeItem: (name) => storage.remove(name),
       })),
     },
   ),

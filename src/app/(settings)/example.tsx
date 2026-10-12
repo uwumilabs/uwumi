@@ -38,7 +38,7 @@ const Example = () => {
   const deleteAllMMKVKeys = () => {
     const keys = storage.getAllKeys();
     keys.forEach((key) => {
-      storage.delete(key);
+      storage.remove(key);
       //console.log(`Deleted key: ${key}`);
     });
   };

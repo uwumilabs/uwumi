@@ -10,7 +10,14 @@ import {
   Inter_800ExtraBold as InterBold,
 } from '@expo-google-fonts/inter';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useCurrentTheme, usePureBlackBackground, useThemeStore, useUpdateChecker, useSheetColor } from '@/hooks';
+import {
+  useCurrentTheme,
+  useOtaUpdates,
+  usePureBlackBackground,
+  useThemeStore,
+  useUpdateChecker,
+  useSheetColor,
+} from '@/hooks';
 import * as WebBrowser from 'expo-web-browser';
 import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
@@ -126,6 +133,7 @@ const AppContent = () => {
     InterSemiBold,
     InterBold,
   });
+  useOtaUpdates(loaded);
 
   const uniwindThemeName = useUniwind();
   const setTheme = useThemeStore((state) => state.setTheme);

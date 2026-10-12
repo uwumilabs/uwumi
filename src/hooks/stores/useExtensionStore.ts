@@ -243,7 +243,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       const key = getCacheKey('extension', id);
       const cached = loadJSONFromStorage<CachedItem>(key);
       if (cached) await deleteFile(getFilePath('extension', id, cached.version));
-      storage.delete(key);
+      storage.remove(key);
       return true;
     },
 
@@ -289,7 +289,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       const key = getCacheKey('extractor', name);
       const cached = loadJSONFromStorage<CachedItem>(key);
       if (cached) await deleteFile(getFilePath('extractor', name, cached.version));
-      storage.delete(key);
+      storage.remove(key);
       return true;
     },
 
@@ -350,10 +350,10 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
 
         const { registry } = get();
         if (registry) {
-          for (const e of registry.extensions) storage.delete(getCacheKey('extension', e.id));
-          for (const x of registry.extractors) storage.delete(getCacheKey('extractor', x.name));
+          for (const e of registry.extensions) storage.remove(getCacheKey('extension', e.id));
+          for (const x of registry.extractors) storage.remove(getCacheKey('extractor', x.name));
         }
-        storage.delete(REGISTRY_METADATA_KEY);
+        storage.remove(REGISTRY_METADATA_KEY);
         set({ registry: null, error: null });
       } catch (err) {
         console.error('❌ Failed to clear cache:', err);

@@ -17,7 +17,8 @@
     "release": "release-it",
     "sync-versions": "node ./src/scripts/sync-versions.js",
     "build-android": "bash src/scripts/build-android.sh",
-    "build-ios": "bash src/scripts/build-ios.sh"
+    "build-ios": "bash src/scripts/build-ios.sh",
+    "ota": "bash src/scripts/publish-ota.sh"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,md,html,css}": [
@@ -69,6 +70,7 @@
     "@tanstack/react-query": "^5.66.0",
     "axios": "^1.7.9",
     "expo": "57.0.26",
+    "expo-application": "~57.0.3",
     "expo-build-properties": "~57.0.22",
     "expo-constants": "~57.0.20",
     "expo-dev-client": "~57.0.19",
@@ -94,7 +96,9 @@
     "react-native-gesture-handler": "~2.32.0",
     "react-native-keyboard-controller": "1.21.9",
     "react-native-material-ripple": "^0.9.1",
-    "react-native-mmkv": "^3.1.0",
+    "react-native-mmkv": "^4.3.2",
+    "react-native-nitro-modules": "0.35.1",
+    "react-native-nitro-ota": "0.14.1",
     "react-native-orientation-director": "^2.6.5",
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",

@@ -21,6 +21,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - EXApplication (57.0.3):
+    - ExpoModulesCore
   - EXConstants (57.0.20):
     - ExpoModulesCore
   - EXJSONUtils (57.0.2)
@@ -215,6 +217,11 @@ PODS:
     - ExpoModulesCore
   - ExpoImage (57.0.5):
     - ExpoModulesCore
+    - libavif/libdav1d
+    - SDWebImage (~> 5.21.0)
+    - SDWebImageAVIFCoder (~> 0.11.0)
+    - SDWebImageSVGCoder (~> 1.7.0)
+    - SDWebImageWebPCoder (~> 0.14.6)
   - ExpoKeepAwake (57.0.2):
     - ExpoModulesCore
   - ExpoLinearGradient (57.0.2):
@@ -277,6 +284,99 @@ PODS:
   - hermes-engine (250829098.0.17):
     - hermes-engine/Pre-built (= 250829098.0.17)
   - hermes-engine/Pre-built (250829098.0.17)
+  - libavif/core (1.0.0)
+  - libavif/libdav1d (1.0.0):
+    - libavif/core
+    - libdav1d (>= 0.6.0)
+  - libdav1d (1.2.0)
+  - libwebp (1.6.0):
+    - libwebp/demux (= 1.6.0)
+    - libwebp/mux (= 1.6.0)
+    - libwebp/sharpyuv (= 1.6.0)
+    - libwebp/webp (= 1.6.0)
+  - libwebp/demux (1.6.0):
+    - libwebp/webp
+  - libwebp/mux (1.6.0):
+    - libwebp/demux
+  - libwebp/sharpyuv (1.6.0)
+  - libwebp/webp (1.6.0):
+    - libwebp/sharpyuv
+  - MMKVCore (2.4.0)
+  - NitroMmkv (4.3.2):
+    - hermes-engine
+    - MMKVCore (= 2.4.0)
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - NitroModules (0.35.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - NitroOta (0.14.1):
+    - hermes-engine
+    - NitroModules
+    - NitroOtaBundleManager (= 0.14.1)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - SSZipArchive
+    - Yoga
+  - NitroOtaBundleManager (0.14.1)
   - RCTDeprecation (0.86.3-0)
   - RCTRequired (0.86.3-0)
   - RCTSwiftUI (0.86.3-0)
@@ -1793,28 +1893,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-mmkv (3.3.3):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
   - react-native-orientation-director (2.6.5):
     - hermes-engine
     - RCTRequired
@@ -2722,7 +2800,19 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - VideoToolkit (0.11.0):
+  - SDWebImage (5.21.7):
+    - SDWebImage/Core (= 5.21.7)
+  - SDWebImage/Core (5.21.7)
+  - SDWebImageAVIFCoder (0.11.1):
+    - libavif/core (>= 0.11.0)
+    - SDWebImage (~> 5.10)
+  - SDWebImageSVGCoder (1.7.0):
+    - SDWebImage/Core (~> 5.6)
+  - SDWebImageWebPCoder (0.14.6):
+    - libwebp (~> 1.0)
+    - SDWebImage/Core (~> 5.17)
+  - SSZipArchive (2.6.0)
+  - VideoToolkit (0.11.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2748,6 +2838,7 @@ PODS:
 
 DEPENDENCIES:
   - Consumet (from `../node_modules/react-native-consumet`)
+  - EXApplication (from `../node_modules/expo-application/ios`)
   - EXConstants (from `../node_modules/expo-constants/ios`)
   - EXJSONUtils (from `../node_modules/expo-json-utils/ios`)
   - EXManifests (from `../node_modules/expo-manifests/ios`)
@@ -2758,18 +2849,18 @@ DEPENDENCIES:
   - expo-dev-menu-interface (from `../node_modules/expo-dev-menu-interface/ios`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
   - "ExpoDomWebView (from `../node_modules/@expo/dom-webview/ios`)"
-  - ExpoFileSystem (from `../node_modules/expo-file-system/ios/ExpoFileSystem.podspec`)
-  - ExpoFont (from `../node_modules/expo-font/ios/ExpoFont.podspec`)
+  - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
+  - ExpoFont (from `../node_modules/expo-font/ios`)
   - ExpoGlassEffect (from `../node_modules/expo-glass-effect/ios`)
   - ExpoHaptics (from `../node_modules/expo-haptics/ios`)
-  - ExpoImage (from `../node_modules/expo-image/ios/ExpoImage.podspec`)
+  - ExpoImage (from `../node_modules/expo-image/ios`)
   - ExpoKeepAwake (from `../node_modules/expo-keep-awake/ios`)
   - ExpoLinearGradient (from `../node_modules/expo-linear-gradient/ios`)
   - ExpoLinking (from `../node_modules/expo-linking/ios`)
   - "ExpoLogBox (from `../node_modules/@expo/log-box`)"
-  - ExpoModulesCore (from `../node_modules/expo-modules-core/ExpoModulesCore.podspec`)
+  - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoModulesJSI (from `../node_modules/expo-modules-jsi/apple`)
-  - ExpoModulesWorklets (from `../node_modules/expo-modules-core/ExpoModulesWorklets.podspec`)
+  - ExpoModulesWorklets (from `../node_modules/expo-modules-core`)
   - ExpoModulesWorkletsAdapter (from `../node_modules/expo-modules-core`)
   - ExpoRouter (from `../node_modules/expo-router/ios`)
   - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
@@ -2779,6 +2870,10 @@ DEPENDENCIES:
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
+  - NitroMmkv (from `../node_modules/react-native-mmkv`)
+  - NitroModules (from `../node_modules/react-native-nitro-modules`)
+  - NitroOta (from `../node_modules/react-native-nitro-ota`)
+  - NitroOtaBundleManager (from `../node_modules/react-native-nitro-ota`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../node_modules/react-native/Libraries/Required`)
   - RCTSwiftUI (from `../node_modules/react-native/ReactApple/RCTSwiftUI`)
@@ -2821,7 +2916,6 @@ DEPENDENCIES:
   - react-native-ffmpeg-kit (from `../node_modules/react-native-ffmpeg-kit`)
   - react-native-get-random-values (from `../node_modules/react-native-get-random-values`)
   - react-native-keyboard-controller (from `../node_modules/react-native-keyboard-controller`)
-  - react-native-mmkv (from `../node_modules/react-native-mmkv`)
   - react-native-orientation-director (from `../node_modules/react-native-orientation-director`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - react-native-video (from `../node_modules/react-native-video`)
@@ -2871,9 +2965,23 @@ DEPENDENCIES:
   - VideoToolkit (from `../node_modules/react-native-video-toolkit`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
+SPEC REPOS:
+  trunk:
+    - libavif
+    - libdav1d
+    - libwebp
+    - MMKVCore
+    - SDWebImage
+    - SDWebImageAVIFCoder
+    - SDWebImageSVGCoder
+    - SDWebImageWebPCoder
+    - SSZipArchive
+
 EXTERNAL SOURCES:
   Consumet:
     :path: "../node_modules/react-native-consumet"
+  EXApplication:
+    :path: "../node_modules/expo-application/ios"
   EXConstants:
     :path: "../node_modules/expo-constants/ios"
   EXJSONUtils:
@@ -2895,15 +3003,15 @@ EXTERNAL SOURCES:
   ExpoDomWebView:
     :path: "../node_modules/@expo/dom-webview/ios"
   ExpoFileSystem:
-    :podspec: "../node_modules/expo-file-system/ios/ExpoFileSystem.podspec"
+    :path: "../node_modules/expo-file-system/ios"
   ExpoFont:
-    :podspec: "../node_modules/expo-font/ios/ExpoFont.podspec"
+    :path: "../node_modules/expo-font/ios"
   ExpoGlassEffect:
     :path: "../node_modules/expo-glass-effect/ios"
   ExpoHaptics:
     :path: "../node_modules/expo-haptics/ios"
   ExpoImage:
-    :podspec: "../node_modules/expo-image/ios/ExpoImage.podspec"
+    :path: "../node_modules/expo-image/ios"
   ExpoKeepAwake:
     :path: "../node_modules/expo-keep-awake/ios"
   ExpoLinearGradient:
@@ -2913,11 +3021,11 @@ EXTERNAL SOURCES:
   ExpoLogBox:
     :path: "../node_modules/@expo/log-box"
   ExpoModulesCore:
-    :podspec: "../node_modules/expo-modules-core/ExpoModulesCore.podspec"
+    :path: "../node_modules/expo-modules-core"
   ExpoModulesJSI:
     :path: "../node_modules/expo-modules-jsi/apple"
   ExpoModulesWorklets:
-    :podspec: "../node_modules/expo-modules-core/ExpoModulesWorklets.podspec"
+    :path: "../node_modules/expo-modules-core"
   ExpoModulesWorkletsAdapter:
     :path: "../node_modules/expo-modules-core"
   ExpoRouter:
@@ -2937,6 +3045,14 @@ EXTERNAL SOURCES:
   hermes-engine:
     :podspec: "../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
     :tag: hermes-v250829098.0.17
+  NitroMmkv:
+    :path: "../node_modules/react-native-mmkv"
+  NitroModules:
+    :path: "../node_modules/react-native-nitro-modules"
+  NitroOta:
+    :path: "../node_modules/react-native-nitro-ota"
+  NitroOtaBundleManager:
+    :path: "../node_modules/react-native-nitro-ota"
   RCTDeprecation:
     :path: "../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation"
   RCTRequired:
@@ -3019,8 +3135,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-get-random-values"
   react-native-keyboard-controller:
     :path: "../node_modules/react-native-keyboard-controller"
-  react-native-mmkv:
-    :path: "../node_modules/react-native-mmkv"
   react-native-orientation-director:
     :path: "../node_modules/react-native-orientation-director"
   react-native-safe-area-context:
@@ -3120,6 +3234,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Consumet: 3d5d3790b2c7aeb37c85eb64ceeacde61356fb0a
+  EXApplication: a727f05eb8592f0bc764f6ab8d51eacc158652ec
   EXConstants: fdc6f92b1559e5bd69df9e684e8c7ba5d912890e
   EXJSONUtils: a49e3ef80dff762108e5690c7b2f360675dcf7f6
   EXManifests: 4c53b2602e03ccf44d0b4ff9c5d655b2c5acba3f
@@ -3139,7 +3254,7 @@ SPEC CHECKSUMS:
   ExpoLinearGradient: f08a0dea5ad3fe23042d15b1ced831312c9141b8
   ExpoLinking: 52819633a2225a0c2a3cd3de64056b021bb55202
   ExpoLogBox: 80957303325cd4439137765c90a87d7f22aaf2ff
-  ExpoModulesCore: 20cf8bc762a3a65af7288cdc5310c31b7f5fa6d0
+  ExpoModulesCore: 558b37ea2955df50fc1321fea833a30ff455128e
   ExpoModulesJSI: 9e2ac522bf1ce86b7b1f8f0bb8ef87b20156e38b
   ExpoModulesWorklets: 40d29262efc034e4357f2713e6037a41a27218d6
   ExpoModulesWorkletsAdapter: 8404c9f1ec57171c027d56a0b98dfd740d303488
@@ -3150,7 +3265,15 @@ SPEC CHECKSUMS:
   ExpoWebBrowser: a4d7c382116fbe33c1ec7f60293f02b7e97042e4
   EXUpdatesInterface: 4c96533f11c8cefe879bd506564cc2d537f56804
   FBLazyVector: 2949fedf75d1576367537d289d0fb7edbd89dadc
-  hermes-engine: 63c5db7d529c36335fada6582fd293ae2a105d77
+  hermes-engine: 9ea7634dc9fc17a49b6fc1151c7667f056b36fb5
+  libavif: 5f8e715bea24debec477006f21ef9e95432e254d
+  libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
+  libwebp: af5937a13536ef73f3784d69cc342b98961acf33
+  MMKVCore: 3d16ce9f7d411e135020915fde98a056859a1efa
+  NitroMmkv: 38b271a19e7e152025a6893160c98326872ea05f
+  NitroModules: 2e6e600cb1b2200294c303fed051950cd1ba89fd
+  NitroOta: e3b7b8651cda1b3de1fc2c5edb6713f981733281
+  NitroOtaBundleManager: 69b9999f64febbf2470c62bd76c90993daa75929
   RCTDeprecation: 7f111a2a009d1f1f6280d05d98c4e92a563433e1
   RCTRequired: f5c717a45301610e859245d1c78eccb25cf75740
   RCTSwiftUI: 76364594e7e8f84aacdcbf75805ce07eac0e2f77
@@ -3159,7 +3282,7 @@ SPEC CHECKSUMS:
   React: d33ac205ebb5686696ef5c2e17535bfc2eec9e04
   React-callinvoker: fbeef8260810c518bbbc751f204e1c487fd0ad57
   React-Core: 6efbf01f84aa380b4c94905f08398e6fddc986a0
-  React-Core-prebuilt: 5639512514b3b2c0f9c192b8c97994e0fcd755b1
+  React-Core-prebuilt: 9b325c4ab28589cff2b90e0b8d7840b1fad83c5e
   React-CoreModules: dc465d2cd8f971ba659be18158f4985462b82fa2
   React-cxxreact: b34bb63838192908fee8e6c61c5b890ef33c75c7
   React-debug: 072dec06a5d2166d7662109b3b59a0d591a5eafb
@@ -3192,7 +3315,6 @@ SPEC CHECKSUMS:
   react-native-ffmpeg-kit: 51181c86cbf79343502280bac9b58a55abf92287
   react-native-get-random-values: 0fd2b6a3129988d701d10e30f0622d5f039531bc
   react-native-keyboard-controller: a1a729761011e31eb401097b8b2f30ca8e24d2f2
-  react-native-mmkv: 2d6cca1ab25152b1bd9fb7dee260f0dc657cb884
   react-native-orientation-director: 7604882bcd3fa7457195434cae4482a501ad9917
   react-native-safe-area-context: ba7283e541a5f57c6b27a7e33f2c40b8977888c0
   react-native-video: 870ab56eaf70f18892fd329abf054b477f59f624
@@ -3239,9 +3361,14 @@ SPEC CHECKSUMS:
   RNScreens: 82c8a2b21dfd8b06a627ad48a543a54c2fb97abf
   RNSVG: 68c366b996064ea99cee1e55da62b8feafb33a78
   RNWorklets: f4dd214cf0fa3abc54143da6a3219c4b8ada7e94
-  VideoToolkit: b30e304a806e7a18ce8393e04b28aeef5167a49b
+  SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
+  SDWebImageAVIFCoder: afe194a084e851f70228e4be35ef651df0fc5c57
+  SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c
+  SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
+  SSZipArchive: 8a6ee5677c8e304bebc109e39cf0da91ccef22ea
+  VideoToolkit: 436ddf9b6afbef83a4ee270be886880cb1a139eb
   Yoga: 851840bb13ebbc8f2f3d58a08931c9a7bb263cef
 
-PODFILE CHECKSUM: 0aa234dde828540da856fb9f8e6469e5fccf1fc5
+PODFILE CHECKSUM: 426a7de3e72b1212102e940e7133374d4ff4f2e1
 
 COCOAPODS: 1.17.0
