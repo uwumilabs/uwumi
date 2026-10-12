@@ -6,6 +6,7 @@ export const EXTERNAL_LINKS = {
   GITHUB_LATEST_RELEASE_API: 'https://api.github.com/repos/uwumilabs/uwumi/releases/latest',
   GITHUB_REPOSITORY: 'https://github.com/uwumilabs/uwumi',
   GITHUB_LATEST_RELEASE: 'https://github.com/uwumilabs/uwumi/releases/latest',
+  GITHUB_NEW_ISSUE: 'https://github.com/uwumilabs/uwumi/issues/new',
   DISCORD_SERVER: 'https://discord.gg/n7xVPxbG4R',
   PROJECT_WEBSITE: 'https://uwumi-dash.netlify.app/',
 } as const;

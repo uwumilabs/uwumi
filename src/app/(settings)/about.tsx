@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
 import * as Application from 'expo-application';
 import { openBrowserAsync } from 'expo-web-browser';
 import { getStoredOtaVersion } from 'react-native-nitro-ota';
@@ -71,7 +71,10 @@ const About = () => {
 
   return (
     <ThemedView>
-      <ScrollView contentContainerClassName="gap-6 px-4 pb-24 pt-4" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerClassName="gap-6 px-4 pb-24 pt-4"
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => checkForUpdates()} />}>
         <HUYStack className="items-center gap-3">
           <Image
             source={require('../../../assets/images/icon.png')}
@@ -155,6 +158,40 @@ const About = () => {
             ))}
           </ListGroup>
         </HUYStack>
+
+        <HUYStack className="gap-2">
+          <SectionTitle>Support</SectionTitle>
+          <ListGroup>
+            <ListGroup.Item onPress={() => openBrowserAsync(EXTERNAL_LINKS.GITHUB_NEW_ISSUE)}>
+              <ListGroup.ItemPrefix>
+                <IoniconsIcon name="bug-outline" size={20} color={currentTheme?.foreground} />
+              </ListGroup.ItemPrefix>
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>Report a bug</ListGroup.ItemTitle>
+                <ListGroup.ItemDescription>{`Include v${appVersion} in the report`}</ListGroup.ItemDescription>
+              </ListGroup.ItemContent>
+              <ListGroup.ItemSuffix />
+            </ListGroup.Item>
+            <Separator className="mx-4" />
+            <ListGroup.Item
+              onPress={() =>
+                Share.share({
+                  message: `Watch anime, read manga and stream movies with uwumi: ${EXTERNAL_LINKS.GITHUB_LATEST_RELEASE}`,
+                })
+              }>
+              <ListGroup.ItemPrefix>
+                <IoniconsIcon name="share-social-outline" size={20} color={currentTheme?.foreground} />
+              </ListGroup.ItemPrefix>
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>Share uwumi</ListGroup.ItemTitle>
+                <ListGroup.ItemDescription>Send the download link to a friend</ListGroup.ItemDescription>
+              </ListGroup.ItemContent>
+              <ListGroup.ItemSuffix />
+            </ListGroup.Item>
+          </ListGroup>
+        </HUYStack>
+
+        <Text className="text-center text-xs text-foreground/50">Made with ♥ by uwumilabs</Text>
       </ScrollView>
     </ThemedView>
   );
