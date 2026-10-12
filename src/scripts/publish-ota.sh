@@ -8,7 +8,7 @@
 # Each platform's bundle goes to its own orphan branch, ota-<version>-<platform>, which the app reads
 # (see src/hooks/useOtaUpdates.ts). The branch is force-pushed with a single commit, so it only ever
 # holds the latest bundle (plus a bsdiff patch from the previous one) and the repo doesn't grow with
-# every publish.
+# every publish. Versions are <version>-ota.<n>, counting up per binary version.
 #
 # Only publish JS-only changes: the bundle must work with the native code already in the installed
 # <version> binary. New native modules or native config need a new release (`yarn release`).
@@ -42,7 +42,6 @@ done
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 VERSION="$(node -p "require('./package.json').version")"
-OTA_VERSION="${VERSION}-ota.$(date -u +%Y%m%d%H%M%S)"
 REMOTE_URL="$(git remote get-url origin)"
 # owner/repo from either https://github.com/o/r(.git) or git@github.com:o/r(.git)
 REPO_SLUG="$(echo "$REMOTE_URL" | sed -E 's#^(https://github\.com/|git@github\.com:)##; s#\.git$##')"
@@ -52,6 +51,33 @@ if [[ -n "$(git status --porcelain)" ]]; then
   echo -e "${YELLOW}⚠️  Uncommitted changes will be included in the OTA bundle.${NC}"
 fi
 
+remote_head() { git ls-remote --heads "$REMOTE_URL" "refs/heads/$1" | cut -f1; }
+
+# Reads a published branch's ota.version.json through git: raw.githubusercontent.com caches for minutes,
+# which could hand out the same OTA number twice
+SCRATCH_REPO="$(mktemp -d)"
+git -C "$SCRATCH_REPO" init -q
+published_version() {
+  git -C "$SCRATCH_REPO" fetch -q --depth 1 "$REMOTE_URL" "refs/heads/$1"
+  git -C "$SCRATCH_REPO" show FETCH_HEAD:ota.version.json |
+    node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0, "utf8")).version)'
+}
+
+# <version>-ota.<n>: one past the highest n published for this binary on any platform, so publishing
+# both platforms together gives them the same number. Older timestamp-style versions don't count.
+LAST_OTA_NUMBER=0
+for P in android ios; do
+  [[ -n "$(remote_head "ota-${VERSION}-${P}")" ]] || continue
+  PUBLISHED="$(published_version "ota-${VERSION}-${P}")"
+  N="${PUBLISHED##*-ota.}"
+  if [[ "$N" =~ ^[0-9]{1,6}$ ]] && ((10#$N > LAST_OTA_NUMBER)); then
+    LAST_OTA_NUMBER=$((10#$N))
+  fi
+done
+rm -rf "$SCRATCH_REPO"
+OTA_VERSION="${VERSION}-ota.$((LAST_OTA_NUMBER + 1))"
+echo "Next OTA: ${OTA_VERSION}"
+
 for PLATFORM in "${PLATFORMS[@]}"; do
   case "$PLATFORM" in
     android) BUNDLE_NAME="index.android.bundle" ;;
@@ -59,6 +85,8 @@ for PLATFORM in "${PLATFORMS[@]}"; do
     *) echo "Unsupported platform: $PLATFORM" >&2; exit 1 ;;
   esac
   BRANCH="ota-${VERSION}-${PLATFORM}"
+  # The push is leased on this head, so a publish that lands meanwhile fails this one instead of being lost
+  OLD_SHA="$(remote_head "$BRANCH")"
   OUT_DIR="$(mktemp -d)"
 
   print_step "BUNDLING ${PLATFORM} ${OTA_VERSION} (Hermes bytecode)"
@@ -81,7 +109,7 @@ for PLATFORM in "${PLATFORMS[@]}"; do
   # bsdiff patch from the OTA currently on the branch, so devices already on it download only the delta.
   # Patches go to a separate dir (the CLI zips every file in --new) and get absolute raw URLs; the full
   # download is GitHub's branch archive, which skips them via export-ignore.
-  if git ls-remote --exit-code --heads "$REMOTE_URL" "$BRANCH" >/dev/null 2>&1; then
+  if [[ -n "$OLD_SHA" ]]; then
     print_step "PATCHING ${PLATFORM} from the published OTA"
     PREV_DIR="$(mktemp -d)"
     PATCH_DIR="$(mktemp -d)"
@@ -113,7 +141,7 @@ for PLATFORM in "${PLATFORMS[@]}"; do
     git checkout -q --orphan "$BRANCH"
     git add -A
     git commit -q -m "OTA ${OTA_VERSION} (${PLATFORM})"
-    git push --force -q "$REMOTE_URL" "HEAD:refs/heads/${BRANCH}"
+    git push -q --force-with-lease="refs/heads/${BRANCH}:${OLD_SHA}" "$REMOTE_URL" "HEAD:refs/heads/${BRANCH}"
   )
   rm -rf "$OUT_DIR"
   echo -e "${GREEN}✅ ${PLATFORM}: ${OTA_VERSION} published to ${BRANCH}${NC}"
