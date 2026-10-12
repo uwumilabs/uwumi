@@ -25,7 +25,7 @@ import { Button, Dialog, HeroUINativeProvider } from 'heroui-native';
 import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
 import '../../global.css';
 import { useUniwind } from 'uniwind';
-import { BottomSheet, BottomSheetProvider, IoniconsIcon, Slider } from '@/components';
+import { BottomSheet, BottomSheetProvider, IoniconsIcon, OtaUpdateToast, Slider } from '@/components';
 import { themes } from '@/themes/theme';
 import { VideoProvider, defaultTheme, type SheetProps } from 'react-native-video-toolkit';
 import RNOrientationDirector, { Orientation } from 'react-native-orientation-director';
@@ -204,6 +204,7 @@ const AppContent = () => {
       <HeroUINativeProvider
         config={{
           toast: {
+            disableFullWindowOverlay: true,
             contentWrapper,
             defaultProps: {
               placement: 'bottom',
@@ -227,6 +228,7 @@ const AppContent = () => {
             </Stack>
           </ThemeProvider>
         </BottomSheetProvider>
+        <OtaUpdateToast />
         {isUpdateAvailable && (
           <DownloadDialog
             currentVersion={updateInfo.currentVersion}

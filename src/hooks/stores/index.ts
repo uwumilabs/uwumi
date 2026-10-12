@@ -8,4 +8,5 @@ export * from './useFavoriteStore';
 export * from './useExternalSubtitleStore';
 export * from './useExtensionStore';
 export * from './useDownloadStore';
+export * from './useOtaUpdateStore';
 export * from './useMediaInfoStore';

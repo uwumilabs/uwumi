@@ -12,6 +12,7 @@ export { EpisodeList, WavyAnimation } from './episode-list';
 export { Image, AnimatedImage } from './Image';
 export { List } from './List';
 export { Select } from './Select';
+export { OtaUpdateToast } from './OtaUpdateToast';
 
 // Native-view components (@expo/ui SwiftUI / Jetpack Compose)
 export { BottomSheet, BottomSheetProvider, Dialog, Progress, Slider } from './native';

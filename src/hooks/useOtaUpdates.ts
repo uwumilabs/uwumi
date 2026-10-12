@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import * as Application from 'expo-application';
 import { OTAUpdateManager } from 'react-native-nitro-ota';
 import { EXTERNAL_LINKS } from '@/constants/config';
+import { useOtaUpdateStore } from './stores/useOtaUpdateStore';
 
 /**
  * OTA bundles are assets on the binary's own GitHub release (tag v<version>, as release-it creates it), so a
@@ -12,8 +13,9 @@ export const otaAssetUrl = (appVersion: string, name: string) =>
   `${EXTERNAL_LINKS.GITHUB_REPOSITORY}/releases/download/v${appVersion}/${name}`;
 
 /**
- * Silent OTA updates: once the app has rendered, confirm the running bundle and download any newer one
- * for this binary. It takes effect on the next launch, so playback or reading is never interrupted.
+ * OTA updates: once the app has rendered, confirm the running bundle and download any newer one for this
+ * binary, reporting progress to useOtaUpdateStore (shown by OtaUpdateToast). It takes effect on the next
+ * launch unless the user restarts from the toast, so playback or reading is never interrupted.
  */
 export function useOtaUpdates(isAppReady: boolean) {
   useEffect(() => {
@@ -34,6 +36,7 @@ export function useOtaUpdates(isAppReady: boolean) {
       console.warn(`OTA: rolled back ${record.fromVersion} -> ${record.toVersion} (${record.reason})`),
     );
 
+    const { setDownloading, setPercent, setReady, reset } = useOtaUpdateStore.getState();
     let cancelled = false;
     (async () => {
       try {
@@ -41,9 +44,20 @@ export function useOtaUpdates(isAppReady: boolean) {
         // No metadata means the response wasn't our manifest: nitro-ota reads an error page such as GitHub's
         // "Not Found" (no OTA for this version yet, or mid-publish) as a new version
         if (cancelled || !update?.metadata || !update.hasUpdate || !update.isCompatible) return;
-        await manager.downloadUpdate();
+        setDownloading();
+        let lastPercent = -1;
+        await manager.downloadUpdate((received, total) => {
+          if (total <= 0) return;
+          const percent = Math.floor((received / total) * 100);
+          // A failed patch falls back to the full bundle, so this can restart from 0
+          if (percent === lastPercent) return;
+          lastPercent = percent;
+          setPercent(percent);
+        });
+        if (!cancelled) setReady();
       } catch (error) {
-        console.warn('OTA: update check failed', error);
+        reset();
+        console.warn('OTA: update failed', error);
       }
     })();
 
