@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.0.0-rc.0 (2026-10-12)
+
+* chore: log release build output to files so release-it doesn't kill the hooks ([c3be3cd](https://github.com/uwumilabs/uwumi/commit/c3be3cd))
+* feat: add github-hosted ota updates and upgrade mmkv to v4 ([1b0af51](https://github.com/uwumilabs/uwumi/commit/1b0af51))
+* feat(home): replace media tabs with carousels, "See more" and a search screen ([a26cfb5](https://github.com/uwumilabs/uwumi/commit/a26cfb5))
+* feat(info): make the info screen one scrolling page, with native progress bars ([56107c2](https://github.com/uwumilabs/uwumi/commit/56107c2))
+* refactor(components): group native views under components/native and drop "Custom" names ([ef4f449](https://github.com/uwumilabs/uwumi/commit/ef4f449))
+
 ## 3.12.0 (2026-10-10)
 
 * feat: keep android native config alive across expo prebuild ([36a742c](https://github.com/uwumilabs/uwumi/commit/36a742c))
