@@ -9,13 +9,12 @@ export { MediaBrowser } from './MediaBrowser';
 export { EpisodeList, WavyAnimation } from './episode-list';
 
 // UI Components
-export { CustomImage, AnimatedCustomImage } from './CustomImage';
-export { CustomFlashlist } from './CustomFlashlist';
-export { CustomSelect } from './CustomSelect';
-export { CustomSheet, CustomSheetProvider } from './CustomSheet';
-export { CustomDialog } from './CustomDialog';
-export { VideoSheet, VideoSlider } from './video';
-export { Progress } from './Progress';
+export { Image, AnimatedImage } from './Image';
+export { List } from './List';
+export { Select } from './Select';
+
+// Native-view components (@expo/ui SwiftUI / Jetpack Compose)
+export { BottomSheet, BottomSheetProvider, Dialog, Progress, Slider } from './native';
 export {
   IoniconsIcon,
   IoniconProps,

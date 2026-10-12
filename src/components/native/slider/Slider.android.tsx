@@ -1,8 +1,8 @@
 import React, { useRef } from 'react';
-import { Host, Slider } from '@expo/ui/jetpack-compose';
+import { Host, Slider as NativeSlider } from '@expo/ui/jetpack-compose';
 import type { SliderProps } from 'react-native-video-toolkit';
 
-export const VideoSlider = ({
+export const Slider = ({
   value,
   minimumValue,
   maximumValue,
@@ -19,7 +19,7 @@ export const VideoSlider = ({
 
   return (
     <Host matchContents={{ vertical: true }} style={{ width: width ?? '100%' }}>
-      <Slider
+      <NativeSlider
         value={value}
         min={minimumValue}
         max={max}

@@ -3,14 +3,14 @@ import { View, type ViewProps } from 'react-native';
 import { Host, BasicAlertDialog, Column, RNHostView, Surface } from '@expo/ui/jetpack-compose';
 import { wrapContentWidth, wrapContentHeight, clip, Shapes } from '@expo/ui/jetpack-compose/modifiers';
 
-export type CustomDialogProps = {
+export type DialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
   contentContainerProps?: ViewProps;
 };
 
-export const CustomDialog: React.FC<CustomDialogProps> = ({ open, onOpenChange, children, contentContainerProps }) => {
+export const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children, contentContainerProps }) => {
   const [visible, setVisible] = useState(open);
 
   // Sync visibility when `open` prop changes
@@ -43,4 +43,4 @@ export const CustomDialog: React.FC<CustomDialogProps> = ({ open, onOpenChange, 
   );
 };
 
-export default CustomDialog;
+export default Dialog;

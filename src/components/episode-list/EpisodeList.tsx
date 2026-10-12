@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, View, Text, TextProps } from 'react-native';
 import { FlashListRef } from '@shopify/flash-list';
 import React, { useEffect, useRef, useMemo, useState, useCallback, memo, ReactNode } from 'react';
-import CustomImage from '@/components/CustomImage';
+import Image from '@/components/Image';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, {
@@ -29,13 +29,13 @@ import EpisodeActionsSheet from './EpisodeActionsSheet';
 import { EpisodeDisplayMode, MediaType } from '@/constants/types';
 import { IAnimeEpisode, IMovieSeason, IMovieEpisode, MediaFormat, TvType } from 'react-native-consumet';
 import { formatTime, isTV } from '@/constants/utils';
-import CustomSelect from '../CustomSelect';
+import Select from '../Select';
 import { useProviders, useProviderStore } from '@/constants/provider';
-import CustomFlashlist from '../CustomFlashlist';
+import List from '../List';
 import { HUYStack, HUXStack, RippleButton } from '../ui-primitives';
 import TVFocusWrapper from '../TVFocusWrapper';
 import { Button, Card, cn } from 'heroui-native';
-import Progress from '../Progress';
+import Progress from '../native/progress/Progress';
 import { IoniconsIcon, MaterialIconsIcon } from '../Icons';
 
 const LoadingState = () => {
@@ -434,7 +434,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
             currentUniqueId === item?.uniqueId && 'border-2 border-default',
           )}>
           <View className="relative overflow-hidden rounded-xl">
-            <CustomImage
+            <Image
               source={typeof item?.image === 'string' ? item.image : (item?.image?.hd ?? '')}
               style={{ width: 160, height: 107 }}
               // className="pl-1.5"
@@ -612,7 +612,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
 
   return (
     <>
-      <CustomFlashlist<IAnimeEpisode | IMovieEpisode>
+      <List<IAnimeEpisode | IMovieEpisode>
         key={listKey}
         ref={flashListRef}
         data={isLoading ? [] : episodes}
@@ -624,7 +624,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
             {header}
             <HUXStack className="w-full flex-wrap items-center justify-center gap-5 px-4 py-2">
               {swipeable && (
-                <CustomSelect
+                <Select
                   SelectItem={mediaType === MediaType.ANIME ? providers.anime : providers.movie}
                   SelectLabel="Provider"
                   value={providerToUse}
@@ -632,7 +632,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
                 />
               )}
               {movieSeasons && type !== TvType.MOVIE && (
-                <CustomSelect
+                <Select
                   SelectItem={
                     movieSeasons?.map((_: any, index: number): { name: string; value: string } => ({
                       name: `Season ${index + 1}`,
@@ -648,7 +648,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
                 />
               )}
               {servers && servers.length > 0 && !swipeable && (
-                <CustomSelect
+                <Select
                   SelectItem={servers.map((server) => ({ name: server.name, value: server.name })) || []}
                   SelectLabel="Servers"
                   value={currentServer?.name || ''}

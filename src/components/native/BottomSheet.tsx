@@ -1,15 +1,15 @@
 import React, { forwardRef, useCallback, useImperativeHandle } from 'react';
 import { Platform, ScrollView, View, useWindowDimensions, type ViewProps } from 'react-native';
-import { BottomSheet, RNHostView, type SnapPoint } from '@expo/ui';
+import { BottomSheet as NativeBottomSheet, RNHostView, type SnapPoint } from '@expo/ui';
 import { LayoutAnimationConfig } from 'react-native-reanimated';
 import { useCurrentTheme, useSheetColor } from '@/hooks';
 
-export type CustomSheetRef = {
+export type BottomSheetRef = {
   present: () => void;
   dismiss: () => void;
 };
 
-export type CustomSheetProps = {
+export type BottomSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 
@@ -36,7 +36,7 @@ function toSnapPoint(point: string | number): SnapPoint {
   return { height: Number(point) };
 }
 
-export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
+export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
   ({ open, onOpenChange, snapPoints, header, children, scrollable = true, contentContainerProps }, ref) => {
     const theme = useCurrentTheme();
     const sheetColor = useSheetColor();
@@ -49,7 +49,7 @@ export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
     useImperativeHandle(ref, () => ({ present, dismiss }), [present, dismiss]);
 
     return (
-      <BottomSheet
+      <NativeBottomSheet
         isPresented={open}
         onDismiss={dismiss}
         snapPoints={snapPoints?.map(toSnapPoint)}
@@ -66,6 +66,7 @@ export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
               {scrollable ? (
                 <ScrollView
                   style={{ maxHeight: 500 }}
+                  showsVerticalScrollIndicator={false}
                   contentContainerStyle={{ paddingBottom: 16 }}
                   keyboardShouldPersistTaps="handled"
                   {...(contentContainerProps as any)}>
@@ -77,13 +78,13 @@ export const CustomSheet = forwardRef<CustomSheetRef, CustomSheetProps>(
             </View>
           </LayoutAnimationConfig>
         </RNHostView>
-      </BottomSheet>
+      </NativeBottomSheet>
     );
   },
 );
 
-CustomSheet.displayName = 'CustomSheet';
+BottomSheet.displayName = 'BottomSheet';
 
-export const CustomSheetProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const BottomSheetProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };

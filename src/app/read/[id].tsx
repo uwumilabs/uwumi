@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { ThemedView, NoResults, CustomImage } from '@/components';
+import { ThemedView, NoResults, Image } from '@/components';
 import { useLocalSearchParams } from 'expo-router';
 import { useMangaChapterRead } from '@/hooks';
 import { FlashList } from '@shopify/flash-list';
@@ -19,7 +19,7 @@ const Read = () => {
   const renderItem = useCallback(
     ({ item }: { item: { img: string } }) => (
       <View className="my-2">
-        <CustomImage
+        <Image
           source={{ uri: item?.img }}
           style={{
             width: width,

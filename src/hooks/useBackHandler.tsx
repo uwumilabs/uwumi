@@ -7,7 +7,7 @@ import { BackHandler } from 'react-native';
  * Should return `true` to prevent the default back behavior, or `false` to allow it.
  */
 
-export const useCustomBackHandler = (enabled: boolean, onBackPress: () => boolean) => {
+export const useBackHandler = (enabled: boolean, onBackPress: () => boolean) => {
   const onBackPressRef = useRef(onBackPress);
 
   useEffect(() => {

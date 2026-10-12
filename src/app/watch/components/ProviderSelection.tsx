@@ -1,7 +1,7 @@
 import { View, Text } from 'react-native';
 import React, { useState } from 'react';
 import { Button, Card, cn } from 'heroui-native';
-import { HUXStack, IoniconsIcon, CustomDialog } from '@/components';
+import { HUXStack, IoniconsIcon, Dialog } from '@/components';
 import { useProviders, useProviderStore } from '@/constants/provider';
 import { useLocalSearchParams } from 'expo-router';
 import { WatchSearchParams, MediaType } from '@/constants/types';
@@ -37,7 +37,7 @@ const ProviderSelection = () => {
       <Button variant="secondary" onPress={() => setOpen(true)}>
         Provider Selection
       </Button>
-      <CustomDialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={setOpen}>
         <View className={cn(pureBlackBackground && 'bg-black', 'w-full')}>
           <HUXStack className="items-center justify-between px-4 mb-2">
             <Text className="text-lg font-bold text-foreground">Provider Selection</Text>
@@ -120,7 +120,7 @@ const ProviderSelection = () => {
             </Card.Body>
           </Card>
         </View>
-      </CustomDialog>
+      </Dialog>
     </View>
   );
 };

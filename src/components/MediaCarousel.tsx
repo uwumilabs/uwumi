@@ -9,7 +9,7 @@ import { MediaCard, MediaItem, cardKey, toCardItems } from './CardList';
 import { HUXStack } from './ui-primitives';
 import { IoniconsIcon } from './Icons';
 import TVFocusWrapper from './TVFocusWrapper';
-import CustomFlashlist from './CustomFlashlist';
+import List from './List';
 
 const MAX_ITEMS = 10;
 const ROW_PADDING = 12;
@@ -83,9 +83,9 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
       }
 
       return (
-        // CustomFlashlist fills its parent's height, so the row needs an explicit one
+        // List fills its parent's height, so the row needs an explicit one
         <View style={{ height: rowHeight }}>
-          <CustomFlashlist<MediaItem>
+          <List<MediaItem>
             horizontal
             data={items}
             keyExtractor={(item, index) => (item.id != null ? cardKey(item) : `fallback-${index}`)}

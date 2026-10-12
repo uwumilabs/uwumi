@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { CustomImage, RippleButton, HUYStack, HUXStack, IoniconsIcon, ThemedView } from '@/components';
+import { Image, RippleButton, HUYStack, HUXStack, IoniconsIcon, ThemedView } from '@/components';
 import { useUpdateChecker } from '@/hooks/useUpdateChecker';
 import { openBrowserAsync } from 'expo-web-browser';
 import { EXTERNAL_LINKS } from '@/constants/config';
@@ -33,7 +33,7 @@ const About = () => {
       <ScrollView>
         <HUYStack className="gap-6 p-4">
           <HUYStack className="items-center gap-2">
-            <CustomImage
+            <Image
               source={require('../../../assets/images/icon.png')}
               alt="Logo"
               style={{ width: 100, height: 100, borderRadius: 20 }}

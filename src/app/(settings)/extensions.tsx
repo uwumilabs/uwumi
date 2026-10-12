@@ -3,7 +3,7 @@ import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react
 import { useExtensionStore, useCurrentTheme } from '@/hooks';
 import { isTV } from '@/constants/utils';
 import { Avatar, Button, Card, Chip, Separator, Switch } from 'heroui-native';
-import { CustomImage, CustomSheet, HUXStack, HUYStack, RippleButton, IoniconsIcon } from '@/components';
+import { Image, BottomSheet, HUXStack, HUYStack, RippleButton, IoniconsIcon } from '@/components';
 
 interface ExtensionCardProps {
   extension: any;
@@ -54,7 +54,7 @@ function ExtensionCard({
               <Avatar size="md" variant="soft" color="default" alt={`${extension?.name ?? 'Extension'} logo`}>
                 {!!extension.logo && (
                   <Avatar.Image source={{ uri: extension.logo }} asChild>
-                    <CustomImage style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                    <Image style={{ width: '100%', height: '100%' }} contentFit="cover" />
                   </Avatar.Image>
                 )}
                 <Avatar.Fallback>
@@ -174,7 +174,7 @@ function ExtensionDetailsSheet({
   if (!extension) return null;
 
   return (
-    <CustomSheet
+    <BottomSheet
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) onClose();
@@ -187,7 +187,7 @@ function ExtensionDetailsSheet({
           <Avatar size="lg" variant="soft" color="default" alt={`${extension?.name ?? 'Extension'} logo`}>
             {!!extension.logo && (
               <Avatar.Image source={{ uri: extension.logo }} asChild>
-                <CustomImage style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                <Image style={{ width: '100%', height: '100%' }} contentFit="cover" />
               </Avatar.Image>
             )}
             <Avatar.Fallback>
@@ -300,7 +300,7 @@ function ExtensionDetailsSheet({
           </HUYStack>
         )}
       </View>
-    </CustomSheet>
+    </BottomSheet>
   );
 }
 

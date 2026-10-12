@@ -1,20 +1,20 @@
-import { Image, ImageStyle } from 'expo-image';
+import { Image as ExpoImage, ImageStyle } from 'expo-image';
 import React, { forwardRef } from 'react';
 import { StyleProp } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-type CustomImageProps = {
+type ImageProps = {
   source: string | { uri: string; width?: number; height?: number };
   style?: StyleProp<ImageStyle>;
   [key: string]: any;
 };
 
-export const CustomImage = forwardRef<Image, CustomImageProps>((props, ref) => {
+export const Image = forwardRef<ExpoImage, ImageProps>((props, ref) => {
   const { source, style, cachePolicy = 'memory-disk', ...rest } = props;
   const imageSource = typeof source === 'string' ? { uri: source } : source;
 
   return (
-    <Image
+    <ExpoImage
       ref={ref}
       source={imageSource}
       cachePolicy="memory-disk"
@@ -26,9 +26,9 @@ export const CustomImage = forwardRef<Image, CustomImageProps>((props, ref) => {
   );
 });
 
-CustomImage.displayName = 'CustomImage';
+Image.displayName = 'Image';
 
 // Create animated version of the forwarded ref component
-export const AnimatedCustomImage = Animated.createAnimatedComponent(CustomImage);
+export const AnimatedImage = Animated.createAnimatedComponent(Image);
 
-export default CustomImage;
+export default Image;

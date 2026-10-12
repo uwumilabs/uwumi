@@ -1,14 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ThemedView,
-  CustomFlashlist,
-  HUXStack,
-  HUYStack,
-  Progress,
-  IconTitle,
-  IoniconsIcon,
-  RippleButton,
-} from '@/components';
+import { ThemedView, List, HUXStack, HUYStack, Progress, IconTitle, IoniconsIcon, RippleButton } from '@/components';
 import { useDownloadStore, usePureBlackBackground, useSheetColor, useCurrentTheme } from '@/hooks';
 import { formatTime } from '@/constants/utils';
 import { ActivityIndicator, Text } from 'react-native';
@@ -510,7 +501,7 @@ const Downloads = () => {
       <Separator />
 
       {/* Downloads List */}
-      <CustomFlashlist
+      <List
         data={[
           ...(groupedDownloads.downloading.length > 0
             ? [{ type: 'header' as const, title: 'Downloading', count: groupedDownloads.downloading.length }]

@@ -4,7 +4,7 @@ import { NoResults } from './ui-primitives';
 import { View } from 'react-native';
 import { isTV } from '@/constants/utils';
 
-export const CustomFlashlist = forwardRef(<T,>(props: FlashListProps<T>, ref: React.Ref<FlashListRef<T>>) => {
+export const List = forwardRef(<T,>(props: FlashListProps<T>, ref: React.Ref<FlashListRef<T>>) => {
   const hasData = props.data && props.data.length > 0;
   return (
     <View className="h-full">
@@ -21,4 +21,4 @@ export const CustomFlashlist = forwardRef(<T,>(props: FlashListProps<T>, ref: Re
   );
 }) as <T>(props: FlashListProps<T> & { ref?: React.Ref<FlashListRef<T>> }) => React.ReactElement;
 
-export default CustomFlashlist;
+export default List;

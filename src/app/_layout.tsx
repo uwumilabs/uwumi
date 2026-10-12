@@ -18,16 +18,23 @@ import { Button, Dialog, HeroUINativeProvider } from 'heroui-native';
 import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
 import '../../global.css';
 import { useUniwind } from 'uniwind';
-import { CustomSheetProvider, IoniconsIcon, VideoSheet, VideoSlider } from '@/components';
+import { BottomSheet, BottomSheetProvider, IoniconsIcon, Slider } from '@/components';
 import { themes } from '@/themes/theme';
-import { VideoProvider, defaultTheme } from 'react-native-video-toolkit';
+import { VideoProvider, defaultTheme, type SheetProps } from 'react-native-video-toolkit';
 import RNOrientationDirector, { Orientation } from 'react-native-orientation-director';
 import { isTV, isTVOS } from '@/constants/utils';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 // TV keeps the toolkit's defaults: a side-panel menu and a D-pad friendly slider.
-const videoComponents = isTV || isTVOS ? undefined : { Sheet: VideoSheet, Slider: VideoSlider };
+// The player's settings menu opens in the app's native bottom sheet
+const VideoSheet = ({ open, onOpenChange, children, style }: SheetProps) => (
+  <BottomSheet open={open} onOpenChange={onOpenChange}>
+    <View style={[{ width: '100%' }, style]}>{children}</View>
+  </BottomSheet>
+);
+
+const videoComponents = isTV || isTVOS ? undefined : { Sheet: VideoSheet, Slider };
 
 // Storage Permission Utility using native module
 export const requestPermission = async (): Promise<boolean> => {
@@ -198,7 +205,7 @@ const AppContent = () => {
             stylingPrinciples: false,
           },
         }}>
-        <CustomSheetProvider>
+        <BottomSheetProvider>
           <ThemeProvider value={navigationTheme}>
             <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
               <Stack.Screen name="(tabs)" />
@@ -211,7 +218,7 @@ const AppContent = () => {
               <Stack.Screen name="+not-found" />
             </Stack>
           </ThemeProvider>
-        </CustomSheetProvider>
+        </BottomSheetProvider>
         {isUpdateAvailable && (
           <DownloadDialog
             currentVersion={updateInfo.currentVersion}

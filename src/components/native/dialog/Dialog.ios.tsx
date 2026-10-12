@@ -1,10 +1,10 @@
 import React from 'react';
-import { CustomSheet } from './CustomSheet';
-import type { CustomDialogProps } from './CustomDialog';
+import { BottomSheet } from '../BottomSheet';
+import type { DialogProps } from './Dialog';
 
 // No universal dialog exists and SwiftUI's Alert can't host custom content, so iOS presents a sheet.
-export const CustomDialog: React.FC<CustomDialogProps> = ({ open, onOpenChange, children, contentContainerProps }) => (
-  <CustomSheet
+export const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children, contentContainerProps }) => (
+  <BottomSheet
     open={open}
     onOpenChange={onOpenChange}
     scrollable={false}
@@ -13,7 +13,7 @@ export const CustomDialog: React.FC<CustomDialogProps> = ({ open, onOpenChange, 
       style: [{ alignItems: 'center' }, contentContainerProps?.style],
     }}>
     {children}
-  </CustomSheet>
+  </BottomSheet>
 );
 
-export default CustomDialog;
+export default Dialog;

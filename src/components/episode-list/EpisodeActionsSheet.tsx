@@ -15,7 +15,7 @@ import { useProviderStore } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { HUXStack, HUYStack, RippleButton } from '../ui-primitives';
 import { Separator } from 'heroui-native';
-import { CustomSheet } from '../CustomSheet';
+import { BottomSheet } from '../native/BottomSheet';
 import { IoniconsIcon } from '../Icons';
 import { useToast } from 'heroui-native';
 
@@ -391,7 +391,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const shouldShowBack = showQualitySelection || showServerSelection;
 
     return (
-      <CustomSheet open={open} onOpenChange={onOpenChange} snapPoints={snapPoints}>
+      <BottomSheet open={open} onOpenChange={onOpenChange} snapPoints={snapPoints}>
         {episode ? (
           <HUYStack className="gap-2 px-4">
             {/* Header */}
@@ -509,7 +509,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
             )}
           </HUYStack>
         ) : null}
-      </CustomSheet>
+      </BottomSheet>
     );
   },
 );

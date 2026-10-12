@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from './LinearGradient';
-import { AnimatedCustomImage } from './CustomImage';
+import { AnimatedImage } from './Image';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
 import { IAnimeResult, IMovieResult, ISearch } from 'react-native-consumet';
 import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
@@ -12,7 +12,7 @@ import { HUXStack, HUYStack, NoResults } from './ui-primitives';
 import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch } from '@/hooks';
 import { useCardGridDimensions } from '@/hooks/useCardGridDimensions';
 import { DEFAULT_PROVIDERS, useProviderStore } from '@/constants/provider';
-import CustomFlashlist from './CustomFlashlist';
+import List from './List';
 import { Card, SkeletonGroup } from 'heroui-native';
 import TVFocusWrapper from './TVFocusWrapper';
 
@@ -136,7 +136,7 @@ export const MediaCard: React.FC<MediaCardProps> = memo(
           // Height comes from the aspect ratio alone; flex-1 let FlashList's horizontal cells collapse it to 0
           className={`w-full rounded-lg overflow-hidden p-0 ${isTV ? 'aspect-[2/3.2]' : 'aspect-2/3'}`}>
           <Card.Body className="w-full h-full p-0 relative">
-            <AnimatedCustomImage
+            <AnimatedImage
               source={{ uri: item.image }}
               style={{ borderRadius: 10, zIndex: 0 }}
               width="100%"
@@ -222,7 +222,7 @@ export const CardList: React.FC<CardListProps> = ({
   }
 
   return (
-    <CustomFlashlist<MediaItem>
+    <List<MediaItem>
       key={`${grid.screenWidth}-${mediaType}-${mediaFeedType}-${grid.numColumns}`}
       data={filteredItems}
       renderItem={({ item, index }) => (

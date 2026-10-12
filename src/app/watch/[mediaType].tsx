@@ -14,7 +14,7 @@ import {
   useWatchMoviesEpisodes,
   useServerStore,
   useExternalSubtitles,
-  useCustomBackHandler,
+  useBackHandler,
   useMediaInfoStore,
 } from '@/hooks';
 import { useToast } from 'heroui-native';
@@ -220,7 +220,7 @@ const Watch = () => {
   });
   // console.log('externalSubtitles', externalSubtitles, isExternalSubtitlesLoading, isExternalSubtitlesError);
 
-  useCustomBackHandler(fullscreen, () => {
+  useBackHandler(fullscreen, () => {
     // If in fullscreen, exit fullscreen instead of going back
     if (fullscreen) {
       exitFullscreen();

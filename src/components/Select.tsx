@@ -1,10 +1,10 @@
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import { Button } from 'heroui-native';
 import { Text, View } from 'react-native';
-import { useCustomBackHandler, useCurrentTheme, useSheetColor } from '@/hooks';
+import { useBackHandler, useCurrentTheme, useSheetColor } from '@/hooks';
 import { IoniconsIcon } from './Icons';
 import { isTV, tvFocusRingStyle } from '@/constants/utils';
-import { CustomSheet } from './CustomSheet';
+import { BottomSheet } from './native/BottomSheet';
 import { RippleButton } from './ui-primitives';
 
 type SelectOption = {
@@ -12,7 +12,7 @@ type SelectOption = {
   value: string;
 };
 
-export const CustomSelect = ({
+export const Select = ({
   SelectItem,
   SelectLabel,
   value,
@@ -40,7 +40,7 @@ export const CustomSelect = ({
     setIsOpen(open);
   };
 
-  useCustomBackHandler(
+  useBackHandler(
     isTV && isOpen,
     useCallback(() => {
       handleOpenChange(false);
@@ -72,7 +72,7 @@ export const CustomSelect = ({
         <IoniconsIcon name="chevron-down" size={20} className="text-accent-foreground" />
       </Button>
 
-      <CustomSheet open={isOpen} onOpenChange={handleOpenChange} scrollable>
+      <BottomSheet open={isOpen} onOpenChange={handleOpenChange} scrollable>
         <View className="flex-1 gap-1">
           {selectOptions.map((item) => {
             const isSelected = item.value === selectedOption?.value;
@@ -86,9 +86,9 @@ export const CustomSelect = ({
             );
           })}
         </View>
-      </CustomSheet>
+      </BottomSheet>
     </View>
   );
 };
 
-export default memo(CustomSelect);
+export default memo(Select);

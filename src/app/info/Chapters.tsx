@@ -1,4 +1,4 @@
-import { IconTitle, RippleButton, CustomSelect, CustomFlashlist, HUXStack, HUYStack } from '@/components';
+import { IconTitle, RippleButton, Select, List, HUXStack, HUYStack } from '@/components';
 import { useProviders, useProviderStore } from '@/constants/provider';
 import { MediaType } from '@/constants/types';
 import { useMangaChapters, usePureBlackBackground } from '@/hooks';
@@ -31,7 +31,7 @@ const Chapters = ({ header }: ChaptersProps) => {
     [mediaType, setProvider],
   );
   return (
-    <CustomFlashlist
+    <List
       data={isLoading ? [] : data}
       // Loading renders inside the list so `header` stays visible meanwhile
       {...(isLoading && {
@@ -50,7 +50,7 @@ const Chapters = ({ header }: ChaptersProps) => {
         <>
           {header}
           <HUXStack className="px-4 p-2 gap-1.5 items-center justify-center">
-            <CustomSelect
+            <Select
               SelectItem={providers.manga}
               SelectLabel="Provider"
               value={currentProvider}

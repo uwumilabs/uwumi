@@ -8,8 +8,8 @@ import Animated from 'react-native-reanimated';
 import { Button, Chip, ScrollShadow } from 'heroui-native';
 import { IAnimeInfo, IMovieInfo } from 'react-native-consumet';
 import {
-  AnimatedCustomImage,
-  CustomImage,
+  AnimatedImage,
+  Image,
   HUXStack,
   HUYStack,
   IconTitle,
@@ -108,7 +108,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
     <View>
       <View className="h-75 relative" focusable={isTV ? false : undefined}>
         <View className="absolute inset-0 h-75 w-full" focusable={isTV ? false : undefined}>
-          <CustomImage source={{ uri: data?.cover }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+          <Image source={{ uri: data?.cover }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         </View>
         <View className="h-75 absolute inset-0 z-10" focusable={isTV ? false : undefined}>
           <LinearGradient
@@ -149,7 +149,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
           </HUXStack>
 
           <HUXStack className="gap-2.5 items-center" props={{ focusable: isTV ? false : undefined }}>
-            <AnimatedCustomImage
+            <AnimatedImage
               sharedTransitionTag={`shared-image-${transitionTag}`}
               source={{ uri: image }}
               style={{ width: 115, height: 163 }}
