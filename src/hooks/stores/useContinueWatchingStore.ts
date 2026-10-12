@@ -12,6 +12,7 @@ export interface ContinueWatchingEntry {
   showTitle: string;
   showImage?: string;
   uniqueId: string;
+  hasNextEpisode?: boolean;
   watchParams: Record<string, string>;
   infoParams: Record<string, string>;
   updatedAt: number;

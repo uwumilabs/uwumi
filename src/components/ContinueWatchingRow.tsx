@@ -88,14 +88,17 @@ export const ContinueWatchingRow = memo(({ mediaType }: { mediaType: MediaType }
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = (screenWidth - ROW_PADDING - ITEM_GAP * Math.floor(CARDS_PER_SCREEN)) / CARDS_PER_SCREEN;
 
-  // A finished movie has nothing left to continue
+  // Nothing left to continue after a finished movie or an anime's last episode
   const items = useMemo(
     () =>
       entries
         .filter(
           (entry) =>
             entry.mediaType === mediaType &&
-            !(entry.watchParams.type === TvType.MOVIE && progresses[entry.uniqueId]?.isCompleted),
+            !(
+              progresses[entry.uniqueId]?.isCompleted &&
+              (entry.watchParams.type === TvType.MOVIE || entry.hasNextEpisode === false)
+            ),
         )
         .slice(0, MAX_ITEMS),
     [entries, mediaType, progresses],

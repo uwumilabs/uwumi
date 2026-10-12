@@ -20,7 +20,7 @@ import {
 } from '@/hooks';
 import { useToast } from 'heroui-native';
 import { useProviders, useProviderStore, useActiveProvider, META_PROVIDERS } from '@/constants/provider';
-import { SUB_LANGUAGE } from '@/constants/config';
+import { constants, SUB_LANGUAGE } from '@/constants/config';
 import { useProviderSelectionStore } from './components';
 import {
   VideoPlayer,
@@ -233,7 +233,7 @@ const Watch = () => {
   });
 
   const lastProgressUpdateRef = useRef({ currentTime: 0, seekableDuration: 0 });
-  const recordedUniqueIdRef = useRef<string | null>(null);
+  const recordedEpisodeRef = useRef<string | null>(null);
 
   // Puts this show at the front of Continue watching. The info page's media info is only there when it's
   // underneath (not when resuming from home), so the store keeps the title and image from an earlier record.
@@ -256,6 +256,9 @@ const Watch = () => {
       showTitle,
       showImage,
       uniqueId,
+      // Anime lists hold the whole series; a TV show's only holds the current season
+      hasNextEpisode:
+        mediaType === MediaType.ANIME && adjacentEpisodes.currentIndex >= 0 ? adjacentEpisodes.hasNext : undefined,
       watchParams: params,
       infoParams: {
         mediaType,
@@ -275,6 +278,7 @@ const Watch = () => {
     recordContinueWatching,
     mediaType,
     uniqueId,
+    adjacentEpisodes,
     currentProvider,
     provider,
     type,
@@ -296,16 +300,14 @@ const Watch = () => {
       if (uniqueId && newDuration > 0 && Math.floor(newTime) % 5 === 0) {
         // Save every 5 seconds
         const savedProgress = getProgress(uniqueId);
+        const progress = (newTime / newDuration) * 100;
         if (!savedProgress || newTime > (savedProgress.currentTime ?? 0)) {
-          const progressToSave = {
-            currentTime: newTime,
-            duration: newDuration,
-            progress: (newTime / newDuration) * 100,
-          };
-          setProgress(uniqueId, progressToSave);
+          setProgress(uniqueId, { currentTime: newTime, duration: newDuration, progress });
         }
-        if (recordedUniqueIdRef.current !== uniqueId) {
-          recordedUniqueIdRef.current = uniqueId;
+        // Again on finishing, by when the episode list (and so whether there's a next one) has loaded
+        const recordKey = `${uniqueId}:${progress >= constants.PROGRESS_COMPLETION_PERCENTAGE}`;
+        if (recordedEpisodeRef.current !== recordKey) {
+          recordedEpisodeRef.current = recordKey;
           rememberEpisode();
         }
       }

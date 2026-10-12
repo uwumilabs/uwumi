@@ -11,7 +11,7 @@ export const Progress: React.FC<ProgressProps> = ({ value = 0, className, minTra
   const progress = Math.max(0, Math.min(100, value)) / 100;
 
   return (
-    <View className={cn('w-full', className)}>
+    <View className={cn('self-stretch', className)}>
       <Host matchContents={{ vertical: true }} style={{ width: '100%' }}>
         <LinearProgressIndicator
           progress={progress}

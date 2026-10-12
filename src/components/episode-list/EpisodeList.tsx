@@ -340,17 +340,18 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     return episodes.findIndex((episode: IAnimeEpisode | IMovieEpisode) => episode.uniqueId === currentUniqueId);
   }, [episodes, currentUniqueId]);
 
-  // Where "Continue" points: the episode being watched, else the furthest one with progress (or the one after it if
-  // that one is finished). No progress, no chip.
+  // Where "Continue" points: the episode being watched, else the furthest one with progress, or the one after it if
+  // that one is finished. No chip without progress, or once the last episode is finished.
   const continueIndex = useMemo(() => {
     if (autoScrollToCurrent) return -1;
-    const current = currentEpisodeIndex();
-    if (current >= 0) return current;
-    for (let i = episodes.length - 1; i >= 0; i--) {
-      const progress = progresses[episodes[i].uniqueId as string];
-      if (progress) return progress.isCompleted && i < episodes.length - 1 ? i + 1 : i;
+    let index = currentEpisodeIndex();
+    if (index < 0) {
+      index = episodes.length - 1;
+      while (index >= 0 && !progresses[episodes[index].uniqueId as string]) index--;
     }
-    return -1;
+    if (index < 0) return -1;
+    if (!progresses[episodes[index].uniqueId as string]?.isCompleted) return index;
+    return index < episodes.length - 1 ? index + 1 : -1;
   }, [autoScrollToCurrent, currentEpisodeIndex, episodes, progresses]);
   const continueEpisode = continueIndex >= 0 ? episodes[continueIndex] : undefined;
 
