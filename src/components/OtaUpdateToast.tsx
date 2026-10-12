@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { reloadApp } from 'react-native-nitro-ota';
 import { Toast, useToast, type ToastComponentProps } from 'heroui-native';
-import { useOtaUpdateStore } from '@/hooks';
+import { useHasActiveDownloads, useOtaUpdateStore } from '@/hooks';
 import { Progress } from './native';
 import { HUXStack, HUYStack } from './ui-primitives';
 
@@ -11,6 +11,7 @@ const OtaUpdateToastContent = (props: ToastComponentProps) => {
   const status = useOtaUpdateStore((state) => state.status);
   const percent = useOtaUpdateStore((state) => state.percent);
   const isReady = status === 'ready';
+  const hasActiveDownloads = useHasActiveDownloads();
 
   return (
     <Toast {...props}>
@@ -18,14 +19,16 @@ const OtaUpdateToastContent = (props: ToastComponentProps) => {
         <HUYStack className="flex-1 gap-0.5">
           <Toast.Title>{isReady ? 'Update ready' : 'Downloading update'}</Toast.Title>
           <Toast.Description>
-            {isReady
-              ? 'Restart to apply it now, or it applies next launch'
-              : percent === null
+            {!isReady
+              ? percent === null
                 ? 'Starting…'
-                : `${percent}%`}
+                : `${percent}%`
+              : hasActiveDownloads
+                ? 'Applies next launch, or restart from About once downloads finish'
+                : 'Restart to apply it now, or it applies next launch'}
           </Toast.Description>
         </HUYStack>
-        {isReady && <Toast.Action onPress={() => reloadApp()}>Restart</Toast.Action>}
+        {isReady && !hasActiveDownloads && <Toast.Action onPress={() => reloadApp()}>Restart</Toast.Action>}
       </HUXStack>
       {!isReady && <Progress className="mt-3" value={percent ?? 0} />}
     </Toast>

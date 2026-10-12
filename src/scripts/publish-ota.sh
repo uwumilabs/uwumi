@@ -13,6 +13,9 @@
 # Each publish replaces the manifest and full zip and drops older patches, so the release only ever holds
 # the latest OTA. Versions are <version>-ota.<n>, counting up per binary version.
 #
+# The manifest's asset label carries its version, and the last build published from this machine is kept in
+# node_modules/.cache/uwumi-ota as the patch base, so a publish normally downloads nothing from the release.
+#
 # Needs GITHUB_TOKEN with write access to releases (the token release-it uses); --dry-run works without it.
 #
 # Only publish JS-only changes: the bundle must work with the native code already in the installed
@@ -63,12 +66,13 @@ if [[ -n "$(git status --porcelain)" ]]; then
   echo -e "${YELLOW}⚠️  Uncommitted changes will be included in the OTA bundle.${NC}"
 fi
 
-# curl against the GitHub API, authenticated when GITHUB_TOKEN is set
+# curl against the GitHub API, authenticated when GITHUB_TOKEN is set. The connect timeout matters on networks
+# that drop one of GitHub's CDN addresses: curl gives each address half of it before trying the next.
 github() {
   if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-    curl -fsSL -H "X-GitHub-Api-Version: 2022-11-28" -H "Authorization: Bearer ${GITHUB_TOKEN}" "$@"
+    curl -fsSL --connect-timeout 10 -H "X-GitHub-Api-Version: 2022-11-28" -H "Authorization: Bearer ${GITHUB_TOKEN}" "$@"
   else
-    curl -fsSL -H "X-GitHub-Api-Version: 2022-11-28" "$@"
+    curl -fsSL --connect-timeout 10 -H "X-GitHub-Api-Version: 2022-11-28" "$@"
   fi
 }
 # Prints a dotted field of the JSON on stdin, or nothing when it's missing
@@ -89,6 +93,7 @@ if [[ "$(json draft <<<"$RELEASE_JSON")" != false ]]; then
   exit 1
 fi
 RELEASE_ID="$(json id <<<"$RELEASE_JSON")"
+CACHE_ROOT="$ROOT_DIR/node_modules/.cache/uwumi-ota/${TAG}"
 
 # Read fresh on every call: the release's asset list changes as this script swaps files in
 asset_id() {
@@ -106,25 +111,37 @@ upload_asset() {
 # GitHub can't overwrite an asset, so upload under a temporary name and rename it over the old one:
 # the asset is only missing for the instant between the delete and the rename
 replace_asset() {
-  local name="$1" file="$2" type="$3" id new_id
+  local name="$1" file="$2" type="$3" label="${4:-}" id new_id
   id="$(asset_id "next-${name}")"
   [[ -z "$id" ]] || delete_asset "$id"
   new_id="$(upload_asset "next-${name}" "$file" "$type")"
   id="$(asset_id "$name")"
   [[ -z "$id" ]] || delete_asset "$id"
-  github -X PATCH -H "Content-Type: application/json" -d "{\"name\":\"${name}\"}" \
+  github -X PATCH -H "Content-Type: application/json" -d "{\"name\":\"${name}\",\"label\":\"${label}\"}" \
     "$API/releases/assets/${new_id}" >/dev/null
 }
 
 # <version>-ota.<n>: one past the highest n published for this binary on any platform, so publishing
 # both platforms together gives them the same number. Each platform's manifest asset id is kept to
-# detect a publish landing while this one runs.
+# detect a publish landing while this one runs, and its version to check the cached patch base.
+ASSETS_JSON="$(github "$API/releases/${RELEASE_ID}/assets?per_page=100")"
+asset_field() {
+  node -e '
+    const asset = JSON.parse(require("fs").readFileSync(0, "utf8")).find(({ name }) => name === process.argv[1]);
+    process.stdout.write(asset?.[process.argv[2]] ? String(asset[process.argv[2]]) : "");
+  ' "$1" "$2" <<<"$ASSETS_JSON"
+}
 LAST_OTA_NUMBER=0
 for P in android ios; do
-  ID="$(asset_id "ota-${P}.json")"
+  ID="$(asset_field "ota-${P}.json" id)"
+  PUBLISHED=""
+  if [[ -n "$ID" ]]; then
+    # Manifests uploaded before labels existed are read from the file instead
+    PUBLISHED="$(asset_field "ota-${P}.json" label)"
+    [[ -n "$PUBLISHED" ]] || PUBLISHED="$(github -H "Accept: application/octet-stream" "$API/releases/assets/${ID}" | json version)"
+  fi
   printf -v "MANIFEST_ID_${P}" '%s' "$ID"
-  [[ -n "$ID" ]] || continue
-  PUBLISHED="$(github -H "Accept: application/octet-stream" "$API/releases/assets/${ID}" | json version)"
+  printf -v "PUBLISHED_${P}" '%s' "$PUBLISHED"
   N="${PUBLISHED##*-ota.}"
   if [[ "$N" =~ ^[0-9]{1,6}$ ]] && ((10#$N > LAST_OTA_NUMBER)); then
     LAST_OTA_NUMBER=$((10#$N))
@@ -142,6 +159,8 @@ for PLATFORM in "${PLATFORMS[@]}"; do
   MANIFEST="ota-${PLATFORM}.json"
   FULL_ZIP="ota-${PLATFORM}.zip"
   MANIFEST_ID_VAR="MANIFEST_ID_${PLATFORM}"
+  PUBLISHED_VAR="PUBLISHED_${PLATFORM}"
+  CACHE_DIR="$CACHE_ROOT/$PLATFORM"
   WORK_DIR="$(mktemp -d)"
   BUNDLE_DIR="$WORK_DIR/bundle"
   PATCH_DIR="$WORK_DIR/patches"
@@ -169,9 +188,16 @@ for PLATFORM in "${PLATFORMS[@]}"; do
   PREV_ZIP_ID="$(asset_id "$FULL_ZIP")"
   if [[ -n "$PREV_ZIP_ID" ]]; then
     print_step "PATCHING ${PLATFORM} from the published OTA"
-    PREV_DIR="$WORK_DIR/previous"
-    download_asset "$PREV_ZIP_ID" "$WORK_DIR/previous.zip"
-    unzip -q "$WORK_DIR/previous.zip" -d "$PREV_DIR"
+    # The last build published from this machine, while it's still the one on the release
+    if [[ -n "${!PUBLISHED_VAR}" && -f "$CACHE_DIR/ota.version.json" &&
+      "$(json version <"$CACHE_DIR/ota.version.json")" == "${!PUBLISHED_VAR}" ]]; then
+      PREV_DIR="$CACHE_DIR"
+      echo "Patching from the cached ${!PUBLISHED_VAR} build"
+    else
+      PREV_DIR="$WORK_DIR/previous"
+      download_asset "$PREV_ZIP_ID" "$WORK_DIR/previous.zip"
+      unzip -q "$WORK_DIR/previous.zip" -d "$PREV_DIR"
+    fi
     if npx nitro-ota patch --old "$PREV_DIR" --new "$BUNDLE_DIR" --out "$PATCH_DIR" --url-base "$DOWNLOAD_BASE"; then
       # The CLI names patches <from>-<to>.zip on every platform; prefix them so both fit on one release,
       # in the manifest and in the copy of it inside each patch zip
@@ -222,7 +248,7 @@ for PLATFORM in "${PLATFORMS[@]}"; do
     KEEP_PATCHES="${KEEP_PATCHES} ${NAME}"
   done
   replace_asset "$FULL_ZIP" "$WORK_DIR/$FULL_ZIP" application/zip
-  replace_asset "$MANIFEST" "$BUNDLE_DIR/ota.version.json" application/json
+  replace_asset "$MANIFEST" "$BUNDLE_DIR/ota.version.json" application/json "$OTA_VERSION"
 
   # Older patches target versions the manifest no longer offers a patch from
   for ID in $(github "$API/releases/${RELEASE_ID}/assets?per_page=100" | node -e '
@@ -234,6 +260,9 @@ for PLATFORM in "${PLATFORMS[@]}"; do
     delete_asset "$ID"
   done
 
+  rm -rf "$CACHE_DIR"
+  mkdir -p "$CACHE_ROOT"
+  mv "$BUNDLE_DIR" "$CACHE_DIR"
   rm -rf "$WORK_DIR"
   echo -e "${GREEN}✅ ${PLATFORM}: ${OTA_VERSION} published to ${DOWNLOAD_BASE}/${MANIFEST}${NC}"
 done

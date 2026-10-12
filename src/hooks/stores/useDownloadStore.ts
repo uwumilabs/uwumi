@@ -1019,6 +1019,12 @@ export const useDownloadStore = create<DownloadState>()(
   ),
 );
 
+/** Whether a download is running or queued; restarting the app would stop it. */
+export const useHasActiveDownloads = () =>
+  useDownloadStore((state) =>
+    Object.values(state.downloads).some(({ status }) => status === 'downloading' || status === 'pending'),
+  );
+
 /*
  * USAGE EXAMPLES:
  *

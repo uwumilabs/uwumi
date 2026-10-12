@@ -6,7 +6,7 @@ import { getStoredOtaVersion, reloadApp } from 'react-native-nitro-ota';
 import { Button, Chip, ListGroup, Separator } from 'heroui-native';
 import { HUXStack, HUYStack, Image, IoniconProps, IoniconsIcon, ThemedView } from '@/components';
 import { useUpdateChecker } from '@/hooks/useUpdateChecker';
-import { runningOtaVersion, useCurrentTheme, useOtaUpdateStore } from '@/hooks';
+import { runningOtaVersion, useCurrentTheme, useHasActiveDownloads, useOtaUpdateStore } from '@/hooks';
 import { EXTERNAL_LINKS } from '@/constants/config';
 
 const COMMUNITY_LINKS: { label: string; description: string; icon: IoniconProps['name']; url: string }[] = [
@@ -61,6 +61,7 @@ const About = () => {
   const isPreRelease = appVersion.includes('-');
   const otaStatus = useOtaUpdateStore((state) => state.status);
   const otaPercent = useOtaUpdateStore((state) => state.percent);
+  const hasActiveDownloads = useHasActiveDownloads();
   // Re-read on each render (otaStatus re-renders this when a download lands)
   const downloadedOtaVersion = getStoredOtaVersion();
   const pendingOtaVersion =
@@ -140,13 +141,13 @@ const About = () => {
             {pendingOtaVersion && otaStatus !== 'downloading' && (
               <>
                 <Separator className="mx-4" />
-                <ListGroup.Item onPress={() => reloadApp()}>
+                <ListGroup.Item onPress={() => reloadApp()} disabled={hasActiveDownloads}>
                   <ListGroup.ItemPrefix>
                     <IoniconsIcon name="sparkles-outline" size={20} color={currentTheme?.foreground} />
                   </ListGroup.ItemPrefix>
                   <ListGroup.ItemContent>
                     <ListGroup.ItemTitle>Update ready</ListGroup.ItemTitle>
-                    <ListGroup.ItemDescription>{`${pendingOtaVersion} · tap to restart`}</ListGroup.ItemDescription>
+                    <ListGroup.ItemDescription>{`${pendingOtaVersion} · ${hasActiveDownloads ? 'restart once downloads finish' : 'tap to restart'}`}</ListGroup.ItemDescription>
                   </ListGroup.ItemContent>
                   <ListGroup.ItemSuffix />
                 </ListGroup.Item>
