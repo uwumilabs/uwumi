@@ -1,143 +1,159 @@
-import React, { useEffect } from 'react';
-import { Image, RippleButton, HUYStack, HUXStack, IoniconsIcon, ThemedView } from '@/components';
-import { useUpdateChecker } from '@/hooks/useUpdateChecker';
+import React, { useMemo } from 'react';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import * as Application from 'expo-application';
 import { openBrowserAsync } from 'expo-web-browser';
-import { EXTERNAL_LINKS } from '@/constants/config';
+import { getStoredOtaVersion } from 'react-native-nitro-ota';
+import { Button, Chip, ListGroup, Separator } from 'heroui-native';
+import { HUXStack, HUYStack, Image, IoniconProps, IoniconsIcon, ThemedView } from '@/components';
+import { useUpdateChecker } from '@/hooks/useUpdateChecker';
 import { useCurrentTheme } from '@/hooks';
-import { Card, Separator, useToast } from 'heroui-native';
-import { ActivityIndicator, ScrollView, Text } from 'react-native';
+import { EXTERNAL_LINKS } from '@/constants/config';
+
+const COMMUNITY_LINKS: { label: string; description: string; icon: IoniconProps['name']; url: string }[] = [
+  {
+    label: 'GitHub',
+    description: 'Source code and releases',
+    icon: 'logo-github',
+    url: EXTERNAL_LINKS.GITHUB_REPOSITORY,
+  },
+  {
+    label: 'Discord',
+    description: 'Chat with the community',
+    icon: 'logo-discord',
+    url: EXTERNAL_LINKS.DISCORD_SERVER,
+  },
+  {
+    label: 'Website',
+    description: 'uwumi-dash.netlify.app',
+    icon: 'globe-outline',
+    url: EXTERNAL_LINKS.PROJECT_WEBSITE,
+  },
+];
+
+const SectionTitle = ({ children }: { children: string }) => (
+  <Text className="px-1 text-xs font-semibold uppercase tracking-wider text-foreground/60">{children}</Text>
+);
+
+const InfoRow = ({ icon, title, value }: { icon: IoniconProps['name']; title: string; value: React.ReactNode }) => {
+  const currentTheme = useCurrentTheme();
+  return (
+    <ListGroup.Item disabled>
+      <ListGroup.ItemPrefix>
+        <IoniconsIcon name={icon} size={20} color={currentTheme?.foreground} />
+      </ListGroup.ItemPrefix>
+      <ListGroup.ItemContent>
+        <ListGroup.ItemTitle>{title}</ListGroup.ItemTitle>
+      </ListGroup.ItemContent>
+      <ListGroup.ItemSuffix>{value}</ListGroup.ItemSuffix>
+    </ListGroup.Item>
+  );
+};
 
 const About = () => {
-  const { updateInfo, isLoading, isError, checkForUpdates } = useUpdateChecker(
+  const currentTheme = useCurrentTheme();
+  const { updateInfo, isUpdateAvailable, isLoading, isError, checkForUpdates } = useUpdateChecker(
     EXTERNAL_LINKS.GITHUB_LATEST_RELEASE_API,
   );
 
-  const hasNewVersion = !updateInfo.isNewVersionPreRelease && updateInfo.newVersion !== updateInfo.currentVersion;
-  const currentTheme = useCurrentTheme();
-  const { toast } = useToast();
+  // The installed binary's version; package.json's can differ once an OTA bundle is running
+  const appVersion = Application.nativeApplicationVersion ?? updateInfo.currentVersion;
+  const buildNumber = Application.nativeBuildVersion;
+  const isPreRelease = appVersion.includes('-');
+  const otaVersion = useMemo(() => getStoredOtaVersion(), []);
 
-  // Handle error state with toast notification in useEffect to avoid side effects during render
-  useEffect(() => {
-    if (isError) {
-      toast.show({
-        variant: 'danger',
-        label: 'Unable to check for updates. Please try again later.',
-        description: `Current version: ${updateInfo.currentVersion}`,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isError, updateInfo.currentVersion]);
+  const updateStatus = isLoading ? (
+    <ActivityIndicator size="small" />
+  ) : (
+    <Text className={isError ? 'text-sm text-danger' : 'text-sm text-foreground/70'}>
+      {isError ? "Couldn't check" : isUpdateAvailable ? `v${updateInfo.newVersion} available` : 'Up to date'}
+    </Text>
+  );
 
   return (
     <ThemedView>
-      <ScrollView>
-        <HUYStack className="gap-6 p-4">
-          <HUYStack className="items-center gap-2">
-            <Image
-              source={require('../../../assets/images/icon.png')}
-              alt="Logo"
-              style={{ width: 100, height: 100, borderRadius: 20 }}
+      <ScrollView contentContainerClassName="gap-6 px-4 pb-24 pt-4" showsVerticalScrollIndicator={false}>
+        <HUYStack className="items-center gap-3">
+          <Image
+            source={require('../../../assets/images/icon.png')}
+            alt="uwumi logo"
+            style={{ width: 88, height: 88, borderRadius: 22 }}
+          />
+          <HUYStack className="items-center gap-1">
+            <Text className="text-2xl font-bold text-foreground">uwumi</Text>
+            <Text className="text-sm text-foreground/60">Anime, manga and movies in one place</Text>
+          </HUYStack>
+          <HUXStack className="gap-2">
+            <Chip size="sm">{`v${appVersion}`}</Chip>
+            {isPreRelease && (
+              <Chip size="sm" color="warning">
+                Pre-release
+              </Chip>
+            )}
+            {__DEV__ && (
+              <Chip size="sm" color="default">
+                Development
+              </Chip>
+            )}
+          </HUXStack>
+        </HUYStack>
+
+        <HUYStack className="gap-2">
+          <SectionTitle>App</SectionTitle>
+          <ListGroup>
+            <InfoRow
+              icon="phone-portrait-outline"
+              title="Version"
+              value={
+                <Text className="text-sm text-foreground/70">
+                  {buildNumber ? `${appVersion} (${buildNumber})` : appVersion}
+                </Text>
+              }
             />
-          </HUYStack>
+            <Separator className="mx-4" />
+            <InfoRow
+              icon="layers-outline"
+              title="JS bundle"
+              value={<Text className="text-sm text-foreground/70">{otaVersion ?? 'Built-in'}</Text>}
+            />
+            <Separator className="mx-4" />
+            <ListGroup.Item onPress={() => checkForUpdates()} disabled={isLoading}>
+              <ListGroup.ItemPrefix>
+                <IoniconsIcon name="refresh-outline" size={20} color={currentTheme?.foreground} />
+              </ListGroup.ItemPrefix>
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>Check for updates</ListGroup.ItemTitle>
+              </ListGroup.ItemContent>
+              <ListGroup.ItemSuffix>{updateStatus}</ListGroup.ItemSuffix>
+            </ListGroup.Item>
+          </ListGroup>
 
-          <Separator />
-          {process.env.NODE_ENV && (
-            <Card className="self-center my-2 w-64 rounded-3xl p-2">
-              <Card.Body>
-                <HUXStack className="items-center justify-center gap-2">
-                  <IoniconsIcon name="alert-outline" size={16} />
-                  <Text className="text-lg font-medium">
-                    Environment: <Text className="font-semibold capitalize text-accent">{process.env.NODE_ENV}</Text>
-                  </Text>
-                </HUXStack>
-              </Card.Body>
-            </Card>
+          {isUpdateAvailable && (
+            <Button variant="primary" onPress={() => openBrowserAsync(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE)}>
+              <IoniconsIcon name="download-outline" size={18} className="text-accent-foreground" />
+              <Button.Label>{`Download v${updateInfo.newVersion}`}</Button.Label>
+            </Button>
           )}
+        </HUYStack>
 
-          <Card className="rounded-3xl p-4">
-            <Card.Body>
-              <HUYStack className="gap-3">
-                <HUXStack className="items-center gap-2">
-                  <IoniconsIcon name="checkmark-circle-outline" size={18} />
-                  <Text className="text-xl font-semibold">Version Information</Text>
-                </HUXStack>
-
-                <HUYStack className="gap-1 pl-2">
-                  <Text className="text-foreground text-lg">Current Version</Text>
-                  {isLoading ? (
-                    <HUXStack className="items-center gap-2">
-                      <ActivityIndicator size="small" />
-                      <Text className="text-2xl font-medium">Checking for updates...</Text>
-                    </HUXStack>
-                  ) : isError ? (
-                    <Text className="text-lg font-medium text-red-500">
-                      {updateInfo.currentVersion} (Unable to check for updates)
-                    </Text>
-                  ) : (
-                    <Text className="text-lg font-medium">
-                      {updateInfo.createdAt
-                        ? `${updateInfo.currentVersion} (${new Date(updateInfo.createdAt).toLocaleDateString()})`
-                        : updateInfo.currentVersion}
-                    </Text>
-                  )}
-                </HUYStack>
-
-                {hasNewVersion && (
-                  <Card className="mt-2 rounded-2xl p-3">
-                    <Card.Body>
-                      <HUYStack className="gap-1">
-                        <HUXStack className="items-center gap-2">
-                          <IoniconsIcon name="alert-outline" size={16} />
-                          <Text className="text-base font-semibold text-foreground">Update Available</Text>
-                        </HUXStack>
-                        <Text className="text-lg font-medium">{`Version ${updateInfo.newVersion}`}</Text>
-                      </HUYStack>
-                    </Card.Body>
-                  </Card>
-                )}
-              </HUYStack>
-            </Card.Body>
-          </Card>
-
-          <HUYStack className="items-center gap-4">
-            <RippleButton onPress={() => checkForUpdates()}>
-              <HUXStack className="items-center gap-2">
-                <IoniconsIcon name="refresh-outline" size={20} />
-                <Text className="text-foreground font-semibold">Check for Updates</Text>
-              </HUXStack>
-            </RippleButton>
-            <HUXStack className="flex-wrap items-center justify-center gap-4">
-              <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.GITHUB_REPOSITORY)}>
-                <HUXStack className="items-center gap-2">
-                  <IoniconsIcon name="logo-github" size={20} />
-                  <Text className="text-foreground font-semibold">GitHub</Text>
-                </HUXStack>
-              </RippleButton>
-
-              <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.DISCORD_SERVER)}>
-                <HUXStack className="items-center gap-2">
-                  <IoniconsIcon name="logo-discord" size={20} />
-                  <Text className="text-foreground font-semibold">Discord</Text>
-                </HUXStack>
-              </RippleButton>
-
-              <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.PROJECT_WEBSITE)}>
-                <HUXStack className="items-center gap-2">
-                  <IoniconsIcon name="globe-outline" size={20} />
-                  <Text className="text-foreground font-semibold">Website</Text>
-                </HUXStack>
-              </RippleButton>
-
-              {hasNewVersion && (
-                <RippleButton onPress={() => openBrowserAsync(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE)}>
-                  <HUXStack className="items-center gap-2">
-                    <IoniconsIcon name="arrow-up-right-box-outline" size={20} />
-                    <Text className="text-foreground font-semibold">Update</Text>
-                  </HUXStack>
-                </RippleButton>
-              )}
-            </HUXStack>
-          </HUYStack>
+        <HUYStack className="gap-2">
+          <SectionTitle>Community</SectionTitle>
+          <ListGroup>
+            {COMMUNITY_LINKS.map(({ label, description, icon, url }, index) => (
+              <View key={label}>
+                {index > 0 && <Separator className="mx-4" />}
+                <ListGroup.Item onPress={() => openBrowserAsync(url)}>
+                  <ListGroup.ItemPrefix>
+                    <IoniconsIcon name={icon} size={20} color={currentTheme?.foreground} />
+                  </ListGroup.ItemPrefix>
+                  <ListGroup.ItemContent>
+                    <ListGroup.ItemTitle>{label}</ListGroup.ItemTitle>
+                    <ListGroup.ItemDescription>{description}</ListGroup.ItemDescription>
+                  </ListGroup.ItemContent>
+                  <ListGroup.ItemSuffix />
+                </ListGroup.Item>
+              </View>
+            ))}
+          </ListGroup>
         </HUYStack>
       </ScrollView>
     </ThemedView>
