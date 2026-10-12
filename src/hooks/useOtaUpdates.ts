@@ -1,14 +1,15 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as Application from 'expo-application';
-import { githubOTA, OTAUpdateManager } from 'react-native-nitro-ota';
+import { OTAUpdateManager } from 'react-native-nitro-ota';
 import { EXTERNAL_LINKS } from '@/constants/config';
 
 /**
- * Branch holding the OTA bundle for one native build. Keyed by the binary's version so a JS bundle only
- * reaches the native code it was built against; `src/scripts/publish-ota.sh` pushes to the same name.
+ * OTA bundles are assets on the binary's own GitHub release (tag v<version>, as release-it creates it), so a
+ * JS bundle only reaches the native code it was built against; `src/scripts/publish-ota.sh` uploads them.
  */
-export const otaBranch = (appVersion: string, platform: string) => `ota-${appVersion}-${platform}`;
+export const otaAssetUrl = (appVersion: string, name: string) =>
+  `${EXTERNAL_LINKS.GITHUB_REPOSITORY}/releases/download/v${appVersion}/${name}`;
 
 /**
  * Silent OTA updates: once the app has rendered, confirm the running bundle and download any newer one
@@ -22,12 +23,10 @@ export function useOtaUpdates(isAppReady: boolean) {
     const appVersion = Application.nativeApplicationVersion;
     if (!appVersion) return;
 
-    const { downloadUrl, versionUrl } = githubOTA({
-      githubUrl: EXTERNAL_LINKS.GITHUB_REPOSITORY,
-      otaVersionPath: 'ota.version.json',
-      ref: otaBranch(appVersion, Platform.OS),
-    });
-    const manager = new OTAUpdateManager(downloadUrl, versionUrl);
+    const manager = new OTAUpdateManager(
+      otaAssetUrl(appVersion, `ota-${Platform.OS}.zip`),
+      otaAssetUrl(appVersion, `ota-${Platform.OS}.json`),
+    );
 
     // The UI rendered, so this bundle works; otherwise a crash before this point rolls it back
     manager.confirm();
@@ -39,10 +38,11 @@ export function useOtaUpdates(isAppReady: boolean) {
     (async () => {
       try {
         const update = await manager.checkForUpdatesJS(appVersion);
-        if (cancelled || !update?.hasUpdate || !update.isCompatible) return;
+        // No metadata means the response wasn't our manifest: nitro-ota reads an error page such as GitHub's
+        // "Not Found" (no OTA for this version yet, or mid-publish) as a new version
+        if (cancelled || !update?.metadata || !update.hasUpdate || !update.isCompatible) return;
         await manager.downloadUpdate();
       } catch (error) {
-        // Includes the normal case of no OTA published for this version yet (404)
         console.warn('OTA: update check failed', error);
       }
     })();

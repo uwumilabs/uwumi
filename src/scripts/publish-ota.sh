@@ -5,10 +5,15 @@
 #   yarn ota --platform android      # one platform
 #   yarn ota --notes "Fix X" --dry-run
 #
-# Each platform's bundle goes to its own orphan branch, ota-<version>-<platform>, which the app reads
-# (see src/hooks/useOtaUpdates.ts). The branch is force-pushed with a single commit, so it only ever
-# holds the latest bundle (plus a bsdiff patch from the previous one) and the repo doesn't grow with
-# every publish. Versions are <version>-ota.<n>, counting up per binary version.
+# Bundles are assets on the app's own GitHub release, v<version> (created by `yarn release`), which the
+# app reads (see src/hooks/useOtaUpdates.ts):
+#   ota-<platform>.json              manifest: version, targetVersions, patches
+#   ota-<platform>.zip               full bundle + assets
+#   ota-<platform>-<from>-<to>.zip   bsdiff patch from the previous OTA
+# Each publish replaces the manifest and full zip and drops older patches, so the release only ever holds
+# the latest OTA. Versions are <version>-ota.<n>, counting up per binary version.
+#
+# Needs GITHUB_TOKEN with write access to releases (the token release-it uses); --dry-run works without it.
 #
 # Only publish JS-only changes: the bundle must work with the native code already in the installed
 # <version> binary. New native modules or native config need a new release (`yarn release`).
@@ -42,41 +47,91 @@ done
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 VERSION="$(node -p "require('./package.json').version")"
-REMOTE_URL="$(git remote get-url origin)"
+# Same tag format as release-it's git.tagName
+TAG="v${VERSION}"
 # owner/repo from either https://github.com/o/r(.git) or git@github.com:o/r(.git)
-REPO_SLUG="$(echo "$REMOTE_URL" | sed -E 's#^(https://github\.com/|git@github\.com:)##; s#\.git$##')"
+REPO_SLUG="$(git remote get-url origin | sed -E 's#^(https://github\.com/|git@github\.com:)##; s#\.git$##')"
+API="https://api.github.com/repos/${REPO_SLUG}"
+DOWNLOAD_BASE="https://github.com/${REPO_SLUG}/releases/download/${TAG}"
 ENTRY_FILE="$(node -e "require('expo/scripts/resolveAppEntry')" "$ROOT_DIR" android absolute | tail -n 1)"
 
+if [[ "$DRY_RUN" != true && -z "${GITHUB_TOKEN:-}" ]]; then
+  echo "GITHUB_TOKEN is not set (needs write access to ${REPO_SLUG} releases)." >&2
+  exit 1
+fi
 if [[ -n "$(git status --porcelain)" ]]; then
   echo -e "${YELLOW}⚠️  Uncommitted changes will be included in the OTA bundle.${NC}"
 fi
 
-remote_head() { git ls-remote --heads "$REMOTE_URL" "refs/heads/$1" | cut -f1; }
+# curl against the GitHub API, authenticated when GITHUB_TOKEN is set
+github() {
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    curl -fsSL -H "X-GitHub-Api-Version: 2022-11-28" -H "Authorization: Bearer ${GITHUB_TOKEN}" "$@"
+  else
+    curl -fsSL -H "X-GitHub-Api-Version: 2022-11-28" "$@"
+  fi
+}
+# Prints a dotted field of the JSON on stdin, or nothing when it's missing
+json() {
+  node -e '
+    let value = JSON.parse(require("fs").readFileSync(0, "utf8"));
+    for (const key of process.argv[1].split(".")) value = value?.[key];
+    process.stdout.write(value == null ? "" : String(value));
+  ' "$1"
+}
 
-# Reads a published branch's ota.version.json through git: raw.githubusercontent.com caches for minutes,
-# which could hand out the same OTA number twice
-SCRATCH_REPO="$(mktemp -d)"
-git -C "$SCRATCH_REPO" init -q
-published_version() {
-  git -C "$SCRATCH_REPO" fetch -q --depth 1 "$REMOTE_URL" "refs/heads/$1"
-  git -C "$SCRATCH_REPO" show FETCH_HEAD:ota.version.json |
-    node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0, "utf8")).version)'
+RELEASE_JSON="$(github "$API/releases/tags/${TAG}")" || {
+  echo "No GitHub release ${TAG}: OTAs attach to the binary's release, so run \`yarn release\` first." >&2
+  exit 1
+}
+if [[ "$(json draft <<<"$RELEASE_JSON")" != false ]]; then
+  echo "Release ${TAG} is a draft, so its assets can't be downloaded by the app. Publish it first." >&2
+  exit 1
+fi
+RELEASE_ID="$(json id <<<"$RELEASE_JSON")"
+
+# Read fresh on every call: the release's asset list changes as this script swaps files in
+asset_id() {
+  github "$API/releases/${RELEASE_ID}/assets?per_page=100" | node -e '
+    const asset = JSON.parse(require("fs").readFileSync(0, "utf8")).find(({ name }) => name === process.argv[1]);
+    process.stdout.write(asset ? String(asset.id) : "");
+  ' "$1"
+}
+download_asset() { github -H "Accept: application/octet-stream" -o "$2" "$API/releases/assets/$1"; }
+delete_asset() { github -X DELETE "$API/releases/assets/$1" >/dev/null; }
+upload_asset() {
+  github -X POST -H "Content-Type: $3" --data-binary @"$2" \
+    "https://uploads.github.com/repos/${REPO_SLUG}/releases/${RELEASE_ID}/assets?name=$1" | json id
+}
+# GitHub can't overwrite an asset, so upload under a temporary name and rename it over the old one:
+# the asset is only missing for the instant between the delete and the rename
+replace_asset() {
+  local name="$1" file="$2" type="$3" id new_id
+  id="$(asset_id "next-${name}")"
+  [[ -z "$id" ]] || delete_asset "$id"
+  new_id="$(upload_asset "next-${name}" "$file" "$type")"
+  id="$(asset_id "$name")"
+  [[ -z "$id" ]] || delete_asset "$id"
+  github -X PATCH -H "Content-Type: application/json" -d "{\"name\":\"${name}\"}" \
+    "$API/releases/assets/${new_id}" >/dev/null
 }
 
 # <version>-ota.<n>: one past the highest n published for this binary on any platform, so publishing
-# both platforms together gives them the same number. Older timestamp-style versions don't count.
+# both platforms together gives them the same number. Each platform's manifest asset id is kept to
+# detect a publish landing while this one runs.
 LAST_OTA_NUMBER=0
 for P in android ios; do
-  [[ -n "$(remote_head "ota-${VERSION}-${P}")" ]] || continue
-  PUBLISHED="$(published_version "ota-${VERSION}-${P}")"
+  ID="$(asset_id "ota-${P}.json")"
+  printf -v "MANIFEST_ID_${P}" '%s' "$ID"
+  [[ -n "$ID" ]] || continue
+  PUBLISHED="$(github -H "Accept: application/octet-stream" "$API/releases/assets/${ID}" | json version)"
   N="${PUBLISHED##*-ota.}"
   if [[ "$N" =~ ^[0-9]{1,6}$ ]] && ((10#$N > LAST_OTA_NUMBER)); then
     LAST_OTA_NUMBER=$((10#$N))
   fi
 done
-rm -rf "$SCRATCH_REPO"
 OTA_VERSION="${VERSION}-ota.$((LAST_OTA_NUMBER + 1))"
-echo "Next OTA: ${OTA_VERSION}"
+echo "Next OTA: ${OTA_VERSION} (release ${TAG})"
 
 for PLATFORM in "${PLATFORMS[@]}"; do
   case "$PLATFORM" in
@@ -84,10 +139,13 @@ for PLATFORM in "${PLATFORMS[@]}"; do
     ios) BUNDLE_NAME="main.jsbundle" ;;
     *) echo "Unsupported platform: $PLATFORM" >&2; exit 1 ;;
   esac
-  BRANCH="ota-${VERSION}-${PLATFORM}"
-  # The push is leased on this head, so a publish that lands meanwhile fails this one instead of being lost
-  OLD_SHA="$(remote_head "$BRANCH")"
-  OUT_DIR="$(mktemp -d)"
+  MANIFEST="ota-${PLATFORM}.json"
+  FULL_ZIP="ota-${PLATFORM}.zip"
+  MANIFEST_ID_VAR="MANIFEST_ID_${PLATFORM}"
+  WORK_DIR="$(mktemp -d)"
+  BUNDLE_DIR="$WORK_DIR/bundle"
+  PATCH_DIR="$WORK_DIR/patches"
+  mkdir -p "$BUNDLE_DIR" "$PATCH_DIR"
 
   print_step "BUNDLING ${PLATFORM} ${OTA_VERSION} (Hermes bytecode)"
   NODE_ENV=production npx expo export:embed \
@@ -95,54 +153,87 @@ for PLATFORM in "${PLATFORMS[@]}"; do
     --dev false \
     --bytecode \
     --entry-file "$ENTRY_FILE" \
-    --bundle-output "$OUT_DIR/$BUNDLE_NAME" \
-    --assets-dest "$OUT_DIR"
+    --bundle-output "$BUNDLE_DIR/$BUNDLE_NAME" \
+    --assets-dest "$BUNDLE_DIR"
 
-  # targetVersions keeps the bundle off any other binary even if the branch name were reused
+  # Shipped inside the zip too: the app stores the installed OTA's version from it.
+  # targetVersions keeps the bundle off any other binary even if an asset were copied elsewhere.
   node -e '
-    const [version, platform, appVersion, notes] = process.argv.slice(1);
+    const [version, platform, appVersion, notes, file] = process.argv.slice(1);
     const manifest = { version, isSemver: false, targetVersions: { [platform]: [appVersion] } };
     if (notes) manifest.releaseNotes = notes;
-    require("fs").writeFileSync(process.argv[5], JSON.stringify(manifest, null, 2) + "\n");
-  ' "$OTA_VERSION" "$PLATFORM" "$VERSION" "$NOTES" "$OUT_DIR/ota.version.json"
+    require("fs").writeFileSync(file, JSON.stringify(manifest, null, 2) + "\n");
+  ' "$OTA_VERSION" "$PLATFORM" "$VERSION" "$NOTES" "$BUNDLE_DIR/ota.version.json"
 
-  # bsdiff patch from the OTA currently on the branch, so devices already on it download only the delta.
-  # Patches go to a separate dir (the CLI zips every file in --new) and get absolute raw URLs; the full
-  # download is GitHub's branch archive, which skips them via export-ignore.
-  if [[ -n "$OLD_SHA" ]]; then
+  # bsdiff patch from the OTA currently on the release, so devices already on it download only the delta
+  PREV_ZIP_ID="$(asset_id "$FULL_ZIP")"
+  if [[ -n "$PREV_ZIP_ID" ]]; then
     print_step "PATCHING ${PLATFORM} from the published OTA"
-    PREV_DIR="$(mktemp -d)"
-    PATCH_DIR="$(mktemp -d)"
-    git -C "$PREV_DIR" init -q
-    git -C "$PREV_DIR" fetch -q --depth 1 "$REMOTE_URL" "refs/heads/${BRANCH}"
-    git -C "$PREV_DIR" checkout -q FETCH_HEAD
-    if npx nitro-ota patch --old "$PREV_DIR" --new "$OUT_DIR" --out "$PATCH_DIR" \
-      --url-base "https://raw.githubusercontent.com/${REPO_SLUG}/${BRANCH}/patches"; then
-      mv "$PATCH_DIR" "$OUT_DIR/patches"
-      printf 'patches/ export-ignore\n' > "$OUT_DIR/.gitattributes"
+    PREV_DIR="$WORK_DIR/previous"
+    download_asset "$PREV_ZIP_ID" "$WORK_DIR/previous.zip"
+    unzip -q "$WORK_DIR/previous.zip" -d "$PREV_DIR"
+    if npx nitro-ota patch --old "$PREV_DIR" --new "$BUNDLE_DIR" --out "$PATCH_DIR" --url-base "$DOWNLOAD_BASE"; then
+      # The CLI names patches <from>-<to>.zip on every platform; prefix them so both fit on one release,
+      # in the manifest and in the copy of it inside each patch zip
+      node -e '
+        const fs = require("fs");
+        const [file, base, prefix] = process.argv.slice(1);
+        const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+        for (const [from, ref] of Object.entries(manifest.patches ?? {})) {
+          manifest.patches[from] = `${base}/${prefix}${ref.split("/").pop()}`;
+        }
+        fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + "\n");
+      ' "$BUNDLE_DIR/ota.version.json" "$DOWNLOAD_BASE" "ota-${PLATFORM}-"
+      for PATCH in "$PATCH_DIR"/*.zip; do
+        [[ -e "$PATCH" ]] || continue
+        PREFIXED="$PATCH_DIR/ota-${PLATFORM}-$(basename "$PATCH")"
+        mv "$PATCH" "$PREFIXED"
+        (cd "$BUNDLE_DIR" && zip -q "$PREFIXED" ota.version.json)
+      done
     else
       echo -e "${YELLOW}⚠️  Patch generation failed; publishing the full bundle only.${NC}"
-      rm -rf "$PATCH_DIR"
+      rm -f "$PATCH_DIR"/*.zip
     fi
-    rm -rf "$PREV_DIR"
   else
-    echo "No OTA on ${BRANCH} yet: publishing the full bundle only (first OTA for ${VERSION})."
+    echo "No OTA on ${TAG} for ${PLATFORM} yet: publishing the full bundle only."
   fi
 
+  # Flat zip: the app finds the bundle at the top level and keeps Metro's asset paths beside it
+  (cd "$BUNDLE_DIR" && zip -qrX "$WORK_DIR/$FULL_ZIP" .)
+
   if [[ "$DRY_RUN" == true ]]; then
-    echo -e "${GREEN}✅ Dry run: ${PLATFORM} bundle built in ${OUT_DIR} (not pushed)${NC}"
+    echo -e "${GREEN}✅ Dry run: ${PLATFORM} OTA built in ${WORK_DIR} (not uploaded)${NC}"
     continue
   fi
 
-  print_step "PUSHING ${BRANCH}"
-  (
-    cd "$OUT_DIR"
-    git init -q
-    git checkout -q --orphan "$BRANCH"
-    git add -A
-    git commit -q -m "OTA ${OTA_VERSION} (${PLATFORM})"
-    git push -q --force-with-lease="refs/heads/${BRANCH}:${OLD_SHA}" "$REMOTE_URL" "HEAD:refs/heads/${BRANCH}"
-  )
-  rm -rf "$OUT_DIR"
-  echo -e "${GREEN}✅ ${PLATFORM}: ${OTA_VERSION} published to ${BRANCH}${NC}"
+  print_step "UPLOADING ${PLATFORM} to release ${TAG}"
+  if [[ "$(asset_id "$MANIFEST")" != "${!MANIFEST_ID_VAR}" ]]; then
+    echo "Another OTA for ${PLATFORM} was published while this one ran; re-run to publish on top of it." >&2
+    exit 1
+  fi
+  # Patches and the full zip go up before the manifest, so a device never sees a version it can't fetch
+  KEEP_PATCHES=""
+  for PATCH in "$PATCH_DIR"/ota-*.zip; do
+    [[ -e "$PATCH" ]] || continue
+    NAME="$(basename "$PATCH")"
+    ID="$(asset_id "$NAME")"
+    [[ -z "$ID" ]] || delete_asset "$ID"
+    upload_asset "$NAME" "$PATCH" application/zip >/dev/null
+    KEEP_PATCHES="${KEEP_PATCHES} ${NAME}"
+  done
+  replace_asset "$FULL_ZIP" "$WORK_DIR/$FULL_ZIP" application/zip
+  replace_asset "$MANIFEST" "$BUNDLE_DIR/ota.version.json" application/json
+
+  # Older patches target versions the manifest no longer offers a patch from
+  for ID in $(github "$API/releases/${RELEASE_ID}/assets?per_page=100" | node -e '
+    const [prefix, keep] = process.argv.slice(1);
+    const assets = JSON.parse(require("fs").readFileSync(0, "utf8"));
+    const stale = assets.filter(({ name }) => name.startsWith(prefix) && name.endsWith(".zip") && !keep.split(" ").includes(name));
+    process.stdout.write(stale.map(({ id }) => id).join("\n"));
+  ' "ota-${PLATFORM}-" "$KEEP_PATCHES"); do
+    delete_asset "$ID"
+  done
+
+  rm -rf "$WORK_DIR"
+  echo -e "${GREEN}✅ ${PLATFORM}: ${OTA_VERSION} published to ${DOWNLOAD_BASE}/${MANIFEST}${NC}"
 done
