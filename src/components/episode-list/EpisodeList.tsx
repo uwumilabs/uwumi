@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, View, Text, TextProps } from 'react-native';
 import { FlashListRef } from '@shopify/flash-list';
-import React, { useEffect, useRef, useMemo, useState, useCallback, memo, ReactNode } from 'react';
+import React, { useRef, useState, useCallback, memo, ReactNode } from 'react';
 import Image from '@/components/Image';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -14,25 +14,22 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import {
   useEpisodesIdStore,
-  useEpisodesStore,
   useWatchProgressStore,
-  useAnimeEpisodes,
   useCurrentTheme,
   usePureBlackBackground,
   useEpisodeDisplayStore,
-  useMoviesEpisodes,
   useServerStore,
-  useSeasonStore,
   useListJump,
+  useEpisodeList,
   LIST_SHADOW_SIZE,
 } from '@/hooks';
 import WavyAnimation from './WavyAnimation';
 import EpisodeActionsSheet from './EpisodeActionsSheet';
 import { EpisodeDisplayMode, MediaType } from '@/constants/types';
-import { IAnimeEpisode, IMovieSeason, IMovieEpisode, MediaFormat, TvType } from 'react-native-consumet';
+import { IAnimeEpisode, IMovieEpisode, MediaFormat, TvType } from 'react-native-consumet';
 import { formatTime, isTV } from '@/constants/utils';
 import Select from '../Select';
-import { useActiveProvider, useProviders, useProviderStore } from '@/constants/provider';
+import { useProviders, useProviderStore } from '@/constants/provider';
 import List from '../List';
 import { HUYStack, HUXStack, RippleButton } from '../ui-primitives';
 import TVFocusWrapper from '../TVFocusWrapper';
@@ -147,17 +144,59 @@ const ListPressable = memo(
   },
 );
 
+const releaseDateFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
+
+// Rows subscribe to their own episode's progress, so a progress write re-renders one row, not the list
+const EpisodeProgress = memo(({ uniqueId, isCurrent }: { uniqueId?: string; isCurrent: boolean }) => {
+  const progress = useWatchProgressStore((state) => (uniqueId ? state.progresses[uniqueId] : undefined));
+
+  if (isCurrent) return <WavyAnimation />;
+  if (progress?.isCompleted) return <IoniconsIcon name="eye-off-outline" color="white" size={15} />;
+  if (progress?.currentTime && progress.progress > 0) {
+    return (
+      <StyledText>
+        {formatTime(progress.currentTime)}/{formatTime(progress.duration)}
+      </StyledText>
+    );
+  }
+  return <IoniconsIcon name="eye-outline" color="white" size={15} />;
+});
+
+const ProgressAndAirDate = memo(({ item, isCurrent }: { item: IAnimeEpisode | IMovieEpisode; isCurrent: boolean }) => {
+  const date = item?.releaseDate ? new Date(item.releaseDate) : null;
+  const isValidDate = !!date && !Number.isNaN(date.getTime());
+  return (
+    <HUXStack className="items-center justify-between w-full">
+      <View>
+        <EpisodeProgress uniqueId={item?.uniqueId as string} isCurrent={isCurrent} />
+      </View>
+      <StyledText>{isValidDate ? releaseDateFormat.format(date) : '—'}</StyledText>
+    </HUXStack>
+  );
+});
+
+const ThumbnailProgress = memo(({ uniqueId }: { uniqueId?: string }) => {
+  const percent = useWatchProgressStore((state) => (uniqueId ? state.progresses[uniqueId]?.progress : undefined));
+  if (percent === undefined) return null;
+  return <Progress className="absolute inset-x-1 bottom-0.5" value={percent || 0} />;
+});
+
+EpisodeProgress.displayName = 'EpisodeProgress';
+ProgressAndAirDate.displayName = 'ProgressAndAirDate';
+ThumbnailProgress.displayName = 'ThumbnailProgress';
+
 const SwipeAction = memo(
   ({
     drag,
-    isCompleted,
+    uniqueId,
     backgroundColor,
   }: {
     drag: SharedValue<number>;
-    isCompleted: boolean;
+    uniqueId?: string;
     backgroundColor: string | undefined;
   }) => {
     const THRESHOLD = 100;
+    const isCompleted = useWatchProgressStore((state) => !!(uniqueId && state.progresses[uniqueId]?.isCompleted));
 
     const animatedStyle = useAnimatedStyle(() => {
       const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
@@ -216,80 +255,27 @@ interface EpisodeListProps {
 export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListProps) => {
   const swipeableRefs = useRef<Map<string, React.RefObject<SwipeableMethods | null>>>(new Map());
   const pathname = usePathname();
-  const { mediaType, type, provider, id } = useLocalSearchParams<{
+  const { mediaType, type, id } = useLocalSearchParams<{
     mediaType: MediaType;
     type: MediaFormat | TvType;
-    provider: string;
     id: string;
   }>();
   const swipeable = pathname.includes('/info/'); // Only enable swipe actions on the /info/[mediaType] screen, not in the episode list inside /watch/[mediaType]
   const currentTheme = useCurrentTheme();
   const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
   const setProvider = useProviderStore((state) => state.setProvider);
-  const providerToUse = useActiveProvider(mediaType, provider);
+  const { episodes, episodeData, movieSeasons, activeSeason, setSeason, providerToUse, isLoading, error, refetch } =
+    useEpisodeList();
   const providers = useProviders();
-  const animeResult = useAnimeEpisodes({
-    id,
-    provider: providerToUse,
-    enabled: mediaType === MediaType.ANIME,
-  });
-  const movieResult = useMoviesEpisodes({
-    id,
-    type: type!,
-    provider: providerToUse,
-    enabled: mediaType === MediaType.MOVIE,
-  });
-  const { data: episodeData, isLoading, error, refetch } = mediaType === MediaType.ANIME ? animeResult : movieResult;
-  const { seasonNumber, setSeasonNumber, resetSeasonNumber } = useSeasonStore();
-  const movieSeasons = episodeData?.seasons as IMovieSeason[];
-  // The stored season can be out of range for another show's list; that list starts from its first season
-  const activeSeason = movieSeasons && seasonNumber >= movieSeasons.length ? 0 : seasonNumber;
-  // console.log('movieSeasons', movieSeasons);
-  const animeEpisodes = useMemo(() => (Array.isArray(episodeData) ? episodeData : []), [episodeData]);
-  // console.log(episodeData?.mappings, 'episodeData?.mappings');
-  const episodes = useMemo(() => {
-    if (mediaType === MediaType.MOVIE && movieSeasons?.[activeSeason]?.episodes) {
-      return movieSeasons[activeSeason].episodes;
-    }
-    return animeEpisodes || [];
-  }, [mediaType, movieSeasons, activeSeason, animeEpisodes]);
-  // console.log('episodes', episodes);
 
-  const { currentUniqueId, setEpisodeIds } = useEpisodesIdStore();
-  const { progresses, setProgress } = useWatchProgressStore();
+  const currentUniqueId = useEpisodesIdStore((state) => state.currentUniqueId);
+  const setProgress = useWatchProgressStore((state) => state.setProgress);
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
-  const { displayMode, setDisplayMode } = useEpisodeDisplayStore();
+  const displayMode = useEpisodeDisplayStore((state) => state.displayMode);
+  const setDisplayMode = useEpisodeDisplayStore((state) => state.setDisplayMode);
   const setCurrentServer = useServerStore((state) => state.setCurrentServer);
   const servers = useServerStore((state) => state.servers);
   const currentServer = useServerStore((state) => state.currentServer);
-
-  // Track the last synced uniqueId to prevent infinite loops
-  const lastSyncedUniqueIdRef = useRef<string | null>(null);
-
-  // Sync adjacent episode IDs to store whenever currentUniqueId changes
-  // Uses ref to prevent infinite re-renders from episodes array reference changes
-  useEffect(() => {
-    // Skip if no uniqueId, no episodes, or already synced this uniqueId
-    if (!currentUniqueId || episodes.length === 0) return;
-    if (lastSyncedUniqueIdRef.current === currentUniqueId) return;
-
-    const currentIndex = episodes.findIndex((ep) => ep.uniqueId === currentUniqueId);
-    if (currentIndex === -1) return;
-
-    const currentEp = episodes[currentIndex];
-    const prevEp = currentIndex > 0 ? episodes[currentIndex - 1] : null;
-    const nextEp = currentIndex < episodes.length - 1 ? episodes[currentIndex + 1] : null;
-
-    // Mark as synced before calling setEpisodeIds to prevent loops
-    lastSyncedUniqueIdRef.current = currentUniqueId;
-
-    setEpisodeIds(
-      currentEp?.id ?? null,
-      currentUniqueId,
-      (prevEp?.uniqueId as string) ?? null,
-      (nextEp?.uniqueId as string) ?? null,
-    );
-  }, [currentUniqueId, episodes, setEpisodeIds]);
 
   // console.log('servers', servers[0], getCurrentServer(), servers, getServers());
 
@@ -312,20 +298,6 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     jumpBar,
   } = useListJump({ items: episodes, listRef: flashListRef, rangeLabel: episodeRangeLabel });
 
-  const setEpisodes = useEpisodesStore((state) => state.setEpisodes);
-  useEffect(() => {
-    if (episodes) {
-      setEpisodes(episodes);
-      // console.log('episodes', episodes);
-    }
-  }, [episodes, setEpisodes]);
-
-  useEffect(() => {
-    if (swipeable) {
-      resetSeasonNumber();
-    }
-  }, [id, resetSeasonNumber, swipeable]);
-
   // console.log('episodes', episodeData);
   const currentEpisodeIndex = useCallback(() => {
     return episodes.findIndex((episode: IAnimeEpisode | IMovieEpisode) => episode.uniqueId === currentUniqueId);
@@ -333,17 +305,22 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
 
   // Where "Continue" points: the episode being watched, else the furthest one with progress, or the one after it if
   // that one is finished. No chip without progress, or once the last episode is finished.
-  const continueIndex = useMemo(() => {
-    if (autoScrollToCurrent) return -1;
-    let index = currentEpisodeIndex();
-    if (index < 0) {
-      index = episodes.length - 1;
-      while (index >= 0 && !progresses[episodes[index].uniqueId as string]) index--;
-    }
-    if (index < 0) return -1;
-    if (!progresses[episodes[index].uniqueId as string]?.isCompleted) return index;
-    return index < episodes.length - 1 ? index + 1 : -1;
-  }, [autoScrollToCurrent, currentEpisodeIndex, episodes, progresses]);
+  const continueIndex = useWatchProgressStore(
+    useCallback(
+      ({ progresses }) => {
+        if (autoScrollToCurrent) return -1;
+        let index = currentEpisodeIndex();
+        if (index < 0) {
+          index = episodes.length - 1;
+          while (index >= 0 && !progresses[episodes[index].uniqueId as string]) index--;
+        }
+        if (index < 0) return -1;
+        if (!progresses[episodes[index].uniqueId as string]?.isCompleted) return index;
+        return index < episodes.length - 1 ? index + 1 : -1;
+      },
+      [autoScrollToCurrent, currentEpisodeIndex, episodes],
+    ),
+  );
   const continueEpisode = continueIndex >= 0 ? episodes[continueIndex] : undefined;
 
   const handleProviderChange = useCallback(
@@ -357,7 +334,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     (item: IAnimeEpisode | IMovieEpisode) => {
       if (!item?.uniqueId) return;
 
-      const progress = progresses[item.uniqueId];
+      const progress = useWatchProgressStore.getState().progresses[item.uniqueId];
       const isCompleted = progress?.isCompleted ?? false;
 
       const newProgress = {
@@ -371,64 +348,16 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
 
       if (!isTV) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
-    [progresses, setProgress],
+    [setProgress],
   );
 
   const rightActions = useCallback(
     (item: IAnimeEpisode | IMovieEpisode) => {
-      return (_prog: SharedValue<number>, drag: SharedValue<number>) => {
-        const progress = progresses[item?.uniqueId as string];
-        const isCompleted = progress?.isCompleted ?? false;
-
-        return <SwipeAction drag={drag} isCompleted={isCompleted} backgroundColor={currentTheme?.default} />;
-      };
-    },
-    [progresses, currentTheme],
-  );
-
-  const renderEpisodeProgress = useMemo(
-    () => (item: IAnimeEpisode | IMovieEpisode) => {
-      if (currentUniqueId === item?.uniqueId) {
-        return <WavyAnimation />;
-      }
-
-      const progress = progresses[item?.uniqueId as string];
-
-      // Check if episode is completed (either manually marked or watched to 90%+)
-      if (progress?.isCompleted) {
-        return <IoniconsIcon name="eye-off-outline" color="white" size={15} />;
-      }
-
-      // Show progress if watching but not completed
-      if (progress?.currentTime && progress?.progress > 0) {
-        return (
-          <StyledText>
-            {formatTime(progress.currentTime)}/{formatTime(progress.duration)}
-          </StyledText>
-        );
-      }
-
-      // Not started
-      return <IoniconsIcon name="eye-outline" color="white" size={15} />;
-    },
-    [currentUniqueId, progresses],
-  );
-
-  const ProgressAndAirDate = useCallback(
-    ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
-      const rawReleaseDate = item?.releaseDate;
-      const date = rawReleaseDate ? new Date(rawReleaseDate) : null;
-      const isValidDate = !!date && !Number.isNaN(date.getTime());
-      return (
-        <HUXStack className="items-center justify-between w-full">
-          <View>{renderEpisodeProgress(item)}</View>
-          <StyledText>
-            {isValidDate ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(date) : '—'}
-          </StyledText>
-        </HUXStack>
+      return (_prog: SharedValue<number>, drag: SharedValue<number>) => (
+        <SwipeAction drag={drag} uniqueId={item?.uniqueId as string} backgroundColor={currentTheme?.default} />
       );
     },
-    [renderEpisodeProgress],
+    [currentTheme],
   );
 
   const renderFullMetadataPressableItem = useCallback(
@@ -449,12 +378,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
             <Text className="absolute left-2 bottom-2.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
               {`EP ${(item.number ?? item.episode ?? '').toString()}`}
             </Text>
-            {progresses[item?.uniqueId as string] && swipeable ? (
-              <Progress
-                className="absolute inset-x-1 bottom-0.5"
-                value={progresses[item?.uniqueId as string]?.progress || 0}
-              />
-            ) : null}
+            {swipeable && <ThumbnailProgress uniqueId={item?.uniqueId as string} />}
           </View>
           <HUYStack className="flex-1 justify-between gap-2 px-2 ">
             <Card.Header>
@@ -474,14 +398,14 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
             </Card.Description>
             <Card.Footer>
               <HUXStack className="items-center justify-between">
-                <ProgressAndAirDate item={item} />
+                <ProgressAndAirDate item={item} isCurrent={currentUniqueId === item?.uniqueId} />
               </HUXStack>
             </Card.Footer>
           </HUYStack>
         </Card>
       );
     },
-    [ProgressAndAirDate, progresses, pureBlackBackground, swipeable, mediaType, currentUniqueId, currentTheme],
+    [pureBlackBackground, swipeable, currentUniqueId],
   );
 
   const renderTitleOnlyPressableItem = useCallback(
@@ -498,11 +422,11 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
               {item?.isDubbed ? <IoniconsIcon name="mic" size={18} /> : null}
             </HUXStack>
           </HUXStack>
-          <ProgressAndAirDate item={item} />
+          <ProgressAndAirDate item={item} isCurrent={currentUniqueId === item?.uniqueId} />
         </HUYStack>
       );
     },
-    [ProgressAndAirDate, pureBlackBackground],
+    [pureBlackBackground, currentUniqueId],
   );
 
   const renderNumberOnlyPressableItem = useCallback(
@@ -519,11 +443,11 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
               {item?.isDubbed ? <IoniconsIcon name="mic" size={18} /> : null}
             </HUXStack>
           </HUXStack>
-          <ProgressAndAirDate item={item} />
+          <ProgressAndAirDate item={item} isCurrent={currentUniqueId === item?.uniqueId} />
         </HUYStack>
       );
     },
-    [ProgressAndAirDate, pureBlackBackground],
+    [pureBlackBackground, currentUniqueId],
   );
 
   const renderItemContent = useCallback(
@@ -669,8 +593,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
                       SelectLabel="Season"
                       value={String(activeSeason)}
                       onValueChange={(value: string) => {
-                        setSeasonNumber(Number(value));
-                        setEpisodes(movieSeasons[Number(value)].episodes);
+                        setSeason(Number(value));
                       }}
                     />
                   )}

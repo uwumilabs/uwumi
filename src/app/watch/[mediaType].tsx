@@ -8,20 +8,22 @@ import { EpisodeList, HUXStack, HUYStack, MaterialIconsIcon, ThemedView } from '
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   useEpisodesIdStore,
-  useEpisodesStore,
+  useEpisodeList,
+  getAdjacentEpisodes,
+  buildEpisodeRouteParams,
   useWatchProgressStore,
   useWatchAnimeEpisodes,
   useWatchMoviesEpisodes,
   useServerStore,
   useExternalSubtitles,
   useBackHandler,
-  useMediaInfoStore,
+  useMediaInfo,
   useContinueWatchingStore,
 } from '@/hooks';
 import { useToast } from 'heroui-native';
-import { useProviders, useProviderStore, useActiveProvider, META_PROVIDERS } from '@/constants/provider';
+import { useProviderStore, useActiveProvider, META_PROVIDERS } from '@/constants/provider';
 import { constants, SUB_LANGUAGE } from '@/constants/config';
-import { useProviderSelectionStore } from './components';
+import { useEmbedMode, useProviderSelectionStore } from './components';
 import {
   VideoPlayer,
   DefaultLayout,
@@ -54,13 +56,16 @@ const Watch = () => {
   } = watchParams;
   // console.log(useLocalSearchParams(), 'useLocalSearchParams');
   const { top } = useSafeAreaInsets();
-  const { setProgress, getProgress } = useWatchProgressStore();
+  const setProgress = useWatchProgressStore((state) => state.setProgress);
+  const getProgress = useWatchProgressStore((state) => state.getProgress);
   const setProvider = useProviderStore((state) => state.setProvider);
   const currentProvider = useActiveProvider(mediaType);
-  const { setServers, setCurrentServer, currentServer, clearServers } = useServerStore();
+  const setServers = useServerStore((state) => state.setServers);
+  const setCurrentServer = useServerStore((state) => state.setCurrentServer);
+  const currentServer = useServerStore((state) => state.currentServer);
+  const clearServers = useServerStore((state) => state.clearServers);
   const [serverInitialized, setServerInitialized] = useState(false);
-  const providers = useProviders();
-  const { mediaInfo, mediaId: mediaInfoId } = useMediaInfoStore();
+  const { data: mediaInfo } = useMediaInfo();
   const recordContinueWatching = useContinueWatchingStore((state) => state.record);
   const { toast } = useToast();
   const { state: videoState } = useVideo();
@@ -72,18 +77,11 @@ const Watch = () => {
   const currentEpisodeId = useEpisodesIdStore((state) => state.currentEpisodeId);
   const currentUniqueId = useEpisodesIdStore((state) => state.currentUniqueId);
 
-  // Episode navigation - get adjacent episodes and navigation helpers from store
-  const getAdjacentEpisodes = useEpisodesStore((state) => state.getAdjacentEpisodes);
-  const buildEpisodeRouteParams = useEpisodesStore((state) => state.buildEpisodeRouteParams);
-  // Subscribe to episodes length only to avoid re-renders on reference changes
-  const episodesLength = useEpisodesStore((state) => state.episodes.length);
-
-  // Compute adjacent episodes reactively
-  // Note: We use episodesLength instead of episodes array to avoid infinite loops
-  // getAdjacentEpisodes reads current episodes from store internally
+  // The same (cached) episode list the screen's EpisodeList shows
+  const { episodes } = useEpisodeList();
   const adjacentEpisodes = useMemo(
-    () => getAdjacentEpisodes(currentUniqueId ?? uniqueId),
-    [getAdjacentEpisodes, currentUniqueId, uniqueId, episodesLength],
+    () => getAdjacentEpisodes(episodes, currentUniqueId || uniqueId),
+    [episodes, currentUniqueId, uniqueId],
   );
 
   const { prevEpisode, nextEpisode, hasPrev, hasNext } = adjacentEpisodes;
@@ -115,7 +113,7 @@ const Watch = () => {
       params: routeParams,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasPrev, prevEpisode, buildEpisodeRouteParams, navigationContext, router]);
+  }, [hasPrev, prevEpisode, navigationContext, router]);
 
   // Navigate to next episode
   const handleNextEpisode = useCallback(() => {
@@ -132,7 +130,7 @@ const Watch = () => {
       params: routeParams,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasNext, nextEpisode, buildEpisodeRouteParams, navigationContext, router]);
+  }, [hasNext, nextEpisode, navigationContext, router]);
 
   useFocusEffect(
     useCallback(() => {
@@ -149,7 +147,8 @@ const Watch = () => {
     width: Dimensions.get('screen').width,
     height: Dimensions.get('screen').height,
   });
-  const { dub, isEmbed, setDub, setIsEmbed } = useProviderSelectionStore();
+  const dub = useProviderSelectionStore((state) => state.dub);
+  const isEmbed = useEmbedMode(mediaType, currentProvider);
   // console.log({currentEpisodeId , episodeId})
   const animeQuery = useWatchAnimeEpisodes({
     episodeId: (episodeId as string) || (currentEpisodeId as string) || '',
@@ -234,10 +233,9 @@ const Watch = () => {
   const lastProgressUpdateRef = useRef({ currentTime: 0, seekableDuration: 0 });
   const recordedEpisodeRef = useRef<string | null>(null);
 
-  // Puts this show at the front of Continue watching. The info page's media info is only there when it's
-  // underneath (not when resuming from home), so the store keeps the title and image from an earlier record.
+  // Puts this show at the front of Continue watching; the store keeps an earlier title and image if info hasn't loaded
   const rememberEpisode = useCallback(() => {
-    const info = mediaInfoId === id ? mediaInfo : null;
+    const info = mediaInfo;
     const showTitle = info
       ? typeof info.title === 'string'
         ? info.title
@@ -271,7 +269,6 @@ const Watch = () => {
     });
   }, [
     mediaInfo,
-    mediaInfoId,
     id,
     watchParams,
     recordContinueWatching,
@@ -374,19 +371,6 @@ const Watch = () => {
     if (!data?.subtitles?.length) return [];
     return externalSubtitles?.length ? [...externalSubtitles, ...data.subtitles] : data.subtitles;
   }, [data?.subtitles, externalSubtitles]);
-
-  useEffect(() => {
-    // Set initial embed state based on provider capabilities
-    const currentProviderObj = providers[mediaType].find((p) => p.value === currentProvider);
-    if (currentProviderObj) {
-      // If provider only supports one type, set accordingly
-      if (currentProviderObj.embed && !currentProviderObj.nonEmbed) {
-        setIsEmbed(true);
-      } else if (!currentProviderObj.embed && currentProviderObj.nonEmbed) {
-        setIsEmbed(false);
-      }
-    }
-  }, [currentProvider, mediaType, setIsEmbed]);
 
   useEffect(() => {
     if (!isLoading && !source) {

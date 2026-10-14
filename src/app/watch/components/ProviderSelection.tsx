@@ -22,12 +22,23 @@ export const useProviderSelectionStore = create<ProviderSelectionState>((set) =>
   setIsEmbed: (isEmbed: boolean) => set({ isEmbed }),
 }));
 
+/** A provider that only offers embed or direct forces it; otherwise the user's last choice applies. */
+export const useEmbedMode = (mediaType: MediaType, provider: string) => {
+  const isEmbed = useProviderSelectionStore((state) => state.isEmbed);
+  const providers = useProviders();
+  const capabilities = providers[mediaType]?.find(({ value }) => value === provider);
+  if (capabilities?.embed && !capabilities.nonEmbed) return true;
+  if (capabilities && !capabilities.embed && capabilities.nonEmbed) return false;
+  return isEmbed;
+};
+
 const ProviderSelection = () => {
   const [open, setOpen] = useState(false);
   const setProvider = useProviderStore((state) => state.setProvider);
-  const { dub, isEmbed, setDub, setIsEmbed } = useProviderSelectionStore();
+  const { dub, setDub, setIsEmbed } = useProviderSelectionStore();
   const { mediaType, isDubbed } = useLocalSearchParams() as unknown as WatchSearchParams;
   const currentProvider = useActiveProvider(mediaType);
+  const isEmbed = useEmbedMode(mediaType, currentProvider);
   const providers = useProviders();
   // const mediaType = MediaType.ANIME; // for testing
   // const isDubbed = dub ? 'true' : 'false'; // for testing

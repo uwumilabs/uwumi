@@ -1,4 +1,5 @@
-import { createProviderInstance, DEFAULT_PROVIDERS } from '@/constants/provider';
+import { createProviderInstance, DEFAULT_PROVIDERS, META_PROVIDERS, useActiveProvider } from '@/constants/provider';
+import { useLocalSearchParams } from 'expo-router';
 import { MediaType, MetaProvider } from '@/constants/types';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -70,6 +71,20 @@ export function useInfo({
       return data;
     },
   });
+}
+
+/**
+ * The current route's show info. The info page, its episode sheet and the watch screen all read it through the query
+ * cache, so the watch screen has it even when resumed from home.
+ */
+export function useMediaInfo() {
+  const { mediaType, id, type } = useLocalSearchParams<{
+    mediaType: MediaType;
+    id: string;
+    type: MediaFormat | TvType;
+  }>();
+  const provider = useActiveProvider(mediaType);
+  return useInfo({ mediaType, id, type, metaProvider: META_PROVIDERS[mediaType] as MetaProvider, provider });
 }
 
 export function useAnimeEpisodes({

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ThemedView, List, HUXStack, HUYStack, Progress, IconTitle, IoniconsIcon, RippleButton } from '@/components';
 import { EpisodeDownload, useDownloadStore, usePureBlackBackground, useSheetColor, useCurrentTheme } from '@/hooks';
 import { formatTime } from '@/constants/utils';
@@ -155,7 +156,6 @@ const Downloads = () => {
     getStorageInfo,
   } = useDownloadStore();
 
-  const [storageInfo, setStorageInfo] = useState({ downloadsSize: 0, totalDownloads: 0 });
   const sheetColor = useSheetColor();
   const currentTheme = useCurrentTheme();
   const pureBlackBackground = usePureBlackBackground();
@@ -171,14 +171,22 @@ const Downloads = () => {
     initialize();
   }, [initialize]);
 
-  useEffect(() => {
-    if (isInitialized) {
-      // getStorageInfo is now async
-      getStorageInfo().then((info) => {
-        setStorageInfo({ downloadsSize: info.downloadsSize, totalDownloads: info.totalDownloads });
-      });
-    }
-  }, [isInitialized, downloads, getStorageInfo]);
+  // Only completed downloads change what's on disk, so progress ticks don't re-scan the folder
+  const completedKey = useMemo(
+    () =>
+      Object.values(downloads)
+        .filter(({ status }) => status === 'completed')
+        .map(({ id }) => id)
+        .sort()
+        .join(','),
+    [downloads],
+  );
+  const { data: storageInfo = { downloadsSize: 0, totalDownloads: 0 } } = useQuery({
+    queryKey: ['downloads', 'storage', completedKey],
+    queryFn: getStorageInfo,
+    enabled: isInitialized,
+    placeholderData: keepPreviousData,
+  });
 
   const downloadList = useMemo(
     () => (__DEV__ && SHOW_PREVIEW_DOWNLOADS ? PREVIEW_DOWNLOADS : Object.values(downloads)),

@@ -8,7 +8,7 @@ import {
   useServerStore,
   useSheetColor,
   useDownloadStore,
-  useMediaInfoStore,
+  useMediaInfo,
 } from '@/hooks';
 import { MediaType } from '@/constants/types';
 import { useActiveProvider } from '@/constants/provider';
@@ -82,11 +82,16 @@ const ListState = ({
 
 const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
   ({ open, onOpenChange, episode, mediaType, provider, mediaId, type }) => {
-    const { setProgress, getProgress, progresses } = useWatchProgressStore();
+    const setProgress = useWatchProgressStore((state) => state.setProgress);
+    const getProgress = useWatchProgressStore((state) => state.getProgress);
+    const episodeProgress = useWatchProgressStore((state) =>
+      episode?.uniqueId ? state.progresses[episode.uniqueId] : undefined,
+    );
     const currentServer = useServerStore((state) => state.currentServer);
     const currentProvider = useActiveProvider(mediaType);
-    const { addDownload, startDownload } = useDownloadStore();
-    const mediaInfo = useMediaInfoStore((state) => state.mediaInfo);
+    const addDownload = useDownloadStore((state) => state.addDownload);
+    const startDownload = useDownloadStore((state) => state.startDownload);
+    const { data: mediaInfo } = useMediaInfo();
     const sheetColor = useSheetColor();
     const { toast } = useToast();
 
@@ -371,7 +376,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     }, [showQualitySelection, showServerSelection, selectedServer]);
 
     // Subscribe to progress changes - this will cause re-render when progress updates
-    const progress = episode?.uniqueId ? progresses[episode.uniqueId] : null;
+    const progress = episodeProgress ?? null;
     const isCompleted = progress?.isCompleted ?? false;
 
     const videoSources = data?.sources || [];

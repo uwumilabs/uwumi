@@ -1,4 +1,5 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useExtensionStore, useCurrentTheme } from '@/hooks';
 import { isTV } from '@/constants/utils';
@@ -318,30 +319,21 @@ export default function Extensions() {
   } = useExtensionStore();
 
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
-  const [availableUpdates, setAvailableUpdates] = useState<string[]>([]);
   const [selectedExtension, setSelectedExtension] = useState<any>(null);
   const [showDetailsSheet, setShowDetailsSheet] = useState(false);
   const [showInstalledOnly, setShowInstalledOnly] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchUpdates = useCallback(async () => {
-    try {
-      //console.log('🔍 Fetching updates...');
-      const updates = await checkForUpdates();
-      //console.log('Available updates:', updates);
-      setAvailableUpdates(updates.extensions);
-    } catch (error) {
-      console.error('Failed to check for updates:', error);
-    }
-  }, [checkForUpdates]);
-
-  // Check for updates whenever registry changes
-  useEffect(() => {
-    if (registry) {
-      //console.log('Registry updated, checking for updates...');
-      fetchUpdates();
-    }
-  }, [registry, fetchUpdates]);
+  // Installing or updating changes the cached versions this compares against, so actions refetch it
+  const registryVersions = useMemo(
+    () => registry?.extensions.map(({ id, version }) => `${id}@${version}`).join(','),
+    [registry],
+  );
+  const { data: availableUpdates = [], refetch: fetchUpdates } = useQuery({
+    queryKey: ['extensions', 'updates', registryVersions],
+    queryFn: async () => (await checkForUpdates()).extensions,
+    enabled: !!registry,
+  });
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);

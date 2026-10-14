@@ -17,7 +17,7 @@ import {
   MediaCarousel,
   RippleButton,
 } from '@/components';
-import { useCurrentTheme, useEpisodesStore, useExtensionStore, usePureBlackBackground } from '@/hooks';
+import { useCurrentTheme, useEpisodeList, useExtensionStore, usePureBlackBackground } from '@/hooks';
 import { useActiveProvider } from '@/constants/provider';
 import { MediaType, MetaProvider } from '@/constants/types';
 import { hexToRGB, isTV, normalizeRating } from '@/constants/utils';
@@ -66,7 +66,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const currentProvider = useActiveProvider(mediaType);
   const { getExtensionInfo } = useExtensionStore();
-  const { episodes } = useEpisodesStore();
+  const { episodes } = useEpisodeList();
 
   // TV: refs for an explicit D-pad focus chain across the top row
   const backBtnRef = useRef<View>(null);
