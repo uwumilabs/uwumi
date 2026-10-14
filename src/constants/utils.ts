@@ -113,3 +113,10 @@ export const tvFocusRingStyle = ({
     transitionProperty: ['borderColor', 'transform'],
     transitionDuration: duration,
   }) as unknown as ViewStyle;
+
+/** GETs a JSON body, throwing on a non-2xx status (fetch itself only rejects on network errors). */
+export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, init);
+  if (!response.ok) throw new Error(`Request failed with status ${response.status}: ${url}`);
+  return (await response.json()) as T;
+}

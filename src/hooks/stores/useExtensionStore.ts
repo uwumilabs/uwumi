@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { storage } from '@/hooks/stores/MMKV';
-import axios from 'axios';
 import * as RNFS from '@dr.pogodin/react-native-fs';
 import { ExtensionManifest, ExtractorInfo, ExtractorManager, ProviderManager } from 'react-native-consumet';
 import { UWUMI_DIR } from '@/constants/config';
+import { fetchJson } from '@/constants/utils';
 
 // --- Constants ---
 
@@ -178,7 +178,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => {
       set({ isLoading: true, error: null });
       try {
         await get().initializeDirectories();
-        const { data } = await axios.get<RegistryResponse>(registryUrl);
+        const data = await fetchJson<RegistryResponse>(registryUrl);
 
         if (!data || !Array.isArray((data as any).extensions) || !Array.isArray((data as any).extractors)) {
           throw new Error('Invalid extension registry response');

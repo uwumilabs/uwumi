@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, ScrollView, Text } from 'react-native';
 import { IAnimeEpisode, IMovieEpisode, IEpisodeServer } from 'react-native-consumet';
 import {
@@ -95,8 +95,6 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const sheetColor = useSheetColor();
     const { toast } = useToast();
 
-    const [showQualitySelection, setShowQualitySelection] = useState(false);
-    const [showServerSelection, setShowServerSelection] = useState(false);
     const [shouldFetchSources, setShouldFetchSources] = useState(false);
     const [selectedServer, setSelectedServer] = useState<IEpisodeServer | null>(null);
     const [actionMode, setActionMode] = useState<'external-player' | 'download'>('external-player');
@@ -131,42 +129,23 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     if (open !== wasOpen) {
       setWasOpen(open);
       if (!open) {
-        setShowQualitySelection(false);
-        setShowServerSelection(false);
         setSelectedServer(null);
         setShouldFetchSources(false);
         setActionMode('external-player');
       }
     }
 
-    // Handle successful data fetch - show appropriate menu
-    useEffect(() => {
-      if (!shouldFetchSources) return;
-
-      // Show loading immediately - server selection screen ONLY if not already in quality view
-      if (!data && !error) {
-        // If we're already showing quality selection (e.g., after selecting a server), keep it
-        if (!showQualitySelection) {
-          setShowServerSelection(true);
-          setShowQualitySelection(false);
-        }
-        return;
-      }
-
-      if (!data) return;
-
-      const availableServers = data?.servers || [];
-
-      // If multiple servers available and none selected, show server selection
-      if (availableServers.length > 1 && !selectedServer) {
-        setShowServerSelection(true);
-        setShowQualitySelection(false);
-      } else {
-        // Otherwise go directly to quality selection
-        setShowQualitySelection(true);
-        setShowServerSelection(false);
-      }
-    }, [shouldFetchSources, data, selectedServer, error, showQualitySelection]);
+    // Which menu the sheet shows. Sources are fetched once an action is picked; the server list comes first (and
+    // covers loading and errors) unless there's a single server or one was chosen.
+    const step: 'menu' | 'servers' | 'quality' = !shouldFetchSources
+      ? 'menu'
+      : selectedServer
+        ? 'quality'
+        : !data || (data.servers?.length ?? 0) > 1
+          ? 'servers'
+          : 'quality';
+    const showServerSelection = step === 'servers';
+    const showQualitySelection = step === 'quality';
 
     const handleMarkComplete = useCallback(() => {
       if (!episode?.uniqueId) return;
@@ -194,19 +173,8 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
       setShouldFetchSources(true);
     };
 
-    const handleServerSelect = useCallback((server: IEpisodeServer) => {
-      setSelectedServer(server);
-      setShowServerSelection(false);
-      setShowQualitySelection(true); // Show quality selection immediately with loading state
-
-      // Reset and refetch with new server
-      setShouldFetchSources(false);
-
-      // Slight delay to ensure state updates, then trigger refetch
-      requestAnimationFrame(() => {
-        setShouldFetchSources(true);
-      });
-    }, []);
+    // The server is part of the sources query key, so this fetches that server's sources
+    const handleServerSelect = useCallback((server: IEpisodeServer) => setSelectedServer(server), []);
 
     const handleOpenWithQuality = useCallback(
       async (videoUrl: string) => {
@@ -351,29 +319,11 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
       [episode, data, mediaInfo, addDownload, startDownload, onOpenChange, toast],
     );
 
+    // From a chosen server's qualities back to the server list, otherwise back to the main menu
     const handleBackToMainMenu = useCallback(() => {
-      if (showQualitySelection) {
-        // If in quality view and server was selected, go back to server selection
-        if (selectedServer) {
-          // Reset selected server and stop fetching to show server list
-          setSelectedServer(null);
-          setShowQualitySelection(false);
-          setShouldFetchSources(false);
-          // Trigger new fetch to show server selection
-          requestAnimationFrame(() => {
-            setShouldFetchSources(true);
-          });
-        } else {
-          // Go back to main menu
-          setShowQualitySelection(false);
-          setShouldFetchSources(false);
-        }
-      } else if (showServerSelection) {
-        // Go back to main menu
-        setShowServerSelection(false);
-        setShouldFetchSources(false);
-      }
-    }, [showQualitySelection, showServerSelection, selectedServer]);
+      if (!selectedServer) setShouldFetchSources(false);
+      setSelectedServer(null);
+    }, [selectedServer]);
 
     // Subscribe to progress changes - this will cause re-render when progress updates
     const progress = episodeProgress ?? null;

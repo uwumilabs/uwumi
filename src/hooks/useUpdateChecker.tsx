@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import { compareVersions } from '@/constants/utils';
+import { compareVersions, fetchJson } from '@/constants/utils';
 import pkg from '../../package.json';
 
 interface UpdateData {
@@ -25,8 +24,7 @@ export function useUpdateChecker(url?: string) {
     queryKey: ['updateChecker', url],
     queryFn: async (): Promise<UpdateData | UpdateData[]> => {
       if (!url) throw new Error('URL is required');
-      const { data } = await axios.get(url);
-      return data;
+      return fetchJson<UpdateData | UpdateData[]>(url);
     },
     enabled: !!url,
     staleTime: 1000 * 60 * 15,

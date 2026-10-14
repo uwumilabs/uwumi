@@ -11,7 +11,7 @@ import {
   TvType,
 } from 'react-native-consumet';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { fetchJson } from '@/constants/utils';
 import { ExternalSubtitleData } from '@/constants/types';
 import { TextTrackType } from 'react-native-video/src/types/video';
 import { SubtitleTrack } from '@/constants/types';
@@ -299,7 +299,7 @@ export function useExternalSubtitles({
       console.log('Fetching external subtitles from:', url);
 
       try {
-        const { data }: { data: ExternalSubtitleData[] } = await axios.get(url, {
+        const data = await fetchJson<ExternalSubtitleData[]>(url, {
           headers: {
             'x-user-agent': 'VLSub 0.10.2',
             'X-User-Agent': 'trailers.to-UA',
