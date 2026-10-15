@@ -11,7 +11,7 @@ import {
   TvType,
 } from 'react-native-consumet';
 import { useQuery } from '@tanstack/react-query';
-import { fetchJson } from '@/constants/utils';
+import { fetchJson, HttpError } from '@/constants/utils';
 import { ExternalSubtitleData } from '@/constants/types';
 import { TextTrackType } from 'react-native-video/src/types/video';
 import { SubtitleTrack } from '@/constants/types';
@@ -325,5 +325,65 @@ export function useExternalSubtitles({
     },
     // Only enable if imdbId is valid, enabled is true, and for TV series also check episode/season
     enabled: Boolean(enabled && isImdbIdValid && (type !== TvType.TVSERIES || (episodeNumber && seasonNumber))),
+  });
+}
+
+export interface SkipTime {
+  type: 'intro' | 'outro' | 'recap';
+  start: number;
+  end: number;
+}
+
+interface AniSkipResponse {
+  found: boolean;
+  results: { interval: { startTime: number; endTime: number }; skipType: string }[];
+}
+
+const ANISKIP_TYPES: Record<string, SkipTime['type']> = {
+  op: 'intro',
+  'mixed-op': 'intro',
+  ed: 'outro',
+  'mixed-ed': 'outro',
+  recap: 'recap',
+};
+
+/** Community intro/outro/recap timestamps from AniSkip, keyed by MyAnimeList id. Empty when it has none. */
+export function useSkipTimes({
+  malId,
+  episodeNumber,
+  enabled = true,
+}: {
+  malId?: number | string;
+  episodeNumber?: string;
+  enabled?: boolean;
+}) {
+  return useQuery<SkipTime[]>({
+    queryKey: ['skipTimes', malId, episodeNumber],
+    enabled: enabled && !!malId && !!episodeNumber,
+    staleTime: Infinity,
+    retry: 1,
+    queryFn: async () => {
+      const types = Object.keys(ANISKIP_TYPES)
+        .map((type) => `types=${type}`)
+        .join('&');
+      let data: AniSkipResponse;
+      try {
+        data = await fetchJson<AniSkipResponse>(
+          `https://api.aniskip.com/v2/skip-times/${malId}/${episodeNumber}?${types}&episodeLength=0`,
+        );
+      } catch (error) {
+        // AniSkip answers 404 when nobody has submitted times for the episode
+        if (error instanceof HttpError && error.status === 404) return [];
+        throw error;
+      }
+      return data.results
+        .filter(({ skipType }) => ANISKIP_TYPES[skipType])
+        .map(({ interval, skipType }) => ({
+          type: ANISKIP_TYPES[skipType],
+          start: interval.startTime,
+          end: interval.endTime,
+        }))
+        .sort((a, b) => a.start - b.start);
+    },
   });
 }

@@ -175,7 +175,7 @@ const ProgressAndAirDate = memo(({ item, isCurrent }: { item: IAnimeEpisode | IM
   );
 });
 
-const ThumbnailProgress = memo(({ uniqueId }: { uniqueId?: string }) => {
+export const ThumbnailProgress = memo(({ uniqueId }: { uniqueId?: string }) => {
   const percent = useWatchProgressStore((state) => (uniqueId ? state.progresses[uniqueId]?.progress : undefined));
   if (percent === undefined) return null;
   return <Progress className="absolute inset-x-1 bottom-0.5" value={percent || 0} />;

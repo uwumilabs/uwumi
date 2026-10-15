@@ -114,9 +114,18 @@ export const tvFocusRingStyle = ({
     transitionDuration: duration,
   }) as unknown as ViewStyle;
 
-/** GETs a JSON body, throwing on a non-2xx status (fetch itself only rejects on network errors). */
+export class HttpError extends Error {
+  constructor(
+    readonly status: number,
+    url: string,
+  ) {
+    super(`Request failed with status ${status}: ${url}`);
+  }
+}
+
+/** GETs a JSON body, throwing an HttpError on a non-2xx status (fetch itself only rejects on network errors). */
 export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
-  if (!response.ok) throw new Error(`Request failed with status ${response.status}: ${url}`);
+  if (!response.ok) throw new HttpError(response.status, url);
   return (await response.json()) as T;
 }

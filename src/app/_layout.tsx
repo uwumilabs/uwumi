@@ -27,7 +27,7 @@ import '../../global.css';
 import { useUniwind } from 'uniwind';
 import { BottomSheet, BottomSheetProvider, IoniconsIcon, OtaUpdateToast, Slider } from '@/components';
 import { themes } from '@/themes/theme';
-import { VideoProvider, defaultTheme, type SheetProps } from 'react-native-video-toolkit';
+import { VideoPortalHost, VideoProvider, defaultTheme, type SheetProps } from 'react-native-video-toolkit';
 import RNOrientationDirector, { Orientation } from 'react-native-orientation-director';
 import { isTV, isTVOS } from '@/constants/utils';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -42,6 +42,7 @@ const VideoSheet = ({ open, onOpenChange, children, style }: SheetProps) => (
 );
 
 const videoComponents = isTV || isTVOS ? undefined : { Sheet: VideoSheet, Slider };
+const VIDEO_PORTAL_HOST = 'video-player';
 
 // Storage Permission Utility using native module
 export const requestPermission = async (): Promise<boolean> => {
@@ -228,6 +229,8 @@ const AppContent = () => {
             </Stack>
           </ThemeProvider>
         </BottomSheetProvider>
+        {/* Player sheets (the episodes panel) render here, inside HeroUI's provider so its components work */}
+        <VideoPortalHost name={VIDEO_PORTAL_HOST} />
         <OtaUpdateToast />
         {isUpdateAvailable && (
           <DownloadDialog
@@ -285,8 +288,10 @@ export default function RootLayout() {
             config={{
               useCustomVideoTracks: true,
               enablePictureInPicture: true,
+              enableFullscreen: false,
             }}
-            components={videoComponents}>
+            components={videoComponents}
+            portalHost={VIDEO_PORTAL_HOST}>
             <AppContent />
           </VideoProvider>
         </QueryClientProvider>

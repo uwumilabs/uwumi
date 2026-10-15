@@ -3,12 +3,14 @@ import { ActivityIndicator, Dimensions, StyleProp, View, ViewStyle } from 'react
 import { ISO639_1, TextTrackType, OnLoadData } from 'react-native-video/src';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
-import { ISubtitle, TvType } from 'react-native-consumet';
-import { EpisodeList, HUXStack, HUYStack, MaterialIconsIcon, ThemedView } from '@/components';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { IAnimeInfo, ISubtitle, TvType } from 'react-native-consumet';
+import { HUXStack, MaterialIconsIcon, ThemedView } from '@/components';
+import { PlayerOverlay, SkipSlot, type UpNext, EpisodesPanel } from './components';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import {
   useEpisodesIdStore,
   useEpisodeList,
+  useSkipTimes,
   getAdjacentEpisodes,
   buildEpisodeRouteParams,
   useWatchProgressStore,
@@ -19,6 +21,7 @@ import {
   useBackHandler,
   useMediaInfo,
   useContinueWatchingStore,
+  type EpisodeItem,
 } from '@/hooks';
 import { useToast } from 'heroui-native';
 import { useProviderStore, useActiveProvider, META_PROVIDERS } from '@/constants/provider';
@@ -27,15 +30,12 @@ import { useEmbedMode, useProviderSelectionStore } from './components';
 import {
   VideoPlayer,
   DefaultLayout,
-  useVideo,
+  useVideoSelector,
   useFullscreen,
   CustomVideoTrack,
-  BaseButton,
-  useProgress,
   BaseIconButton,
 } from 'react-native-video-toolkit';
-import ProviderSelection from './components/ProviderSelection';
-import { Button, cn } from 'heroui-native';
+import { cn } from 'heroui-native';
 
 const Watch = () => {
   const router = useRouter();
@@ -68,10 +68,12 @@ const Watch = () => {
   const { data: mediaInfo } = useMediaInfo();
   const recordContinueWatching = useContinueWatchingStore((state) => state.record);
   const { toast } = useToast();
-  const { state: videoState } = useVideo();
-  const { fullscreen, videoRef } = videoState;
-  const { exitFullscreen } = useFullscreen();
-  const { currentTime, duration, seek } = useProgress();
+  const fullscreen = useVideoSelector((state) => state.fullscreen);
+  const videoRef = useVideoSelector((state) => state.videoRef);
+  const { enterFullscreen, exitFullscreen } = useFullscreen();
+  const navigation = useNavigation();
+  const [episodesOpen, setEpisodesOpen] = useState(false);
+  const openEpisodes = useCallback(() => setEpisodesOpen(true), []);
 
   const setEpisodeIds = useEpisodesIdStore((state) => state.setEpisodeIds);
   const currentEpisodeId = useEpisodesIdStore((state) => state.currentEpisodeId);
@@ -86,6 +88,19 @@ const Watch = () => {
 
   const { prevEpisode, nextEpisode, hasPrev, hasNext } = adjacentEpisodes;
 
+  const { data: skipTimes = [] } = useSkipTimes({
+    malId: (mediaInfo as IAnimeInfo | undefined)?.malId,
+    episodeNumber,
+    enabled: mediaType === MediaType.ANIME,
+  });
+  const upNext = useMemo<UpNext | undefined>(
+    () =>
+      nextEpisode
+        ? { label: `EP ${nextEpisode.number ?? nextEpisode.episode ?? ''}`.trim(), title: nextEpisode.title }
+        : undefined,
+    [nextEpisode],
+  );
+
   // Navigation context for building route params
   const navigationContext = useMemo(
     () => ({
@@ -98,39 +113,39 @@ const Watch = () => {
     [mediaType, provider, id, mediaId, type, currentProvider],
   );
 
-  // Navigate to previous episode
+  const openEpisode = useCallback(
+    (episode: EpisodeItem | null) => {
+      const routeParams = buildEpisodeRouteParams(episode, navigationContext);
+      if (!routeParams) {
+        toast.show({ variant: 'danger', label: 'Unable to navigate', description: 'Episode data is invalid' });
+        return;
+      }
+      router.replace({ pathname: '/watch/[mediaType]', params: routeParams });
+    },
+    [navigationContext, router, toast],
+  );
   const handlePrevEpisode = useCallback(() => {
-    if (!hasPrev || !prevEpisode) return;
-
-    const routeParams = buildEpisodeRouteParams(prevEpisode, navigationContext);
-    if (!routeParams) {
-      toast.show({ variant: 'danger', label: 'Unable to navigate', description: 'Previous episode data is invalid' });
-      return;
-    }
-
-    router.replace({
-      pathname: '/watch/[mediaType]',
-      params: routeParams,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasPrev, prevEpisode, navigationContext, router]);
-
-  // Navigate to next episode
+    if (hasPrev) openEpisode(prevEpisode);
+  }, [hasPrev, prevEpisode, openEpisode]);
   const handleNextEpisode = useCallback(() => {
-    if (!hasNext || !nextEpisode) return;
+    if (hasNext) openEpisode(nextEpisode);
+  }, [hasNext, nextEpisode, openEpisode]);
 
-    const routeParams = buildEpisodeRouteParams(nextEpisode, navigationContext);
-    if (!routeParams) {
-      toast.show({ variant: 'danger', label: 'Unable to navigate', description: 'Next episode data is invalid' });
-      return;
-    }
-
-    router.replace({
-      pathname: '/watch/[mediaType]',
-      params: routeParams,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasNext, nextEpisode, navigationContext, router]);
+  // The watch screen is always fullscreen. Changing episode replaces the route, so only leaving the screen exits
+  // fullscreen; otherwise every episode would rotate to portrait and back.
+  const leavingRef = useRef(false);
+  useEffect(() => {
+    if (!fullscreen && !leavingRef.current) enterFullscreen();
+  }, [fullscreen, enterFullscreen]);
+  useEffect(
+    () =>
+      navigation.addListener('beforeRemove', (event) => {
+        if (event.data.action.type === 'REPLACE') return;
+        leavingRef.current = true;
+        exitFullscreen();
+      }),
+    [navigation, exitFullscreen],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -221,13 +236,9 @@ const Watch = () => {
   });
   // console.log('externalSubtitles', externalSubtitles, isExternalSubtitlesLoading, isExternalSubtitlesError);
 
-  useBackHandler(fullscreen, () => {
-    // If in fullscreen, exit fullscreen instead of going back
-    if (fullscreen) {
-      exitFullscreen();
-      return true;
-    }
-    return false;
+  useBackHandler(episodesOpen, () => {
+    setEpisodesOpen(false);
+    return true;
   });
 
   const lastProgressUpdateRef = useRef({ currentTime: 0, seekableDuration: 0 });
@@ -419,6 +430,7 @@ const Watch = () => {
       }}>
       <VideoPlayer
         key={(episodeId as string) || (currentEpisodeId as string) || 'video'}
+        gestureProps={{ onSwipeUp: openEpisodes }}
         videoProps={{
           resizeMode: 'contain',
           poster: { source: { uri: poster }, resizeMode: 'contain' },
@@ -476,13 +488,23 @@ const Watch = () => {
             type !== TvType.MOVIE ? `${seasonNumber ? `Season ${seasonNumber}` : ''} Episode ${episodeNumber}` : ''
           }
           slots={{
+            beforeTitle: (
+              <BaseIconButton
+                onTap={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+                IconComponent={() => <MaterialIconsIcon name="arrow-back" size={26} color="white" />}
+              />
+            ),
+            beforeMuteButton: (
+              <BaseIconButton
+                onTap={openEpisodes}
+                IconComponent={() => <MaterialIconsIcon name="video-library" size={24} color="white" />}
+              />
+            ),
             beforeProgressBar: (
               <HUXStack>
                 {/* This view is just to take the whole space */}
                 <View className="flex-1 w-full" />
-                <BaseButton onTap={() => seek(Math.round(currentTime) + 85)}>
-                  <Button variant="primary">+85s</Button>
-                </BaseButton>
+                <SkipSlot skipTimes={skipTimes} upNext={upNext} onNext={handleNextEpisode} />
               </HUXStack>
             ),
             beforeCenterPlayButton: (
@@ -513,15 +535,15 @@ const Watch = () => {
             ),
           }}
         />
+        <PlayerOverlay skipTimes={skipTimes} upNext={upNext} onNext={handleNextEpisode} />
+        {upNext && (
+          <VideoPlayer.UpNext
+            title={upNext.title ? `${upNext.label} · ${upNext.title}` : upNext.label}
+            onPlayNext={handleNextEpisode}
+          />
+        )}
       </VideoPlayer>
-      {!fullscreen && (
-        <HUYStack className="flex-1 gap-2">
-          <ProviderSelection />
-          <View className="flex-1">
-            <EpisodeList />
-          </View>
-        </HUYStack>
-      )}
+      <EpisodesPanel open={episodesOpen} onOpenChange={setEpisodesOpen} onSelect={openEpisode} />
     </ThemedView>
   );
 };
