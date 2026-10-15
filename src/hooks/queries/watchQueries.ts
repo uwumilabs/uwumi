@@ -17,6 +17,37 @@ import { TextTrackType } from 'react-native-video/src/types/video';
 import { SubtitleTrack } from '@/constants/types';
 import { useConsumetExtensions } from '../stores';
 
+async function loadServerExtractor(
+  serverName: string,
+  extractorManager: ReturnType<typeof useConsumetExtensions>['extractorManager'],
+  readExtractorCode: ReturnType<typeof useConsumetExtensions>['readExtractorCode'],
+) {
+  const baseExtractorName = extractorManager.extractBaseExtractorName(serverName);
+  if (!baseExtractorName) {
+    throw new Error(`No extractor found for server: "${serverName}"`);
+  }
+
+  const extractorCode = await readExtractorCode(baseExtractorName);
+  if (!extractorCode) {
+    throw new Error(`Failed to read extractor code for: "${baseExtractorName}"`);
+  }
+
+  const metadata = extractorManager.getExtractorMetadata(baseExtractorName);
+  if (!metadata) {
+    throw new Error(`No metadata found for extractor: "${baseExtractorName}"`);
+  }
+
+  return extractorManager.executeExtractorCode(extractorCode, metadata);
+}
+
+/**
+ * Only embed providers with several servers hand the server URL to a registry extractor.
+ * Direct-source providers (e.g. NetMirror, VegaMovies) and single-server providers resolve
+ * sources themselves, and their server names ("Netflix", "CF Storage") aren't extractors.
+ */
+const needsExtractor = (metadata: { haveMultiServers?: boolean; isSourceDirect?: boolean }) =>
+  Boolean(metadata.haveMultiServers) && !metadata.isSourceDirect;
+
 async function fetchAnimeEpisodeSources(
   episodeId: string,
   provider: string,
@@ -45,26 +76,13 @@ async function fetchAnimeEpisodeSources(
 
   const selectedServer = (server?.name ? servers.find((s) => s.name === server.name) : servers[0]) || servers[0];
 
-  const baseExtractorName = extractorManager.extractBaseExtractorName(selectedServer.name);
-  if (!baseExtractorName) {
-    throw new Error(`No extractor found for server: "${selectedServer.name}"`);
-  }
-
-  const extractorCode = await readExtractorCode(baseExtractorName);
-  if (!extractorCode) {
-    throw new Error(`Failed to read extractor code for: "${baseExtractorName}"`);
-  }
-
-  const metadata = extractorManager.getExtractorMetadata(baseExtractorName);
-  if (!metadata) {
-    throw new Error(`No metadata found for extractor: "${baseExtractorName}"`);
-  }
-
-  const extractor = await extractorManager.executeExtractorCode(extractorCode, metadata);
+  const extractor = needsExtractor(animeProviderMetadata)
+    ? await loadServerExtractor(selectedServer.name, extractorManager, readExtractorCode)
+    : undefined;
 
   let data: ISource;
   try {
-    if (animeProviderMetadata.haveMultiServers) {
+    if (extractor) {
       try {
         data = (await extractor.extract(new PolyURL(selectedServer.url), animeProviderMetadata.baseUrl)) as ISource;
       } catch (extractErr) {
@@ -117,26 +135,13 @@ async function fetchMovieEpisodeSources(
 
   const selectedServer = (server?.name ? servers.find((s) => s.name === server.name) : servers[0]) || servers[0];
 
-  const baseExtractorName = extractorManager.extractBaseExtractorName(selectedServer.name);
-  if (!baseExtractorName) {
-    throw new Error(`No extractor found for server: "${selectedServer.name}"`);
-  }
-
-  const extractorCode = await readExtractorCode(baseExtractorName);
-  if (!extractorCode) {
-    throw new Error(`Failed to read extractor code for: "${baseExtractorName}"`);
-  }
-
-  const metadata = extractorManager.getExtractorMetadata(baseExtractorName);
-  if (!metadata) {
-    throw new Error(`No metadata found for extractor: "${baseExtractorName}"`);
-  }
-
-  const extractor = await extractorManager.executeExtractorCode(extractorCode, metadata);
+  const extractor = needsExtractor(movieProviderMetadata)
+    ? await loadServerExtractor(selectedServer.name, extractorManager, readExtractorCode)
+    : undefined;
 
   let data: ISource;
   try {
-    if (movieProviderMetadata.haveMultiServers) {
+    if (extractor) {
       try {
         data = (await extractor.extract(new PolyURL(selectedServer.url), movieProviderMetadata.baseUrl)) as ISource;
       } catch {
