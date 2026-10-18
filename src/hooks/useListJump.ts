@@ -8,6 +8,9 @@ import { isTV } from '@/constants/utils';
 const RANGE_SIZE = 100;
 const JUMP_BAR_SCREENS = 1.5;
 export const LIST_SHADOW_SIZE = 48;
+// Half an item must show to count, so the sliver a jump leaves above its target (the shadow offset) doesn't pull the
+// range label back to the previous range
+const VIEWABILITY_CONFIG = { itemVisiblePercentThreshold: 50 };
 
 export interface ListRange {
   name: string;
@@ -84,7 +87,7 @@ export function useListJump<T>({ items, listRef, rangeLabel }: UseListJumpOption
   const resetScroll = useCallback(() => scrollY.set(0), [scrollY]);
 
   return {
-    listProps: { onScroll, onViewableItemsChanged },
+    listProps: { onScroll, onViewableItemsChanged, viewabilityConfig: VIEWABILITY_CONFIG },
     ranges,
     rangeValue,
     jumpToRange,

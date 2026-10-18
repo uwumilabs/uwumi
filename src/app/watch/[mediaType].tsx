@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { ActivityIndicator, Dimensions, StyleProp, View, ViewStyle } from 'react-native'; // Removed Pressable as it's not directly used after changes
+import { ActivityIndicator, Dimensions, View } from 'react-native';
 import { ISO639_1, TextTrackType, OnLoadData } from 'react-native-video/src';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
 import { IAnimeInfo, ISubtitle, TvType } from 'react-native-consumet';
 import { HUXStack, MaterialIconsIcon, ThemedView } from '@/components';
@@ -21,11 +20,12 @@ import {
   useBackHandler,
   useMediaInfo,
   useContinueWatchingStore,
+  useExternalSubtitleStore,
   type EpisodeItem,
 } from '@/hooks';
 import { useToast } from 'heroui-native';
-import { useProviderStore, useActiveProvider, META_PROVIDERS } from '@/constants/provider';
-import { constants, SUB_LANGUAGE } from '@/constants/config';
+import { useActiveProvider, useProviders, META_PROVIDERS } from '@/constants/provider';
+import { constants } from '@/constants/config';
 import { useEmbedMode, useProviderSelectionStore } from './components';
 import {
   VideoPlayer,
@@ -37,6 +37,15 @@ import {
 } from 'react-native-video-toolkit';
 import { cn } from 'heroui-native';
 
+// Providers often leave out a subtitle's type (NetflixMirror sends .srt), and ExoPlayer fails the whole source
+// when a track doesn't parse as the type it's given
+const subtitleType = (uri: string) => {
+  const path = uri.split(/[?#]/)[0].toLowerCase();
+  if (path.endsWith('.srt')) return TextTrackType.SUBRIP;
+  if (path.endsWith('.ttml') || path.endsWith('.dfxp')) return TextTrackType.TTML;
+  return TextTrackType.VTT;
+};
+
 const Watch = () => {
   const router = useRouter();
   const watchParams = useLocalSearchParams() as unknown as WatchSearchParams;
@@ -46,26 +55,23 @@ const Watch = () => {
     id,
     mediaId,
     episodeId,
-    uniqueId,
-    isDubbed,
+    uniqueId: routeUniqueId,
     title,
     poster,
     type,
-    episodeNumber,
+    episodeNumber: routeEpisodeNumber,
     seasonNumber,
   } = watchParams;
   // console.log(useLocalSearchParams(), 'useLocalSearchParams');
-  const { top } = useSafeAreaInsets();
   const setProgress = useWatchProgressStore((state) => state.setProgress);
   const getProgress = useWatchProgressStore((state) => state.getProgress);
-  const setProvider = useProviderStore((state) => state.setProvider);
   const currentProvider = useActiveProvider(mediaType);
   const setServers = useServerStore((state) => state.setServers);
   const setCurrentServer = useServerStore((state) => state.setCurrentServer);
   const currentServer = useServerStore((state) => state.currentServer);
   const clearServers = useServerStore((state) => state.clearServers);
   const [serverInitialized, setServerInitialized] = useState(false);
-  const { data: mediaInfo } = useMediaInfo();
+  const { data: mediaInfo, isLoading: mediaInfoLoading } = useMediaInfo();
   const recordContinueWatching = useContinueWatchingStore((state) => state.record);
   const { toast } = useToast();
   const fullscreen = useVideoSelector((state) => state.fullscreen);
@@ -80,17 +86,39 @@ const Watch = () => {
   const currentUniqueId = useEpisodesIdStore((state) => state.currentUniqueId);
 
   // The same (cached) episode list the screen's EpisodeList shows
-  const { episodes } = useEpisodeList();
-  const adjacentEpisodes = useMemo(
-    () => getAdjacentEpisodes(episodes, currentUniqueId || uniqueId),
-    [episodes, currentUniqueId, uniqueId],
+  const { episodes, movieSeasons, setSeason, providerMediaId, isLoading: episodesLoading } = useEpisodeList();
+  // The list only holds the season on screen, but a TV episode's neighbours can be in the seasons either side
+  const allEpisodes = useMemo<EpisodeItem[]>(
+    () => (movieSeasons ? movieSeasons.flatMap((season) => season.episodes ?? []) : episodes),
+    [movieSeasons, episodes],
   );
+  const switchedProvider = !!provider && currentProvider !== provider;
+  // A route can carry an older key than the loaded list (Continue watching saved before an upgrade); the list has
+  // the current key and number
+  const listedEpisode = switchedProvider
+    ? allEpisodes.find((episode) => episode.uniqueId === routeUniqueId)
+    : allEpisodes.find((episode) => episode.id === episodeId);
+  const activeEpisodeId = switchedProvider ? listedEpisode?.id : episodeId;
+  const activeMediaId = switchedProvider ? providerMediaId : mediaId;
+  const missingOnProvider = switchedProvider && !episodesLoading && !activeEpisodeId;
+  const providers = useProviders();
+  const uniqueId = listedEpisode?.uniqueId ?? routeUniqueId;
+  const episodeNumber = listedEpisode?.number !== undefined ? String(listedEpisode.number) : routeEpisodeNumber;
+  const adjacentEpisodes = useMemo(
+    () => getAdjacentEpisodes(allEpisodes, currentUniqueId || uniqueId),
+    [allEpisodes, currentUniqueId, uniqueId],
+  );
+  const playingSeason =
+    movieSeasons?.findIndex((season) => season.episodes?.some((episode) => episode.uniqueId === uniqueId)) ?? -1;
 
   const { prevEpisode, nextEpisode, hasPrev, hasNext } = adjacentEpisodes;
 
+  // Keyed by episode, so the next episode doesn't query skip times with this one's length
+  const [loadedLength, setLoadedLength] = useState<{ uniqueId?: string; seconds: number }>({ seconds: 0 });
   const { data: skipTimes = [] } = useSkipTimes({
     malId: (mediaInfo as IAnimeInfo | undefined)?.malId,
     episodeNumber,
+    episodeLength: loadedLength.uniqueId === uniqueId ? loadedLength.seconds : 0,
     enabled: mediaType === MediaType.ANIME,
   });
   const upNext = useMemo<UpNext | undefined>(
@@ -107,10 +135,10 @@ const Watch = () => {
       mediaType,
       provider: currentProvider ?? provider,
       id,
-      mediaId,
+      mediaId: providerMediaId ?? mediaId,
       type: type as string,
     }),
-    [mediaType, provider, id, mediaId, type, currentProvider],
+    [mediaType, provider, id, mediaId, providerMediaId, type, currentProvider],
   );
 
   const openEpisode = useCallback(
@@ -124,6 +152,7 @@ const Watch = () => {
     },
     [navigationContext, router, toast],
   );
+
   const handlePrevEpisode = useCallback(() => {
     if (hasPrev) openEpisode(prevEpisode);
   }, [hasPrev, prevEpisode, openEpisode]);
@@ -152,10 +181,11 @@ const Watch = () => {
       if (episodeId && uniqueId) {
         setEpisodeIds(episodeId, uniqueId);
       }
+      if (playingSeason >= 0) setSeason(playingSeason);
       return () => {
         setEpisodeIds('', '');
       };
-    }, [uniqueId, episodeId, setEpisodeIds]),
+    }, [uniqueId, episodeId, setEpisodeIds, playingSeason, setSeason]),
   );
 
   const [dimensions, setDimensions] = useState({
@@ -166,7 +196,7 @@ const Watch = () => {
   const isEmbed = useEmbedMode(mediaType, currentProvider);
   // console.log({currentEpisodeId , episodeId})
   const animeQuery = useWatchAnimeEpisodes({
-    episodeId: (episodeId as string) || (currentEpisodeId as string) || '',
+    episodeId: activeEpisodeId || (switchedProvider ? '' : (currentEpisodeId as string)) || '',
     provider: currentProvider,
     server: currentServer!,
     dub,
@@ -174,8 +204,8 @@ const Watch = () => {
   });
 
   const movieQuery = useWatchMoviesEpisodes({
-    episodeId: (episodeId as string) || (currentEpisodeId as string) || '',
-    mediaId,
+    episodeId: activeEpisodeId || (switchedProvider ? '' : (currentEpisodeId as string)) || '',
+    mediaId: activeMediaId ?? '',
     type,
     provider: currentProvider,
     server: currentServer!,
@@ -183,7 +213,25 @@ const Watch = () => {
     enabled: mediaType === MediaType.MOVIE,
   });
 
-  const { data, isLoading, error } = mediaType === MediaType.ANIME ? animeQuery : movieQuery;
+  const subtitleLanguage = useExternalSubtitleStore((state) => state.language);
+  // Only TMDB titles carry an IMDb id
+  const wantsExternalSubtitles = !!subtitleLanguage && mediaType === MediaType.MOVIE;
+  const { data: externalSubtitles, isLoading: externalSubtitlesLoading } = useExternalSubtitles({
+    imdbId: mediaInfo?.mappings?.imdb?.replace('tt', '') || '',
+    episodeNumber,
+    seasonNumber,
+    type,
+    language: subtitleLanguage,
+    enabled: wantsExternalSubtitles,
+  });
+
+  const { data, isLoading: sourcesLoading, error } = mediaType === MediaType.ANIME ? animeQuery : movieQuery;
+  // A switched provider's list has to load before its sources can. New text tracks would reload the source, so the
+  // player also waits for external subtitles, which give up after a few seconds.
+  const isLoading =
+    sourcesLoading ||
+    (switchedProvider && episodesLoading) ||
+    (wantsExternalSubtitles && (mediaInfoLoading || externalSubtitlesLoading));
 
   // Track the current provider to detect changes
 
@@ -213,29 +261,6 @@ const Watch = () => {
     }
   }, [data, serverInitialized, setCurrentServer, setServers, clearServers, currentServer, currentProvider]);
 
-  const [shouldFetchExternalSubs, setShouldFetchExternalSubs] = useState(false);
-  const [externalSubtitleLanguage, setExternalSubtitleLanguage] = useState<string | null>(null);
-  const [brightness, setBrightness] = useState(1);
-  const [volume, setVolume] = useState(1);
-  const [systemVolume, setSystemVolume] = useState(1);
-
-  const parsedMappings = mediaInfo?.mappings ? mediaInfo?.mappings : null;
-  const imdbId = parsedMappings?.imdb?.replace('tt', '') || '';
-  const isImdbIdValid = imdbId && imdbId.trim() !== '' && imdbId.length > 0;
-  const {
-    data: externalSubtitles,
-    isLoading: isExternalSubtitlesLoading,
-    isError: isExternalSubtitlesError,
-  } = useExternalSubtitles({
-    imdbId,
-    episodeNumber,
-    seasonNumber,
-    type,
-    language: SUB_LANGUAGE[externalSubtitleLanguage as keyof typeof SUB_LANGUAGE],
-    enabled: shouldFetchExternalSubs && isImdbIdValid,
-  });
-  // console.log('externalSubtitles', externalSubtitles, isExternalSubtitlesLoading, isExternalSubtitlesError);
-
   useBackHandler(episodesOpen, () => {
     setEpisodesOpen(false);
     return true;
@@ -253,20 +278,33 @@ const Watch = () => {
         : info.title?.romaji || info.title?.english
       : undefined;
     const showImage = info?.image;
-    const params = Object.fromEntries(
-      Object.entries(watchParams).filter(
-        (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1] !== '',
+    const params = {
+      ...Object.fromEntries(
+        Object.entries(watchParams).filter(
+          (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1] !== '',
+        ),
       ),
-    );
+      ...(uniqueId && { uniqueId }),
+      ...(episodeNumber && { episodeNumber }),
+      // Resumes on the provider it was switched to
+      ...(switchedProvider &&
+        activeEpisodeId && {
+          provider: currentProvider,
+          episodeId: activeEpisodeId,
+          ...(activeMediaId && { mediaId: activeMediaId }),
+        }),
+    };
     recordContinueWatching({
       mediaType,
       showId: id,
       showTitle,
       showImage,
       uniqueId,
-      // Anime lists hold the whole series; a TV show's only holds the current season
+      // Unknown while the list loads, or when a season TMDB couldn't load might hold the next episode
       hasNextEpisode:
-        mediaType === MediaType.ANIME && adjacentEpisodes.currentIndex >= 0 ? adjacentEpisodes.hasNext : undefined,
+        adjacentEpisodes.currentIndex >= 0 && !movieSeasons?.some((season) => season.failed)
+          ? adjacentEpisodes.hasNext
+          : undefined,
       watchParams: params,
       infoParams: {
         mediaType,
@@ -285,7 +323,12 @@ const Watch = () => {
     recordContinueWatching,
     mediaType,
     uniqueId,
+    episodeNumber,
+    switchedProvider,
+    activeEpisodeId,
+    activeMediaId,
     adjacentEpisodes,
+    movieSeasons,
     currentProvider,
     provider,
     type,
@@ -320,20 +363,6 @@ const Watch = () => {
       }
     },
     [uniqueId, getProgress, setProgress, rememberEpisode],
-  );
-
-  const videoStyle = useMemo<StyleProp<ViewStyle>>(
-    () => ({
-      width: dimensions.width,
-      height: fullscreen ? dimensions.height : undefined,
-      aspectRatio: 16 / 9,
-      backgroundColor: 'black',
-      position: 'absolute' as const,
-      top: 0,
-      left: 0,
-      right: 0,
-    }),
-    [fullscreen, dimensions],
   );
 
   const videoTracks = useMemo(() => {
@@ -377,19 +406,28 @@ const Watch = () => {
 
   // const gestures = Gesture.Exclusive(doubleTapGesture, brightnessVolumeGesture, singleTapGesture);
 
-  // External subtitles are only offered alongside the source's own
-  const subtitleTracks = useMemo<(SubtitleTrack | ISubtitle)[]>(() => {
-    if (!data?.subtitles?.length) return [];
-    return externalSubtitles?.length ? [...externalSubtitles, ...data.subtitles] : data.subtitles;
-  }, [data?.subtitles, externalSubtitles]);
+  // The source's own tracks first, so they're picked over external ones in the same language
+  const subtitleTracks = useMemo<(SubtitleTrack | ISubtitle)[]>(
+    () => [...(data?.subtitles ?? []), ...(externalSubtitles ?? [])],
+    [data?.subtitles, externalSubtitles],
+  );
 
   useEffect(() => {
     if (!isLoading && !source) {
-      toast.show({
-        variant: 'danger',
-        label: 'No video source found',
-        description: 'Please try changing servers or quality.',
-      });
+      const providerName = providers[mediaType]?.find(({ value }) => value === currentProvider)?.name;
+      toast.show(
+        missingOnProvider
+          ? {
+              variant: 'danger',
+              label: `Not on ${providerName ?? currentProvider}`,
+              description: 'This episode isn’t available there. Try another provider.',
+            }
+          : {
+              variant: 'danger',
+              label: 'No video source found',
+              description: 'Please try changing servers or quality.',
+            },
+      );
     }
     if (!isLoading && error) {
       toast.show({
@@ -398,19 +436,12 @@ const Watch = () => {
         description: error?.message || 'An unknown error occurred.',
       });
     }
-    if (isExternalSubtitlesError) {
-      toast.show({
-        variant: 'danger',
-        label: 'Error loading external subtitles',
-        description: 'Please try changing the subtitle language or check your internet connection.',
-      });
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, isLoading, error, isExternalSubtitlesError]);
+  }, [source, isLoading, error, missingOnProvider]);
 
   if (isLoading) {
     return (
-      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <ThemedView useStatusBar={false} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
       </ThemedView>
     );
@@ -429,7 +460,7 @@ const Watch = () => {
         top: 0,
       }}>
       <VideoPlayer
-        key={(episodeId as string) || (currentEpisodeId as string) || 'video'}
+        key={activeEpisodeId || (currentEpisodeId as string) || 'video'}
         gestureProps={{ onSwipeUp: openEpisodes }}
         videoProps={{
           resizeMode: 'contain',
@@ -446,13 +477,12 @@ const Watch = () => {
           },
           onLoad: (value: OnLoadData) => {
             // console.log('Video loaded:', value);
-
+            setLoadedLength({ uniqueId, seconds: Math.round(value.duration) });
             videoRef?.current?.seek(getProgress(uniqueId)?.currentTime || 0);
           },
 
           subtitleStyle: { paddingBottom: 50, fontSize: 20, opacity: 0.8 },
         }}
-        // videoStyle={videoStyle}
         customVideoTracks={videoTracks}
         source={{
           uri: source,
@@ -460,16 +490,19 @@ const Watch = () => {
           textTracks: subtitleTracks
             // @ts-ignore
             ?.filter((track) => track.kind !== 'thumbnails' && track.lang !== 'thumbnails')
-            .map((track, index) => ({
-              title:
-                ('title' in track ? track.title : undefined) ||
-                ('lang' in track ? track.lang : track.language) ||
-                'Untitled',
-              language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
-              type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : TextTrackType.VTT,
-              uri: ('url' in track ? track.url : track.uri) || '',
-              index,
-            })),
+            .map((track, index) => {
+              const uri = ('url' in track ? track.url : track.uri) || '';
+              return {
+                title:
+                  ('title' in track ? track.title : undefined) ||
+                  ('lang' in track ? track.lang : track.language) ||
+                  'Untitled',
+                language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
+                type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : subtitleType(uri),
+                uri,
+                index,
+              };
+            }),
           textTracksAllowChunklessPreparation: false,
           bufferConfig: {
             minBufferMs: 85000, // 85s minimum buffer (VLC-like for smooth seeking)

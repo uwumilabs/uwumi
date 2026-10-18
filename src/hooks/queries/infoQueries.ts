@@ -8,12 +8,12 @@ import {
   MediaFormat,
   META,
   TvType,
-  IAnimeEpisode,
   IMangaChapter,
-  MovieProvider,
-  AnimeProvider,
+  IMetaAnimeEpisode,
 } from 'react-native-consumet';
-import { useConsumetExtensions } from '../stores';
+import { loadAnimeProvider, loadMovieProvider } from '../stores';
+
+export const TMDB_API_KEY = process.env.EXPO_PUBLIC_TMDB_API_KEY;
 
 export function useInfo({
   mediaType,
@@ -35,7 +35,6 @@ export function useInfo({
   //   id,
   //   provider,
   // });
-  const { providerManager, readExtensionCode } = useConsumetExtensions();
   return useQuery<IAnimeInfo | IMovieInfo>({
     queryKey: [mediaType, 'info', id, metaProvider, type, provider],
     queryFn: async () => {
@@ -45,20 +44,8 @@ export function useInfo({
           data = (await new META.Anilist().fetchAnilistInfoById(id)) as unknown as IAnimeInfo;
         }
         if (metaProvider === 'tmdb') {
-          const content = await readExtensionCode(provider);
-          const metadata = providerManager.getExtensionMetadata(provider);
-          //console.log('Extension metadata:', metadata);
-
-          const movieProvider = await providerManager.executeProviderCode<MovieProvider>(
-            content!,
-            metadata.factoryName,
-            metadata as typeof metadata & { id: MovieProvider },
-          );
-          // console.log(movieProvider);
-          data = (await new META.TMDB(process.env.EXPO_TMDB_API_KEY, movieProvider).fetchMediaInfo(
-            id,
-            type,
-          )) as unknown as IMovieInfo;
+          const movieProvider = await loadMovieProvider(provider);
+          data = await new META.TMDB(TMDB_API_KEY, movieProvider).fetchMediaInfo(id, type);
         }
       } catch (error) {
         console.error('Error fetching info data:', error);
@@ -96,23 +83,13 @@ export function useAnimeEpisodes({
   provider: string;
   enabled?: boolean;
 }) {
-  // console.log('useAnimeEpisodes is called');
-  const { providerManager, readExtensionCode } = useConsumetExtensions();
-  return useQuery<IAnimeEpisode>({
+  return useQuery<IMetaAnimeEpisode[]>({
     queryKey: ['anime', 'episodes', id, provider],
     enabled: enabled && !!id,
     queryFn: async () => {
       try {
-        const content = await readExtensionCode(provider);
-        const metadata = providerManager.getExtensionMetadata(provider);
-        const animeProvider = await providerManager.executeProviderCode<AnimeProvider>(
-          content!,
-          metadata.factoryName,
-          metadata as typeof metadata & { id: AnimeProvider },
-        );
-        // Object.setPrototypeOf(animeProvider, AnimePahe.prototype);
-        const data = (await new META.Anilist(animeProvider).fetchEpisodesListById(id)) as unknown as IAnimeEpisode;
-        return data;
+        const animeProvider = await loadAnimeProvider(provider);
+        return await new META.Anilist(animeProvider).fetchEpisodesListById(id);
       } catch (error) {
         throw new Error(`Error fetching episodes: ${error}`);
       }
@@ -150,7 +127,6 @@ export function useMoviesEpisodes({
   provider: string;
   enabled?: boolean;
 }) {
-  const { providerManager, readExtensionCode } = useConsumetExtensions();
   return useQuery<IMovieInfo>({
     queryKey: ['movies', 'episodes', id, type, provider],
     enabled: enabled && !!id,
@@ -158,19 +134,8 @@ export function useMoviesEpisodes({
       // let url = `${getFetchUrl().episodeApiUrl}/movies/tmdb/episodes/${id}?type=${type.split(' ')[0]}&provider=${provider}`;
       // console.log(url);
       // const { data } = await axios.get(url);
-      const content = await readExtensionCode(provider);
-      const metadata = providerManager.getExtensionMetadata(provider);
-      const movieProvider = await providerManager.executeProviderCode<MovieProvider>(
-        content!,
-        metadata.factoryName,
-        metadata as typeof metadata & { id: MovieProvider },
-      );
-      const data = (await new META.TMDB(process.env.EXPO_TMDB_API_KEY, movieProvider).fetchMediaInfo(
-        id,
-        type,
-      )) as unknown as IMovieInfo;
-      // console.log(data);
-      return data;
+      const movieProvider = await loadMovieProvider(provider);
+      return new META.TMDB(TMDB_API_KEY, movieProvider).fetchMediaInfo(id, type);
     },
   });
 }

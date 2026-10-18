@@ -13,6 +13,7 @@ import {
 } from 'react-native-video-toolkit';
 import ProviderSelection from './ProviderSelection';
 import { isTV } from '@/constants/utils';
+import type { MediaType } from '@/constants/types';
 import {
   useEpisodeList,
   useEpisodesIdStore,
@@ -50,6 +51,7 @@ const EpisodeCard = memo(
           className={cn('overflow-hidden rounded-xl bg-default', isCurrent && 'border-2 border-accent')}
           style={{ height: THUMBNAIL_HEIGHT }}>
           <Image source={image} style={{ width: '100%', height: '100%' }} />
+          {isCurrent && <View className="absolute inset-0 bg-black/50" />}
           <Text className="absolute left-2 top-2 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
             {`EP ${episodeNumber(episode, index)}`}
           </Text>
@@ -80,7 +82,11 @@ interface EpisodesPanelProps {
 export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelProps) => {
   const portalHostName = useVideoSelector((state) => state.portalHostName);
   const sheetColor = useSheetColor();
-  const { type } = useLocalSearchParams<{ type: MediaFormat | TvType }>();
+  const { type, mediaType, isDubbed } = useLocalSearchParams<{
+    type: MediaFormat | TvType;
+    mediaType: MediaType;
+    isDubbed?: string;
+  }>();
   const { episodes, movieSeasons, activeSeason, setSeason } = useEpisodeList();
   const currentUniqueId = useEpisodesIdStore((store) => store.currentUniqueId);
   const servers = useServerStore((store) => store.servers);
@@ -113,7 +119,7 @@ export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelPro
           style={{ maxWidth: '100%', backgroundColor: sheetColor, paddingBottom: 16 }}>
           <HUXStack className="flex-wrap items-center gap-3 px-4 pb-3">
             <Text className="mr-auto text-lg font-semibold text-foreground">Episodes</Text>
-            <ProviderSelection />
+            <ProviderSelection mediaType={mediaType} isDubbed={isDubbed} />
             {movieSeasons && type !== TvType.MOVIE && (
               <Select
                 SelectItem={movieSeasons.map((_, index) => ({ name: `Season ${index + 1}`, value: String(index) }))}
@@ -145,6 +151,7 @@ export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelPro
               // One card early, so the strip reads previous → current → next
               initialScrollIndex={currentIndex > 0 ? currentIndex - 1 : undefined}
               onViewableItemsChanged={listProps.onViewableItemsChanged}
+              viewabilityConfig={listProps.viewabilityConfig}
               contentContainerStyle={{ paddingHorizontal: 16 }}
               ItemSeparatorComponent={() => <View style={{ width: CARD_GAP, height: CARD_GAP }} />}
               ListFooterComponent={null}

@@ -1,6 +1,7 @@
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { ISearch, META } from 'react-native-consumet';
+import { TMDB_API_KEY } from './infoQueries';
 
 export function useMediaFeed<T>(
   mediaType: MediaType,
@@ -46,7 +47,7 @@ export function useMediaFeed<T>(
           )) as unknown as ISearch<T>;
         }
         if (metaProvider === 'tmdb' && mediaFeedType === 'trending') {
-          data = (await new META.TMDB().fetchTrending('all', 'week', pageParam)) as unknown as ISearch<T>;
+          data = (await new META.TMDB(TMDB_API_KEY).fetchTrending('all', 'week', pageParam)) as unknown as ISearch<T>;
         }
       } catch (error) {
         console.error('Error fetching media data:', error);
@@ -121,7 +122,7 @@ export function useMovieSearch<T>(mediaType: MediaType, query: string, options?:
       //   },
       //   timeout: 5000,
       // });
-      data = (await new META.TMDB().search(query, pageParam)) as unknown as ISearch<T>;
+      data = (await new META.TMDB(TMDB_API_KEY).search(query, pageParam)) as unknown as ISearch<T>;
       return data;
     },
     enabled: (options?.enabled ?? true) && query.length > 0,

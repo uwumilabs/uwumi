@@ -1,0 +1,85 @@
+diff --git a/node_modules/@expo/ui/android/src/main/java/expo/modules/ui/ModalBottomSheetView.kt b/node_modules/@expo/ui/android/src/main/java/expo/modules/ui/ModalBottomSheetView.kt
+index e90edd3..be932ce 100644
+--- a/node_modules/@expo/ui/android/src/main/java/expo/modules/ui/ModalBottomSheetView.kt
++++ b/node_modules/@expo/ui/android/src/main/java/expo/modules/ui/ModalBottomSheetView.kt
+@@ -17,9 +17,14 @@ import androidx.compose.material3.rememberModalBottomSheetState
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.DisposableEffect
+ import androidx.compose.runtime.LaunchedEffect
++import androidx.compose.runtime.remember
+ import androidx.compose.runtime.rememberCoroutineScope
+ import androidx.compose.ui.platform.LocalView
+ import androidx.compose.ui.window.DialogWindowProvider
++import androidx.core.view.ViewCompat
++import androidx.core.view.WindowCompat
++import androidx.core.view.WindowInsetsCompat
++import androidx.core.view.WindowInsetsControllerCompat
+ import expo.modules.kotlin.records.Field
+ import expo.modules.kotlin.records.Record
+ import expo.modules.kotlin.types.OptimizedRecord
+@@ -90,6 +95,49 @@ private fun ForwardKeyEventsToActivity(activity: Activity?) {
+   }
+ }
+ 
++/**
++ * Returns the system bars (status, navigation) the activity window has hidden right now, for
++ * example because a video player is in immersive fullscreen. Read it before the sheet opens: once
++ * the sheet's dialog window takes over the system bars, the activity reports them as visible.
++ */
++@Composable
++private fun rememberActivityHiddenSystemBars(): Int {
++  val hostView = LocalView.current
++  return remember {
++    val insets = ViewCompat.getRootWindowInsets(hostView) ?: return@remember 0
++    var hidden = 0
++    if (!insets.isVisible(WindowInsetsCompat.Type.statusBars())) {
++      hidden = hidden or WindowInsetsCompat.Type.statusBars()
++    }
++    if (!insets.isVisible(WindowInsetsCompat.Type.navigationBars())) {
++      hidden = hidden or WindowInsetsCompat.Type.navigationBars()
++    }
++    hidden
++  }
++}
++
++/**
++ * The sheet's dialog window doesn't inherit the activity's immersive mode, so Android shows the
++ * system bars again while the sheet is open. Hide the bars the activity had hidden on the sheet's
++ * window too.
++ */
++@Composable
++private fun HideSystemBarsInSheetWindow(hiddenSystemBars: Int) {
++  if (hiddenSystemBars == 0) {
++    return
++  }
++  val view = LocalView.current
++  val window = (view.parent as? DialogWindowProvider)?.window ?: return
++
++  DisposableEffect(window, hiddenSystemBars) {
++    WindowCompat.getInsetsController(window, view).apply {
++      systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
++      hide(hiddenSystemBars)
++    }
++    onDispose {}
++  }
++}
++
+ @Composable
+ fun FunctionalComposableScope.ModalBottomSheetContent(
+   props: ModalBottomSheetViewProps,
+@@ -99,6 +147,7 @@ fun FunctionalComposableScope.ModalBottomSheetContent(
+   onDismissRequest: () -> Unit
+ ) {
+   val sheetState = rememberModalBottomSheetState(props.skipPartiallyExpanded)
++  val activityHiddenSystemBars = rememberActivityHiddenSystemBars()
+   val scope = rememberCoroutineScope()
+ 
+   hide.handle {
+@@ -162,6 +211,7 @@ fun FunctionalComposableScope.ModalBottomSheetContent(
+     modifier = ModifierRegistry.applyModifiers(props.modifiers, appContext, composableScope, globalEventDispatcher)
+   ) {
+     ForwardKeyEventsToActivity(appContext.currentActivity)
++    HideSystemBarsInSheetWindow(activityHiddenSystemBars)
+     Children(UIComposableScope(), filter = { !isSlotView(it) })
+   }
+ 

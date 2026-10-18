@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, View, Text, TextProps } from 'react-native';
 import { FlashListRef } from '@shopify/flash-list';
-import React, { useRef, useState, useCallback, memo, ReactNode } from 'react';
+import React, { useRef, useState, useCallback, useMemo, memo, ReactNode } from 'react';
 import Image from '@/components/Image';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -22,6 +22,7 @@ import {
   useListJump,
   useEpisodeList,
   LIST_SHADOW_SIZE,
+  type EpisodeItem,
 } from '@/hooks';
 import WavyAnimation from './WavyAnimation';
 import EpisodeActionsSheet from './EpisodeActionsSheet';
@@ -264,7 +265,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
   const currentTheme = useCurrentTheme();
   const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
   const setProvider = useProviderStore((state) => state.setProvider);
-  const { episodes, episodeData, movieSeasons, activeSeason, setSeason, providerToUse, isLoading, error, refetch } =
+  const { episodes, providerMediaId, movieSeasons, activeSeason, setSeason, providerToUse, isLoading, error, refetch } =
     useEpisodeList();
   const providers = useProviders();
 
@@ -303,25 +304,53 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     return episodes.findIndex((episode: IAnimeEpisode | IMovieEpisode) => episode.uniqueId === currentUniqueId);
   }, [episodes, currentUniqueId]);
 
+  // Every season's episodes in order, so "Continue" can point past the end of the season on screen
+  const shownSeason = movieSeasons ? activeSeason : 0;
+  const continueEntries = useMemo(() => {
+    const seasons: EpisodeItem[][] = movieSeasons ? movieSeasons.map((season) => season.episodes ?? []) : [episodes];
+    return seasons.flatMap((seasonEpisodes, season) =>
+      seasonEpisodes.map((episode, index) => ({ episode, season, index })),
+    );
+  }, [movieSeasons, episodes]);
+
   // Where "Continue" points: the episode being watched, else the furthest one with progress, or the one after it if
   // that one is finished. No chip without progress, or once the last episode is finished.
   const continueIndex = useWatchProgressStore(
     useCallback(
       ({ progresses }) => {
         if (autoScrollToCurrent) return -1;
-        let index = currentEpisodeIndex();
+        const uniqueIdAt = (index: number) => continueEntries[index].episode.uniqueId as string;
+        let index = continueEntries.findIndex(({ episode }) => episode.uniqueId === currentUniqueId);
         if (index < 0) {
-          index = episodes.length - 1;
-          while (index >= 0 && !progresses[episodes[index].uniqueId as string]) index--;
+          index = continueEntries.length - 1;
+          while (index >= 0 && !progresses[uniqueIdAt(index)]) index--;
         }
         if (index < 0) return -1;
-        if (!progresses[episodes[index].uniqueId as string]?.isCompleted) return index;
-        return index < episodes.length - 1 ? index + 1 : -1;
+        if (!progresses[uniqueIdAt(index)]?.isCompleted) return index;
+        return index < continueEntries.length - 1 ? index + 1 : -1;
       },
-      [autoScrollToCurrent, currentEpisodeIndex, episodes],
+      [autoScrollToCurrent, continueEntries, currentUniqueId],
     ),
   );
-  const continueEpisode = continueIndex >= 0 ? episodes[continueIndex] : undefined;
+  const continueTarget = continueIndex >= 0 ? continueEntries[continueIndex] : undefined;
+
+  // Set when "Continue" switches season, and scrolled to once that season's rows are laid out
+  const pendingScrollRef = useRef<{ season: number; index: number } | null>(null);
+  const scrollToContinue = () => {
+    if (!continueTarget) return;
+    if (continueTarget.season === shownSeason) {
+      flashListRef.current?.scrollToIndex({ index: continueTarget.index, animated: true, viewPosition: 0.3 });
+      return;
+    }
+    pendingScrollRef.current = { season: continueTarget.season, index: continueTarget.index };
+    setSeason(continueTarget.season);
+  };
+  const scrollToPending = () => {
+    const pending = pendingScrollRef.current;
+    if (!pending || pending.season !== shownSeason || pending.index >= episodes.length) return;
+    pendingScrollRef.current = null;
+    flashListRef.current?.scrollToIndex({ index: pending.index, animated: true, viewPosition: 0.3 });
+  };
 
   const handleProviderChange = useCallback(
     (value: string) => {
@@ -467,9 +496,10 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     [renderFullMetadataPressableItem, renderTitleOnlyPressableItem, renderNumberOnlyPressableItem, displayMode],
   );
 
-  const getItemKey = useCallback((item: IAnimeEpisode | IMovieEpisode) => {
-    return item?.id ?? item?.uniqueId;
-  }, []);
+  const getItemKey = useCallback(
+    (item: IAnimeEpisode | IMovieEpisode) => item.id ?? item.uniqueId ?? String(item.number ?? item.episode),
+    [],
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
@@ -504,7 +534,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
             mediaType={mediaType}
             provider={providerToUse}
             id={id}
-            episodeDataId={episodeData?.id}
+            episodeDataId={providerMediaId}
             type={type as string}
             swipeable={swipeable}
             setSelectedEpisode={setSelectedEpisode}
@@ -518,7 +548,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
           mediaType={mediaType}
           provider={providerToUse}
           id={id}
-          episodeDataId={episodeData?.id}
+          episodeDataId={providerMediaId}
           type={type as string}
           swipeable={swipeable}
           setSelectedEpisode={setSelectedEpisode}
@@ -536,7 +566,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
       mediaType,
       providerToUse,
       id,
-      episodeData?.id,
+      providerMediaId,
       type,
     ],
   );
@@ -553,6 +583,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
           <List<IAnimeEpisode | IMovieEpisode>
             ref={flashListRef}
             {...listProps}
+            onCommitLayoutEffect={scrollToPending}
             data={isLoading ? [] : episodes}
             // Rendered inside the list so `header` stays visible
             ListEmptyComponent={
@@ -637,15 +668,12 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
                       )}
                     </Pressable>
                   )}
-                  {continueEpisode && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onPress={() =>
-                        flashListRef.current?.scrollToIndex({ index: continueIndex, animated: true, viewPosition: 0.3 })
-                      }>
+                  {continueTarget && (
+                    <Button variant="secondary" size="sm" onPress={scrollToContinue}>
                       <IoniconsIcon name="play" size={14} color={currentTheme?.foreground} />
-                      <Button.Label>{`Continue · EP ${(continueEpisode.number ?? continueEpisode.episode ?? '').toString()}`}</Button.Label>
+                      <Button.Label>
+                        {`Continue · ${continueTarget.season === shownSeason ? '' : `S${continueTarget.season + 1} · `}EP ${(continueTarget.episode.number ?? continueTarget.episode.episode ?? '').toString()}`}
+                      </Button.Label>
                     </Button>
                   )}
                 </HUXStack>
@@ -674,7 +702,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
           episode={selectedEpisode}
           mediaType={mediaType}
           provider={providerToUse}
-          mediaId={episodeData?.id ?? id}
+          mediaId={providerMediaId ?? id}
           type={type as string}
         />
       )}

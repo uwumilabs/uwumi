@@ -40,7 +40,7 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
   ({ open, onOpenChange, snapPoints, header, children, scrollable = true, contentContainerProps }, ref) => {
     const theme = useCurrentTheme();
     const sheetColor = useSheetColor();
-    const { width: windowWidth } = useWindowDimensions();
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
     const sheetWidth = Platform.OS === 'android' ? Math.min(windowWidth, 640) : windowWidth;
 
     const present = useCallback(() => onOpenChange(true), [onOpenChange]);
@@ -65,7 +65,7 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
 
               {scrollable ? (
                 <ScrollView
-                  style={{ maxHeight: 500 }}
+                  style={{ maxHeight: Math.min(500, windowHeight * 0.75) }}
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={{ paddingBottom: 16 }}
                   keyboardShouldPersistTaps="handled"

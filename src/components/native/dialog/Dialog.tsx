@@ -17,7 +17,7 @@ export const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children, co
 
   return (
     <Host matchContents style={{ position: 'absolute', zIndex: 9999 }}>
-      <BasicAlertDialog onDismissRequest={handleDismiss}>
+      <BasicAlertDialog onDismissRequest={handleDismiss} properties={{ usePlatformDefaultWidth: false }}>
         <Surface
           tonalElevation={0}
           color="transparent"

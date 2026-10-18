@@ -38,6 +38,7 @@ const More = () => {
   const menuItems = useMemo(() => {
     const baseItems: { href: Href; icon: IoniconProps['name']; label: string }[] = [
       { href: '/(settings)/appearance' as Href, icon: 'color-palette', label: 'Appearance' },
+      { href: '/(settings)/player' as Href, icon: 'play-circle', label: 'Player' },
       { href: '/(settings)/extensions' as Href, icon: 'extension-puzzle', label: 'Extensions' },
       // { href: '/(settings)' as Href, icon: Settings, label: 'Settings' },
       { href: '/(settings)/favorites' as Href, icon: 'heart', label: 'Favorites' },

@@ -21,9 +21,11 @@ export interface UpNext {
 /** What the current position can skip, if it's inside an intro, recap or outro. */
 const useSkipAction = (skipTimes: SkipTime[], upNext: UpNext | undefined, onNext: () => void) => {
   const { currentTime, duration, seek } = useProgress();
+  // The player rewinds to 0:00 when a source ends, which would offer "Skip intro" under the Up next card
+  const ended = useVideoSelector((state) => state.ended);
   // Ends a second early so the button doesn't flash as playback leaves the range
   const active = skipTimes.find(({ start, end }) => currentTime >= start && currentTime < end - 1);
-  if (!active) return null;
+  if (ended || !active) return null;
   if (active.type === 'outro' && upNext && duration > 0 && active.end >= duration - OUTRO_TAIL_SECONDS) {
     return { label: `Next · ${upNext.label}`, onPress: onNext };
   }

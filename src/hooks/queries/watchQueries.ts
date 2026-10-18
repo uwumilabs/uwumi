@@ -1,10 +1,8 @@
 import { DEFAULT_PROVIDERS } from '@/constants/provider';
 import {
-  AnimeProvider,
   IEpisodeServer,
   ISource,
   MediaFormat,
-  MovieProvider,
   PolyURL,
   StreamingServers,
   SubOrDub,
@@ -15,30 +13,7 @@ import { fetchJson, HttpError } from '@/constants/utils';
 import { ExternalSubtitleData } from '@/constants/types';
 import { TextTrackType } from 'react-native-video/src/types/video';
 import { SubtitleTrack } from '@/constants/types';
-import { useConsumetExtensions } from '../stores';
-
-async function loadServerExtractor(
-  serverName: string,
-  extractorManager: ReturnType<typeof useConsumetExtensions>['extractorManager'],
-  readExtractorCode: ReturnType<typeof useConsumetExtensions>['readExtractorCode'],
-) {
-  const baseExtractorName = extractorManager.extractBaseExtractorName(serverName);
-  if (!baseExtractorName) {
-    throw new Error(`No extractor found for server: "${serverName}"`);
-  }
-
-  const extractorCode = await readExtractorCode(baseExtractorName);
-  if (!extractorCode) {
-    throw new Error(`Failed to read extractor code for: "${baseExtractorName}"`);
-  }
-
-  const metadata = extractorManager.getExtractorMetadata(baseExtractorName);
-  if (!metadata) {
-    throw new Error(`No metadata found for extractor: "${baseExtractorName}"`);
-  }
-
-  return extractorManager.executeExtractorCode(extractorCode, metadata);
-}
+import { getExtensionManagers, loadAnimeProvider, loadMovieProvider, loadServerExtractor } from '../stores';
 
 /**
  * Only embed providers with several servers hand the server URL to a registry extractor.
@@ -53,18 +28,9 @@ async function fetchAnimeEpisodeSources(
   provider: string,
   server: IEpisodeServer | undefined,
   dub: boolean,
-  providerManager: ReturnType<typeof useConsumetExtensions>['providerManager'],
-  extractorManager: ReturnType<typeof useConsumetExtensions>['extractorManager'],
-  readExtensionCode: ReturnType<typeof useConsumetExtensions>['readExtensionCode'],
-  readExtractorCode: ReturnType<typeof useConsumetExtensions>['readExtractorCode'],
 ): Promise<ISource & { servers?: IEpisodeServer[] }> {
-  const extensionCode = await readExtensionCode(provider);
-  const animeProviderMetadata = providerManager.getExtensionMetadata(provider);
-  const animeProvider = await providerManager.executeProviderCode<AnimeProvider>(
-    extensionCode!,
-    animeProviderMetadata.factoryName,
-    animeProviderMetadata as typeof animeProviderMetadata & { id: AnimeProvider },
-  );
+  const animeProviderMetadata = getExtensionManagers().providerManager.getExtensionMetadata(provider);
+  const animeProvider = await loadAnimeProvider(provider);
   const servers = (await animeProvider.fetchEpisodeServers(
     episodeId,
     dub ? SubOrDub.DUB : SubOrDub.SUB,
@@ -76,9 +42,7 @@ async function fetchAnimeEpisodeSources(
 
   const selectedServer = (server?.name ? servers.find((s) => s.name === server.name) : servers[0]) || servers[0];
 
-  const extractor = needsExtractor(animeProviderMetadata)
-    ? await loadServerExtractor(selectedServer.name, extractorManager, readExtractorCode)
-    : undefined;
+  const extractor = needsExtractor(animeProviderMetadata) ? await loadServerExtractor(selectedServer.name) : undefined;
 
   let data: ISource;
   try {
@@ -115,18 +79,9 @@ async function fetchMovieEpisodeSources(
   mediaId: string,
   provider: string,
   server: IEpisodeServer | undefined,
-  providerManager: ReturnType<typeof useConsumetExtensions>['providerManager'],
-  extractorManager: ReturnType<typeof useConsumetExtensions>['extractorManager'],
-  readExtensionCode: ReturnType<typeof useConsumetExtensions>['readExtensionCode'],
-  readExtractorCode: ReturnType<typeof useConsumetExtensions>['readExtractorCode'],
 ): Promise<ISource & { servers: IEpisodeServer[] }> {
-  const extensionCode = await readExtensionCode(provider);
-  const movieProviderMetadata = providerManager.getExtensionMetadata(provider);
-  const movieProvider = await providerManager.executeProviderCode<MovieProvider>(
-    extensionCode!,
-    movieProviderMetadata.factoryName,
-    movieProviderMetadata as typeof movieProviderMetadata & { id: MovieProvider },
-  );
+  const movieProviderMetadata = getExtensionManagers().providerManager.getExtensionMetadata(provider);
+  const movieProvider = await loadMovieProvider(provider);
   const servers = (await movieProvider.fetchEpisodeServers(episodeId, mediaId)) as IEpisodeServer[];
 
   if (!servers || servers.length === 0) {
@@ -135,9 +90,7 @@ async function fetchMovieEpisodeSources(
 
   const selectedServer = (server?.name ? servers.find((s) => s.name === server.name) : servers[0]) || servers[0];
 
-  const extractor = needsExtractor(movieProviderMetadata)
-    ? await loadServerExtractor(selectedServer.name, extractorManager, readExtractorCode)
-    : undefined;
+  const extractor = needsExtractor(movieProviderMetadata) ? await loadServerExtractor(selectedServer.name) : undefined;
 
   let data: ISource;
   try {
@@ -178,21 +131,10 @@ export function useWatchAnimeEpisodes({
   dub: boolean;
   enabled?: boolean;
 }) {
-  const { providerManager, readExtensionCode, extractorManager, readExtractorCode } = useConsumetExtensions();
   return useQuery<ISource & { servers?: IEpisodeServer[] }>({
     queryKey: ['watch', episodeId, provider, dub, server],
     enabled: enabled && !!episodeId,
-    queryFn: () =>
-      fetchAnimeEpisodeSources(
-        episodeId,
-        provider,
-        server,
-        dub,
-        providerManager,
-        extractorManager,
-        readExtensionCode,
-        readExtractorCode,
-      ),
+    queryFn: () => fetchAnimeEpisodeSources(episodeId, provider, server, dub),
   });
 }
 
@@ -213,21 +155,10 @@ export function useWatchMoviesEpisodes({
   embed: boolean;
   enabled?: boolean;
 }) {
-  const { providerManager, extractorManager, readExtensionCode, readExtractorCode } = useConsumetExtensions();
   return useQuery<ISource & { servers: IEpisodeServer[] }>({
     queryKey: ['watch', episodeId, mediaId, server, provider, embed],
     enabled: enabled && !!episodeId,
-    queryFn: () =>
-      fetchMovieEpisodeSources(
-        episodeId,
-        mediaId,
-        provider,
-        server,
-        providerManager,
-        extractorManager,
-        readExtensionCode,
-        readExtractorCode,
-      ),
+    queryFn: () => fetchMovieEpisodeSources(episodeId, mediaId, provider, server),
   });
 }
 // export function useMoviesEpisodesServers({
@@ -275,19 +206,24 @@ export function useWatchMoviesEpisodes({
 //   });
 // }
 
+// OpenSubtitles returns every upload for the title; the most downloaded few are the likeliest to fit
+const MAX_EXTERNAL_SUBTITLES = 3;
+// The player waits for these (new tracks would reload the source), so a slow response is dropped
+const EXTERNAL_SUBTITLES_TIMEOUT_MS = 5000;
+
 export function useExternalSubtitles({
   imdbId,
   episodeNumber,
   seasonNumber,
   type,
-  language = 'eng',
+  language,
   enabled = false,
 }: {
   imdbId: string;
   episodeNumber?: string;
   seasonNumber?: string;
   type: TvType | MediaFormat;
-  language?: string;
+  language: string | null;
   enabled?: boolean;
 }) {
   // Check if imdbId is valid (not null, undefined, empty, or just 'tt')
@@ -297,39 +233,40 @@ export function useExternalSubtitles({
     queryKey: ['externalSubtitles', imdbId, episodeNumber, seasonNumber, language],
     queryFn: async () => {
       const url =
-        type == TvType.TVSERIES
+        type === TvType.TVSERIES
           ? `https://rest.opensubtitles.org/search/episode-${episodeNumber}/imdbid-${imdbId}/season-${seasonNumber}/sublanguageid-${language}`
           : `https://rest.opensubtitles.org/search/imdbid-${imdbId}/sublanguageid-${language}`;
 
-      console.log('Fetching external subtitles from:', url);
-
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), EXTERNAL_SUBTITLES_TIMEOUT_MS);
       try {
         const data = await fetchJson<ExternalSubtitleData[]>(url, {
           headers: {
             'x-user-agent': 'VLSub 0.10.2',
             'X-User-Agent': 'trailers.to-UA',
           },
+          signal: controller.signal,
         });
-
-        const subtitles: SubtitleTrack[] = data.map((item) => ({
-          index: parseInt(item.IDSubtitleFile),
-          language: item.ISO639,
-          type: TextTrackType.SUBRIP,
-          uri: item.SubDownloadLink.replace('.gz', ''),
-          title: item.MovieName || item.MovieReleaseName,
-        }));
-        // console.log('external subtitles', subtitles);
-        if (subtitles.length === 0) {
-          throw new Error(`No external subtitles found for the ${language} language.`);
-        }
-        return subtitles;
-      } catch (error) {
-        console.error('Error fetching external subtitles:', error);
-        throw error;
+        return data
+          .filter((item) => item.SubFormat === 'srt')
+          .sort((a, b) => Number(b.SubDownloadsCnt) - Number(a.SubDownloadsCnt))
+          .slice(0, MAX_EXTERNAL_SUBTITLES)
+          .map((item, index) => ({
+            index: parseInt(item.IDSubtitleFile),
+            language: item.ISO639,
+            type: TextTrackType.SUBRIP,
+            uri: item.SubDownloadLink.replace('.gz', ''),
+            title: `${item.LanguageName} · OpenSubtitles ${index + 1}`,
+          }));
+      } finally {
+        clearTimeout(timeout);
       }
     },
+    retry: false,
     // Only enable if imdbId is valid, enabled is true, and for TV series also check episode/season
-    enabled: Boolean(enabled && isImdbIdValid && (type !== TvType.TVSERIES || (episodeNumber && seasonNumber))),
+    enabled: Boolean(
+      enabled && language && isImdbIdValid && (type !== TvType.TVSERIES || (episodeNumber && seasonNumber)),
+    ),
   });
 }
 
@@ -352,19 +289,25 @@ const ANISKIP_TYPES: Record<string, SkipTime['type']> = {
   recap: 'recap',
 };
 
-/** Community intro/outro/recap timestamps from AniSkip, keyed by MyAnimeList id. Empty when it has none. */
+/**
+ * Community intro/outro/recap timestamps from AniSkip, keyed by MyAnimeList id. Empty when it has none.
+ * `episodeLength` is the loaded video's duration in seconds: AniSkip then returns the submissions made for a file of
+ * that length, instead of every cut's (another release's outro can land mid-episode).
+ */
 export function useSkipTimes({
   malId,
   episodeNumber,
+  episodeLength,
   enabled = true,
 }: {
   malId?: number | string;
   episodeNumber?: string;
+  episodeLength: number;
   enabled?: boolean;
 }) {
   return useQuery<SkipTime[]>({
-    queryKey: ['skipTimes', malId, episodeNumber],
-    enabled: enabled && !!malId && !!episodeNumber,
+    queryKey: ['skipTimes', malId, episodeNumber, episodeLength],
+    enabled: enabled && !!malId && !!episodeNumber && episodeLength > 0,
     staleTime: Infinity,
     retry: 1,
     queryFn: async () => {
@@ -374,7 +317,7 @@ export function useSkipTimes({
       let data: AniSkipResponse;
       try {
         data = await fetchJson<AniSkipResponse>(
-          `https://api.aniskip.com/v2/skip-times/${malId}/${episodeNumber}?${types}&episodeLength=0`,
+          `https://api.aniskip.com/v2/skip-times/${malId}/${episodeNumber}?${types}&episodeLength=${episodeLength}`,
         );
       } catch (error) {
         // AniSkip answers 404 when nobody has submitted times for the episode

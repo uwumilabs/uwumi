@@ -1,6 +1,7 @@
 import { useMemo, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { isCompatibleEntry } from 'react-native-consumet';
 import { useExtensionStore, useCurrentTheme } from '@/hooks';
 import { isTV } from '@/constants/utils';
 import { Avatar, Button, Card, Chip, Separator, Switch } from 'heroui-native';
@@ -15,6 +16,7 @@ interface ExtensionCardProps {
   onUpdate: () => void;
   onShowDetails: () => void;
   hasUpdate: boolean;
+  isCompatible: boolean;
 }
 
 function ExtensionCard({
@@ -26,6 +28,7 @@ function ExtensionCard({
   onUpdate,
   onShowDetails,
   hasUpdate,
+  isCompatible,
 }: ExtensionCardProps) {
   const currentTheme = useCurrentTheme();
 
@@ -72,6 +75,11 @@ function ExtensionCard({
                       <Chip.Label>UPDATE</Chip.Label>
                     </Chip>
                   )}
+                  {!isCompatible && (
+                    <Chip size="sm" color="danger">
+                      <Chip.Label>NEEDS APP UPDATE</Chip.Label>
+                    </Chip>
+                  )}
                 </HUXStack>
 
                 <HUXStack className="items-center gap-2 flex-wrap">
@@ -111,7 +119,7 @@ function ExtensionCard({
           <HUXStack className="gap-2 items-center justify-between flex-wrap">
             <HUXStack className="gap-2 flex-1">
               {hasUpdate && isInstalled && (
-                <Button className="flex-1" onPress={onUpdate} isDisabled={isLoading}>
+                <Button className="flex-1" onPress={onUpdate} isDisabled={isLoading || !isCompatible}>
                   <HUXStack className="items-center justify-center gap-2">
                     {isLoading ? (
                       <ActivityIndicator size="small" color={currentTheme?.default} />
@@ -135,7 +143,7 @@ function ExtensionCard({
                   </HUXStack>
                 </Button>
               ) : (
-                <Button className="flex-1" onPress={onInstall} isDisabled={isLoading}>
+                <Button className="flex-1" onPress={onInstall} isDisabled={isLoading || !isCompatible}>
                   <HUXStack className="items-center justify-center gap-2">
                     {isLoading ? (
                       <ActivityIndicator size="small" color={currentTheme?.default} />
@@ -338,9 +346,7 @@ export default function Extensions() {
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      await updateRegistry(
-        'https://raw.githubusercontent.com/uwumilabs/react-native-consumet/refs/heads/main/src/extension-registry.json',
-      );
+      await updateRegistry();
       // await syncExtensions();
       await fetchUpdates();
     } catch (error) {
@@ -385,26 +391,9 @@ export default function Extensions() {
     );
   }
 
-  if (error) {
-    return (
-      <>
-        <HUYStack className="flex-1 items-center justify-center gap-3 p-4">
-          <IoniconsIcon name="close-circle-outline" size={48} color={currentTheme.danger} />
-          <Text className="text-xl font-semibold text-foreground">Something went wrong</Text>
-          <Text className="text-foreground/70 text-center">{error}</Text>
-          <Button onPress={onRefresh} variant="primary">
-            <HUXStack className="items-center gap-2">
-              <IoniconsIcon name="refresh-outline" size={16} />
-              <Text className="text-foreground font-semibold">Try Again</Text>
-            </HUXStack>
-          </Button>
-        </HUYStack>
-      </>
-    );
-  }
   const installedCount = filteredExtensions.filter((ext) => isExtensionInstalled(ext.id)).length;
   const updatesCount = availableUpdates.length;
-  if (!registry || filteredExtensions.length === 0) {
+  if (filteredExtensions.length === 0) {
     return (
       <>
         <HUYStack className="flex-1 items-center justify-center gap-3 p-4">
@@ -442,10 +431,6 @@ export default function Extensions() {
               {installedCount} installed • {filteredExtensions.length} available
               {updatesCount > 0 && ` • ${updatesCount} update${updatesCount !== 1 ? 's' : ''}`}
             </Text>
-            {/* Debug info - remove in production */}
-            <Text className="text-foreground/70 text-xs">
-              Updates available for: {availableUpdates.join(', ') || 'none'}
-            </Text>
           </HUYStack>
 
           <HUXStack className="items-center gap-2">
@@ -453,6 +438,14 @@ export default function Extensions() {
             <Text className="text-foreground/70 text-xs">Installed only</Text>
           </HUXStack>
         </HUXStack>
+
+        {/* A failed refresh keeps the current registry, so the list stays usable */}
+        {error && (
+          <HUXStack className="px-4 py-2 items-center gap-2">
+            <IoniconsIcon name="alert-circle-outline" size={14} color={currentTheme.warning} />
+            <Text className="flex-1 text-xs text-foreground/70">{error}</Text>
+          </HUXStack>
+        )}
 
         {/* Extensions List */}
         <ScrollView
@@ -477,6 +470,7 @@ export default function Extensions() {
                   isInstalled={extensionIsInstalled}
                   isLoading={loadingStates[extension.id] || false}
                   hasUpdate={extensionHasUpdate}
+                  isCompatible={isCompatibleEntry(extension)}
                   onInstall={() => handleAction(() => installExtension(extension.id), extension.id)}
                   onUninstall={() => handleAction(() => uninstallExtension(extension.id), extension.id)}
                   onUpdate={() => handleAction(() => updateExtension(extension.id), extension.id)}

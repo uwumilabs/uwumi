@@ -280,9 +280,13 @@ export default function RootLayout() {
                 ...defaultTheme.colors,
                 sliderTrackActive: currentTheme.accent,
                 sliderTrackInactive: currentTheme.default,
+                sliderThumb: currentTheme.accent,
                 spinner: currentTheme.accent,
                 menuBackground: sheetColor,
                 menuBorder: currentTheme.border,
+                buttonPrimaryBackground: currentTheme.accent,
+                buttonPrimaryText: currentTheme.accentForeground,
+                buttonSecondaryBorder: currentTheme.border,
               },
             }}
             config={{

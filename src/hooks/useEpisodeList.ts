@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { IMovieSeason, MediaFormat, TvType } from 'react-native-consumet';
+import { MediaFormat, TvType } from 'react-native-consumet';
 import { MediaType } from '@/constants/types';
 import { useActiveProvider } from '@/constants/provider';
 import { useAnimeEpisodes, useMoviesEpisodes } from './queries';
@@ -25,21 +25,35 @@ export function useEpisodeList() {
     provider: providerToUse,
     enabled: mediaType === MediaType.MOVIE,
   });
-  const { data: episodeData, isLoading, error, refetch } = mediaType === MediaType.ANIME ? animeResult : movieResult;
+  const { isLoading, error, refetch } = mediaType === MediaType.ANIME ? animeResult : movieResult;
+  const movieInfo = mediaType === MediaType.MOVIE ? movieResult.data : undefined;
 
   const showKey = `${mediaType}-${id}`;
   const storedSeason = useSeasonStore((state) => state.seasons[showKey] ?? 0);
   const setSeasonForShow = useSeasonStore((state) => state.setSeason);
   const setSeason = useCallback((season: number) => setSeasonForShow(showKey, season), [setSeasonForShow, showKey]);
 
-  const movieSeasons = episodeData?.seasons as IMovieSeason[] | undefined;
+  const movieSeasons = movieInfo?.seasons;
   const activeSeason = movieSeasons && storedSeason >= movieSeasons.length ? 0 : storedSeason;
   const episodes = useMemo<EpisodeItem[]>(() => {
-    if (mediaType === MediaType.MOVIE && movieSeasons?.[activeSeason]?.episodes) {
-      return movieSeasons[activeSeason].episodes;
-    }
-    return Array.isArray(episodeData) ? episodeData : [];
-  }, [mediaType, movieSeasons, activeSeason, episodeData]);
+    if (mediaType === MediaType.MOVIE) return movieSeasons?.[activeSeason]?.episodes ?? [];
+    return animeResult.data ?? [];
+  }, [mediaType, movieSeasons, activeSeason, animeResult.data]);
 
-  return { episodes, episodeData, movieSeasons, activeSeason, setSeason, providerToUse, isLoading, error, refetch };
+  // TMDB keeps a season that failed to load in its place, without episodes; refetching may fill it
+  const seasonError =
+    !error && movieSeasons?.[activeSeason]?.failed ? new Error(`TMDB couldn't load season ${activeSeason + 1}`) : null;
+
+  return {
+    episodes,
+    // The movie provider's id for the title, for its server and source calls; unset when it has no match
+    providerMediaId: movieInfo?.providerId,
+    movieSeasons,
+    activeSeason,
+    setSeason,
+    providerToUse,
+    isLoading,
+    error: error ?? seasonError,
+    refetch,
+  };
 }
