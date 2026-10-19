@@ -1,5 +1,31 @@
 # Changelog
 
+## [4.0.0-rc.1](https://github.com/uwumilabs/uwumi/compare/v4.0.0-rc.0...v4.0.0-rc.1) (2026-10-19)
+
+### Features
+
+* **about:** add support links, pull to refresh and a footer ([607d8df](https://github.com/uwumilabs/uwumi/commit/607d8dfbdf69fd4eb68bb2ab2c6d3d04fdbb26b5))
+* **about:** redesign the about screen and stop offering a downgrade ([ab7d80c](https://github.com/uwumilabs/uwumi/commit/ab7d80c92269c84c0ce84f1fb3aa239821311831))
+* add provider error states, continue watching and chapter list jumps ([41c867f](https://github.com/uwumilabs/uwumi/commit/41c867f4eeef66eaa94a3bd6d4d510e335811b55))
+* consumet 2.0, external subtitle setting and watch-screen fixes ([a9f2f76](https://github.com/uwumilabs/uwumi/commit/a9f2f76dc4e31a25f28dea14c079da1b8db96c39))
+* **episodes:** add edge fades, back to top and episode ranges ([a0dfb9f](https://github.com/uwumilabs/uwumi/commit/a0dfb9f88f3a8c2b931c77a5fe4005695119d82c))
+* **ota:** host ota bundles on the app's github release ([a4aa822](https://github.com/uwumilabs/uwumi/commit/a4aa8224c305bff4ff5c887c21d0a4b7f729d8c3))
+* **ota:** number ota versions per release instead of timestamps ([019947f](https://github.com/uwumilabs/uwumi/commit/019947f37d71cdcc6d79a6b637d008e479ed50c6))
+* **ota:** show download progress and a restart prompt ([59fc8b0](https://github.com/uwumilabs/uwumi/commit/59fc8b0dbf7e471973ee88d547c7fb54b52936f5))
+* **watch:** add subtitles from a file or an opensubtitles search ([5aebf37](https://github.com/uwumilabs/uwumi/commit/5aebf376e61cec3cfb7d79f2e9179ea9914b0f17))
+* **watch:** fullscreen player with episodes panel, skip times and up next ([419ff70](https://github.com/uwumilabs/uwumi/commit/419ff706111a10d0a5ba6a5623ba02ef666c0925))
+
+### Bug Fixes
+
+* **downloads:** list real downloads instead of the preview data ([7b8221e](https://github.com/uwumilabs/uwumi/commit/7b8221ef1712816b81d138edf47cabb535f056dc))
+* drop finished anime from continue watching and center progress bars ([9c3a006](https://github.com/uwumilabs/uwumi/commit/9c3a00639ec356213ada74c2b560dc167832e49d))
+* **ios:** record the prebuilt react core flavor after pod install ([b71adeb](https://github.com/uwumilabs/uwumi/commit/b71adeb5b49bc3c10e9431ee19fe688075a9b35d))
+* **watch:** skip extractor lookup for direct-source and single-server providers ([69649f8](https://github.com/uwumilabs/uwumi/commit/69649f81ce9a572f82aae5b7af432a62a962acd4))
+
+### Performance Improvements
+
+* **ota:** hold restart during downloads and publish without downloading ([18a8b56](https://github.com/uwumilabs/uwumi/commit/18a8b5646467fa521c8959febb16e0cf070e960e))
+
 ## 4.0.0-rc.0 (2026-10-12)
 
 * chore: log release build output to files so release-it doesn't kill the hooks ([c3be3cd](https://github.com/uwumilabs/uwumi/commit/c3be3cd))
