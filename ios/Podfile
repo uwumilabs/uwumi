@@ -61,6 +61,15 @@ target 'uwumi' do
   )
 
   post_install do |installer|
+# @generated begin uwumi-rncore-flavor-marker - expo prebuild (DO NOT MODIFY) sync-c6fe7de5a7d56bac70a19487b5f551981b4b6dcf
+    rncore_dir = File.join(installer.sandbox.root.to_s, 'React-Core-prebuilt')
+    rncore_marker = File.join(rncore_dir, '.last_build_configuration')
+    rncore_binary = Dir.glob(File.join(rncore_dir, 'React.xcframework', '*-simulator', 'React.framework', 'React')).first
+    if rncore_binary && !File.exist?(rncore_marker)
+      rncore_debug = `nm "#{rncore_binary}" 2>/dev/null`.include?('RCTPackagerConnection')
+      File.write(rncore_marker, rncore_debug ? 'Debug' : 'Release')
+    end
+# @generated end uwumi-rncore-flavor-marker
     react_native_post_install(
       installer,
       config[:reactNativePath],

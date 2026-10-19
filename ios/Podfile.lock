@@ -2834,7 +2834,7 @@ PODS:
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.17)
   - SSZipArchive (2.6.0)
-  - VideoToolkit (0.12.0):
+  - VideoToolkit (0.13.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -3392,9 +3392,9 @@ SPEC CHECKSUMS:
   SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   SSZipArchive: 8a6ee5677c8e304bebc109e39cf0da91ccef22ea
-  VideoToolkit: 793c876c290bb15d07e3cad545218c98db4eb2e9
+  VideoToolkit: 43661ba0f79a78d1ae64233e86acbad407d4c8b6
   Yoga: 851840bb13ebbc8f2f3d58a08931c9a7bb263cef
 
-PODFILE CHECKSUM: 426a7de3e72b1212102e940e7133374d4ff4f2e1
+PODFILE CHECKSUM: c7d2144a4b21e888c0d601bd8b43e38a93431e51
 
 COCOAPODS: 1.17.0
