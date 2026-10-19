@@ -8,7 +8,7 @@ import {
   SubOrDub,
   TvType,
 } from 'react-native-consumet';
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 import { fetchJson, HttpError } from '@/constants/utils';
 import { ExternalSubtitleData } from '@/constants/types';
 import { TextTrackType } from 'react-native-video/src/types/video';
@@ -208,28 +208,43 @@ export function useWatchMoviesEpisodes({
 
 // OpenSubtitles returns every upload for the title; the most downloaded few are the likeliest to fit
 const MAX_EXTERNAL_SUBTITLES = 3;
+// The player reads subtitle files as UTF-8, so a CP1252 file's accents come out garbled. OpenSubtitles no longer
+// converts them on download.
+const isUtf8 = (item: ExternalSubtitleData) => item.SubEncoding === 'UTF-8' || item.SubEncoding === 'ASCII';
 // The player waits for these (new tracks would reload the source), so a slow response is dropped
 const EXTERNAL_SUBTITLES_TIMEOUT_MS = 5000;
 
-export function useExternalSubtitles({
-  imdbId,
-  episodeNumber,
-  seasonNumber,
-  type,
-  language,
-  enabled = false,
-}: {
+interface ExternalSubtitlesParams {
   imdbId: string;
   episodeNumber?: string;
   seasonNumber?: string;
   type: TvType | MediaFormat;
   language: string | null;
-  enabled?: boolean;
-}) {
-  // Check if imdbId is valid (not null, undefined, empty, or just 'tt')
-  const isImdbIdValid = imdbId && imdbId.trim() !== '' && imdbId !== 'tt' && imdbId.length > 2;
+}
 
-  return useQuery<SubtitleTrack[]>({
+/** Whether OpenSubtitles can be searched for this title: it needs an IMDb id, and a TV episode its numbers. */
+export const canSearchExternalSubtitles = ({
+  imdbId,
+  episodeNumber,
+  seasonNumber,
+  type,
+}: Omit<ExternalSubtitlesParams, 'language'>) =>
+  Boolean(
+    imdbId &&
+    imdbId.trim() !== '' &&
+    imdbId !== 'tt' &&
+    imdbId.length > 2 &&
+    (type !== TvType.TVSERIES || (episodeNumber && seasonNumber)),
+  );
+
+export const externalSubtitlesQuery = ({
+  imdbId,
+  episodeNumber,
+  seasonNumber,
+  type,
+  language,
+}: ExternalSubtitlesParams) =>
+  queryOptions<SubtitleTrack[]>({
     queryKey: ['externalSubtitles', imdbId, episodeNumber, seasonNumber, language],
     queryFn: async () => {
       const url =
@@ -249,7 +264,9 @@ export function useExternalSubtitles({
         });
         return data
           .filter((item) => item.SubFormat === 'srt')
-          .sort((a, b) => Number(b.SubDownloadsCnt) - Number(a.SubDownloadsCnt))
+          .sort(
+            (a, b) => Number(isUtf8(b)) - Number(isUtf8(a)) || Number(b.SubDownloadsCnt) - Number(a.SubDownloadsCnt),
+          )
           .slice(0, MAX_EXTERNAL_SUBTITLES)
           .map((item, index) => ({
             index: parseInt(item.IDSubtitleFile),
@@ -263,10 +280,12 @@ export function useExternalSubtitles({
       }
     },
     retry: false,
-    // Only enable if imdbId is valid, enabled is true, and for TV series also check episode/season
-    enabled: Boolean(
-      enabled && language && isImdbIdValid && (type !== TvType.TVSERIES || (episodeNumber && seasonNumber)),
-    ),
+  });
+
+export function useExternalSubtitles({ enabled = false, ...params }: ExternalSubtitlesParams & { enabled?: boolean }) {
+  return useQuery({
+    ...externalSubtitlesQuery(params),
+    enabled: Boolean(enabled && params.language && canSearchExternalSubtitles(params)),
   });
 }
 

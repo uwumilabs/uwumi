@@ -205,6 +205,8 @@ PODS:
     - Yoga
   - ExpoAsset (57.0.18):
     - ExpoModulesCore
+  - ExpoDocumentPicker (57.0.3):
+    - ExpoModulesCore
   - ExpoDomWebView (57.0.1):
     - ExpoModulesCore
   - ExpoFileSystem (57.0.7):
@@ -2868,6 +2870,7 @@ DEPENDENCIES:
   - expo-dev-menu (from `../node_modules/expo-dev-menu`)
   - expo-dev-menu-interface (from `../node_modules/expo-dev-menu-interface/ios`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
+  - ExpoDocumentPicker (from `../node_modules/expo-document-picker/ios`)
   - "ExpoDomWebView (from `../node_modules/@expo/dom-webview/ios`)"
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
   - ExpoFont (from `../node_modules/expo-font/ios`)
@@ -3020,6 +3023,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-dev-menu-interface/ios"
   ExpoAsset:
     :path: "../node_modules/expo-asset/ios"
+  ExpoDocumentPicker:
+    :path: "../node_modules/expo-document-picker/ios"
   ExpoDomWebView:
     :path: "../node_modules/@expo/dom-webview/ios"
   ExpoFileSystem:
@@ -3264,6 +3269,7 @@ SPEC CHECKSUMS:
   expo-dev-menu: ae4a63a78e8205dd9f86ee25b14285e05bf3e1d0
   expo-dev-menu-interface: 7a59e803916fbfd1b96c75ff91ea8dddac7e722f
   ExpoAsset: a917b756b2e4fe12cef1ac3bca5fd849ddb2b919
+  ExpoDocumentPicker: 3cb0c283969538c03ced2b405e519c91abf39f8e
   ExpoDomWebView: beaec034e51bd028428b98bb1f2633ab79c6d095
   ExpoFileSystem: 28778f942725170102f7c6cf4dee05a526ddacd0
   ExpoFont: f8198a952ba2ff53c9b393b5269ea435f232cfc3
@@ -3285,7 +3291,7 @@ SPEC CHECKSUMS:
   ExpoWebBrowser: a4d7c382116fbe33c1ec7f60293f02b7e97042e4
   EXUpdatesInterface: 4c96533f11c8cefe879bd506564cc2d537f56804
   FBLazyVector: 2949fedf75d1576367537d289d0fb7edbd89dadc
-  hermes-engine: 9ea7634dc9fc17a49b6fc1151c7667f056b36fb5
+  hermes-engine: 63c5db7d529c36335fada6582fd293ae2a105d77
   libavif: 5f8e715bea24debec477006f21ef9e95432e254d
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: af5937a13536ef73f3784d69cc342b98961acf33
@@ -3302,7 +3308,7 @@ SPEC CHECKSUMS:
   React: d33ac205ebb5686696ef5c2e17535bfc2eec9e04
   React-callinvoker: fbeef8260810c518bbbc751f204e1c487fd0ad57
   React-Core: 6efbf01f84aa380b4c94905f08398e6fddc986a0
-  React-Core-prebuilt: 9b325c4ab28589cff2b90e0b8d7840b1fad83c5e
+  React-Core-prebuilt: 5639512514b3b2c0f9c192b8c97994e0fcd755b1
   React-CoreModules: dc465d2cd8f971ba659be18158f4985462b82fa2
   React-cxxreact: b34bb63838192908fee8e6c61c5b890ef33c75c7
   React-debug: 072dec06a5d2166d7662109b3b59a0d591a5eafb

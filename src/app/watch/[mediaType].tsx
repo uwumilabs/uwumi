@@ -4,7 +4,17 @@ import { ISO639_1, TextTrackType, OnLoadData } from 'react-native-video/src';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
 import { IAnimeInfo, ISubtitle, TvType } from 'react-native-consumet';
 import { HUXStack, MaterialIconsIcon, ThemedView } from '@/components';
-import { PlayerOverlay, SkipSlot, type UpNext, EpisodesPanel } from './components';
+import {
+  PlayerOverlay,
+  SkipSlot,
+  type UpNext,
+  EpisodesPanel,
+  AddSubtitlesItem,
+  AddSubtitlesViews,
+  type SubtitleLanguage,
+  type SubtitleSearchResult,
+} from './components';
+import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import {
   useEpisodesIdStore,
@@ -17,6 +27,8 @@ import {
   useWatchMoviesEpisodes,
   useServerStore,
   useExternalSubtitles,
+  externalSubtitlesQuery,
+  canSearchExternalSubtitles,
   useBackHandler,
   useMediaInfo,
   useContinueWatchingStore,
@@ -24,14 +36,17 @@ import {
   type EpisodeItem,
 } from '@/hooks';
 import { useToast } from 'heroui-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { useActiveProvider, useProviders, META_PROVIDERS } from '@/constants/provider';
 import { constants } from '@/constants/config';
+import { isTV } from '@/constants/utils';
 import { useEmbedMode, useProviderSelectionStore } from './components';
 import {
   VideoPlayer,
   DefaultLayout,
   useVideoSelector,
   useFullscreen,
+  useSettings,
   CustomVideoTrack,
   BaseIconButton,
 } from 'react-native-video-toolkit';
@@ -214,13 +229,15 @@ const Watch = () => {
   });
 
   const subtitleLanguage = useExternalSubtitleStore((state) => state.language);
+  const subtitleSearch = useMemo(
+    () => ({ imdbId: mediaInfo?.mappings?.imdb?.replace('tt', '') || '', episodeNumber, seasonNumber, type }),
+    [mediaInfo?.mappings?.imdb, episodeNumber, seasonNumber, type],
+  );
   // Only TMDB titles carry an IMDb id
+  const canSearchSubtitles = mediaType === MediaType.MOVIE && canSearchExternalSubtitles(subtitleSearch);
   const wantsExternalSubtitles = !!subtitleLanguage && mediaType === MediaType.MOVIE;
   const { data: externalSubtitles, isLoading: externalSubtitlesLoading } = useExternalSubtitles({
-    imdbId: mediaInfo?.mappings?.imdb?.replace('tt', '') || '',
-    episodeNumber,
-    seasonNumber,
-    type,
+    ...subtitleSearch,
     language: subtitleLanguage,
     enabled: wantsExternalSubtitles,
   });
@@ -268,6 +285,15 @@ const Watch = () => {
 
   const lastProgressUpdateRef = useRef({ currentTime: 0, seekableDuration: 0 });
   const recordedEpisodeRef = useRef<string | null>(null);
+
+  // Keyed by episode, like loadedLength, so a file added to one episode doesn't carry over to the next
+  const [addedSubtitles, setAddedSubtitles] = useState<{ uniqueId?: string; tracks: SubtitleTrack[] }>({
+    tracks: [],
+  });
+  // Adding tracks reloads the source, so onLoad resumes where it was and turns the first new track on
+  const pendingAddRef = useRef<{ uniqueId?: string; resumeAt: number; title?: string } | null>(null);
+  const { textTracks: playerTextTracks, setTextTrack } = useSettings();
+  const queryClient = useQueryClient();
 
   // Puts this show at the front of Continue watching; the store keeps an earlier title and image if info hasn't loaded
   const rememberEpisode = useCallback(() => {
@@ -408,8 +434,66 @@ const Watch = () => {
 
   // The source's own tracks first, so they're picked over external ones in the same language
   const subtitleTracks = useMemo<(SubtitleTrack | ISubtitle)[]>(
-    () => [...(data?.subtitles ?? []), ...(externalSubtitles ?? [])],
-    [data?.subtitles, externalSubtitles],
+    () => [
+      ...(data?.subtitles ?? []),
+      ...(externalSubtitles ?? []),
+      ...(addedSubtitles.uniqueId === uniqueId ? addedSubtitles.tracks : []),
+    ],
+    [data?.subtitles, externalSubtitles, addedSubtitles, uniqueId],
+  );
+  // Listed above "Off" in the Captions menu
+  const addedTrackTitles = useMemo(
+    () =>
+      new Set(
+        [...(externalSubtitles ?? []), ...(addedSubtitles.uniqueId === uniqueId ? addedSubtitles.tracks : [])].map(
+          (track) => track.title,
+        ),
+      ),
+    [externalSubtitles, addedSubtitles, uniqueId],
+  );
+
+  const addSubtitleTracks = useCallback(
+    (tracks: SubtitleTrack[]) => {
+      const loaded = new Set(subtitleTracks.map((track) => ('url' in track ? track.url : track.uri)));
+      const fresh = tracks.filter((track) => !loaded.has(track.uri));
+      // Already in the source, such as the Settings language's: selecting it needs no reload
+      if (!fresh.length) {
+        const existing = playerTextTracks.find((track) => track.title === tracks[0]?.title);
+        if (existing) setTextTrack(existing);
+        return;
+      }
+      pendingAddRef.current = { uniqueId, resumeAt: lastProgressUpdateRef.current.currentTime, title: fresh[0].title };
+      setAddedSubtitles((previous) => ({
+        uniqueId,
+        tracks: [...(previous.uniqueId === uniqueId ? previous.tracks : []), ...fresh],
+      }));
+    },
+    [subtitleTracks, playerTextTracks, setTextTrack, uniqueId],
+  );
+
+  const addSubtitleFile = useCallback(async () => {
+    const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
+    if (result.canceled) return;
+    const file = result.assets[0];
+    if (!/\.(srt|vtt|ttml|dfxp)$/i.test(file.name)) {
+      toast.show({ variant: 'danger', label: 'Not a subtitle file', description: 'Pick an .srt, .vtt or .ttml file.' });
+      return;
+    }
+    addSubtitleTracks([{ title: file.name, type: subtitleType(file.name), uri: file.uri }]);
+  }, [addSubtitleTracks, toast]);
+
+  const searchSubtitles = useCallback(
+    async ({ code }: SubtitleLanguage): Promise<SubtitleSearchResult> => {
+      try {
+        const tracks = await queryClient.fetchQuery(externalSubtitlesQuery({ ...subtitleSearch, language: code }));
+        if (!tracks.length) return 'none';
+        addSubtitleTracks(tracks);
+        return 'added';
+      } catch {
+        return 'failed';
+      }
+    },
+    [queryClient, subtitleSearch, addSubtitleTracks],
   );
 
   useEffect(() => {
@@ -450,6 +534,7 @@ const Watch = () => {
   return (
     <ThemedView
       useStatusBar={false}
+      useSafeArea
       onLayout={(e) => {
         setDimensions({
           width: e.nativeEvent.layout.width,
@@ -478,7 +563,11 @@ const Watch = () => {
           onLoad: (value: OnLoadData) => {
             // console.log('Video loaded:', value);
             setLoadedLength({ uniqueId, seconds: Math.round(value.duration) });
-            videoRef?.current?.seek(getProgress(uniqueId)?.currentTime || 0);
+            const pending = pendingAddRef.current?.uniqueId === uniqueId ? pendingAddRef.current : null;
+            pendingAddRef.current = null;
+            videoRef?.current?.seek(pending?.resumeAt ?? (getProgress(uniqueId)?.currentTime || 0));
+            const addedTrack = pending && value.textTracks.find((track) => track.title === pending.title);
+            if (addedTrack) setTextTrack(addedTrack);
           },
 
           subtitleStyle: { paddingBottom: 50, fontSize: 20, opacity: 0.8 },
@@ -520,7 +609,15 @@ const Watch = () => {
           subtitle={
             type !== TvType.MOVIE ? `${seasonNumber ? `Season ${seasonNumber}` : ''} Episode ${episodeNumber}` : ''
           }
+          pinCaptionTrack={(track) => !!track.title && addedTrackTitles.has(track.title)}
           slots={{
+            beforeCaptionTracks: isTV ? undefined : (
+              <AddSubtitlesItem canSearch={canSearchSubtitles} onAddFile={addSubtitleFile} />
+            ),
+            menuViews:
+              isTV || !canSearchSubtitles ? undefined : (
+                <AddSubtitlesViews onAddFile={addSubtitleFile} onSearch={searchSubtitles} />
+              ),
             beforeTitle: (
               <BaseIconButton
                 onTap={() => (router.canGoBack() ? router.back() : router.replace('/'))}

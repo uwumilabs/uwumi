@@ -1,5 +1,5 @@
-internal import Expo
 import NitroOtaBundleManager
+internal import Expo
 import React
 import ReactAppDependencyProvider
 
@@ -71,10 +71,14 @@ class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
 #if DEBUG
     return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: ".expo/.virtual-metro-entry")
 #else
-    if let bundlePath = NitroOtaBundleManager.shared.getStoredBundlePath() {
-      return URL(fileURLWithPath: bundlePath)
-    }
-    return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    // Check for OTA bundle
+            if let bundlePath = NitroOtaBundleManager.shared.getStoredBundlePath() {
+            let bundleURL = URL(fileURLWithPath: bundlePath)
+            return bundleURL
+            }
+
+            // Fallback to default bundle
+            return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
   }
 }

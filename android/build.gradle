@@ -19,11 +19,8 @@ buildscript {
 
 allprojects {
   repositories {
-    google()
-    mavenCentral()
-    maven { url 'https://www.jitpack.io' }
     // FFmpeg AARs from the react-native-ffmpeg-kit fork's GitHub Releases.
-    // Must be here (visible to :app) so :app can resolve the transitive @aar.
+    // Must be visible to :app so it can resolve the transitive @aar.
     ivy {
       url "https://github.com/2004durgesh/ffmpeg-kit/releases/download"
       patternLayout {
@@ -32,6 +29,9 @@ allprojects {
       metadataSources { artifact() }
       content { includeGroup "com.arthenica.ffmpegkit" }
     }
+    google()
+    mavenCentral()
+    maven { url 'https://www.jitpack.io' }
   }
 }
 

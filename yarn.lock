@@ -6239,6 +6239,11 @@ expo-dev-menu@~57.0.18:
   dependencies:
     expo-dev-menu-interface "~57.0.0"
 
+expo-document-picker@~57.0.3:
+  version "57.0.3"
+  resolved "https://registry.yarnpkg.com/expo-document-picker/-/expo-document-picker-57.0.3.tgz#af0e0ccf59481e437407f0a82e8fe3497edd1570"
+  integrity sha512-XlxdZ0zzv44JRD8O15DISgIO8FTaZ581oc4kQp6MJoR7vdahjcY+2qCuDt5k1J8/lc0YR+bXon/v81norciuxw==
+
 expo-file-system@~57.0.7:
   version "57.0.7"
   resolved "https://registry.yarnpkg.com/expo-file-system/-/expo-file-system-57.0.7.tgz#03c4587c0027f65f7e04d88796aefcfe74b03cae"
