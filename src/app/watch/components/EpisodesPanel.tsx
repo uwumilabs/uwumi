@@ -14,14 +14,7 @@ import {
 import ProviderSelection from './ProviderSelection';
 import { isTV } from '@/constants/utils';
 import type { MediaType } from '@/constants/types';
-import {
-  useEpisodeList,
-  useEpisodesIdStore,
-  useListJump,
-  useServerStore,
-  useSheetColor,
-  type EpisodeItem,
-} from '@/hooks';
+import { useEpisodeList, useEpisodesIdStore, useListJump, useSheetColor, type EpisodeItem } from '@/hooks';
 import { HUXStack, Image, List, Select, TVFocusWrapper, WavyAnimation } from '@/components';
 import { ThumbnailProgress } from '@/components/episode-list/EpisodeList';
 
@@ -76,10 +69,20 @@ interface EpisodesPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (episode: EpisodeItem) => void;
+  servers: string[];
+  currentServer?: string;
+  onPickServer: (name: string) => void;
 }
 
 /** YouTube-style "more episodes" strip that slides up over the fullscreen player. */
-export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelProps) => {
+export const EpisodesPanel = ({
+  open,
+  onOpenChange,
+  onSelect,
+  servers,
+  currentServer,
+  onPickServer,
+}: EpisodesPanelProps) => {
   const portalHostName = useVideoSelector((state) => state.portalHostName);
   const sheetColor = useSheetColor();
   const { type, mediaType, isDubbed } = useLocalSearchParams<{
@@ -89,9 +92,6 @@ export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelPro
   }>();
   const { episodes, movieSeasons, activeSeason, setSeason } = useEpisodeList();
   const currentUniqueId = useEpisodesIdStore((store) => store.currentUniqueId);
-  const servers = useServerStore((store) => store.servers);
-  const currentServer = useServerStore((store) => store.currentServer);
-  const setCurrentServer = useServerStore((store) => store.setCurrentServer);
   const listRef = useRef<FlashListRef<EpisodeItem>>(null);
 
   const rangeLabel = useCallback(
@@ -133,10 +133,10 @@ export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelPro
             )}
             {servers.length > 0 && (
               <Select
-                SelectItem={servers.map((server) => ({ name: server.name, value: server.name }))}
+                SelectItem={servers.map((name) => ({ name, value: name }))}
                 SelectLabel="Servers"
-                value={currentServer?.name ?? ''}
-                onValueChange={setCurrentServer}
+                value={currentServer ?? ''}
+                onValueChange={onPickServer}
               />
             )}
           </HUXStack>

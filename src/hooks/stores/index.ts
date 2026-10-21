@@ -3,7 +3,7 @@ export * from './useThemeStore';
 export * from './useWatchProgressStore';
 export * from './useEpisodesStore';
 export * from './useRecentSearchesStore';
-export * from './useServerStore';
+export * from './useLastServerStore';
 export * from './useFavoriteStore';
 export * from './useExternalSubtitleStore';
 export * from './useExtensionStore';

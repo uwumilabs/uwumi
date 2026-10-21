@@ -5,7 +5,8 @@ import {
   useWatchProgressStore,
   useWatchAnimeEpisodes,
   useWatchMoviesEpisodes,
-  useServerStore,
+  useLastServerStore,
+  lastServerKey,
   useSheetColor,
   useDownloadStore,
   useMediaInfo,
@@ -87,8 +88,10 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const episodeProgress = useWatchProgressStore((state) =>
       episode?.uniqueId ? state.progresses[episode.uniqueId] : undefined,
     );
-    const currentServer = useServerStore((state) => state.currentServer);
     const currentProvider = useActiveProvider(mediaType);
+    const rememberedServer = useLastServerStore(
+      (state) => state.servers[lastServerKey(mediaType, currentProvider || provider)],
+    );
     const addDownload = useDownloadStore((state) => state.addDownload);
     const startDownload = useDownloadStore((state) => state.startDownload);
     const { data: mediaInfo } = useMediaInfo();
@@ -106,7 +109,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const animeSourcesQuery = useWatchAnimeEpisodes({
       episodeId: episode?.id || '',
       provider: currentProvider || provider,
-      server: selectedServer || currentServer || undefined,
+      serverName: selectedServer?.name ?? rememberedServer,
       dub: episode?.isDubbed === 'true' || false,
       enabled: shouldEnableQuery,
     });
@@ -116,7 +119,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
       mediaId,
       type: type || 'TV',
       provider: currentProvider || provider,
-      server: selectedServer || currentServer || undefined,
+      serverName: selectedServer?.name ?? rememberedServer,
       embed: true,
       enabled: shouldEnableQuery,
     });
@@ -335,11 +338,11 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const headerTitle = useMemo(() => {
       if (showServerSelection) return 'Select Server';
       if (showQualitySelection) {
-        const serverName = selectedServer?.name || currentServer?.name;
+        const serverName = selectedServer?.name || rememberedServer;
         return serverName ? `Select Quality - ${serverName}` : 'Select Quality';
       }
       return episode?.title;
-    }, [episode?.title, currentServer?.name, selectedServer?.name, showQualitySelection, showServerSelection]);
+    }, [episode?.title, rememberedServer, selectedServer?.name, showQualitySelection, showServerSelection]);
 
     const snapPoints = useMemo(
       () => (showQualitySelection || showServerSelection ? ['70%'] : ['40%']),

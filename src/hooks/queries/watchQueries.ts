@@ -10,7 +10,7 @@ import {
 } from 'react-native-consumet';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { fetchJson, HttpError } from '@/constants/utils';
-import { ExternalSubtitleData } from '@/constants/types';
+import { ExternalSubtitleData, MediaType } from '@/constants/types';
 import { TextTrackType } from 'react-native-video/src/types/video';
 import { SubtitleTrack } from '@/constants/types';
 import { getExtensionManagers, loadAnimeProvider, loadMovieProvider, loadServerExtractor } from '../stores';
@@ -23,127 +23,125 @@ import { getExtensionManagers, loadAnimeProvider, loadMovieProvider, loadServerE
 const needsExtractor = (metadata: { haveMultiServers?: boolean; isSourceDirect?: boolean }) =>
   Boolean(metadata.haveMultiServers) && !metadata.isSourceDirect;
 
-async function fetchAnimeEpisodeSources(
-  episodeId: string,
-  provider: string,
-  server: IEpisodeServer | undefined,
-  dub: boolean,
-): Promise<ISource & { servers?: IEpisodeServer[] }> {
-  const animeProviderMetadata = getExtensionManagers().providerManager.getExtensionMetadata(provider);
-  const animeProvider = await loadAnimeProvider(provider);
-  const servers = (await animeProvider.fetchEpisodeServers(
-    episodeId,
-    dub ? SubOrDub.DUB : SubOrDub.SUB,
-  )) as IEpisodeServer[];
-
-  if (!servers || servers.length === 0) {
-    throw new Error('No servers available for this episode');
-  }
-
-  const selectedServer = (server?.name ? servers.find((s) => s.name === server.name) : servers[0]) || servers[0];
-
-  const extractor = needsExtractor(animeProviderMetadata) ? await loadServerExtractor(selectedServer.name) : undefined;
-
-  let data: ISource;
-  try {
-    if (extractor) {
-      try {
-        data = (await extractor.extract(new PolyURL(selectedServer.url), animeProviderMetadata.baseUrl)) as ISource;
-      } catch (extractErr) {
-        console.warn(
-          `[watchQueries] Extractor failed for "${selectedServer.name}", falling back to provider:`,
-          extractErr,
-        );
-        data = (await animeProvider.fetchEpisodeSources(
-          episodeId,
-          selectedServer.name as StreamingServers,
-          dub ? SubOrDub.DUB : SubOrDub.SUB,
-        )) as ISource;
-      }
-    } else {
-      data = (await animeProvider.fetchEpisodeSources(
-        episodeId,
-        selectedServer.name as StreamingServers,
-        dub ? SubOrDub.DUB : SubOrDub.SUB,
-      )) as ISource;
-    }
-  } catch (sourceErr) {
-    console.warn(`[watchQueries] Source extraction failed for "${selectedServer.name}":`, sourceErr);
-    return { sources: [], subtitles: [], servers } as unknown as ISource & { servers: IEpisodeServer[] };
-  }
-  return { ...data, servers };
+/** Which episode to find servers and sources for. Part of the query keys, so keep it to plain values. */
+export interface EpisodeTarget {
+  mediaType: MediaType;
+  provider: string;
+  episodeId: string;
+  mediaId?: string;
+  dub?: boolean;
+  embed?: boolean;
 }
 
-async function fetchMovieEpisodeSources(
-  episodeId: string,
-  mediaId: string,
-  provider: string,
-  server: IEpisodeServer | undefined,
-): Promise<ISource & { servers: IEpisodeServer[] }> {
-  const movieProviderMetadata = getExtensionManagers().providerManager.getExtensionMetadata(provider);
-  const movieProvider = await loadMovieProvider(provider);
-  const servers = (await movieProvider.fetchEpisodeServers(episodeId, mediaId)) as IEpisodeServer[];
-
-  if (!servers || servers.length === 0) {
-    throw new Error('No servers available for this episode');
+/** The server answered but has no playable sources, so rotation moves on to the next one. */
+export class NoSourcesError extends Error {
+  constructor(serverName: string) {
+    super(`No video sources on ${serverName}`);
+    this.name = 'NoSourcesError';
   }
+}
 
-  const selectedServer = (server?.name ? servers.find((s) => s.name === server.name) : servers[0]) || servers[0];
+async function fetchEpisodeServers({ mediaType, provider, episodeId, mediaId, dub }: EpisodeTarget) {
+  const servers =
+    mediaType === MediaType.ANIME
+      ? await (await loadAnimeProvider(provider)).fetchEpisodeServers(episodeId, dub ? SubOrDub.DUB : SubOrDub.SUB)
+      : await (await loadMovieProvider(provider)).fetchEpisodeServers(episodeId, mediaId ?? '');
+  if (!servers?.length) throw new Error('No servers available for this episode');
+  return servers as IEpisodeServer[];
+}
 
-  const extractor = needsExtractor(movieProviderMetadata) ? await loadServerExtractor(selectedServer.name) : undefined;
+async function fetchServerSources(target: EpisodeTarget, server: IEpisodeServer): Promise<ISource> {
+  const { mediaType, provider, episodeId, mediaId, dub } = target;
+  const fromProvider = async () =>
+    (mediaType === MediaType.ANIME
+      ? await (
+          await loadAnimeProvider(provider)
+        ).fetchEpisodeSources(episodeId, server.name as StreamingServers, dub ? SubOrDub.DUB : SubOrDub.SUB)
+      : await (
+          await loadMovieProvider(provider)
+        ).fetchEpisodeSources(episodeId, mediaId ?? '', server.name as StreamingServers)) as ISource;
 
+  const metadata = getExtensionManagers().providerManager.getExtensionMetadata(provider);
+  const extractor = needsExtractor(metadata) ? await loadServerExtractor(server.name) : undefined;
   let data: ISource;
-  try {
-    if (extractor) {
-      try {
-        data = (await extractor.extract(new PolyURL(selectedServer.url), movieProviderMetadata.baseUrl)) as ISource;
-      } catch {
-        data = (await movieProvider.fetchEpisodeSources(
-          episodeId,
-          mediaId,
-          selectedServer.name as StreamingServers,
-        )) as ISource;
-      }
-    } else {
-      data = (await movieProvider.fetchEpisodeSources(
-        episodeId,
-        mediaId,
-        selectedServer.name as StreamingServers,
-      )) as ISource;
+  if (extractor) {
+    try {
+      data = (await extractor.extract(new PolyURL(server.url), metadata.baseUrl)) as ISource;
+    } catch {
+      // The provider can often resolve a server its extractor can't
+      data = await fromProvider();
     }
-  } catch (sourceErr) {
-    console.warn(`[watchQueries] Movie source extraction failed for "${selectedServer.name}":`, sourceErr);
+  } else {
+    data = await fromProvider();
+  }
+  if (!data?.sources?.some((source) => source.url)) throw new NoSourcesError(server.name);
+  return data;
+}
+
+export function useEpisodeServers(target: EpisodeTarget, enabled = true) {
+  return useQuery<IEpisodeServer[]>({
+    queryKey: ['watch', 'servers', target],
+    queryFn: () => fetchEpisodeServers(target),
+    enabled: enabled && !!target.episodeId,
+  });
+}
+
+/**
+ * One server's sources. `attempt` changes per try, so every try fetches fresh links (they're often signed and
+ * expire) and a failed try never comes back from the cache.
+ */
+export function useEpisodeSources(target: EpisodeTarget, server: IEpisodeServer | undefined, attempt: string) {
+  return useQuery<ISource>({
+    queryKey: ['watch', 'sources', target, server?.name, attempt],
+    queryFn: () => fetchServerSources(target, server!),
+    enabled: !!server && !!target.episodeId,
+    // Rotation is the retry
+    retry: false,
+    staleTime: Infinity,
+    gcTime: 30 * 1000,
+    refetchOnReconnect: false,
+  });
+}
+
+/** Servers plus one server's sources (the first, unless `serverName` is given), for the episode actions sheet. */
+async function fetchSourcesWithServers(
+  target: EpisodeTarget,
+  serverName: string | undefined,
+): Promise<ISource & { servers: IEpisodeServer[] }> {
+  const servers = await fetchEpisodeServers(target);
+  const server = servers.find((s) => s.name === serverName) ?? servers[0];
+  try {
+    return { ...(await fetchServerSources(target, server)), servers };
+  } catch {
     return { sources: [], subtitles: [], servers } as unknown as ISource & { servers: IEpisodeServer[] };
   }
-  return { ...data, servers };
 }
 
 export function useWatchAnimeEpisodes({
   episodeId,
   provider = DEFAULT_PROVIDERS.anime,
-  server,
+  serverName,
   dub = false,
   enabled = true,
 }: {
   episodeId: string;
   provider: string;
-  server?: IEpisodeServer;
+  serverName?: string;
   dub: boolean;
   enabled?: boolean;
 }) {
-  return useQuery<ISource & { servers?: IEpisodeServer[] }>({
-    queryKey: ['watch', episodeId, provider, dub, server],
+  return useQuery<ISource & { servers: IEpisodeServer[] }>({
+    queryKey: ['watch', episodeId, provider, dub, serverName],
     enabled: enabled && !!episodeId,
-    queryFn: () => fetchAnimeEpisodeSources(episodeId, provider, server, dub),
+    queryFn: () => fetchSourcesWithServers({ mediaType: MediaType.ANIME, provider, episodeId, dub }, serverName),
   });
 }
 
 export function useWatchMoviesEpisodes({
   episodeId,
   mediaId,
-  type,
   provider = DEFAULT_PROVIDERS.movie,
-  server,
+  serverName,
   embed,
   enabled = true,
 }: {
@@ -151,14 +149,14 @@ export function useWatchMoviesEpisodes({
   mediaId: string;
   type: string;
   provider: string;
-  server?: IEpisodeServer;
+  serverName?: string;
   embed: boolean;
   enabled?: boolean;
 }) {
   return useQuery<ISource & { servers: IEpisodeServer[] }>({
-    queryKey: ['watch', episodeId, mediaId, server, provider, embed],
+    queryKey: ['watch', episodeId, mediaId, serverName, provider, embed],
     enabled: enabled && !!episodeId,
-    queryFn: () => fetchMovieEpisodeSources(episodeId, mediaId, provider, server),
+    queryFn: () => fetchSourcesWithServers({ mediaType: MediaType.MOVIE, provider, episodeId, mediaId }, serverName),
   });
 }
 // export function useMoviesEpisodesServers({

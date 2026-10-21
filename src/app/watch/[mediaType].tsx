@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { ActivityIndicator, Dimensions, View } from 'react-native';
+import { Dimensions, View } from 'react-native';
 import { ISO639_1, TextTrackType, OnLoadData } from 'react-native-video/src';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
-import { IAnimeInfo, ISubtitle, TvType } from 'react-native-consumet';
+import { IAnimeInfo, IEpisodeServer, ISubtitle, TvType } from 'react-native-consumet';
 import { HUXStack, MaterialIconsIcon, ThemedView } from '@/components';
 import {
   PlayerOverlay,
@@ -11,9 +11,14 @@ import {
   EpisodesPanel,
   AddSubtitlesItem,
   AddSubtitlesViews,
+  ServerStatusScreen,
+  ServerLoadingOverlay,
+  type ServerChip,
+  type ServerPhase,
   type SubtitleLanguage,
   type SubtitleSearchResult,
 } from './components';
+import ProviderSelection from './components/ProviderSelection';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import {
@@ -23,9 +28,14 @@ import {
   getAdjacentEpisodes,
   buildEpisodeRouteParams,
   useWatchProgressStore,
-  useWatchAnimeEpisodes,
-  useWatchMoviesEpisodes,
-  useServerStore,
+  useEpisodeServers,
+  useEpisodeSources,
+  NoSourcesError,
+  useServerRotation,
+  useLoadTimeout,
+  useLastServerStore,
+  lastServerKey,
+  type EpisodeTarget,
   useExternalSubtitles,
   externalSubtitlesQuery,
   canSearchExternalSubtitles,
@@ -61,6 +71,10 @@ const subtitleType = (uri: string) => {
   return TextTrackType.VTT;
 };
 
+const EMPTY_SERVERS: IEpisodeServer[] = [];
+// A failure after this much playback is a broken stream rather than a bad server, so that server gets one reload
+const MID_PLAYBACK_MS = 10_000;
+
 const Watch = () => {
   const router = useRouter();
   const watchParams = useLocalSearchParams() as unknown as WatchSearchParams;
@@ -81,11 +95,6 @@ const Watch = () => {
   const setProgress = useWatchProgressStore((state) => state.setProgress);
   const getProgress = useWatchProgressStore((state) => state.getProgress);
   const currentProvider = useActiveProvider(mediaType);
-  const setServers = useServerStore((state) => state.setServers);
-  const setCurrentServer = useServerStore((state) => state.setCurrentServer);
-  const currentServer = useServerStore((state) => state.currentServer);
-  const clearServers = useServerStore((state) => state.clearServers);
-  const [serverInitialized, setServerInitialized] = useState(false);
   const { data: mediaInfo, isLoading: mediaInfoLoading } = useMediaInfo();
   const recordContinueWatching = useContinueWatchingStore((state) => state.record);
   const { toast } = useToast();
@@ -213,24 +222,37 @@ const Watch = () => {
   });
   const dub = useProviderSelectionStore((state) => state.dub);
   const isEmbed = useEmbedMode(mediaType, currentProvider);
-  // console.log({currentEpisodeId , episodeId})
-  const animeQuery = useWatchAnimeEpisodes({
-    episodeId: activeEpisodeId || (switchedProvider ? '' : (currentEpisodeId as string)) || '',
-    provider: currentProvider,
-    server: currentServer!,
-    dub,
-    enabled: mediaType === MediaType.ANIME,
-  });
-
-  const movieQuery = useWatchMoviesEpisodes({
-    episodeId: activeEpisodeId || (switchedProvider ? '' : (currentEpisodeId as string)) || '',
-    mediaId: activeMediaId ?? '',
-    type,
-    provider: currentProvider,
-    server: currentServer!,
-    embed: isEmbed,
-    enabled: mediaType === MediaType.MOVIE,
-  });
+  const sourceEpisodeId = activeEpisodeId || (switchedProvider ? '' : (currentEpisodeId as string)) || '';
+  const target = useMemo<EpisodeTarget>(
+    () =>
+      mediaType === MediaType.ANIME
+        ? { mediaType, provider: currentProvider, episodeId: sourceEpisodeId, dub }
+        : {
+            mediaType,
+            provider: currentProvider,
+            episodeId: sourceEpisodeId,
+            mediaId: activeMediaId ?? '',
+            embed: isEmbed,
+          },
+    [mediaType, currentProvider, sourceEpisodeId, dub, activeMediaId, isEmbed],
+  );
+  const rotationKey = useMemo(() => JSON.stringify(target), [target]);
+  // A switched provider's list has to load before its episode id is known
+  const waitingForList = switchedProvider && episodesLoading;
+  const serversQuery = useEpisodeServers(target, !waitingForList);
+  const serverNames = useMemo(
+    () => (serversQuery.data ?? EMPTY_SERVERS).map((server) => server.name),
+    [serversQuery.data],
+  );
+  const providerServerKey = lastServerKey(mediaType, currentProvider);
+  const rememberedServer = useLastServerStore((state) => state.servers[providerServerKey]);
+  const rememberServer = useLastServerStore((state) => state.remember);
+  const rotation = useServerRotation(rotationKey, serversQuery.data ?? EMPTY_SERVERS, rememberedServer);
+  const sourcesQuery = useEpisodeSources(target, rotation.server, rotation.attemptKey);
+  // Recorded while rendering: the query is keyed by the attempt, so this error is the current server's
+  if (sourcesQuery.isError && rotation.attempt && !rotation.failed[rotation.attempt.server]) {
+    rotation.fail(rotation.attempt, sourcesQuery.error instanceof NoSourcesError ? 'no-video' : 'unavailable');
+  }
 
   const subtitleLanguage = useExternalSubtitleStore((state) => state.language);
   const subtitleSearch = useMemo(
@@ -246,41 +268,9 @@ const Watch = () => {
     enabled: wantsExternalSubtitles,
   });
 
-  const { data, isLoading: sourcesLoading, error } = mediaType === MediaType.ANIME ? animeQuery : movieQuery;
-  // A switched provider's list has to load before its sources can. New text tracks would reload the source, so the
-  // player also waits for external subtitles, which give up after a few seconds.
-  const isLoading =
-    sourcesLoading ||
-    (switchedProvider && episodesLoading) ||
-    (wantsExternalSubtitles && (mediaInfoLoading || externalSubtitlesLoading));
-
-  // Track the current provider to detect changes
-
-  useEffect(() => {
-    // Reset server initialization when provider/embed changes
-    setServerInitialized(false);
-    clearServers();
-  }, [isEmbed, currentProvider, clearServers]);
-
-  useEffect(() => {
-    // Always process server data when it changes, regardless of serverInitialized
-    // This ensures switching providers properly updates the server list
-    if (data && 'servers' in data) {
-      if (data?.servers && data.servers.length > 0) {
-        // Provider has servers - set them
-        setServers(data.servers);
-        if (!currentServer) {
-          setCurrentServer(data.servers[0].name);
-        }
-        setServerInitialized(true);
-      } else if (!serverInitialized) {
-        // Provider has no servers (empty array or undefined) - clear them
-        // Only do this once to avoid infinite loops
-        clearServers();
-        setServerInitialized(true);
-      }
-    }
-  }, [data, serverInitialized, setCurrentServer, setServers, clearServers, currentServer, currentProvider]);
+  const data = sourcesQuery.data;
+  // New text tracks would reload the source, so the player waits for external subtitles, which give up quickly
+  const waitingForSubtitles = wantsExternalSubtitles && (mediaInfoLoading || externalSubtitlesLoading);
 
   useBackHandler(episodesOpen, () => {
     setEpisodesOpen(false);
@@ -289,6 +279,10 @@ const Watch = () => {
 
   const lastProgressUpdateRef = useRef({ currentTime: 0, seekableDuration: 0 });
   const recordedEpisodeRef = useRef<string | null>(null);
+  // Where a reload or the next server picks up, when the failed one had been playing
+  const resumeRef = useRef<{ uniqueId?: string; at: number } | null>(null);
+  const loadedAtRef = useRef(0);
+  const [loadedAttempt, setLoadedAttempt] = useState<string | null>(null);
 
   // Keyed by episode, like loadedLength, so a file added to one episode doesn't carry over to the next
   const [addedSubtitles, setAddedSubtitles] = useState<{ uniqueId?: string; tracks: SubtitleTrack[] }>({
@@ -500,37 +494,53 @@ const Watch = () => {
     [queryClient, subtitleSearch, addSubtitleTracks],
   );
 
-  useEffect(() => {
-    if (!isLoading && !source) {
-      const providerName = providers[mediaType]?.find(({ value }) => value === currentProvider)?.name;
-      toast.show(
-        missingOnProvider
-          ? {
-              variant: 'danger',
-              label: `Not on ${providerName ?? currentProvider}`,
-              description: 'This episode isn’t available there. Try another provider.',
-            }
-          : {
-              variant: 'danger',
-              label: 'No video source found',
-              description: 'Please try changing servers or quality.',
-            },
-      );
-    }
-    if (!isLoading && error) {
-      toast.show({
-        variant: 'danger',
-        label: 'Error loading media',
-        description: error?.message || 'An unknown error occurred.',
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, isLoading, error, missingOnProvider]);
+  const phase: ServerPhase | 'loading' | 'playing' = missingOnProvider
+    ? 'missing'
+    : serversQuery.isError
+      ? 'unavailable'
+      : rotation.exhausted
+        ? 'exhausted'
+        : !source || waitingForList || waitingForSubtitles
+          ? 'finding'
+          : loadedAttempt === rotation.attemptKey
+            ? 'playing'
+            : 'loading';
 
-  if (isLoading) {
+  useLoadTimeout(phase === 'loading', rotation.attemptKey, () => {
+    if (rotation.attempt) rotation.fail(rotation.attempt, 'timeout');
+  });
+
+  const providerName = providers[mediaType]?.find(({ value }) => value === currentProvider)?.name ?? currentProvider;
+  const chips = useMemo<ServerChip[]>(
+    () =>
+      rotation.order.map((name) => ({
+        name,
+        state: rotation.failed[name] ? 'failed' : name === rotation.attempt?.server ? 'current' : 'pending',
+        reason: rotation.failed[name],
+      })),
+    [rotation.order, rotation.failed, rotation.attempt?.server],
+  );
+  const position = rotation.attempt ? rotation.order.indexOf(rotation.attempt.server) + 1 : 0;
+  const pickServer = (name: string) => {
+    if (loadedAttempt === rotation.attemptKey) {
+      resumeRef.current = { uniqueId, at: lastProgressUpdateRef.current.currentTime };
+    }
+    rotation.pick(name);
+  };
+
+  if (phase !== 'loading' && phase !== 'playing') {
     return (
-      <ThemedView useStatusBar={false} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
+      <ThemedView useStatusBar={false} useSafeArea>
+        <ServerStatusScreen
+          phase={phase}
+          title={title}
+          providerName={providerName}
+          chips={chips}
+          onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          onPick={rotation.pick}
+          onRetry={phase === 'unavailable' ? () => serversQuery.refetch() : rotation.retryAll}
+          changeProvider={<ProviderSelection mediaType={mediaType} isDubbed={watchParams.isDubbed} />}
+        />
       </ThemedView>
     );
   }
@@ -549,7 +559,8 @@ const Watch = () => {
         top: 0,
       }}>
       <VideoPlayer
-        key={activeEpisodeId || (currentEpisodeId as string) || 'video'}
+        // A fresh native player per attempt: a failed one can't deliver late events to the next
+        key={`${activeEpisodeId || (currentEpisodeId as string) || 'video'}|${rotation.attemptKey}`}
         gestureProps={{ onSwipeUp: openEpisodes }}
         videoProps={{
           resizeMode: 'contain',
@@ -561,15 +572,28 @@ const Watch = () => {
           allowsEaxternalPlayback: true,
           mixWithOthers: 'mix',
           onError: () => {
-            toast.show({ variant: 'danger', label: 'Video Error', description: 'Try changing servers' });
-            //console.log('Video Error:', error);
+            const attempt = rotation.attempt;
+            if (!attempt) return;
+            const loaded = loadedAttempt === rotation.attemptKey;
+            if (loaded) resumeRef.current = { uniqueId, at: lastProgressUpdateRef.current.currentTime };
+            if (loaded && attempt.reloads === 0 && Date.now() - loadedAtRef.current > MID_PLAYBACK_MS) {
+              rotation.reload(attempt);
+            } else {
+              rotation.fail(attempt, 'playback');
+            }
           },
           onLoad: (value: OnLoadData) => {
-            // console.log('Video loaded:', value);
+            setLoadedAttempt(rotation.attemptKey);
+            loadedAtRef.current = Date.now();
+            if (rotation.attempt) rememberServer(providerServerKey, rotation.attempt.server);
             setLoadedLength({ uniqueId, seconds: Math.round(value.duration) });
             const pending = pendingAddRef.current?.uniqueId === uniqueId ? pendingAddRef.current : null;
             pendingAddRef.current = null;
-            videoRef?.current?.seek(pending?.resumeAt ?? (getProgress(uniqueId)?.currentTime || 0));
+            const resume = resumeRef.current?.uniqueId === uniqueId ? resumeRef.current.at : undefined;
+            resumeRef.current = null;
+            const startAt = pending?.resumeAt ?? resume ?? (getProgress(uniqueId)?.currentTime || 0);
+            lastProgressUpdateRef.current.currentTime = startAt;
+            videoRef?.current?.seek(startAt);
             const addedTrack = pending && value.textTracks.find((track) => track.title === pending.title);
             if (addedTrack) setTextTrack(addedTrack);
           },
@@ -670,6 +694,11 @@ const Watch = () => {
           }}
         />
         <PlayerOverlay skipTimes={skipTimes} upNext={upNext} onNext={handleNextEpisode} />
+        <ServerLoadingOverlay
+          loading={phase === 'loading'}
+          label={`Loading ${rotation.attempt?.server ?? ''} · ${position} of ${rotation.order.length}`}
+          notice={rotation.switched && rotation.attempt ? `Playing on ${rotation.attempt.server}` : undefined}
+        />
         {upNext && (
           <VideoPlayer.UpNext
             title={upNext.title ? `${upNext.label} · ${upNext.title}` : upNext.label}
@@ -677,7 +706,14 @@ const Watch = () => {
           />
         )}
       </VideoPlayer>
-      <EpisodesPanel open={episodesOpen} onOpenChange={setEpisodesOpen} onSelect={openEpisode} />
+      <EpisodesPanel
+        open={episodesOpen}
+        onOpenChange={setEpisodesOpen}
+        onSelect={openEpisode}
+        servers={serverNames}
+        currentServer={rotation.attempt?.server}
+        onPickServer={pickServer}
+      />
     </ThemedView>
   );
 };

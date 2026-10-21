@@ -18,7 +18,6 @@ import {
   useCurrentTheme,
   usePureBlackBackground,
   useEpisodeDisplayStore,
-  useServerStore,
   useListJump,
   useEpisodeList,
   LIST_SHADOW_SIZE,
@@ -274,11 +273,6 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const displayMode = useEpisodeDisplayStore((state) => state.displayMode);
   const setDisplayMode = useEpisodeDisplayStore((state) => state.setDisplayMode);
-  const setCurrentServer = useServerStore((state) => state.setCurrentServer);
-  const servers = useServerStore((state) => state.servers);
-  const currentServer = useServerStore((state) => state.currentServer);
-
-  // console.log('servers', servers[0], getCurrentServer(), servers, getServers());
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState<IAnimeEpisode | IMovieEpisode | null>(null);
@@ -634,16 +628,6 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
                       SelectLabel="Episodes"
                       value={rangeValue}
                       onValueChange={jumpToRange}
-                    />
-                  )}
-                  {servers && servers.length > 0 && !swipeable && (
-                    <Select
-                      SelectItem={servers.map((server) => ({ name: server.name, value: server.name })) || []}
-                      SelectLabel="Servers"
-                      value={currentServer?.name || ''}
-                      onValueChange={(value: string) =>
-                        setCurrentServer(value || currentServer?.name || servers[0].name)
-                      }
                     />
                   )}
                   {swipeable && (
