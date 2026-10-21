@@ -1,13 +1,13 @@
 import React from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
 import * as Application from 'expo-application';
-import { openBrowserAsync } from 'expo-web-browser';
 import { getStoredOtaVersion, reloadApp } from 'react-native-nitro-ota';
 import { Button, Chip, ListGroup, Separator } from 'heroui-native';
 import { HUXStack, HUYStack, Image, IoniconProps, IoniconsIcon, ThemedView } from '@/components';
 import { useUpdateChecker } from '@/hooks/useUpdateChecker';
 import { runningOtaVersion, useCurrentTheme, useHasActiveDownloads, useOtaUpdateStore } from '@/hooks';
 import { EXTERNAL_LINKS } from '@/constants/config';
+import { openBrowser } from '@/constants/utils';
 
 const COMMUNITY_LINKS: { label: string; description: string; icon: IoniconProps['name']; url: string }[] = [
   {
@@ -166,7 +166,7 @@ const About = () => {
           </ListGroup>
 
           {isUpdateAvailable && (
-            <Button variant="primary" onPress={() => openBrowserAsync(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE)}>
+            <Button variant="primary" onPress={() => openBrowser(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE)}>
               <IoniconsIcon name="download-outline" size={18} className="text-accent-foreground" />
               <Button.Label>{`Download v${updateInfo.newVersion}`}</Button.Label>
             </Button>
@@ -179,7 +179,7 @@ const About = () => {
             {COMMUNITY_LINKS.map(({ label, description, icon, url }, index) => (
               <View key={label}>
                 {index > 0 && <Separator className="mx-4" />}
-                <ListGroup.Item onPress={() => openBrowserAsync(url)}>
+                <ListGroup.Item onPress={() => openBrowser(url)}>
                   <ListGroup.ItemPrefix>
                     <IoniconsIcon name={icon} size={20} color={currentTheme?.foreground} />
                   </ListGroup.ItemPrefix>
@@ -197,7 +197,7 @@ const About = () => {
         <HUYStack className="gap-2">
           <SectionTitle>Support</SectionTitle>
           <ListGroup>
-            <ListGroup.Item onPress={() => openBrowserAsync(EXTERNAL_LINKS.GITHUB_NEW_ISSUE)}>
+            <ListGroup.Item onPress={() => openBrowser(EXTERNAL_LINKS.GITHUB_NEW_ISSUE)}>
               <ListGroup.ItemPrefix>
                 <IoniconsIcon name="bug-outline" size={20} color={currentTheme?.foreground} />
               </ListGroup.ItemPrefix>

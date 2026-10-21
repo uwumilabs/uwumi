@@ -18,7 +18,6 @@ import {
   useUpdateChecker,
   useSheetColor,
 } from '@/hooks';
-import * as WebBrowser from 'expo-web-browser';
 import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import { Button, Dialog, HeroUINativeProvider } from 'heroui-native';
@@ -29,7 +28,7 @@ import { BottomSheet, BottomSheetProvider, IoniconsIcon, OtaUpdateToast, Slider 
 import { themes } from '@/themes/theme';
 import { VideoPortalHost, VideoProvider, defaultTheme, type SheetProps } from 'react-native-video-toolkit';
 import RNOrientationDirector, { Orientation } from 'react-native-orientation-director';
-import { isTV, isTVOS } from '@/constants/utils';
+import { isTV, isTVOS, openBrowser } from '@/constants/utils';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -108,7 +107,7 @@ const DownloadDialog = ({
               <Button
                 variant="primary"
                 onPress={async () => {
-                  await WebBrowser.openBrowserAsync('https://github.com/2004durgesh/uwumi/releases/latest');
+                  await openBrowser('https://github.com/2004durgesh/uwumi/releases/latest');
                 }}
                 className="w-full">
                 Update Now

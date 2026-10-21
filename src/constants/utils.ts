@@ -1,4 +1,5 @@
 import { Platform, type ColorValue, type ViewStyle } from 'react-native';
+import { openBrowserAsync } from 'expo-web-browser';
 // export const getFetchUrl = () => {
 //   if (process.env.NODE_ENV === 'production') {
 //     return {
@@ -129,3 +130,6 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
   if (!response.ok) throw new HttpError(response.status, url);
   return (await response.json()) as T;
 }
+
+// In the app's own task: Android's default opens a second uwumi card in recents
+export const openBrowser = (url: string) => openBrowserAsync(url, { createTask: false });

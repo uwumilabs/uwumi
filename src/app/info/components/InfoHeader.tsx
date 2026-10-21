@@ -3,7 +3,6 @@ import { findNodeHandle, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from '@/components/LinearGradient';
-import { openBrowserAsync } from 'expo-web-browser';
 import Animated from 'react-native-reanimated';
 import { Button, Chip, ScrollShadow } from 'heroui-native';
 import { IAnimeInfo, IMovieInfo } from 'react-native-consumet';
@@ -20,7 +19,7 @@ import {
 import { useCurrentTheme, useEpisodeList, useExtensionStore, usePureBlackBackground } from '@/hooks';
 import { useActiveProvider } from '@/constants/provider';
 import { MediaType, MetaProvider } from '@/constants/types';
-import { hexToRGB, isTV, normalizeRating } from '@/constants/utils';
+import { hexToRGB, isTV, normalizeRating, openBrowser } from '@/constants/utils';
 import type { MediaItem } from '@/components/CardList';
 import { AnimatedCountdown } from './AnimatedCountdown';
 import { AnimatedFavoriteButton } from './AnimatedFavoriteButton';
@@ -168,7 +167,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
                 {episodes.length > 0 && (
                   <RippleButton
                     ref={webviewBtnRef}
-                    onPress={() => openBrowserAsync(episodes[0].url! || getExtensionInfo(currentProvider)?.baseUrl!)}
+                    onPress={() => openBrowser(episodes[0].url! || getExtensionInfo(currentProvider)?.baseUrl!)}
                     nextFocusUp={tvNodes.back}
                     nextFocusLeft={tvNodes.webview}
                     nextFocusRight={tvNodes.webview}>
@@ -226,7 +225,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
             variant="secondary"
             size="sm"
             className="self-start"
-            onPress={() => openBrowserAsync(`https://www.youtube.com/watch?v=${trailerId}`)}>
+            onPress={() => openBrowser(`https://www.youtube.com/watch?v=${trailerId}`)}>
             <IoniconsIcon name="logo-youtube" size={16} color={currentTheme?.foreground} />
             <Button.Label>Trailer</Button.Label>
           </Button>
