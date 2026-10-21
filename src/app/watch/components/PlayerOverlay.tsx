@@ -6,6 +6,8 @@ import type { SkipTime } from '@/hooks';
 
 // An outro that runs this close to the end leads straight into the next episode
 const OUTRO_TAIL_SECONDS = 5;
+// About an anime opening's length, for episodes AniSkip has no times for
+const SKIP_FORWARD_SECONDS = 85;
 
 const SKIP_LABELS: Record<SkipTime['type'], string> = {
   intro: 'Skip intro',
@@ -18,14 +20,19 @@ export interface UpNext {
   title?: string;
 }
 
-/** What the current position can skip, if it's inside an intro, recap or outro. */
-const useSkipAction = (skipTimes: SkipTime[], upNext: UpNext | undefined, onNext: () => void) => {
+/** What the current position can skip, if it's inside an intro, recap or outro, else a plain jump if asked for. */
+const useSkipAction = (skipTimes: SkipTime[], upNext: UpNext | undefined, onNext: () => void, skipForward = false) => {
   const { currentTime, duration, seek } = useProgress();
   // The player rewinds to 0:00 when a source ends, which would offer "Skip intro" under the Up next card
   const ended = useVideoSelector((state) => state.ended);
   // Ends a second early so the button doesn't flash as playback leaves the range
   const active = skipTimes.find(({ start, end }) => currentTime >= start && currentTime < end - 1);
-  if (ended || !active) return null;
+  if (ended) return null;
+  if (!active) {
+    return skipForward
+      ? { label: `+${SKIP_FORWARD_SECONDS}s`, onPress: () => seek(currentTime + SKIP_FORWARD_SECONDS) }
+      : null;
+  }
   if (active.type === 'outro' && upNext && duration > 0 && active.end >= duration - OUTRO_TAIL_SECONDS) {
     return { label: `Next · ${upNext.label}`, onPress: onNext };
   }
@@ -38,9 +45,9 @@ interface SkipProps {
   onNext: () => void;
 }
 
-/** For the controls' bottom row: the skip while one applies. */
-export const SkipSlot = ({ skipTimes, upNext, onNext }: SkipProps) => {
-  const action = useSkipAction(skipTimes, upNext, onNext);
+/** For the controls' bottom row: the skip while one applies, or with `skipForward` a +85s jump otherwise. */
+export const SkipSlot = ({ skipTimes, upNext, onNext, skipForward }: SkipProps & { skipForward?: boolean }) => {
+  const action = useSkipAction(skipTimes, upNext, onNext, skipForward);
   if (!action) return null;
   return (
     <BaseButton onTap={action.onPress}>

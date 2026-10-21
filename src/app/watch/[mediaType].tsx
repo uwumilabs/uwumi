@@ -130,12 +130,16 @@ const Watch = () => {
 
   // Keyed by episode, so the next episode doesn't query skip times with this one's length
   const [loadedLength, setLoadedLength] = useState<{ uniqueId?: string; seconds: number }>({ seconds: 0 });
-  const { data: skipTimes = [] } = useSkipTimes({
-    malId: (mediaInfo as IAnimeInfo | undefined)?.malId,
+  const malId = (mediaInfo as IAnimeInfo | undefined)?.malId;
+  const { data: skipTimes = [], isFetched: skipTimesFetched } = useSkipTimes({
+    malId,
     episodeNumber,
     episodeLength: loadedLength.uniqueId === uniqueId ? loadedLength.seconds : 0,
     enabled: mediaType === MediaType.ANIME,
   });
+  // AniSkip has no times for many new episodes, and can't be asked without a MAL id
+  const skipForward =
+    mediaType === MediaType.ANIME && skipTimes.length === 0 && (skipTimesFetched || (!!mediaInfo && !malId));
   const upNext = useMemo<UpNext | undefined>(
     () =>
       nextEpisode
@@ -634,7 +638,7 @@ const Watch = () => {
               <HUXStack>
                 {/* This view is just to take the whole space */}
                 <View className="flex-1 w-full" />
-                <SkipSlot skipTimes={skipTimes} upNext={upNext} onNext={handleNextEpisode} />
+                <SkipSlot skipTimes={skipTimes} upNext={upNext} onNext={handleNextEpisode} skipForward={skipForward} />
               </HUXStack>
             ),
             beforeCenterPlayButton: (
