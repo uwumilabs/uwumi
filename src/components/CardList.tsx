@@ -11,7 +11,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { HUXStack, HUYStack, NoResults } from './ui-primitives';
 import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch } from '@/hooks';
 import { useCardGridDimensions } from '@/hooks/useCardGridDimensions';
-import { DEFAULT_PROVIDERS, useActiveProvider } from '@/constants/provider';
+import { resolveProvider, useProviderStore } from '@/constants/provider';
 import List from './List';
 import { Card, SkeletonGroup } from 'heroui-native';
 import TVFocusWrapper from './TVFocusWrapper';
@@ -93,9 +93,7 @@ const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnTyp
 
 export const MediaCard: React.FC<MediaCardProps> = memo(
   ({ item, index, mediaType, metaProvider, isSearch, preferredFocus, animateEntry = true, sharedTag, onPress }) => {
-    const currentProvider = useActiveProvider(mediaType);
     const router = useRouter();
-    const provider = currentProvider;
     const transitionTag = isSearch ? undefined : (sharedTag ?? String(item.id));
 
     const handlePress = useCallback(() => {
@@ -106,25 +104,14 @@ export const MediaCard: React.FC<MediaCardProps> = memo(
           mediaType: mediaType,
           metaProvider: metaProvider,
           type: item?.type,
-          provider: (() => {
-            switch (mediaType) {
-              case MediaType.ANIME:
-                return provider ?? DEFAULT_PROVIDERS.anime;
-              case MediaType.MANGA:
-                return provider ?? DEFAULT_PROVIDERS.manga;
-              case MediaType.MOVIE:
-                return provider ?? DEFAULT_PROVIDERS.movie;
-              default:
-                return provider ?? DEFAULT_PROVIDERS.anime;
-            }
-          })(),
+          provider: resolveProvider(mediaType, useProviderStore.getState().providers[mediaType]),
           id: item.id,
           image: item.image,
           title: typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english,
           ...(sharedTag && { sharedTag }),
         },
       });
-    }, [router, mediaType, metaProvider, item, provider, sharedTag, onPress]);
+    }, [router, mediaType, metaProvider, item, sharedTag, onPress]);
 
     return (
       <TVFocusWrapper

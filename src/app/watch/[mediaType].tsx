@@ -51,6 +51,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useActiveProvider, useProviders, META_PROVIDERS } from '@/constants/provider';
 import { constants } from '@/constants/config';
 import { isTV } from '@/constants/utils';
+import { PerfProfiler, PerfRun } from '@/perf/perfHarness';
 import { useEmbedMode, useProviderSelectionStore } from './components';
 import {
   VideoPlayer,
@@ -60,8 +61,9 @@ import {
   useSettings,
   CustomVideoTrack,
   BaseIconButton,
+  SkipNext,
+  SkipPrevious,
 } from 'react-native-video-toolkit';
-import { cn } from 'heroui-native';
 
 // Providers often leave out a subtitle's type (NetflixMirror sends .srt), and ExoPlayer fails the whole source
 // when a track doesn't parse as the type it's given
@@ -281,6 +283,7 @@ const Watch = () => {
 
   const lastProgressUpdateRef = useRef({ currentTime: 0, seekableDuration: 0 });
   const recordedEpisodeRef = useRef<string | null>(null);
+  const savedBucketRef = useRef('');
   // Where a reload or the next server picks up, when the failed one had been playing
   const resumeRef = useRef<{ uniqueId?: string; at: number } | null>(null);
   const loadedAtRef = useRef(0);
@@ -373,8 +376,10 @@ const Watch = () => {
         lastUpdate.seekableDuration = newDuration;
       }
 
-      if (uniqueId && newDuration > 0 && Math.floor(newTime) % 5 === 0) {
-        // Save every 5 seconds
+      // Save every 5 seconds: progress events come every 250 ms, so once per 5 s bucket, not on each event in it
+      const bucket = `${uniqueId}:${Math.floor(newTime / 5)}`;
+      if (uniqueId && newDuration > 0 && savedBucketRef.current !== bucket) {
+        savedBucketRef.current = bucket;
         const savedProgress = getProgress(uniqueId);
         const progress = (newTime / newDuration) * 100;
         if (!savedProgress || newTime > (savedProgress.currentTime ?? 0)) {
@@ -558,6 +563,7 @@ const Watch = () => {
       style={{
         top: 0,
       }}>
+      <PerfRun />
       <VideoPlayer
         // A fresh native player per attempt: a failed one can't deliver late events to the next
         key={`${activeEpisodeId || (currentEpisodeId as string) || 'video'}|${rotation.attemptKey}`}
@@ -679,12 +685,7 @@ const Watch = () => {
               <BaseIconButton
                 onTap={handlePrevEpisode}
                 IconComponent={() => (
-                  <MaterialIconsIcon
-                    name="skip-previous"
-                    size={30}
-                    color={hasPrev ? 'white' : 'rgba(255,255,255,0.5)'}
-                    className={cn('mr-10', !fullscreen && 'mr-5')}
-                  />
+                  <SkipPrevious size={30} color={hasPrev ? 'white' : 'rgba(255,255,255,0.5)'} className="mr-10" />
                 )}
               />
             ),
@@ -692,16 +693,16 @@ const Watch = () => {
               <BaseIconButton
                 onTap={handleNextEpisode}
                 IconComponent={() => (
-                  <MaterialIconsIcon
-                    name="skip-next"
-                    size={30}
-                    color={hasNext ? 'white' : 'rgba(255,255,255,0.5)'}
-                    className={cn('ml-10', !fullscreen && 'ml-5')}
-                  />
+                  <SkipNext size={30} color={hasNext ? 'white' : 'rgba(255,255,255,0.5)'} className="ml-10" />
                 )}
               />
             ),
           }}
+        />
+        <PlayerOverlay skipTimes={skipTimes} upNext={upNext} onNext={handleNextEpisode} />
+        <ServerLoadingOverlay
+          loading={phase === 'loading'}
+          label={`Loading ${rotation.attempt?.server ?? ''} · ${position} of ${rotation.order.length}`}
         />
         <PlayerOverlay skipTimes={skipTimes} upNext={upNext} onNext={handleNextEpisode} />
         <ServerLoadingOverlay
@@ -716,7 +717,9 @@ const Watch = () => {
           />
         )}
       </VideoPlayer>
-      <EpisodesPanel open={episodesOpen} onOpenChange={setEpisodesOpen} onSelect={openEpisode} />
+      <PerfProfiler id="EpisodesPanel">
+        <EpisodesPanel open={episodesOpen} onOpenChange={setEpisodesOpen} onSelect={openEpisode} />
+      </PerfProfiler>
     </ThemedView>
   );
 };

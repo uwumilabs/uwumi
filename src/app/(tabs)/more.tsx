@@ -4,6 +4,7 @@ import { type Href, useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
 import { Separator } from 'heroui-native';
 import { useCurrentTheme } from '@/hooks';
+import { PerfProfiler } from '@/perf/perfHarness';
 
 const MenuItem = ({
   href,
@@ -60,18 +61,20 @@ const More = () => {
   const totalItems = menuItems.length;
 
   return (
-    <ThemedView>
-      <HUYStack className="flex-1">
-        <HUYStack className="mt-4">
-          {menuItems.map((item, index) => (
-            <View key={item.label} style={{ width: '100%' }}>
-              <MenuItem href={item.href} icon={item.icon} label={item.label} isFirst={index === 0} />
-              {index < totalItems - 1 && <Separator />}
-            </View>
-          ))}
+    <PerfProfiler id="more tab">
+      <ThemedView>
+        <HUYStack className="flex-1">
+          <HUYStack className="mt-4">
+            {menuItems.map((item, index) => (
+              <View key={item.label} style={{ width: '100%' }}>
+                <MenuItem href={item.href} icon={item.icon} label={item.label} isFirst={index === 0} />
+                {index < totalItems - 1 && <Separator />}
+              </View>
+            ))}
+          </HUYStack>
         </HUYStack>
-      </HUYStack>
-    </ThemedView>
+      </ThemedView>
+    </PerfProfiler>
   );
 };
 

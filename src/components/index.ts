@@ -32,6 +32,7 @@ export {
 export { HorizontalTabs, TabItem } from './HorizontalTabs';
 
 export { LinearGradient } from './LinearGradient';
+export { LazyTab } from './LazyTab';
 
 // TV Components
 export { default as TVFocusWrapper } from './TVFocusWrapper';

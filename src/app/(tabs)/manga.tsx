@@ -1,12 +1,17 @@
-import { ThemedView, MediaBrowser } from '@/components';
+import { ThemedView, MediaBrowser, LazyTab } from '@/components';
 import { MediaType } from '@/constants/types';
+import { PerfProfiler } from '@/perf/perfHarness';
 import React from 'react';
 
 const manga = () => {
   return (
-    <ThemedView>
-      <MediaBrowser mediaType={MediaType.MANGA} />
-    </ThemedView>
+    <PerfProfiler id="manga tab">
+      <ThemedView>
+        <LazyTab>
+          <MediaBrowser mediaType={MediaType.MANGA} />
+        </LazyTab>
+      </ThemedView>
+    </PerfProfiler>
   );
 };
 

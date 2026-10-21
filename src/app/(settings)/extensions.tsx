@@ -314,17 +314,17 @@ function ExtensionDetailsSheet({
 }
 
 export default function Extensions() {
+  const registry = useExtensionStore((state) => state.registry);
+  const isLoading = useExtensionStore((state) => state.isLoading);
+  const error = useExtensionStore((state) => state.error);
   const {
-    registry,
     updateRegistry,
     installExtension,
     uninstallExtension,
     updateExtension,
     isExtensionInstalled,
     checkForUpdates,
-    isLoading,
-    error,
-  } = useExtensionStore();
+  } = useExtensionStore.getState();
 
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const [selectedExtension, setSelectedExtension] = useState<any>(null);

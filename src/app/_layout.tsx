@@ -29,6 +29,7 @@ import { themes } from '@/themes/theme';
 import { VideoPortalHost, VideoProvider, defaultTheme, type SheetProps } from 'react-native-video-toolkit';
 import RNOrientationDirector, { Orientation } from 'react-native-orientation-director';
 import { isTV, isTVOS, openBrowser } from '@/constants/utils';
+import { PerfWindows, perfScreenLayout } from '@/perf/perfHarness';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -125,9 +126,7 @@ const DownloadDialog = ({
 };
 
 const AppContent = () => {
-  const { isUpdateAvailable, isUpdateChecked, updateInfo, setIsUpdateAvailable } = useUpdateChecker(
-    EXTERNAL_LINKS.GITHUB_RELEASES_API,
-  );
+  const { isUpdateAvailable, updateInfo, setIsUpdateAvailable } = useUpdateChecker(EXTERNAL_LINKS.GITHUB_RELEASES_API);
   const [loaded] = useFonts({
     InterMedium,
     InterSemiBold,
@@ -164,11 +163,10 @@ const AppContent = () => {
     }
   }, []);
 
+  // Not waiting on the update check: its dialog shows whenever the check answers
   useEffect(() => {
-    if (loaded && isUpdateChecked) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded, isUpdateChecked]);
+    if (loaded) SplashScreen.hideAsync();
+  }, [loaded]);
 
   const contentWrapper = useCallback(
     (children: React.ReactNode) => (
@@ -216,7 +214,11 @@ const AppContent = () => {
         }}>
         <BottomSheetProvider>
           <ThemeProvider value={navigationTheme}>
-            <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
+            {/* freezeOnBlur: screens under the top one (the tabs under watch, info under watch) stop re-rendering */}
+            <Stack
+              screenOptions={{ headerShown: false, freezeOnBlur: true }}
+              initialRouteName="(tabs)"
+              screenLayout={perfScreenLayout}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="browse/[mediaType]" />
               <Stack.Screen name="search/[mediaType]" />
@@ -228,6 +230,7 @@ const AppContent = () => {
             </Stack>
           </ThemeProvider>
         </BottomSheetProvider>
+        <PerfWindows />
         {/* Player sheets (the episodes panel) render here, inside HeroUI's provider so its components work */}
         <VideoPortalHost name={VIDEO_PORTAL_HOST} />
         <OtaUpdateToast />

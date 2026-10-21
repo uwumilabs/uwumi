@@ -18,7 +18,9 @@
     "sync-versions": "node ./src/scripts/sync-versions.js",
     "build-android": "bash src/scripts/build-android.sh",
     "build-ios": "bash src/scripts/build-ios.sh",
-    "ota": "bash src/scripts/publish-ota.sh"
+    "ota": "bash src/scripts/publish-ota.sh",
+    "perf": "EXPO_PUBLIC_PERF_RUN=screens REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 expo start --clear",
+    "perf:watch": "EXPO_PUBLIC_PERF_RUN=watch REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 expo start --clear"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,md,html,css}": [

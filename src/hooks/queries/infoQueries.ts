@@ -36,7 +36,8 @@ export function useInfo({
   //   provider,
   // });
   return useQuery<IAnimeInfo | IMovieInfo>({
-    queryKey: [mediaType, 'info', id, metaProvider, type, provider],
+    // Only TMDB fetches through the provider; AniList info is the same whichever provider plays it
+    queryKey: [mediaType, 'info', id, metaProvider, type, metaProvider === 'tmdb' ? provider : null],
     queryFn: async () => {
       let data: IAnimeInfo | IMovieInfo | undefined;
       try {

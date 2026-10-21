@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useImperativeHandle } from 'react';
+import React, { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
 import { Platform, ScrollView, View, useWindowDimensions, type ViewProps } from 'react-native';
 import { BottomSheet as NativeBottomSheet, RNHostView, type SnapPoint } from '@expo/ui';
 import { LayoutAnimationConfig } from 'react-native-reanimated';
@@ -47,6 +47,11 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
     const dismiss = useCallback(() => onOpenChange(false), [onOpenChange]);
 
     useImperativeHandle(ref, () => ({ present, dismiss }), [present, dismiss]);
+
+    // A closed sheet still mounts its native host and content, so wait for the first open (and keep it for closing)
+    const [opened, setOpened] = useState(open);
+    if (open && !opened) setOpened(true);
+    if (!opened) return null;
 
     return (
       <NativeBottomSheet

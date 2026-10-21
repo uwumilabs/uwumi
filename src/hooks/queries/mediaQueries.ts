@@ -1,15 +1,16 @@
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { ISearch, META } from 'react-native-consumet';
 import { TMDB_API_KEY } from './infoQueries';
 
-export function useMediaFeed<T>(
+export function useMediaFeed<T, TData = InfiniteData<ISearch<T>, number>>(
   mediaType: MediaType,
   metaProvider: MetaProvider,
   mediaFeedType: MediaFeedType,
   options?: {
     params?: Record<string, unknown>;
     enabled?: boolean;
+    select?: (data: InfiniteData<ISearch<T>, number>) => TData;
   },
 ) {
   return useInfiniteQuery({
@@ -68,6 +69,7 @@ export function useMediaFeed<T>(
     },
     initialPageParam: 1,
     enabled: options?.enabled ?? true,
+    select: options?.select,
   });
 }
 

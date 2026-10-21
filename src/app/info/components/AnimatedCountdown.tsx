@@ -4,41 +4,32 @@ import { useMediaInfo } from '@/hooks';
 import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * MINUTE_MS;
+
 export const AnimatedCountdown = () => {
-  const [timeLeft, setTimeLeft] = useState({
-    d: 0,
-    h: 0,
-    m: 0,
-    s: 0,
-  });
   const { data: mediaInfo } = useMediaInfo();
   const targetDate = mediaInfo?.nextAiringEpisode?.airingTime || mediaInfo?.nextAiringEpisode?.releaseDate;
+  // A yyyy-mm-dd string, or a Unix timestamp in seconds
+  const target = typeof targetDate === 'string' ? new Date(targetDate).getTime() : targetDate ? targetDate * 1000 : 0;
+  const [now, setNow] = useState(Date.now);
+  const difference = target - now;
+
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date().getTime();
-      // Handle both timestamp and date string formats
-      let target: number;
-      if (typeof targetDate === 'string') {
-        // If it's a string (yyyy-mm-dd format)
-        target = new Date(targetDate).getTime();
-      } else {
-        // If it's a number (Unix timestamp in seconds)
-        target = new Date(targetDate * 1000).getTime();
-      }
-      const difference = target - now;
+    if (!target || difference <= 0) return;
+    // Seconds only show in the last hour; before that the text changes once a minute
+    const delay = difference > HOUR_MS ? (difference % MINUTE_MS) + 50 : 1000;
+    const timer = setTimeout(() => setNow(Date.now()), delay);
+    return () => clearTimeout(timer);
+  }, [target, difference]);
 
-      if (difference > 0) {
-        setTimeLeft({
-          d: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          h: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          m: Math.floor((difference / 1000 / 60) % 60),
-          s: Math.floor((difference / 1000) % 60),
-        });
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [targetDate]);
+  const left = Math.max(0, difference);
+  const timeLeft = {
+    d: Math.floor(left / (24 * HOUR_MS)),
+    h: Math.floor((left / HOUR_MS) % 24),
+    m: Math.floor((left / MINUTE_MS) % 60),
+    s: Math.floor((left / 1000) % 60),
+  };
 
   // Determine which units to show based on time left
   const unitsToShow = Object.entries(timeLeft).filter(([key, value]) => {

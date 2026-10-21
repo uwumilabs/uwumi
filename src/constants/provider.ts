@@ -50,7 +50,9 @@ const getProviders = (): ProviderGroups => {
 // Reactive hook — re-renders when extensions change in the store
 const useProviders = (): ProviderGroups => {
   const registry = useExtensionStore((state) => state.registry);
-  return useMemo(() => getProviders(), [registry]);
+  const installedVersion = useExtensionStore((state) => state.installedVersion);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getProviders reads both from the store
+  return useMemo(() => getProviders(), [registry, installedVersion]);
 };
 
 // Legacy compat: PROVIDERS is now a getter-backed object so existing non-component

@@ -1,6 +1,7 @@
 import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { Stack } from 'expo-router';
 import { StackHeader } from '@/components';
+import { perfScreenLayout } from '@/perf/perfHarness';
 
 export default function SettingsLayout() {
   const currentTheme = useCurrentTheme();
@@ -8,6 +9,7 @@ export default function SettingsLayout() {
 
   return (
     <Stack
+      screenLayout={perfScreenLayout}
       screenOptions={{
         contentStyle: {
           backgroundColor: pureBlackBackground ? '#000' : currentTheme?.background,

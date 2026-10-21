@@ -43,7 +43,7 @@ const ProviderSelection = ({ mediaType, isDubbed }: { mediaType: MediaType; isDu
   const providers = useProviders();
   // const mediaType = MediaType.ANIME; // for testing
   // const isDubbed = dub ? 'true' : 'false'; // for testing
-  const pureBlackBackground = usePureBlackBackground();
+  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const { width: windowWidth } = useWindowDimensions();
   const selectedName = providers[mediaType]?.find(({ value }) => value === currentProvider)?.name;
   return (

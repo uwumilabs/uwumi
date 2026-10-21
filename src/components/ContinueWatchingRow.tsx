@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import React, { memo, useCallback, useMemo } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -21,10 +22,23 @@ const CAPTION_HEIGHT = 44;
 
 const ContinueWatchingCard = memo(({ entry, width }: { entry: ContinueWatchingEntry; width: number }) => {
   const router = useRouter();
-  const progress = useWatchProgressStore((state) => state.progresses[entry.uniqueId]);
+  // What the card shows, rounded, so the saves every 5 s while watching only re-render it when that changes
+  const { hasProgress, isCompleted, percent, minutesLeft } = useWatchProgressStore(
+    useShallow((state) => {
+      const progress = state.progresses[entry.uniqueId];
+      return {
+        hasProgress: !!progress,
+        isCompleted: !!progress?.isCompleted,
+        percent: Math.round(progress?.progress ?? 0),
+        minutesLeft:
+          progress?.duration && !progress.isCompleted
+            ? Math.max(1, Math.round((progress.duration - progress.currentTime) / 60))
+            : null,
+      };
+    }),
+  );
   const remove = useContinueWatchingStore((state) => state.remove);
   const { episodeNumber, seasonNumber, title: episodeTitle, poster, type } = entry.watchParams;
-  const isCompleted = !!progress?.isCompleted;
 
   // A finished episode opens the show, where "Continue" points at the next one
   const open = useCallback(() => {
@@ -44,10 +58,6 @@ const ContinueWatchingCard = memo(({ entry, width }: { entry: ContinueWatchingEn
     type === TvType.MOVIE
       ? 'Movie'
       : [seasonNumber && `S${seasonNumber}`, episodeNumber && `EP ${episodeNumber}`].filter(Boolean).join(' · ');
-  const minutesLeft =
-    progress?.duration && !isCompleted
-      ? Math.max(1, Math.round((progress.duration - progress.currentTime) / 60))
-      : null;
   const caption = isCompleted ? 'Watched · next episode' : minutesLeft ? `${minutesLeft}m left` : episodeTitle;
 
   return (
@@ -64,7 +74,7 @@ const ContinueWatchingCard = memo(({ entry, width }: { entry: ContinueWatchingEn
             {episodeLabel}
           </Text>
         )}
-        {progress && !isCompleted && <Progress className="absolute inset-x-2 bottom-2" value={progress.progress} />}
+        {hasProgress && !isCompleted && <Progress className="absolute inset-x-2 bottom-2" value={percent} />}
       </View>
       <HUYStack className="pt-1.5">
         <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
@@ -84,25 +94,30 @@ ContinueWatchingCard.displayName = 'ContinueWatchingCard';
 /** The latest episode of each show watched on this media type, most recent first. Hidden when there are none. */
 export const ContinueWatchingRow = memo(({ mediaType }: { mediaType: MediaType }) => {
   const entries = useContinueWatchingStore((state) => state.entries);
-  const progresses = useWatchProgressStore((state) => state.progresses);
+  // Only which entries are finished, so the progress saves while watching don't re-render the row
+  const finishedKey = useWatchProgressStore((state) =>
+    entries
+      .filter((entry) => state.progresses[entry.uniqueId]?.isCompleted)
+      .map((entry) => entry.uniqueId)
+      .join('|'),
+  );
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = (screenWidth - ROW_PADDING - ITEM_GAP * Math.floor(CARDS_PER_SCREEN)) / CARDS_PER_SCREEN;
 
   // Nothing left to continue after a finished movie or an anime's last episode
-  const items = useMemo(
-    () =>
-      entries
-        .filter(
-          (entry) =>
-            entry.mediaType === mediaType &&
-            !(
-              progresses[entry.uniqueId]?.isCompleted &&
-              (entry.watchParams.type === TvType.MOVIE || entry.hasNextEpisode === false)
-            ),
-        )
-        .slice(0, MAX_ITEMS),
-    [entries, mediaType, progresses],
-  );
+  const items = useMemo(() => {
+    const finished = new Set(finishedKey.split('|'));
+    return entries
+      .filter(
+        (entry) =>
+          entry.mediaType === mediaType &&
+          !(
+            finished.has(entry.uniqueId) &&
+            (entry.watchParams.type === TvType.MOVIE || entry.hasNextEpisode === false)
+          ),
+      )
+      .slice(0, MAX_ITEMS);
+  }, [entries, mediaType, finishedKey]);
 
   if (items.length === 0) return null;
 

@@ -1,6 +1,8 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
+import type { InfiniteData } from '@tanstack/react-query';
+import type { ISearch } from 'react-native-consumet';
 import { Button, SkeletonGroup } from 'heroui-native';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
 import { isTV } from '@/constants/utils';
@@ -12,6 +14,8 @@ import TVFocusWrapper from './TVFocusWrapper';
 import List from './List';
 
 const MAX_ITEMS = 10;
+// Only the first page, which keeps its reference as Browse loads more pages of the same feed, so the row skips those
+const firstPage = (data: InfiniteData<ISearch<MediaItem>, number>) => data.pages[0];
 const ROW_PADDING = 12;
 const ITEM_GAP = 8;
 // A fractional count leaves part of the next card visible, which signals the row scrolls.
@@ -42,13 +46,14 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
     const canBrowse = !isStatic && !!feed && !!browseTitle;
     const tagPrefix = isStatic ? 'similar' : feed;
 
-    const feedResult = useMediaFeed<MediaItem>(mediaType, metaProvider, feed ?? 'trending', {
+    const feedResult = useMediaFeed<MediaItem, ISearch<MediaItem>>(mediaType, metaProvider, feed ?? 'trending', {
       enabled: !isStatic && !!feed,
+      select: firstPage,
     });
     const isLoading = !isStatic && feedResult.isLoading && !feedResult.data;
     const error = isStatic ? null : feedResult.error;
     const items = useMemo(
-      () => (isStatic ? toCardItems(staticItems) : toCardItems(feedResult.data).slice(0, MAX_ITEMS)),
+      () => (isStatic ? toCardItems(staticItems) : toCardItems(feedResult.data?.results).slice(0, MAX_ITEMS)),
       [isStatic, staticItems, feedResult.data],
     );
 

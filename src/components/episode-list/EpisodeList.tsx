@@ -4,13 +4,7 @@ import React, { useRef, useState, useCallback, useMemo, memo, ReactNode } from '
 import Image from '@/components/Image';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
-import Animated, {
-  SharedValue,
-  useAnimatedStyle,
-  withSpring,
-  interpolate,
-  Extrapolation,
-} from 'react-native-reanimated';
+import Animated, { SharedValue, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import {
   useEpisodesIdStore,
@@ -41,7 +35,7 @@ import Progress from '../native/progress/Progress';
 import { IoniconsIcon, MaterialIconsIcon } from '../Icons';
 
 const LoadingState = () => {
-  const pureBlackBackground = usePureBlackBackground();
+  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   return (
     <Card className={cn('mx-4 mt-6 bg-background', pureBlackBackground && 'bg-black')}>
       <HUYStack className="items-center gap-3 px-6 py-10">
@@ -60,31 +54,30 @@ const StyledText = ({ children, ...props }: { children: ReactNode } & TextProps)
   );
 };
 
+interface EpisodeNav {
+  mediaType: MediaType;
+  provider: string;
+  id: string;
+  episodeDataId?: string;
+  type?: string;
+}
+
 const ListPressable = memo(
   ({
     item,
     children,
-    mediaType,
-    provider,
-    id,
-    episodeDataId,
-    type,
+    nav,
     swipeable,
-    setSelectedEpisode,
-    setSheetOpen,
+    onOpenActions,
   }: {
     item: IAnimeEpisode | IMovieEpisode;
     children: React.ReactNode;
-    mediaType: MediaType;
-    provider: string;
-    id: string;
-    episodeDataId?: string;
-    type?: string;
+    nav: EpisodeNav;
     swipeable: boolean;
-    setSelectedEpisode: (item: IAnimeEpisode | IMovieEpisode) => void;
-    setSheetOpen: (open: boolean) => void;
+    onOpenActions: (item: IAnimeEpisode | IMovieEpisode) => void;
   }) => {
     const router = useRouter();
+    const { mediaType, provider, id, episodeDataId, type } = nav;
 
     const navigateToEpisode = useCallback(() => {
       const routerParams = {
@@ -115,14 +108,10 @@ const ListPressable = memo(
 
     const handleLongPress = useCallback(() => {
       if (!isTV) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      setSelectedEpisode(item);
-      setSheetOpen(true);
-    }, [item, setSelectedEpisode, setSheetOpen]);
+      onOpenActions(item);
+    }, [item, onOpenActions]);
 
-    const handleActionsPress = useCallback(() => {
-      setSelectedEpisode(item);
-      setSheetOpen(true);
-    }, [item, setSelectedEpisode, setSheetOpen]);
+    const handleActionsPress = useCallback(() => onOpenActions(item), [item, onOpenActions]);
 
     return (
       <HUXStack className="items-center gap-1">
@@ -143,6 +132,8 @@ const ListPressable = memo(
     );
   },
 );
+
+ListPressable.displayName = 'ListPressable';
 
 const releaseDateFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
 
@@ -200,10 +191,7 @@ const SwipeAction = memo(
 
     const animatedStyle = useAnimatedStyle(() => {
       const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
-      return {
-        transform: [{ scale: withSpring(0.9 + progress * 0.1, { mass: 0.5, damping: 20, stiffness: 200 }) }],
-        opacity: withSpring(progress > 0 ? 1 : 0.7),
-      };
+      return { transform: [{ scale: 0.9 + progress * 0.1 }], opacity: progress > 0 ? 1 : 0.7 };
     });
 
     const firstIconStyle = useAnimatedStyle(() => {
@@ -245,6 +233,130 @@ const SwipeAction = memo(
   },
 );
 
+SwipeAction.displayName = 'SwipeAction';
+
+type EpisodeContentOptions = { isCurrent: boolean; pureBlackBackground: boolean; swipeable: boolean };
+
+const EpisodeContent = ({
+  item,
+  displayMode,
+  isCurrent,
+  pureBlackBackground,
+  swipeable,
+}: { item: IAnimeEpisode | IMovieEpisode; displayMode: EpisodeDisplayMode } & EpisodeContentOptions) => {
+  if (displayMode === EpisodeDisplayMode.TitleOnly || displayMode === EpisodeDisplayMode.NumberOnly) {
+    const titleOnly = displayMode === EpisodeDisplayMode.TitleOnly;
+    return (
+      <HUYStack
+        className={cn('flex-1 gap-2 rounded-2xl bg-background p-3 shadow-md', pureBlackBackground && 'bg-black')}>
+        <HUXStack className="items-center justify-between gap-2">
+          <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={titleOnly ? 2 : 1}>
+            {titleOnly ? item.title : `EP ${(item.number ?? item.episode ?? '').toString()}`}
+          </Text>
+          <HUXStack className="flex-row items-center gap-1">
+            <MaterialIconsIcon name="closed-caption-off" size={18} />
+            {item?.isDubbed ? <IoniconsIcon name="mic" size={18} /> : null}
+          </HUXStack>
+        </HUXStack>
+        <ProgressAndAirDate item={item} isCurrent={isCurrent} />
+      </HUYStack>
+    );
+  }
+  return (
+    <Card
+      className={cn(
+        'flex-row gap-3 overflow-hidden rounded-2xl bg-background p-1.5 shadow-md border-0',
+        pureBlackBackground && 'bg-black',
+        isCurrent && 'border-2 border-default',
+      )}>
+      <View className="relative overflow-hidden rounded-xl">
+        <Image
+          source={typeof item?.image === 'string' ? item.image : (item?.image?.hd ?? '')}
+          style={{ width: 160, height: 107 }}
+        />
+        <Text className="absolute left-2 bottom-2.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
+          {`EP ${(item.number ?? item.episode ?? '').toString()}`}
+        </Text>
+        {swipeable && <ThumbnailProgress uniqueId={item?.uniqueId as string} />}
+      </View>
+      <HUYStack className="flex-1 justify-between gap-2 px-2 ">
+        <Card.Header>
+          <HUXStack className="items-center justify-between gap-2">
+            <Card.Title className="w-4/5" numberOfLines={1}>
+              {item.title}
+            </Card.Title>
+            <HUXStack className="items-center gap-1">
+              <MaterialIconsIcon name="closed-caption-off" size={12} />
+              {item?.isDubbed ? <IoniconsIcon name="mic" size={12} /> : null}
+            </HUXStack>
+          </HUXStack>
+        </Card.Header>
+
+        <Card.Description className="text-xs text-foreground/85" numberOfLines={3}>
+          {item?.description}
+        </Card.Description>
+        <Card.Footer>
+          <HUXStack className="items-center justify-between">
+            <ProgressAndAirDate item={item} isCurrent={isCurrent} />
+          </HUXStack>
+        </Card.Footer>
+      </HUYStack>
+    </Card>
+  );
+};
+
+interface EpisodeRowProps {
+  item: IAnimeEpisode | IMovieEpisode;
+  displayMode: EpisodeDisplayMode;
+  swipeable: boolean;
+  nav: EpisodeNav;
+  actionColor?: string;
+  onToggleComplete: (item: IAnimeEpisode | IMovieEpisode) => void;
+  onOpenActions: (item: IAnimeEpisode | IMovieEpisode) => void;
+}
+
+// Each row selects whether it's the current episode, so the list's own re-renders skip the rows
+const EpisodeRow = memo(
+  ({ item, displayMode, swipeable, nav, actionColor, onToggleComplete, onOpenActions }: EpisodeRowProps) => {
+    const isCurrent = useEpisodesIdStore((state) => !!item?.uniqueId && state.currentUniqueId === item.uniqueId);
+    const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+    const swipeableRef = useRef<SwipeableMethods | null>(null);
+
+    const row = (
+      <ListPressable item={item} nav={nav} swipeable={swipeable} onOpenActions={onOpenActions}>
+        <EpisodeContent
+          item={item}
+          displayMode={displayMode}
+          isCurrent={isCurrent}
+          pureBlackBackground={pureBlackBackground}
+          swipeable={swipeable}
+        />
+      </ListPressable>
+    );
+    if (!swipeable || isTV) return row;
+
+    return (
+      <ReanimatedSwipeable
+        ref={swipeableRef}
+        friction={2}
+        enableTrackpadTwoFingerGesture
+        rightThreshold={40}
+        onSwipeableOpen={() => {
+          onToggleComplete(item);
+          swipeableRef.current?.close();
+        }}
+        onSwipeableWillOpen={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+        onSwipeableWillClose={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+        renderRightActions={(_progress, drag) => (
+          <SwipeAction drag={drag} uniqueId={item?.uniqueId as string} backgroundColor={actionColor} />
+        )}>
+        {row}
+      </ReanimatedSwipeable>
+    );
+  },
+);
+EpisodeRow.displayName = 'EpisodeRow';
+
 interface EpisodeListProps {
   /** Rendered above the episode controls, inside the list, so it scrolls with the episodes. */
   header?: ReactNode;
@@ -253,7 +365,6 @@ interface EpisodeListProps {
 }
 
 export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListProps) => {
-  const swipeableRefs = useRef<Map<string, React.RefObject<SwipeableMethods | null>>>(new Map());
   const pathname = usePathname();
   const { mediaType, type, id } = useLocalSearchParams<{
     mediaType: MediaType;
@@ -374,195 +485,34 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     [setProgress],
   );
 
-  const rightActions = useCallback(
-    (item: IAnimeEpisode | IMovieEpisode) => {
-      return (_prog: SharedValue<number>, drag: SharedValue<number>) => (
-        <SwipeAction drag={drag} uniqueId={item?.uniqueId as string} backgroundColor={currentTheme?.default} />
-      );
-    },
-    [currentTheme],
-  );
-
-  const renderFullMetadataPressableItem = useCallback(
-    ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
-      return (
-        <Card
-          className={cn(
-            'flex-row gap-3 overflow-hidden rounded-2xl bg-background p-1.5 shadow-md border-0',
-            pureBlackBackground && 'bg-black',
-            currentUniqueId === item?.uniqueId && 'border-2 border-default',
-          )}>
-          <View className="relative overflow-hidden rounded-xl">
-            <Image
-              source={typeof item?.image === 'string' ? item.image : (item?.image?.hd ?? '')}
-              style={{ width: 160, height: 107 }}
-              // className="pl-1.5"
-            />
-            <Text className="absolute left-2 bottom-2.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
-              {`EP ${(item.number ?? item.episode ?? '').toString()}`}
-            </Text>
-            {swipeable && <ThumbnailProgress uniqueId={item?.uniqueId as string} />}
-          </View>
-          <HUYStack className="flex-1 justify-between gap-2 px-2 ">
-            <Card.Header>
-              <HUXStack className="items-center justify-between gap-2">
-                <Card.Title className="w-4/5" numberOfLines={1}>
-                  {item.title}
-                </Card.Title>
-                <HUXStack className="items-center gap-1">
-                  <MaterialIconsIcon name="closed-caption-off" size={12} />
-                  {item?.isDubbed ? <IoniconsIcon name="mic" size={12} /> : null}
-                </HUXStack>
-              </HUXStack>
-            </Card.Header>
-
-            <Card.Description className="text-xs text-foreground/85" numberOfLines={3}>
-              {item?.description}
-            </Card.Description>
-            <Card.Footer>
-              <HUXStack className="items-center justify-between">
-                <ProgressAndAirDate item={item} isCurrent={currentUniqueId === item?.uniqueId} />
-              </HUXStack>
-            </Card.Footer>
-          </HUYStack>
-        </Card>
-      );
-    },
-    [pureBlackBackground, swipeable, currentUniqueId],
-  );
-
-  const renderTitleOnlyPressableItem = useCallback(
-    ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
-      return (
-        <HUYStack
-          className={cn('flex-1 gap-2 rounded-2xl bg-background p-3 shadow-md', pureBlackBackground && 'bg-black')}>
-          <HUXStack className="items-center justify-between gap-2">
-            <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={2}>
-              {item.title}
-            </Text>
-            <HUXStack className="flex-row items-center gap-1">
-              <MaterialIconsIcon name="closed-caption-off" size={18} />
-              {item?.isDubbed ? <IoniconsIcon name="mic" size={18} /> : null}
-            </HUXStack>
-          </HUXStack>
-          <ProgressAndAirDate item={item} isCurrent={currentUniqueId === item?.uniqueId} />
-        </HUYStack>
-      );
-    },
-    [pureBlackBackground, currentUniqueId],
-  );
-
-  const renderNumberOnlyPressableItem = useCallback(
-    ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
-      return (
-        <HUYStack
-          className={cn('flex-1 gap-2 rounded-2xl bg-background p-3 shadow-md', pureBlackBackground && 'bg-black')}>
-          <HUXStack className="items-center justify-between gap-2">
-            <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={1}>
-              {`EP ${(item.number ?? item.episode ?? '').toString()}`}
-            </Text>
-            <HUXStack className="gap-1">
-              <MaterialIconsIcon name="closed-caption-off" size={18} />
-              {item?.isDubbed ? <IoniconsIcon name="mic" size={18} /> : null}
-            </HUXStack>
-          </HUXStack>
-          <ProgressAndAirDate item={item} isCurrent={currentUniqueId === item?.uniqueId} />
-        </HUYStack>
-      );
-    },
-    [pureBlackBackground, currentUniqueId],
-  );
-
-  const renderItemContent = useCallback(
-    (item: IAnimeEpisode | IMovieEpisode) => {
-      // console.log('renderContent', displayMode);
-      switch (displayMode) {
-        case EpisodeDisplayMode.FullMetadata:
-          return renderFullMetadataPressableItem({ item });
-        case EpisodeDisplayMode.TitleOnly:
-          return renderTitleOnlyPressableItem({ item });
-        case EpisodeDisplayMode.NumberOnly:
-          return renderNumberOnlyPressableItem({ item });
-        default:
-          return renderFullMetadataPressableItem({ item });
-      }
-    },
-    [renderFullMetadataPressableItem, renderTitleOnlyPressableItem, renderNumberOnlyPressableItem, displayMode],
-  );
+  const openActions = useCallback((item: IAnimeEpisode | IMovieEpisode) => {
+    setSelectedEpisode(item);
+    setSheetOpen(true);
+  }, []);
 
   const getItemKey = useCallback(
     (item: IAnimeEpisode | IMovieEpisode) => item.id ?? item.uniqueId ?? String(item.number ?? item.episode),
     [],
   );
 
-  const renderItem = useCallback(
-    ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => {
-      const itemKey = getItemKey(item);
-      // Get or create a stable ref object for this item
-      const itemRef =
-        swipeableRefs.current.get(itemKey) ??
-        (() => {
-          const newRef = React.createRef<SwipeableMethods | null>();
-          swipeableRefs.current.set(itemKey, newRef);
-          return newRef;
-        })();
+  const nav = useMemo<EpisodeNav>(
+    () => ({ mediaType, provider: providerToUse, id, episodeDataId: providerMediaId, type: type as string }),
+    [mediaType, providerToUse, id, providerMediaId, type],
+  );
 
-      return swipeable && !isTV ? (
-        <ReanimatedSwipeable
-          ref={itemRef}
-          friction={2}
-          enableTrackpadTwoFingerGesture
-          rightThreshold={40}
-          onSwipeableOpen={() => {
-            // Toggle completion status
-            handleToggleComplete(item);
-            // Close the swipeable
-            const currentRef = swipeableRefs.current.get(itemKey);
-            currentRef?.current?.close();
-          }}
-          onSwipeableWillOpen={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-          onSwipeableWillClose={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-          renderRightActions={rightActions(item)}>
-          <ListPressable
-            item={item}
-            mediaType={mediaType}
-            provider={providerToUse}
-            id={id}
-            episodeDataId={providerMediaId}
-            type={type as string}
-            swipeable={swipeable}
-            setSelectedEpisode={setSelectedEpisode}
-            setSheetOpen={setSheetOpen}>
-            {renderItemContent(item)}
-          </ListPressable>
-        </ReanimatedSwipeable>
-      ) : (
-        <ListPressable
-          item={item}
-          mediaType={mediaType}
-          provider={providerToUse}
-          id={id}
-          episodeDataId={providerMediaId}
-          type={type as string}
-          swipeable={swipeable}
-          setSelectedEpisode={setSelectedEpisode}
-          setSheetOpen={setSheetOpen}>
-          {renderItemContent(item)}
-        </ListPressable>
-      );
-    },
-    [
-      swipeable,
-      getItemKey,
-      handleToggleComplete,
-      rightActions,
-      renderItemContent,
-      mediaType,
-      providerToUse,
-      id,
-      providerMediaId,
-      type,
-    ],
+  const renderItem = useCallback(
+    ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => (
+      <EpisodeRow
+        item={item}
+        displayMode={displayMode}
+        swipeable={swipeable}
+        nav={nav}
+        actionColor={currentTheme?.default}
+        onToggleComplete={handleToggleComplete}
+        onOpenActions={openActions}
+      />
+    ),
+    [displayMode, swipeable, nav, currentTheme?.default, handleToggleComplete, openActions],
   );
 
   return (

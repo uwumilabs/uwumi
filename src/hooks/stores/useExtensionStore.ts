@@ -52,6 +52,8 @@ type CodeEntry = { version: string; main: string; sha256?: string };
 
 interface ExtensionStoreState {
   registry: RegistryMetadata;
+  /** Bumped when an extension is installed or removed, so provider lists recompute */
+  installedVersion: number;
   isLoading: boolean;
   error: string | null;
 
@@ -266,6 +268,7 @@ const uninstallCode = async (type: CodeType, id: string) => {
 // --- Zustand Store ---
 export const useExtensionStore = create<ExtensionStoreState>((set, get) => ({
   registry: loadInitialRegistry(),
+  installedVersion: 0,
   isLoading: false,
   error: null,
 
@@ -300,14 +303,21 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => ({
     for (const extractor of extension.extractors ?? []) {
       await get().installExtractor(extractor);
     }
-    return installCode('extension', extensionId, extension, force);
+    const installed = await installCode('extension', extensionId, extension, force);
+    if (installed) set((state) => ({ installedVersion: state.installedVersion + 1 }));
+    return installed;
   },
 
   updateExtension: async (id) => get().installExtension(id),
 
-  uninstallExtension: async (id) => uninstallCode('extension', id),
+  uninstallExtension: async (id) => {
+    const removed = await uninstallCode('extension', id);
+    set((state) => ({ installedVersion: state.installedVersion + 1 }));
+    return removed;
+  },
 
-  isExtensionInstalled: (id) => !!loadJSONFromStorage<CachedItem>(getCacheKey('extension', id)),
+  // A key check, not a read and parse: provider lists run this for every extension
+  isExtensionInstalled: (id) => storage.contains(getCacheKey('extension', id)),
 
   getInstalledExtensions: () => get().registry.extensions.filter((e) => get().isExtensionInstalled(e.id)),
 

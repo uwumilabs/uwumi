@@ -64,7 +64,6 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
   const currentTheme = useCurrentTheme();
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const currentProvider = useActiveProvider(mediaType);
-  const { getExtensionInfo } = useExtensionStore();
   const { episodes } = useEpisodeList();
 
   // TV: refs for an explicit D-pad focus chain across the top row
@@ -167,7 +166,11 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
                 {episodes.length > 0 && (
                   <RippleButton
                     ref={webviewBtnRef}
-                    onPress={() => openBrowser(episodes[0].url! || getExtensionInfo(currentProvider)?.baseUrl!)}
+                    onPress={() =>
+                      openBrowser(
+                        episodes[0].url! || useExtensionStore.getState().getExtensionInfo(currentProvider)?.baseUrl!,
+                      )
+                    }
                     nextFocusUp={tvNodes.back}
                     nextFocusLeft={tvNodes.webview}
                     nextFocusRight={tvNodes.webview}>

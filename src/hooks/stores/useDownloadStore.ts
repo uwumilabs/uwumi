@@ -106,6 +106,8 @@ const ensureDir = async (directory: string): Promise<boolean> => {
   }
 };
 
+let lastSavedDownloads: string | undefined;
+
 export const useDownloadStore = create<DownloadState>()(
   persist(
     (set, get) => ({
@@ -994,7 +996,12 @@ export const useDownloadStore = create<DownloadState>()(
     {
       name: 'download-storage',
       storage: createJSONStorage(() => ({
-        setItem: (name, value) => storage.set(name, value),
+        // Progress isn't saved, so a progress tick serializes the same downloads again: skip that write
+        setItem: (name, value) => {
+          if (value === lastSavedDownloads) return;
+          lastSavedDownloads = value;
+          storage.set(name, value);
+        },
         getItem: (name) => storage.getString(name) ?? null,
         removeItem: (name) => storage.remove(name),
       })),
