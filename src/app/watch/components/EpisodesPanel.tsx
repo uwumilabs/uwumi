@@ -6,7 +6,6 @@ import { cn } from 'heroui-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { TvType, type MediaFormat } from 'react-native-consumet';
 import { useControlsVisibility } from 'react-native-video-toolkit';
 import ProviderSelection from './ProviderSelection';
 import { isTV } from '@/constants/utils';
@@ -71,20 +70,9 @@ const EpisodeCard = memo(
 );
 EpisodeCard.displayName = 'EpisodeCard';
 
-interface EpisodesStripProps {
-  onSelect: (episode: EpisodeItem) => void;
-  servers: string[];
-  currentServer?: string;
-  onPickServer: (name: string) => void;
-}
-
-const EpisodesStrip = memo(({ onSelect, servers, currentServer, onPickServer }: EpisodesStripProps) => {
-  const { type, mediaType, isDubbed } = useLocalSearchParams<{
-    type: MediaFormat | TvType;
-    mediaType: MediaType;
-    isDubbed?: string;
-  }>();
-  const { episodes, movieSeasons, activeSeason, setSeason } = useEpisodeList();
+const EpisodesStrip = memo(({ onSelect }: { onSelect: (episode: EpisodeItem) => void }) => {
+  const { mediaType, isDubbed } = useLocalSearchParams<{ mediaType: MediaType; isDubbed?: string }>();
+  const { episodes } = useEpisodeList();
   const currentUniqueId = useEpisodesIdStore((store) => store.currentUniqueId);
   const listRef = useRef<FlashListRef<EpisodeItem>>(null);
 
@@ -95,36 +83,13 @@ const EpisodesStrip = memo(({ onSelect, servers, currentServer, onPickServer }: 
   // Only the range parts: the scroll tracking is for vertical, Reanimated-wrapped lists
   const { listProps, ranges, rangeValue, jumpToRange } = useListJump({ items: episodes, listRef, rangeLabel });
   const currentIndex = episodes.findIndex((episode) => episode.uniqueId === currentUniqueId);
-  const seasonItems = useMemo(
-    () => movieSeasons?.map((_, index) => ({ name: `Season ${index + 1}`, value: String(index) })),
-    [movieSeasons],
-  );
-  const serverItems = useMemo(() => servers.map((name) => ({ name, value: name })), [servers]);
 
   return (
     <>
       <HUXStack className="flex-1 justify-center items-center gap-2 px-4 pb-3">
         <ProviderSelection mediaType={mediaType} isDubbed={isDubbed} />
-        {seasonItems && type !== TvType.MOVIE && (
-          <Select
-            size="sm"
-            SelectItem={seasonItems}
-            SelectLabel="Season"
-            value={String(activeSeason)}
-            onValueChange={(value) => setSeason(Number(value))}
-          />
-        )}
         {ranges.length > 0 && (
           <Select size="sm" SelectItem={ranges} SelectLabel="Episodes" value={rangeValue} onValueChange={jumpToRange} />
-        )}
-        {serverItems.length > 0 && (
-          <Select
-            size="sm"
-            SelectItem={serverItems}
-            SelectLabel="Servers"
-            value={currentServer ?? ''}
-            onValueChange={onPickServer}
-          />
         )}
       </HUXStack>
       <View style={isTV ? styles.tvList : styles.list}>
@@ -157,16 +122,17 @@ const EpisodesStrip = memo(({ onSelect, servers, currentServer, onPickServer }: 
 });
 EpisodesStrip.displayName = 'EpisodesStrip';
 
-interface EpisodesPanelProps extends EpisodesStripProps {
+interface EpisodesPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSelect: (episode: EpisodeItem) => void;
 }
 
 /**
  * YouTube-style "more episodes" strip over the player: a swipe up on the video opens it, a swipe down on the video
  * or on the strip closes it. On TV it's a side panel. Mounted only while shown.
  */
-export const EpisodesPanel = ({ open, onOpenChange, onSelect, ...strip }: EpisodesPanelProps) => {
+export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelProps) => {
   const { hideControls } = useControlsVisibility();
   const { width, height } = useWindowDimensions();
   const [mounted, setMounted] = useState(open);
@@ -244,7 +210,7 @@ export const EpisodesPanel = ({ open, onOpenChange, onSelect, ...strip }: Episod
             />
           )}
           {!isTV && <View className="mb-2 h-1 w-10 self-center rounded-full bg-white/40" />}
-          <EpisodesStrip onSelect={select} {...strip} />
+          <EpisodesStrip onSelect={select} />
         </Animated.View>
       </GestureDetector>
     </>

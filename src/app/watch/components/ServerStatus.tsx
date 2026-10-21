@@ -13,10 +13,9 @@ export interface ServerChip {
   reason?: ServerFailure;
 }
 
-const FAILURE_LABELS: Record<ServerFailure, string> = {
+export const FAILURE_LABELS: Record<ServerFailure, string> = {
   'no-video': 'no video',
   unavailable: 'error',
-  timeout: 'timed out',
   playback: 'didn’t play',
 };
 

@@ -13,6 +13,8 @@ import {
   AddSubtitlesViews,
   ServerStatusScreen,
   ServerLoadingOverlay,
+  ServerMenuItem,
+  ServerMenuView,
   type ServerChip,
   type ServerPhase,
   type SubtitleLanguage,
@@ -32,7 +34,6 @@ import {
   useEpisodeSources,
   NoSourcesError,
   useServerRotation,
-  useLoadTimeout,
   useLastServerStore,
   lastServerKey,
   type EpisodeTarget,
@@ -507,10 +508,6 @@ const Watch = () => {
             ? 'playing'
             : 'loading';
 
-  useLoadTimeout(phase === 'loading', rotation.attemptKey, () => {
-    if (rotation.attempt) rotation.fail(rotation.attempt, 'timeout');
-  });
-
   const providerName = providers[mediaType]?.find(({ value }) => value === currentProvider)?.name ?? currentProvider;
   const chips = useMemo<ServerChip[]>(
     () =>
@@ -645,10 +642,20 @@ const Watch = () => {
             beforeCaptionTracks: isTV ? undefined : (
               <AddSubtitlesItem canSearch={canSearchSubtitles} onAddFile={addSubtitleFile} />
             ),
-            menuViews:
-              isTV || !canSearchSubtitles ? undefined : (
-                <AddSubtitlesViews onAddFile={addSubtitleFile} onSearch={searchSubtitles} />
-              ),
+            beforeMenuItems: serverNames.length ? <ServerMenuItem current={rotation.attempt?.server} /> : undefined,
+            menuViews: (
+              <>
+                <ServerMenuView
+                  servers={serverNames}
+                  current={rotation.attempt?.server}
+                  failed={rotation.failed}
+                  onPick={pickServer}
+                />
+                {!isTV && canSearchSubtitles && (
+                  <AddSubtitlesViews onAddFile={addSubtitleFile} onSearch={searchSubtitles} />
+                )}
+              </>
+            ),
             beforeTitle: (
               <BaseIconButton
                 onTap={() => (router.canGoBack() ? router.back() : router.replace('/'))}
@@ -709,14 +716,7 @@ const Watch = () => {
           />
         )}
       </VideoPlayer>
-      <EpisodesPanel
-        open={episodesOpen}
-        onOpenChange={setEpisodesOpen}
-        onSelect={openEpisode}
-        servers={serverNames}
-        currentServer={rotation.attempt?.server}
-        onPickServer={pickServer}
-      />
+      <EpisodesPanel open={episodesOpen} onOpenChange={setEpisodesOpen} onSelect={openEpisode} />
     </ThemedView>
   );
 };

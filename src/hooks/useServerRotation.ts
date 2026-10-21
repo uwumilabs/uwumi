@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
 import type { IEpisodeServer } from 'react-native-consumet';
 
 /** Why a server was skipped. */
-export type ServerFailure = 'unavailable' | 'no-video' | 'timeout' | 'playback';
+export type ServerFailure = 'unavailable' | 'no-video' | 'playback';
 
 /** One try of one server. Results from any other try are ignored, so a late error can't skip the next server. */
 export interface ServerAttempt {
@@ -21,9 +20,6 @@ interface RotationState {
   tries: number;
   reloads: number;
 }
-
-// Infinity gives servers all the time they need. setTimeout can't take it (it fires at once), so no timer is set
-const LOAD_TIMEOUT_MS = Infinity;
 
 const initialState = (key: string): RotationState => ({ key, failed: {}, manual: null, tries: 0, reloads: 0 });
 
@@ -93,29 +89,4 @@ export function useServerRotation(key: string, servers: IEpisodeServer[], rememb
     pick,
     retryAll,
   };
-}
-
-/** Calls `onTimeout` if a video that should be loading hasn't loaded in time. Time in the background doesn't count. */
-export function useLoadTimeout(loading: boolean, attemptKey: string, onTimeout: () => void) {
-  const onTimeoutRef = useRef(onTimeout);
-  useEffect(() => {
-    onTimeoutRef.current = onTimeout;
-  });
-
-  useEffect(() => {
-    if (!loading || !Number.isFinite(LOAD_TIMEOUT_MS)) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const start = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => onTimeoutRef.current(), LOAD_TIMEOUT_MS);
-    };
-    if (AppState.currentState === 'active') start();
-    const subscription = AppState.addEventListener('change', (next) =>
-      next === 'active' ? start() : clearTimeout(timer),
-    );
-    return () => {
-      clearTimeout(timer);
-      subscription.remove();
-    };
-  }, [loading, attemptKey]);
 }
