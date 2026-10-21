@@ -22,7 +22,8 @@ interface RotationState {
   reloads: number;
 }
 
-const LOAD_TIMEOUT_MS = 20_000;
+// Infinity gives servers all the time they need. setTimeout can't take it (it fires at once), so no timer is set
+const LOAD_TIMEOUT_MS = Infinity;
 
 const initialState = (key: string): RotationState => ({ key, failed: {}, manual: null, tries: 0, reloads: 0 });
 
@@ -102,7 +103,7 @@ export function useLoadTimeout(loading: boolean, attemptKey: string, onTimeout: 
   });
 
   useEffect(() => {
-    if (!loading) return;
+    if (!loading || !Number.isFinite(LOAD_TIMEOUT_MS)) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const start = () => {
       clearTimeout(timer);

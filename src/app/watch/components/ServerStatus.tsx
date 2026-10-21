@@ -17,7 +17,7 @@ const FAILURE_LABELS: Record<ServerFailure, string> = {
   'no-video': 'no video',
   unavailable: 'error',
   timeout: 'timed out',
-  playback: "didn't play",
+  playback: 'didn’t play',
 };
 
 const NOTICE_MS = 2500;
