@@ -31,6 +31,8 @@ export {
 // Navigation Components
 export { HorizontalTabs, TabItem } from './HorizontalTabs';
 
+export { LinearGradient } from './LinearGradient';
+
 // TV Components
 export { default as TVFocusWrapper } from './TVFocusWrapper';
 export type { TVFocusWrapperProps } from './TVFocusWrapper';

@@ -104,6 +104,7 @@ const Watch = () => {
   const navigation = useNavigation();
   const [episodesOpen, setEpisodesOpen] = useState(false);
   const openEpisodes = useCallback(() => setEpisodesOpen(true), []);
+  const closeEpisodes = useCallback(() => setEpisodesOpen(false), []);
 
   const setEpisodeIds = useEpisodesIdStore((state) => state.setEpisodeIds);
   const currentEpisodeId = useEpisodesIdStore((state) => state.currentEpisodeId);
@@ -521,12 +522,14 @@ const Watch = () => {
     [rotation.order, rotation.failed, rotation.attempt?.server],
   );
   const position = rotation.attempt ? rotation.order.indexOf(rotation.attempt.server) + 1 : 0;
-  const pickServer = (name: string) => {
-    if (loadedAttempt === rotation.attemptKey) {
-      resumeRef.current = { uniqueId, at: lastProgressUpdateRef.current.currentTime };
-    }
-    rotation.pick(name);
-  };
+  const { attemptKey, pick } = rotation;
+  const pickServer = useCallback(
+    (name: string) => {
+      if (loadedAttempt === attemptKey) resumeRef.current = { uniqueId, at: lastProgressUpdateRef.current.currentTime };
+      pick(name);
+    },
+    [loadedAttempt, attemptKey, pick, uniqueId],
+  );
 
   if (phase !== 'loading' && phase !== 'playing') {
     return (
@@ -561,7 +564,7 @@ const Watch = () => {
       <VideoPlayer
         // A fresh native player per attempt: a failed one can't deliver late events to the next
         key={`${activeEpisodeId || (currentEpisodeId as string) || 'video'}|${rotation.attemptKey}`}
-        gestureProps={{ onSwipeUp: openEpisodes }}
+        gestureProps={{ onSwipeUp: openEpisodes, onSwipeDown: closeEpisodes, onSingleTap: closeEpisodes }}
         videoProps={{
           resizeMode: 'contain',
           poster: { source: { uri: poster }, resizeMode: 'contain' },

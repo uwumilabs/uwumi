@@ -1,6 +1,6 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Button, cn } from 'heroui-native';
+import { Button, cn, useThemeColor } from 'heroui-native';
 import { VideoPlayer } from 'react-native-video-toolkit';
 import { HUXStack, HUYStack, IoniconsIcon, MaterialIconsIcon } from '@/components';
 import type { ServerFailure } from '@/hooks';
@@ -22,26 +22,28 @@ const FAILURE_LABELS: Record<ServerFailure, string> = {
 
 const NOTICE_MS = 2500;
 
-const Chip = ({ chip, onPress }: { chip: ServerChip; onPress?: () => void }) => (
-  <Pressable
-    onPress={onPress}
-    disabled={!onPress || chip.state === 'current'}
-    className={cn(
-      'flex-row items-center gap-1.5 rounded-full px-3 py-1.5',
-      chip.state === 'current' ? 'bg-accent' : 'bg-white/10',
-    )}>
-    {chip.state === 'current' ? (
-      <ActivityIndicator size="small" color="white" />
-    ) : chip.state === 'failed' ? (
-      <IoniconsIcon name="close-circle" size={14} color="rgba(255,255,255,0.6)" />
-    ) : (
-      <IoniconsIcon name="ellipse-outline" size={14} color="rgba(255,255,255,0.6)" />
-    )}
-    <Text className={cn('text-sm', chip.state === 'failed' ? 'text-white/60' : 'text-white')}>
-      {chip.reason ? `${chip.name} · ${FAILURE_LABELS[chip.reason]}` : chip.name}
-    </Text>
-  </Pressable>
-);
+const Chip = ({ chip, onPress }: { chip: ServerChip; onPress: () => void }) => {
+  const accentForeground = useThemeColor('accent-foreground');
+  const current = chip.state === 'current';
+  return (
+    <Button
+      size="sm"
+      variant={current ? 'primary' : 'tertiary'}
+      onPress={current ? undefined : onPress}
+      className={cn(chip.state === 'failed' && 'opacity-60')}>
+      {current ? (
+        <ActivityIndicator size="small" color={accentForeground} />
+      ) : (
+        <IoniconsIcon
+          name={chip.state === 'failed' ? 'close-circle' : 'ellipse-outline'}
+          size={14}
+          className="text-foreground"
+        />
+      )}
+      <Button.Label>{chip.reason ? `${chip.name} · ${FAILURE_LABELS[chip.reason]}` : chip.name}</Button.Label>
+    </Button>
+  );
+};
 
 /**
  * In place of the player while no server is playing: finding one, every server failed, the provider gave no servers,
