@@ -19,7 +19,7 @@ import {
 import { useCurrentTheme, useEpisodeList, useExtensionStore, usePureBlackBackground } from '@/hooks';
 import { useActiveProvider } from '@/constants/provider';
 import { MediaType, MetaProvider } from '@/constants/types';
-import { hexToRGB, isTV, normalizeRating, openBrowser } from '@/constants/utils';
+import { hexToRGB, infoTitle, isTV, normalizeRating, openBrowser, shareMedia } from '@/constants/utils';
 import type { MediaItem } from '@/components/CardList';
 import { AnimatedCountdown } from './AnimatedCountdown';
 import { AnimatedFavoriteButton } from './AnimatedFavoriteButton';
@@ -50,14 +50,18 @@ interface InfoHeaderProps {
 }
 
 export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
-  const { mediaType, metaProvider, id, image, title, sharedTag } = useLocalSearchParams<{
+  const { mediaType, metaProvider, id, image, title, type, sharedTag } = useLocalSearchParams<{
     mediaType: MediaType;
     metaProvider: MetaProvider;
     id: string;
     image: string;
     title?: string;
+    type?: string;
     sharedTag?: string;
   }>();
+  // A shared link may come without the title and poster the cards pass along
+  const shownTitle = title || infoTitle(data);
+  const poster = image || data?.image;
   const transitionTag = sharedTag ?? id;
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -137,19 +141,28 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
               <IoniconsIcon name="arrow-back-outline" />
             </RippleButton>
 
-            <AnimatedFavoriteButton
-              ref={favBtnRef}
-              nextFocusLeft={tvNodes.back}
-              nextFocusDown={tvNodes.webview}
-              nextFocusRight={tvNodes.fav}
-              nextFocusUp={tvNodes.fav}
-            />
+            <HUXStack className="items-center gap-1">
+              {!isTV && (
+                <RippleButton
+                  accessibilityLabel="Share"
+                  onPress={() => shareMedia({ mediaType, id, metaProvider, type, title: shownTitle })}>
+                  <IoniconsIcon name="share-social-outline" />
+                </RippleButton>
+              )}
+              <AnimatedFavoriteButton
+                ref={favBtnRef}
+                nextFocusLeft={tvNodes.back}
+                nextFocusDown={tvNodes.webview}
+                nextFocusRight={tvNodes.fav}
+                nextFocusUp={tvNodes.fav}
+              />
+            </HUXStack>
           </HUXStack>
 
           <HUXStack className="gap-2.5 items-center" props={{ focusable: isTV ? false : undefined }}>
             <AnimatedImage
               sharedTransitionTag={`shared-image-${transitionTag}`}
-              source={{ uri: image }}
+              source={{ uri: poster }}
               style={{ width: 115, height: 163 }}
               focusable={isTV ? false : undefined}
             />
@@ -158,7 +171,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
                 className="text-foreground text-3xl font-bold"
                 numberOfLines={3}
                 sharedTransitionTag={`shared-title-${transitionTag}`}>
-                {title}
+                {shownTitle}
               </Animated.Text>
 
               <HUXStack className="item-center justify-between" props={{ focusable: isTV ? false : undefined }}>

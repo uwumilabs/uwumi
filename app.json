@@ -23,7 +23,24 @@
         "backgroundColor": "#000000"
       },
       "package": "com.x2004durgesh.uwumi",
-      "versionCode": 40
+      "versionCode": 40,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "uwumi.vercel.app",
+              "pathPrefix": "/info"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",

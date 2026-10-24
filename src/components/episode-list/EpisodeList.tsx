@@ -366,10 +366,18 @@ interface EpisodeListProps {
 
 export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListProps) => {
   const pathname = usePathname();
-  const { mediaType, type, id } = useLocalSearchParams<{
+  const {
+    mediaType,
+    type,
+    id,
+    episode: sharedEpisode,
+    season: sharedSeason,
+  } = useLocalSearchParams<{
     mediaType: MediaType;
     type: MediaFormat | TvType;
     id: string;
+    episode?: string;
+    season?: string;
   }>();
   const swipeable = pathname.includes('/info/'); // Only enable swipe actions on the /info/[mediaType] screen, not in the episode list inside /watch/[mediaType]
   const currentTheme = useCurrentTheme();
@@ -437,7 +445,17 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
       [autoScrollToCurrent, continueEntries, currentUniqueId],
     ),
   );
-  const continueTarget = continueIndex >= 0 ? continueEntries[continueIndex] : undefined;
+  // A shared link's episode, which the chip points at instead of the one being watched
+  const sharedIndex = useMemo(() => {
+    if (!sharedEpisode || autoScrollToCurrent) return -1;
+    return continueEntries.findIndex(
+      ({ episode, season }) =>
+        String(episode.number ?? episode.episode) === sharedEpisode &&
+        (!sharedSeason || String((episode as { season?: number }).season ?? season + 1) === sharedSeason),
+    );
+  }, [sharedEpisode, sharedSeason, autoScrollToCurrent, continueEntries]);
+  const targetIndex = sharedIndex >= 0 ? sharedIndex : continueIndex;
+  const continueTarget = targetIndex >= 0 ? continueEntries[targetIndex] : undefined;
 
   // Set when "Continue" switches season, and scrolled to once that season's rows are laid out
   const pendingScrollRef = useRef<{ season: number; index: number } | null>(null);
@@ -606,7 +624,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
                     <Button variant="secondary" size="sm" onPress={scrollToContinue}>
                       <IoniconsIcon name="play" size={14} color={currentTheme?.foreground} />
                       <Button.Label>
-                        {`Continue · ${continueTarget.season === shownSeason ? '' : `S${continueTarget.season + 1} · `}EP ${(continueTarget.episode.number ?? continueTarget.episode.episode ?? '').toString()}`}
+                        {`${sharedIndex >= 0 ? 'Shared' : 'Continue'} · ${continueTarget.season === shownSeason ? '' : `S${continueTarget.season + 1} · `}EP ${(continueTarget.episode.number ?? continueTarget.episode.episode ?? '').toString()}`}
                       </Button.Label>
                     </Button>
                   )}

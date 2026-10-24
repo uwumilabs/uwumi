@@ -1,5 +1,6 @@
-import { Platform, type ColorValue, type ViewStyle } from 'react-native';
+import { Platform, Share, type ColorValue, type ViewStyle } from 'react-native';
 import { openBrowserAsync } from 'expo-web-browser';
+import { EXTERNAL_LINKS } from './config';
 // export const getFetchUrl = () => {
 //   if (process.env.NODE_ENV === 'production') {
 //     return {
@@ -133,3 +134,29 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
 
 // In the app's own task: Android's default opens a second uwumi card in recents
 export const openBrowser = (url: string) => openBrowserAsync(url, { createTask: false });
+
+/** A show's title from its info, which providers give as a string or as romaji/english. */
+export const infoTitle = (info?: { title?: string | { english?: string; romaji?: string } }) =>
+  typeof info?.title === 'string' ? info.title : (info?.title?.english ?? info?.title?.romaji);
+
+export interface ShareTarget {
+  mediaType: string;
+  id: string;
+  metaProvider?: string;
+  type?: string;
+  title?: string;
+  episode?: string | number;
+  season?: string | number;
+}
+
+/** Shares a link to a show's info page, or to one of its episodes: the app opens it, and the dash's page shows it otherwise. */
+export const shareMedia = ({ mediaType, title, episode, season, ...params }: ShareTarget) => {
+  const query = Object.entries({ ...params, title, episode, season })
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
+    .join('&');
+  const label = episode ? `${title ?? ''} · ${season ? `S${season} · ` : ''}EP ${episode}` : title;
+  return Share.share({
+    message: `Watch ${label} on uwumi\n${EXTERNAL_LINKS.SHARE_LINK_BASE}/info/${mediaType}?${query}`,
+  });
+};

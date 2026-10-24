@@ -12,6 +12,8 @@ import {
   useMediaInfo,
 } from '@/hooks';
 import { MediaType } from '@/constants/types';
+import { infoTitle, shareMedia } from '@/constants/utils';
+import { useLocalSearchParams } from 'expo-router';
 import { useActiveProvider } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { HUXStack, HUYStack, RippleButton } from '../ui-primitives';
@@ -95,6 +97,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     const addDownload = useDownloadStore((state) => state.addDownload);
     const startDownload = useDownloadStore((state) => state.startDownload);
     const { data: mediaInfo } = useMediaInfo();
+    const show = useLocalSearchParams<{ id: string; metaProvider?: string; title?: string }>();
     const sheetColor = useSheetColor();
     const { toast } = useToast();
 
@@ -395,6 +398,22 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                   onPress={() => handleShowQualityOptions('download')}
                   icon={<IoniconsIcon name="download-outline" size={20} />}
                   label="Download"
+                />
+                <StyledSheetButton
+                  onPress={() => {
+                    onOpenChange(false);
+                    shareMedia({
+                      mediaType,
+                      id: show.id,
+                      metaProvider: show.metaProvider,
+                      type,
+                      title: show.title || infoTitle(mediaInfo),
+                      episode: (episode?.number ?? episode?.episode) as number | undefined,
+                      season: (episode as { season?: number } | null)?.season,
+                    });
+                  }}
+                  icon={<IoniconsIcon name="share-social-outline" size={20} />}
+                  label="Share episode"
                 />
               </HUYStack>
             )}

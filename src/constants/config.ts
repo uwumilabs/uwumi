@@ -8,7 +8,9 @@ export const EXTERNAL_LINKS = {
   GITHUB_LATEST_RELEASE: 'https://github.com/uwumilabs/uwumi/releases/latest',
   GITHUB_NEW_ISSUE: 'https://github.com/uwumilabs/uwumi/issues/new',
   DISCORD_SERVER: 'https://discord.gg/n7xVPxbG4R',
-  PROJECT_WEBSITE: 'https://uwumi-dash.netlify.app/',
+  PROJECT_WEBSITE: 'https://uwumi.vercel.app/',
+  // Shared links open here: in the app where Android verified it (dash/public/.well-known), else on the dash's page
+  SHARE_LINK_BASE: 'https://uwumi.vercel.app',
 } as const;
 
 export const SUB_LANGUAGE = {
