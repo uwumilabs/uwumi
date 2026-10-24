@@ -16,7 +16,8 @@
 # The manifest's asset label carries its version, and the last build published from this machine is kept in
 # node_modules/.cache/uwumi-ota as the patch base, so a publish normally downloads nothing from the release.
 #
-# Needs GITHUB_TOKEN with write access to releases (the token release-it uses); --dry-run works without it.
+# Needs GITHUB_TOKEN with write access to releases (the token release-it uses), from the environment or the gitignored
+# .env, so a plain `yarn ota` works; --dry-run works without it.
 #
 # Only publish JS-only changes: the bundle must work with the native code already in the installed
 # <version> binary. New native modules or native config need a new release (`yarn release`).
@@ -49,6 +50,10 @@ done
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
+if [[ -z "${GITHUB_TOKEN:-}" && -f .env ]]; then
+  GITHUB_TOKEN="$(sed -n 's/^GITHUB_TOKEN=//p' .env)"
+  export GITHUB_TOKEN
+fi
 VERSION="$(node -p "require('./package.json').version")"
 # Same tag format as release-it's git.tagName
 TAG="v${VERSION}"
