@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .bg-primary-gradient {
+    @apply bg-gradient-to-r from-primary to-accent;
+  }
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+
+
+@layer base {
+  :root {
+    /* Base Background & Foreground */
+    --background: 240 100% 99%;      /* Maps from background (#FEFBFF). The main page background. */
+    --foreground: 240 5% 11%;         /* Maps from onBackground (#1B1B1F). Default text color. */
+
+    /* Cards & Popovers (Floating Surfaces) */
+    --card: 240 100% 99%;             /* Maps from surface (#FEFBFF). Background for cards. */
+    --card-foreground: 240 5% 11%;    /* Maps from onSurface (#1B1B1F). Text color within cards. */
+    --popover: 240 100% 99%;          /* Maps from surface (#FEFBFF). Background for popovers, dropdowns. */
+    --popover-foreground: 240 5% 11%; /* Maps from onSurface (#1B1B1F). Text color within popovers. */
+
+    /* Primary Interactive Elements */
+    --primary: 215 100% 40%;          /* Maps from primary (#0058CA). For main buttons, links, and highlights. */
+    --primary-foreground: 0 0% 100%;  /* Maps from onPrimary (#FFFFFF). Text on top of primary elements. */
+
+    /* Secondary Elements */
+    --secondary: 261 24% 97%;         /* Maps from surfaceVariant (#F3EDF7). For less prominent buttons and info badges. */
+    --secondary-foreground: 227 10% 29%; /* Maps from onSurfaceVariant (#44464F). Text on secondary elements. */
+
+    /* Muted Elements */
+    --muted: 261 24% 97%;             /* Re-using surfaceVariant (#F3EDF7) for a subtle background. */
+    --muted-foreground: 227 6% 47%;   /* Maps from a slightly adjusted onSurfaceVariant/outline for subdued text. */
+
+    /* Accentuated Elements (e.g., active states, highlighted info) */
+    --accent: 225 100% 93%;           /* Maps from secondaryContainer (#D9E2FF). Used for hover states, selected items. */
+    --accent-foreground: 224 100% 14%;/* Maps from onSecondaryContainer (#001945). Text on accented elements. */
+
+    /* Destructive Actions (Errors, Deletion) */
+    --destructive: 0 72% 42%;         /* Maps from error (#BA1A1A). For delete buttons, error messages. */
+    --destructive-foreground: 0 0% 100%; /* Maps from onError (#FFFFFF). Text on destructive elements. */
+
+    /* Borders, Inputs, and Rings */
+    --border: 227 9% 78%;             /* Maps from outlineVariant (#C5C6D0). For subtle borders on cards and inputs. */
+    --input: 227 9% 78%;              /* Maps from outlineVariant (#C5C6D0). The border for input fields. */
+    --ring: 215 100% 40%;             /* Maps from primary (#0058CA). The outline for focused elements. */
+
+    /* Sidebar Navigation */
+    --sidebar: 261 24% 97%;           /* Maps from surfaceContainer (#F3EDF7). Sidebar background. */
+    --sidebar-foreground: 240 5% 11%; /* Maps from onSurface (#1B1B1F). Sidebar text and icons. */
+    --sidebar-primary: 215 100% 40%;  /* Maps from primary (#0058CA). Active/selected item indicator in the sidebar. */
+    --sidebar-primary-foreground: 0 0% 100%; /* Maps from onPrimary (#FFFFFF). Text/icon for the active item. */
+    --sidebar-accent: 225 100% 93%;   /* Maps from secondaryContainer (#D9E2FF). Hover state for sidebar items. */
+    --sidebar-accent-foreground: 224 100% 14%; /* Maps from onSecondaryContainer (#001945). Text on hovered items. */
+    --sidebar-border: 227 6% 88%;     /* A lighter version of outlineVariant (#C5C6D0) for a subtle separator. */
+    --sidebar-ring: 215 100% 40%;     /* Maps from primary (#0058CA). Focus ring inside the sidebar. */
+
+    /* Chart Colors */
+    --chart-1: 215 100% 40%;          /* Maps from primary (#0058CA) */
+    --chart-2: 139 100% 22%;          /* Maps from tertiary (#006E1B) */
+    --chart-3: 224 100% 14%;          /* Maps from onSecondaryContainer (#001945) */
+    --chart-4: 225 100% 87%;          /* Maps from primaryContainer (#D9E2FF) */
+    --chart-5: 114 89% 78%;           /* Maps from tertiaryContainer (#95F990) */
+    
+    /* Non-color variables */
+    --radius: 0.5rem;                 /* Directly from original CSS. */
+  }
+
+  /**
+   * =================================================================
+   * Dark Theme
+   * Mapped from TachiyomiColorScheme.darkScheme
+   * =================================================================
+   */
+  .dark {
+    /* Base Background & Foreground */
+    --background: 240 5% 11%;         /* Maps from background (#1B1B1F). The main page background. */
+    --foreground: 227 13% 90%;        /* Maps from onBackground (#E3E2E6). Default text color. */
+    
+    /* Cards & Popovers (Floating Surfaces) */
+    --card: 240 5% 11%;               /* Maps from surface (#1B1B1F). Background for cards. */
+    --card-foreground: 227 13% 90%;   /* Maps from onSurface (#E3E2E6). Text color within cards. */
+    --popover: 240 5% 11%;            /* Maps from surface (#1B1B1F). Background for popovers, dropdowns. */
+    --popover-foreground: 227 13% 90%;/* Maps from onSurface (#E3E2E6). Text color within popovers. */
+    
+    /* Primary Interactive Elements */
+    --primary: 221 100% 84%;          /* Maps from primary (#B0C6FF). For main buttons, links, and highlights. */
+    --primary-foreground: 217 100% 21%;/* Maps from onPrimary (#002D6E). Text on top of primary elements. */
+    
+    /* Secondary Elements */
+    --secondary: 254 11% 14%;         /* Maps from surfaceVariant (#211F26). For less prominent buttons and info badges. */
+    --secondary-foreground: 228 13% 79%;/* Maps from onSurfaceVariant (#C5C6D0). Text on secondary elements. */
+    
+    /* Muted Elements */
+    --muted: 254 11% 14%;             /* Re-using surfaceVariant (#211F26) for a subtle background. */
+    --muted-foreground: 228 13% 60%;  /* Maps from a slightly darker onSurfaceVariant for subdued text. */
+    
+    /* Accentuated Elements (e.g., active states, highlighted info) */
+    --accent: 216 100% 30%;           /* Maps from secondaryContainer (#00429B). Used for hover states, selected items. */
+    --accent-foreground: 225 100% 93%;/* Maps from onSecondaryContainer (#D9E2FF). Text on accented elements. */
+
+    /* Destructive Actions (Errors, Deletion) */
+    --destructive: 4 100% 85%;        /* Maps from error (#FFB4AB). For delete buttons, error messages. */
+    --destructive-foreground: 356 100% 20%;/* Maps from onError (#690005). Text on destructive elements. */
+
+    /* Borders, Inputs, and Rings */
+    --border: 228 10% 29%;            /* Maps from outlineVariant (#44464F). For subtle borders on cards and inputs. */
+    --input: 228 10% 29%;             /* Maps from outlineVariant (#44464F). The border for input fields. */
+    --ring: 221 100% 84%;             /* Maps from primary (#B0C6FF). The outline for focused elements. */
+
+    /* Sidebar Navigation */
+    --sidebar: 254 9% 12%;            /* Maps from surfaceContainerLow (#1E1C22). Sidebar background. */
+    --sidebar-foreground: 227 13% 90%;/* Maps from onSurface (#E3E2E6). Sidebar text and icons. */
+    --sidebar-primary: 221 100% 84%;  /* Maps from primary (#B0C6FF). Active/selected item indicator in the sidebar. */
+    --sidebar-primary-foreground: 217 100% 21%; /* Maps from onPrimary (#002D6E). Text/icon for the active item. */
+    --sidebar-accent: 216 100% 30%;   /* Maps from secondaryContainer (#00429B). Hover state for sidebar items. */
+    --sidebar-accent-foreground: 225 100% 93%; /* Maps from onSecondaryContainer (#D9E2FF). Text on hovered items. */
+    --sidebar-border: 228 10% 29%;    /* Maps from outlineVariant (#44464F) for a subtle separator. */
+    --sidebar-ring: 221 100% 84%;     /* Maps from primary (#B0C6FF). Focus ring inside the sidebar. */
+
+    /* Chart Colors */
+    --chart-1: 221 100% 84%;          /* Maps from primary (#B0C6FF) */
+    --chart-2: 122 62% 66%;           /* Maps from tertiary (#7ADC77) */
+    --chart-3: 217 100% 21%;          /* Maps from onPrimary (#002D6E) */
+    --chart-4: 216 100% 30%;          /* Maps from primaryContainer (#00429B) */
+    --chart-5: 114 89% 78%;           /* Maps from onTertiaryContainer (#95F990) */
+  }
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
