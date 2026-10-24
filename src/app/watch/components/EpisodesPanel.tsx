@@ -146,13 +146,15 @@ export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelPro
   useEffect(() => {
     if (open) {
       hideControls();
-      drag.value = withTiming(0, SLIDE);
+      drag.set(withTiming(0, SLIDE));
     }
-    shown.value = withTiming(open ? 1 : 0, SLIDE, (finished) => {
-      if (!finished || open) return;
-      drag.value = 0;
-      scheduleOnRN(setMounted, false);
-    });
+    shown.set(
+      withTiming(open ? 1 : 0, SLIDE, (finished) => {
+        if (!finished || open) return;
+        drag.set(0);
+        scheduleOnRN(setMounted, false);
+      }),
+    );
   }, [open, hideControls, shown, drag]);
 
   const panelStyle = useAnimatedStyle(() => {
@@ -170,13 +172,13 @@ export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelPro
         .activeOffsetY(12)
         .failOffsetX([-16, 16])
         .onUpdate((event) => {
-          drag.value = Math.max(0, event.translationY);
+          drag.set(Math.max(0, event.translationY));
         })
         .onEnd((event) => {
           if (event.translationY > size.value * CLOSE_DISTANCE_RATIO || event.velocityY > CLOSE_VELOCITY) {
             scheduleOnRN(onOpenChange, false);
           } else {
-            drag.value = withTiming(0, SLIDE);
+            drag.set(withTiming(0, SLIDE));
           }
         }),
     [drag, size, onOpenChange],
@@ -199,7 +201,7 @@ export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelPro
         <Animated.View
           pointerEvents={open ? 'auto' : 'none'}
           onLayout={(event) => {
-            size.value = isTV ? event.nativeEvent.layout.width : event.nativeEvent.layout.height;
+            size.set(isTV ? event.nativeEvent.layout.width : event.nativeEvent.layout.height);
           }}
           style={[isTV ? [styles.tvPanel, { width: tvPanelWidth(width) }] : styles.panel, panelStyle]}>
           {!isTV && (

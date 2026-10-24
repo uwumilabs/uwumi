@@ -91,7 +91,7 @@ export const normalizeRating = (rating?: number) => {
 };
 
 export const isTV = Platform.isTV;
-export const isTVOS = Platform.isTVOS;
+export const isTVOS = Platform.OS === 'ios' && Platform.isTV;
 
 // D-pad focus ring via Reanimated pseudo selectors (toggled natively, no JS); needs a Reanimated-rendered view.
 export const tvFocusRingStyle = ({

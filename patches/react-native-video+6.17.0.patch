@@ -34,3 +34,27 @@ index 4614267..5d7bd4b 100644
        }),
        [],
      );
+diff --git a/node_modules/react-native-video/src/utils.ts b/node_modules/react-native-video/src/utils.ts
+--- a/node_modules/react-native-video/src/utils.ts
++++ b/node_modules/react-native-video/src/utils.ts
+@@ -1,4 +1,4 @@
+-import type {Component, RefObject, ComponentClass} from 'react';
++import type {RefObject} from 'react';
+ import {Image, findNodeHandle, type ImageSourcePropType} from 'react-native';
+ import type {ReactVideoSource, ReactVideoSourceProperties} from './types/video';
+ 
+@@ -47,12 +47,9 @@
+  * @deprecated
+  * Do not use this fn anymore. "findNodeHandle" will be deprecated.
+  * */
++// RN 0.88 refs to native components are `ReactNativeElement`s, not class components
+ export function getReactTag(
+-  ref: RefObject<
+-    | Component<unknown, unknown, unknown>
+-    | ComponentClass<unknown, unknown>
+-    | null
+-  >,
++  ref: RefObject<Parameters<typeof findNodeHandle>[0]>,
+ ): number {
+   if (!ref.current) {
+     throw new Error('Video Component is not mounted');

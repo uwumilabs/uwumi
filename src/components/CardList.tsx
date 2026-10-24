@@ -229,7 +229,7 @@ export const CardList: React.FC<CardListProps> = ({
       numColumns={grid.numColumns}
       keyExtractor={(item, index) => (item.id != null ? cardKey(item) : `fallback-${index}`)}
       contentContainerStyle={{ paddingHorizontal: grid.horizontalPadding, paddingVertical: grid.verticalPadding }}
-      refreshControl={isTV ? undefined : <RefreshControl refreshing={!!isLoading} onRefresh={refetch} />}
+      refreshControl={isTV ? undefined : <RefreshControl refreshing={!!isLoading} onRefresh={() => void refetch()} />}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       onEndReached={() => {

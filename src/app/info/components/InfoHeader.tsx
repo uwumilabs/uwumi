@@ -74,11 +74,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
   const backBtnRef = useRef<View>(null);
   const favBtnRef = useRef<View>(null);
   const webviewBtnRef = useRef<View>(null);
-  const [tvNodes, setTvNodes] = useState<{ back: number | null; fav: number | null; webview: number | null }>({
-    back: null,
-    fav: null,
-    webview: null,
-  });
+  const [tvNodes, setTvNodes] = useState<{ back?: number; fav?: number; webview?: number }>({});
   useEffect(() => {
     if (!isTV) return;
     // Short delay to ensure refs are populated

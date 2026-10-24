@@ -1,13 +1,16 @@
 diff --git a/node_modules/@expo/ui/android/src/main/java/expo/modules/ui/ModalBottomSheetView.kt b/node_modules/@expo/ui/android/src/main/java/expo/modules/ui/ModalBottomSheetView.kt
-index e90edd3..be932ce 100644
+index 9ca0932..f8746e3 100644
 --- a/node_modules/@expo/ui/android/src/main/java/expo/modules/ui/ModalBottomSheetView.kt
 +++ b/node_modules/@expo/ui/android/src/main/java/expo/modules/ui/ModalBottomSheetView.kt
-@@ -17,9 +17,14 @@ import androidx.compose.material3.rememberModalBottomSheetState
+@@ -18,12 +18,17 @@ import androidx.compose.material3.rememberModalBottomSheetState
  import androidx.compose.runtime.Composable
  import androidx.compose.runtime.DisposableEffect
  import androidx.compose.runtime.LaunchedEffect
 +import androidx.compose.runtime.remember
  import androidx.compose.runtime.rememberCoroutineScope
+ import androidx.compose.ui.graphics.Color as ComposeColor
+ import androidx.compose.ui.graphics.luminance
+ import androidx.compose.ui.graphics.takeOrElse
  import androidx.compose.ui.platform.LocalView
  import androidx.compose.ui.window.DialogWindowProvider
 +import androidx.core.view.ViewCompat
@@ -17,7 +20,7 @@ index e90edd3..be932ce 100644
  import expo.modules.kotlin.records.Field
  import expo.modules.kotlin.records.Record
  import expo.modules.kotlin.types.OptimizedRecord
-@@ -90,6 +95,49 @@ private fun ForwardKeyEventsToActivity(activity: Activity?) {
+@@ -94,6 +99,49 @@ private fun ForwardKeyEventsToActivity(activity: Activity?) {
    }
  }
  
@@ -67,7 +70,7 @@ index e90edd3..be932ce 100644
  @Composable
  fun FunctionalComposableScope.ModalBottomSheetContent(
    props: ModalBottomSheetViewProps,
-@@ -99,6 +147,7 @@ fun FunctionalComposableScope.ModalBottomSheetContent(
+@@ -103,6 +151,7 @@ fun FunctionalComposableScope.ModalBottomSheetContent(
    onDismissRequest: () -> Unit
  ) {
    val sheetState = rememberModalBottomSheetState(props.skipPartiallyExpanded)
@@ -75,7 +78,7 @@ index e90edd3..be932ce 100644
    val scope = rememberCoroutineScope()
  
    hide.handle {
-@@ -162,6 +211,7 @@ fun FunctionalComposableScope.ModalBottomSheetContent(
+@@ -177,6 +226,7 @@ fun FunctionalComposableScope.ModalBottomSheetContent(
      modifier = ModifierRegistry.applyModifiers(props.modifiers, appContext, composableScope, globalEventDispatcher)
    ) {
      ForwardKeyEventsToActivity(appContext.currentActivity)

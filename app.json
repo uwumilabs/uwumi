@@ -111,7 +111,8 @@
         }
       ],
       "react-native-nitro-ota",
-      "expo-document-picker"
+      "expo-document-picker",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,

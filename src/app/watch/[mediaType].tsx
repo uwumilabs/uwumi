@@ -199,14 +199,20 @@ const Watch = () => {
   useEffect(() => {
     if (!fullscreen && !leavingRef.current) enterFullscreen();
   }, [fullscreen, enterFullscreen]);
+  const exitFullscreenRef = useRef(exitFullscreen);
+  useEffect(() => {
+    exitFullscreenRef.current = exitFullscreen;
+  });
+  // expo-router 58 has no beforeRemove event. By unmount the state shows where we went: another watch route means
+  // the episode was replaced (stay in fullscreen); this route on top is React's dev remount
   useEffect(
-    () =>
-      navigation.addListener('beforeRemove', (event) => {
-        if (event.data.action.type === 'REPLACE') return;
-        leavingRef.current = true;
-        exitFullscreen();
-      }),
-    [navigation, exitFullscreen],
+    () => () => {
+      const state = navigation.getState();
+      if (state?.routes[state.index]?.name === 'watch/[mediaType]') return;
+      leavingRef.current = true;
+      exitFullscreenRef.current();
+    },
+    [navigation],
   );
 
   useFocusEffect(

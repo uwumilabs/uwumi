@@ -1,6 +1,6 @@
 import React, { Activity, useMemo, useState } from 'react';
 import { Tabs } from 'heroui-native';
-import { View, type FocusDestination } from 'react-native';
+import { View, type ViewProps } from 'react-native';
 import FocusableTrigger from './FocusableTrigger';
 
 export interface TabItem {
@@ -13,7 +13,7 @@ interface HorizontalTabsProps {
   items: TabItem[];
   initialTab?: string;
   /** TV: explicit next focus up target for tab triggers */
-  nextFocusUp?: FocusDestination;
+  nextFocusUp?: ViewProps['nextFocusUp'];
 }
 
 export const HorizontalTabs = React.forwardRef<View, HorizontalTabsProps>(({ items, initialTab, nextFocusUp }, ref) => {

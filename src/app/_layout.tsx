@@ -33,6 +33,10 @@ import { PerfWindows, perfScreenLayout } from '@/perf/perfHarness';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+export const unstable_settings = {
+  initialRouteName: '(tabs)',
+};
+
 // TV keeps the toolkit's defaults: a side-panel menu and a D-pad friendly slider.
 // The player's settings menu opens in the app's native bottom sheet
 const VideoSheet = ({ open, onOpenChange, children, style }: SheetProps) => (
@@ -215,10 +219,7 @@ const AppContent = () => {
         <BottomSheetProvider>
           <ThemeProvider value={navigationTheme}>
             {/* freezeOnBlur: screens under the top one (the tabs under watch, info under watch) stop re-rendering */}
-            <Stack
-              screenOptions={{ headerShown: false, freezeOnBlur: true }}
-              initialRouteName="(tabs)"
-              screenLayout={perfScreenLayout}>
+            <Stack screenOptions={{ headerShown: false, freezeOnBlur: true }} screenLayout={perfScreenLayout}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="browse/[mediaType]" />
               <Stack.Screen name="search/[mediaType]" />

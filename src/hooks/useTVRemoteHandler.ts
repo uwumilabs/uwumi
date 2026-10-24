@@ -12,7 +12,7 @@
  */
 
 import { useCallback } from 'react';
-import { useTVEventHandler, type HWEvent } from 'react-native';
+import { useTVEventHandler, type TVRemoteEvent } from 'react-native';
 import { isTV } from '@/constants/utils';
 
 export interface TVRemoteHandlerCallbacks {
@@ -27,14 +27,16 @@ export interface TVRemoteHandlerCallbacks {
   onSelect?: () => void;
   onPlayPause?: () => void;
   /** Called for any event type not explicitly handled above */
-  onUnhandled?: (event: HWEvent) => void;
+  onUnhandled?: (event: TVRemoteEvent) => void;
 }
 
 export function useTVRemoteHandler(callbacks: TVRemoteHandlerCallbacks) {
   const handler = useCallback(
-    (event: HWEvent) => {
-      // Only handle key-down events (eventKeyAction === 0) to avoid double-firing
-      if (event.eventKeyAction !== undefined && event.eventKeyAction !== 0) return;
+    (event: TVRemoteEvent) => {
+      // Only handle key-down events (eventKeyAction === 0) to avoid double-firing. RN 0.88 types it as a string,
+      // but Android and tvOS both send a number (-1, 0 down, 1 up)
+      const keyAction: unknown = event.eventKeyAction;
+      if (keyAction !== undefined && keyAction !== 0) return;
 
       switch (event.eventType) {
         case 'up':

@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useState } from 'react';
-import { type ViewStyle, type FocusDestination } from 'react-native';
+import { type ViewProps, type ViewStyle } from 'react-native';
 import { Tabs } from 'heroui-native';
 import { isTV } from '@/constants/utils';
 import { useCurrentTheme } from '@/hooks';
@@ -12,7 +12,7 @@ interface FocusableTriggerProps {
   /** Optional className for the trigger */
   className?: string;
   /** TV: explicit next focus up target */
-  nextFocusUp?: FocusDestination;
+  nextFocusUp?: ViewProps['nextFocusUp'];
   children: React.ReactNode;
 }
 

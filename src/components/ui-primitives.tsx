@@ -3,7 +3,7 @@
  * This file contains lightweight, frequently-used components that don't warrant separate files
  */
 
-import React, { ReactNode, forwardRef } from 'react';
+import React, { ReactNode, forwardRef, useState } from 'react';
 import { View, ViewProps, Text, StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
@@ -96,7 +96,8 @@ const KAOMOJI = [
 ];
 
 export const NoResults = () => {
-  const randomKaomoji = KAOMOJI[Math.floor(Math.random() * KAOMOJI.length)];
+  // Picked once per mount, so it doesn't change on every re-render
+  const [randomKaomoji] = useState(() => KAOMOJI[Math.floor(Math.random() * KAOMOJI.length)]);
 
   return (
     <HUYStack className="p-2 pt-4 items-center justify-center gap-2">

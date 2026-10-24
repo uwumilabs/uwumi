@@ -80,7 +80,7 @@ const About = () => {
       <ScrollView
         contentContainerClassName="gap-6 px-4 pb-24 pt-4"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => checkForUpdates()} />}>
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => void checkForUpdates()} />}>
         <HUYStack className="items-center gap-3">
           <Image
             source={require('../../../assets/images/icon.png')}

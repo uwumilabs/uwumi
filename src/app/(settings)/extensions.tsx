@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { isCompatibleEntry } from 'react-native-consumet';
@@ -58,6 +58,7 @@ function ExtensionCard({
               <Avatar size="md" variant="soft" color="default" alt={`${extension?.name ?? 'Extension'} logo`}>
                 {!!extension.logo && (
                   <Avatar.Image source={{ uri: extension.logo }} asChild>
+                    {/* @ts-expect-error heroui-native's asChild Image takes RN 0.88 ImageProps, whose children are `never` */}
                     <Image style={{ width: '100%', height: '100%' }} contentFit="cover" />
                   </Avatar.Image>
                 )}
@@ -196,6 +197,7 @@ function ExtensionDetailsSheet({
           <Avatar size="lg" variant="soft" color="default" alt={`${extension?.name ?? 'Extension'} logo`}>
             {!!extension.logo && (
               <Avatar.Image source={{ uri: extension.logo }} asChild>
+                {/* @ts-expect-error heroui-native's asChild Image takes RN 0.88 ImageProps, whose children are `never` */}
                 <Image style={{ width: '100%', height: '100%' }} contentFit="cover" />
               </Avatar.Image>
             )}
@@ -343,17 +345,16 @@ export default function Extensions() {
     enabled: !!registry,
   });
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh = async () => {
     setIsRefreshing(true);
     try {
       await updateRegistry();
-      // await syncExtensions();
       await fetchUpdates();
     } catch (error) {
       console.error('Refresh failed:', error);
     }
     setIsRefreshing(false);
-  }, [fetchUpdates, updateRegistry]);
+  };
 
   const handleAction = async (action: () => Promise<boolean>, extensionId: string) => {
     setLoadingStates((prev) => ({ ...prev, [extensionId]: true }));
