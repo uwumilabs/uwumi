@@ -1,4 +1,4 @@
-import { UserResource } from "@clerk/types";
+import type { UserResource } from "@clerk/shared/types";
 import { ADMIN_CONFIG } from "../config/admin";
 
 /**

@@ -103,7 +103,7 @@ function Navbar() {
             {/* Auth */}
             {isSignedIn ? (
               <div className="flex items-center space-x-3">
-                <UserButton afterSignOutUrl="/" />
+                <UserButton />
               </div>
             ) : (
               <SignInButton mode="modal">
@@ -178,7 +178,7 @@ function Navbar() {
 
               {isSignedIn ? (
                 <div className="flex items-center space-x-3">
-                  <UserButton afterSignOutUrl="/" />
+                  <UserButton />
                 </div>
               ) : (
                 <SignInButton mode="modal">
