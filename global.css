@@ -5,6 +5,8 @@
 
 /* Path to the heroui-native lib inside node_modules from the root of your project */
 @source './node_modules/heroui-native/lib';
+/* The dash is a separate web app; its classes don't belong in the app's CSS */
+@source not './dash';
 @import './src/themes/default.css';
 @import './src/themes/cloudflare.css';
 @import './src/themes/cotton-candy.css';

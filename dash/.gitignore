@@ -27,3 +27,6 @@ next-env.d.ts
 *.sln
 *.sw?
 .env
+
+# clerk configuration (can include secrets)
+/.clerk/

@@ -1,5 +1,8 @@
 # Development Dependencies
 node_modules
+
+# The dash is a separate Next.js app with its own lint setup
+dash/
 .expo
 .expo-shared
 .vscode

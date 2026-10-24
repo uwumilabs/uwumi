@@ -119,7 +119,7 @@ export default function Screenshots() {
             See It In Action
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Take a look at Uwumi's beautiful interface and smooth user
+            Take a look at Uwumi&apos;s beautiful interface and smooth user
             experience across all features.
           </p>
         </motion.div>

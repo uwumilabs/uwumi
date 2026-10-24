@@ -19,6 +19,9 @@
     "build-android": "bash src/scripts/build-android.sh",
     "build-ios": "bash src/scripts/build-ios.sh",
     "ota": "bash src/scripts/publish-ota.sh",
+    "dash": "yarn --cwd dash dev",
+    "dash:install": "yarn --cwd dash install",
+    "dash:build": "yarn --cwd dash build",
     "perf": "EXPO_PUBLIC_PERF_RUN=screens REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 expo start --clear",
     "perf:watch": "EXPO_PUBLIC_PERF_RUN=watch REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 expo start --clear"
   },
@@ -58,7 +61,8 @@
     }
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "modulePathIgnorePatterns": ["<rootDir>/dash/"]
   },
   "dependencies": {
     "@dr.pogodin/react-native-fs": "^2.36.0",

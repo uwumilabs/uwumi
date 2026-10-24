@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // The dash lives inside the uwumi app's repo, which has its own lockfile and node_modules one level up
+  outputFileTracingRoot: __dirname,
+  turbopack: { root: __dirname },
   images: {
     domains: ['images.pexels.com', 'github.com'],
   },

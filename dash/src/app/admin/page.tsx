@@ -149,8 +149,8 @@ export default function AdminDashboard() {
         <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
         <p className="text-muted-foreground">
           Welcome back,{" "}
-          {user?.firstName || user?.emailAddresses[0]?.emailAddress}! Here's
-          what's happening with Uwumi.
+          {user?.firstName || user?.emailAddresses[0]?.emailAddress}! Here&apos;s
+          what&apos;s happening with Uwumi.
         </p>
       </div>
 
