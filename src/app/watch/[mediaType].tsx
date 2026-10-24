@@ -103,6 +103,7 @@ const Watch = () => {
   const { toast } = useToast();
   const fullscreen = useVideoSelector((state) => state.fullscreen);
   const videoRef = useVideoSelector((state) => state.videoRef);
+  const isPlaying = useVideoSelector((state) => state.isPlaying);
   const { enterFullscreen, exitFullscreen } = useFullscreen();
   const navigation = useNavigation();
   const [episodesOpen, setEpisodesOpen] = useState(false);
@@ -577,6 +578,7 @@ const Watch = () => {
           preventsDisplaySleepDuringVideoPlayback: true,
           allowsEaxternalPlayback: true,
           mixWithOthers: 'mix',
+          enterPictureInPictureOnLeave: !isTV && isPlaying,
           onError: () => {
             const attempt = rotation.attempt;
             if (!attempt) return;

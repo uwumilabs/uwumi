@@ -136,9 +136,12 @@ export const ServerLoadingOverlay = ({
     return () => clearTimeout(timer);
   }, [notice]);
   const showNotice = !loading && !!notice && expiredNotice !== notice;
+  // Unmounted rather than faded out: Android picture-in-picture hides and restores the app's views, and an
+  // opacity-hidden overlay comes back visible afterwards
+  if (!loading && !showNotice) return null;
 
   return (
-    <VideoPlayer.Overlay visible={loading || showNotice} pointerEvents="none" style={styles.corner}>
+    <VideoPlayer.Overlay pointerEvents="none" style={styles.corner}>
       <HUXStack className="items-center gap-2 rounded-full bg-black/70 px-3 py-1.5">
         {loading ? (
           <ActivityIndicator size="small" color="white" />

@@ -33,6 +33,7 @@
     "plugins": [
       "./plugins/withAndroidDebugVariant",
       "./plugins/withRnCoreFlavorMarker",
+      "./plugins/withPictureInPicture",
       "expo-router",
       [
         "expo-splash-screen",
