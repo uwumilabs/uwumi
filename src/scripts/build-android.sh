@@ -46,6 +46,34 @@ if ! ./gradlew :app:assembleRelease >build/gradle-release.log 2>&1; then
   exit 1
 fi
 
+cd ..
+
+# Releases used to be signed with React Native's public debug key, so the APKs move to uwumi's own key with a
+# rotation proof (signing/android-key-rotation.lineage): Android 9+ updates to the new key and refuses APKs signed
+# only with the old one; Android 7–8.1 can't rotate, so they keep the old key's v2 signature and still update.
+print_step "STEP 6: SIGNING RELEASE APKS"
+KEYSTORE="${UWUMI_KEYSTORE_PATH:-$HOME/.uwumi-keys/uwumi-release.keystore}"
+if [[ -z "${UWUMI_KEYSTORE_PASSWORD:-}" && -f .env ]]; then
+  UWUMI_KEYSTORE_PASSWORD="$(sed -n 's/^UWUMI_KEYSTORE_PASSWORD=//p' .env | sed -E "s/^[\"'](.*)[\"']$/\1/")"
+fi
+export UWUMI_KEYSTORE_PASSWORD
+if [[ ! -f "$KEYSTORE" || -z "$UWUMI_KEYSTORE_PASSWORD" ]]; then
+  echo -e "${RED}Release keystore or UWUMI_KEYSTORE_PASSWORD missing (keystore: $KEYSTORE)${NC}" >&2
+  exit 1
+fi
+SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
+APKSIGNER="$(ls -d "$SDK_DIR"/build-tools/*/ | sort -V | tail -n 1)apksigner"
+for APK in android/app/build/outputs/apk/release/*.apk; do
+  "$APKSIGNER" sign \
+    --ks android/app/debug.keystore --ks-key-alias androiddebugkey --ks-pass pass:android --key-pass pass:android \
+    --next-signer --ks "$KEYSTORE" --ks-key-alias uwumi --ks-pass env:UWUMI_KEYSTORE_PASSWORD \
+    --lineage signing/android-key-rotation.lineage --rotation-min-sdk-version 28 \
+    --v4-signing-enabled false \
+    "$APK"
+  "$APKSIGNER" verify --min-sdk-version 24 "$APK"
+  echo "Signed $(basename "$APK")"
+done
+
 # Install release APK
 # print_step "STEP 6: INSTALLING RELEASE APK"
 # ./gradlew installRelease
