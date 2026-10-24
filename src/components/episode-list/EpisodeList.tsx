@@ -4,8 +4,9 @@ import React, { useRef, useState, useCallback, useMemo, memo, ReactNode } from '
 import Image from '@/components/Image';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
-import Animated, { SharedValue, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
+import Animated, { SharedValue, css, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { create } from 'zustand';
 import {
   useEpisodesIdStore,
   useWatchProgressStore,
@@ -305,6 +306,21 @@ const EpisodeContent = ({
   );
 };
 
+// Marks the row a jump landed on: the border blinks three times. A CSS animation, so it runs on the UI thread
+const PULSE_MS = 600;
+const PULSE_TIMES = 3;
+
+const episodeKey = (item: IAnimeEpisode | IMovieEpisode) =>
+  item.id ?? item.uniqueId ?? String(item.number ?? item.episode);
+
+// The row a jump landed on, by list key; `at` remounts the border so the same row can blink again
+const usePulseStore = create<{ key: string | null; at: number }>(() => ({ key: null, at: 0 }));
+
+const PulseBorder = () => {
+  const accent = useCurrentTheme()?.accent;
+  return <Animated.View pointerEvents="none" style={[pulseStyles.border, { borderColor: accent }]} />;
+};
+
 interface EpisodeRowProps {
   item: IAnimeEpisode | IMovieEpisode;
   displayMode: EpisodeDisplayMode;
@@ -319,19 +335,23 @@ interface EpisodeRowProps {
 const EpisodeRow = memo(
   ({ item, displayMode, swipeable, nav, actionColor, onToggleComplete, onOpenActions }: EpisodeRowProps) => {
     const isCurrent = useEpisodesIdStore((state) => !!item?.uniqueId && state.currentUniqueId === item.uniqueId);
+    const pulse = usePulseStore((state) => (state.key === episodeKey(item) ? state.at : 0));
     const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
     const swipeableRef = useRef<SwipeableMethods | null>(null);
 
     const row = (
-      <ListPressable item={item} nav={nav} swipeable={swipeable} onOpenActions={onOpenActions}>
-        <EpisodeContent
-          item={item}
-          displayMode={displayMode}
-          isCurrent={isCurrent}
-          pureBlackBackground={pureBlackBackground}
-          swipeable={swipeable}
-        />
-      </ListPressable>
+      <>
+        <ListPressable item={item} nav={nav} swipeable={swipeable} onOpenActions={onOpenActions}>
+          <EpisodeContent
+            item={item}
+            displayMode={displayMode}
+            isCurrent={isCurrent}
+            pureBlackBackground={pureBlackBackground}
+            swipeable={swipeable}
+          />
+        </ListPressable>
+        {pulse ? <PulseBorder key={pulse} /> : null}
+      </>
     );
     if (!swipeable || isTV) return row;
 
@@ -459,10 +479,26 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
 
   // Set when "Continue" switches season, and scrolled to once that season's rows are laid out
   const pendingScrollRef = useRef<{ season: number; index: number } | null>(null);
+  // Far into a long list the scroll is aimed with estimated row heights; once there the rows are measured, so a
+  // second, short scroll settles on the episode
+  const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const scrollToEpisode = (index: number) => {
+    const target = episodes[index];
+    const scroll = () => flashListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+    scroll()
+      ?.then(scroll)
+      .then(() => {
+        if (!target) return;
+        usePulseStore.setState({ key: episodeKey(target), at: Date.now() });
+        // Cleared afterwards, so a recycled row scrolled back into view doesn't blink again
+        clearTimeout(pulseTimerRef.current);
+        pulseTimerRef.current = setTimeout(() => usePulseStore.setState({ key: null }), PULSE_MS * PULSE_TIMES);
+      });
+  };
   const scrollToContinue = () => {
     if (!continueTarget) return;
     if (continueTarget.season === shownSeason) {
-      flashListRef.current?.scrollToIndex({ index: continueTarget.index, animated: true, viewPosition: 0.3 });
+      scrollToEpisode(continueTarget.index);
       return;
     }
     pendingScrollRef.current = { season: continueTarget.season, index: continueTarget.index };
@@ -472,7 +508,18 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     const pending = pendingScrollRef.current;
     if (!pending || pending.season !== shownSeason || pending.index >= episodes.length) return;
     pendingScrollRef.current = null;
-    flashListRef.current?.scrollToIndex({ index: pending.index, animated: true, viewPosition: 0.3 });
+    scrollToEpisode(pending.index);
+  };
+  // A shared link opens at its episode: once per link, as soon as the list has rows to scroll
+  const sharedJumpKey = sharedIndex >= 0 ? `${id}|${sharedSeason ?? ''}|${sharedEpisode}` : null;
+  const jumpedToSharedRef = useRef<string | null>(null);
+  const onListLayout = () => {
+    if (sharedJumpKey && jumpedToSharedRef.current !== sharedJumpKey && episodes.length > 0) {
+      jumpedToSharedRef.current = sharedJumpKey;
+      scrollToContinue();
+      return;
+    }
+    scrollToPending();
   };
 
   const handleProviderChange = useCallback(
@@ -508,11 +555,6 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     setSheetOpen(true);
   }, []);
 
-  const getItemKey = useCallback(
-    (item: IAnimeEpisode | IMovieEpisode) => item.id ?? item.uniqueId ?? String(item.number ?? item.episode),
-    [],
-  );
-
   const nav = useMemo<EpisodeNav>(
     () => ({ mediaType, provider: providerToUse, id, episodeDataId: providerMediaId, type: type as string }),
     [mediaType, providerToUse, id, providerMediaId, type],
@@ -545,7 +587,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
           <List<IAnimeEpisode | IMovieEpisode>
             ref={flashListRef}
             {...listProps}
-            onCommitLayoutEffect={scrollToPending}
+            onCommitLayoutEffect={onListLayout}
             data={isLoading ? [] : episodes}
             // Rendered inside the list so `header` stays visible
             ListEmptyComponent={
@@ -641,7 +683,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
                 viewOffset: 200,
               });
             }}
-            keyExtractor={getItemKey}
+            keyExtractor={episodeKey}
             renderItem={renderItem}
           />
         </ScrollShadow>
@@ -661,5 +703,23 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     </>
   );
 };
+
+// Over the card, which sits inside the row's py-1
+const pulseStyles = css.create({
+  border: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 4,
+    bottom: 4,
+    borderWidth: 2,
+    borderRadius: 16,
+    opacity: 0,
+    animationName: css.keyframes({ from: { opacity: 0 }, '50%': { opacity: 1 }, to: { opacity: 0 } }),
+    animationDuration: PULSE_MS,
+    animationIterationCount: PULSE_TIMES,
+    animationTimingFunction: 'ease-in-out',
+  },
+});
 
 export default memo(EpisodeList);
