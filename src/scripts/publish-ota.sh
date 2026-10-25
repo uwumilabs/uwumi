@@ -57,6 +57,21 @@ fi
 VERSION="$(node -p "require('./package.json').version")"
 # Same tag format as release-it's git.tagName
 TAG="v${VERSION}"
+
+# The bundle runs on the native code of the binaries released as ${TAG}. Built after an Expo or React Native upgrade,
+# it would crash every installed copy, so refuse until there's a new release to publish against.
+dep_version() { node -e 'let s="";process.stdin.on("data",(d)=>(s+=d)).on("end",()=>console.log(JSON.parse(s).dependencies?.[process.argv[1]]??""))' "$1"; }
+if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+  for DEP in expo react-native; do
+    RELEASED="$(git show "${TAG}:package.json" | dep_version "$DEP")"
+    CURRENT="$(dep_version "$DEP" < package.json)"
+    if [[ "$RELEASED" != "$CURRENT" ]]; then
+      echo "Refusing to publish: ${DEP} is ${CURRENT} here but ${RELEASED} in the ${TAG} binaries." >&2
+      echo "Release a new native build first (yarn release), or publish from a checkout of ${TAG}'s native setup." >&2
+      exit 1
+    fi
+  done
+fi
 # owner/repo from either https://github.com/o/r(.git) or git@github.com:o/r(.git)
 REPO_SLUG="$(git remote get-url origin | sed -E 's#^(https://github\.com/|git@github\.com:)##; s#\.git$##')"
 API="https://api.github.com/repos/${REPO_SLUG}"

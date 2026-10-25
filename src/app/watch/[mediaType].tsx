@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Dimensions, View } from 'react-native';
-import { ISO639_1, TextTrackType, OnLoadData } from 'react-native-video/src';
+import { BufferingStrategyType, ISO639_1, TextTrackType, OnLoadData } from 'react-native-video/src';
 import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
 import { IAnimeInfo, IEpisodeServer, ISubtitle, TvType } from 'react-native-consumet';
 import { HUXStack, MaterialIconsIcon, ThemedView } from '@/components';
@@ -584,6 +584,7 @@ const Watch = () => {
           preventsDisplaySleepDuringVideoPlayback: true,
           allowsEaxternalPlayback: true,
           mixWithOthers: 'mix',
+          bufferingStrategy: BufferingStrategyType.DEPENDING_ON_MEMORY,
           enterPictureInPictureOnLeave: !isTV && isPlaying,
           onError: () => {
             const attempt = rotation.attempt;
@@ -636,13 +637,13 @@ const Watch = () => {
             }),
           textTracksAllowChunklessPreparation: false,
           bufferConfig: {
-            minBufferMs: 85000, // 85s minimum buffer (VLC-like for smooth seeking)
-            maxBufferMs: 120000, // 120s maximum buffer (prevents excessive memory usage)
-            bufferForPlaybackMs: 2500, // 2.5s initial buffer before playback starts
-            bufferForPlaybackAfterRebufferMs: 5000, // 5s buffer after rebuffering for stability
-            backBufferDurationMs: 120000, // Keep 120s of back buffer for smooth seeking backwards
-            maxHeapAllocationPercent: 0.25, // Use max 25% of heap for buffering
-            cacheSizeMB: 512, // 512MB cache size for better performance
+            minBufferMs: 60000,
+            maxBufferMs: 120000,
+            bufferForPlaybackMs: 2500,
+            bufferForPlaybackAfterRebufferMs: 5000,
+            backBufferDurationMs: 30000,
+            maxHeapAllocationPercent: 0.25,
+            cacheSizeMB: 512,
           },
         }}>
         <DefaultLayout
