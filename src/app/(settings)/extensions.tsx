@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
-import { isCompatibleEntry } from 'react-native-consumet';
+import { isCompatibleEntry, type ProviderType } from 'react-native-consumet';
 import { useExtensionStore, useCurrentTheme } from '@/hooks';
 import { isTV } from '@/constants/utils';
 import { Avatar, Card, Chip, Switch } from '@/components/heroui';
@@ -15,6 +15,7 @@ import {
   IoniconsIcon,
   TVFocusWrapper,
   Separator,
+  HorizontalTabs,
 } from '@/components';
 
 interface ExtensionCardProps {
@@ -323,6 +324,11 @@ function ExtensionDetailsSheet({
   );
 }
 
+const CATEGORY_TABS: { key: ProviderType; label: string }[] = [
+  { key: 'anime', label: 'Anime' },
+  { key: 'movies', label: 'Movies' },
+];
+
 export default function Extensions() {
   const registry = useExtensionStore((state) => state.registry);
   const isLoading = useExtensionStore((state) => state.isLoading);
@@ -463,39 +469,47 @@ export default function Extensions() {
           </HUXStack>
         )}
 
-        {/* Extensions List */}
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          refreshControl={isTV ? undefined : <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}>
-          <HUYStack className="gap-3 p-4 pb-8">
-            {filteredExtensions.map((extension) => {
-              const extensionIsInstalled = isExtensionInstalled(extension.id);
-              const extensionHasUpdate = availableUpdates.includes(extension.id);
-
-              // Debug each extension
-              //console.log(`Rendering ${extension.id}:`, {
-              //   installed: extensionIsInstalled,
-              //   hasUpdate: extensionHasUpdate,
-              //   version: extension.version,
-              // });
-
-              return (
-                <ExtensionCard
-                  key={extension.id}
-                  extension={extension}
-                  isInstalled={extensionIsInstalled}
-                  isLoading={loadingStates[extension.id] || false}
-                  hasUpdate={extensionHasUpdate}
-                  isCompatible={isCompatibleEntry(extension)}
-                  onInstall={() => handleAction(() => installExtension(extension.id), extension.id)}
-                  onUninstall={() => handleAction(() => uninstallExtension(extension.id), extension.id)}
-                  onUpdate={() => handleAction(() => updateExtension(extension.id), extension.id)}
-                  onShowDetails={() => showExtensionDetails(extension)}
-                />
-              );
-            })}
-          </HUYStack>
-        </ScrollView>
+        <HorizontalTabs
+          initialTab="anime"
+          items={CATEGORY_TABS.map(({ key, label }) => {
+            const extensions = filteredExtensions.filter((extension) => extension.category === key);
+            return {
+              key,
+              label,
+              content: (
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  refreshControl={
+                    isTV ? undefined : <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+                  }>
+                  <HUYStack className="gap-3 p-4 pb-8">
+                    {extensions.length === 0 && (
+                      <Text className="text-foreground/70 text-center pt-8">
+                        {showInstalledOnly
+                          ? `No ${label.toLowerCase()} extensions installed`
+                          : `No ${label.toLowerCase()} extensions available`}
+                      </Text>
+                    )}
+                    {extensions.map((extension) => (
+                      <ExtensionCard
+                        key={extension.id}
+                        extension={extension}
+                        isInstalled={isExtensionInstalled(extension.id)}
+                        isLoading={loadingStates[extension.id] || false}
+                        hasUpdate={availableUpdates.includes(extension.id)}
+                        isCompatible={isCompatibleEntry(extension)}
+                        onInstall={() => handleAction(() => installExtension(extension.id), extension.id)}
+                        onUninstall={() => handleAction(() => uninstallExtension(extension.id), extension.id)}
+                        onUpdate={() => handleAction(() => updateExtension(extension.id), extension.id)}
+                        onShowDetails={() => showExtensionDetails(extension)}
+                      />
+                    ))}
+                  </HUYStack>
+                </ScrollView>
+              ),
+            };
+          })}
+        />
 
         {/* Extension Details Sheet */}
         <ExtensionDetailsSheet

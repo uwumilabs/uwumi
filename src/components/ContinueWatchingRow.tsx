@@ -63,35 +63,52 @@ const ContinueWatchingCard = memo(({ entry, width }: { entry: ContinueWatchingEn
       : [seasonNumber && `S${seasonNumber}`, episodeNumber && `EP ${episodeNumber}`].filter(Boolean).join(' · ');
   const caption = isCompleted ? 'Watched · next episode' : minutesLeft ? `${minutesLeft}m left` : episodeTitle;
 
-  return (
-    <TVFocusWrapper
-      onPress={open}
-      onLongPress={removeFromRow}
-      focusBorderRadius={12}
-      style={{ width }}
-      accessibilityHint="Long press to remove from Continue watching">
-      {/* Fills the wrapper rather than `width`, so on TV it sits inside the focus ring's border instead of covering it */}
-      <View
-        className="overflow-hidden rounded-xl bg-default"
-        style={{ width: '100%', aspectRatio: 1 / THUMBNAIL_ASPECT }}>
-        <Image source={poster || entry.showImage} style={{ width: '100%', height: '100%' }} />
-        {!!episodeLabel && (
-          <Text className="absolute left-2 top-2 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
-            {episodeLabel}
-          </Text>
-        )}
-        {hasProgress && !isCompleted && <Progress className="absolute inset-x-2 bottom-2" value={percent} />}
-      </View>
-      <HUYStack className="pt-1.5">
-        <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
-          {entry.showTitle || episodeTitle}
+  const title = entry.showTitle || episodeTitle;
+
+  // Fills the wrapper rather than `width`, so on TV it sits inside the focus ring's border instead of covering it
+  const thumbnail = (
+    <View
+      className="overflow-hidden rounded-xl bg-default"
+      style={{ width: '100%', aspectRatio: 1 / THUMBNAIL_ASPECT }}>
+      <Image source={poster || entry.showImage} style={{ width: '100%', height: '100%' }} />
+      {!!episodeLabel && (
+        <Text className="absolute left-2 top-2 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
+          {episodeLabel}
         </Text>
-        {!!caption && (
-          <Text className="text-xs text-foreground/60" numberOfLines={1}>
-            {caption}
-          </Text>
-        )}
-      </HUYStack>
+      )}
+      {hasProgress && !isCompleted && <Progress className="absolute inset-x-2 bottom-2" value={percent} />}
+    </View>
+  );
+  const details = (
+    <HUYStack className="pt-1.5">
+      <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
+        {title}
+      </Text>
+      {!!caption && (
+        <Text className="text-xs text-foreground/60" numberOfLines={1}>
+          {caption}
+        </Text>
+      )}
+    </HUYStack>
+  );
+  const pressProps = {
+    onPress: open,
+    onLongPress: removeFromRow,
+    accessibilityHint: 'Long press to remove from Continue watching',
+  };
+
+  // TV: only the thumbnail takes focus, so the ring and scale wrap the picture and the text stays below it
+  return isTV ? (
+    <View style={{ width }}>
+      <TVFocusWrapper {...pressProps} focusBorderRadius={12} accessibilityLabel={title}>
+        {thumbnail}
+      </TVFocusWrapper>
+      {details}
+    </View>
+  ) : (
+    <TVFocusWrapper {...pressProps} style={{ width }}>
+      {thumbnail}
+      {details}
     </TVFocusWrapper>
   );
 });

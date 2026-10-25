@@ -12,7 +12,7 @@ const TVButton = forwardRef<React.ComponentRef<typeof HeroButton>, ButtonProps>(
   // An accent ring would disappear against a primary button's accent background
   const isPrimary = (props.variant ?? 'primary') === 'primary';
   // No scale: full-width buttons would grow past their container; the ring alone shows focus
-  const ring = tvFocusRingStyle({ color: isPrimary ? currentTheme?.foreground : currentTheme?.accent, scale: 1 });
+  const ring = tvFocusRingStyle({ color: isPrimary ? currentTheme?.accentForeground : currentTheme?.accent, scale: 1 });
   return (
     <HeroButton
       ref={ref}
