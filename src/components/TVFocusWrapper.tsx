@@ -72,7 +72,6 @@ const TVFocusWrapper: React.FC<TVFocusWrapperProps> = memo(
       scale: focusScale,
       borderWidth: focusBorderWidth,
       borderRadius: focusBorderRadius + focusBorderWidth,
-      duration: 15,
     });
 
     return (

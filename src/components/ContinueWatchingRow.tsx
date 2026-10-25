@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { TvType } from 'react-native-consumet';
 import { MediaType } from '@/constants/types';
-import { isTV } from '@/constants/utils';
+import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/constants/utils';
 import { ContinueWatchingEntry, useContinueWatchingStore, useWatchProgressStore } from '@/hooks';
 import Image from './Image';
 import List from './List';
@@ -66,7 +66,7 @@ const ContinueWatchingCard = memo(({ entry, width }: { entry: ContinueWatchingEn
   return (
     <TVFocusWrapper
       onPress={open}
-      onLongPress={isTV ? undefined : removeFromRow}
+      onLongPress={removeFromRow}
       focusBorderRadius={12}
       style={{ width }}
       accessibilityHint="Long press to remove from Continue watching">
@@ -128,7 +128,7 @@ export const ContinueWatchingRow = memo(({ mediaType }: { mediaType: MediaType }
   if (items.length === 0) return null;
 
   return (
-    <View className="gap-2">
+    <View className="gap-2" scrollSnapAlign={TV_SNAP_CENTER}>
       <Text className="text-foreground text-lg font-semibold" style={{ paddingLeft: ROW_PADDING + 4 }}>
         Continue watching
       </Text>
@@ -140,9 +140,14 @@ export const ContinueWatchingRow = memo(({ mediaType }: { mediaType: MediaType }
           showsHorizontalScrollIndicator={false}
           scrollsToTop={false}
           contentContainerStyle={{ paddingHorizontal: ROW_PADDING, paddingVertical: ROW_VERTICAL_PADDING }}
+          {...tvFocusScrollProps(ROW_PADDING)}
           ItemSeparatorComponent={() => <View style={{ width: ITEM_GAP }} />}
           ListFooterComponent={null}
-          renderItem={({ item }) => <ContinueWatchingCard entry={item} width={cardWidth} />}
+          renderItem={({ item }) => (
+            <View scrollSnapAlign={TV_SNAP_CENTER}>
+              <ContinueWatchingCard entry={item} width={cardWidth} />
+            </View>
+          )}
         />
       </TVRow>
     </View>

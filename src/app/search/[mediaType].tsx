@@ -1,10 +1,10 @@
 import React, { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { SearchField, Separator } from 'heroui-native';
 import { ListGroup } from '@/components/ListGroup';
 import { Button } from '@/components/Button';
-import { CardList, HUXStack, HUYStack, IoniconsIcon, RippleButton, ThemedView } from '@/components';
+import { CardList, HUXStack, HUYStack, IoniconsIcon, ThemedView } from '@/components';
 import { getMetaProvider, mediaTypeLabel } from '@/components/MediaBrowser';
 import { MediaType } from '@/constants/types';
 import { isTV } from '@/constants/utils';
@@ -15,7 +15,6 @@ const MIN_QUERY_LENGTH = 2;
 const EMPTY: string[] = [];
 
 const Search = () => {
-  const router = useRouter();
   const { mediaType } = useLocalSearchParams<{ mediaType: MediaType }>();
   const currentTheme = useCurrentTheme();
   const metaProvider = getMetaProvider(mediaType);
@@ -68,9 +67,6 @@ const Search = () => {
   return (
     <ThemedView>
       <HUXStack className="items-center gap-1 px-2 py-2">
-        <RippleButton onPress={router.back}>
-          <IoniconsIcon name="chevron-back" size={24} color={currentTheme?.foreground} />
-        </RippleButton>
         <SearchField value={query} onChange={handleChange} className="flex-1">
           <SearchField.Group>
             <SearchField.SearchIcon />

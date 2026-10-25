@@ -73,7 +73,9 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
 
               {scrollable ? (
                 <ScrollView
-                  style={{ maxHeight: Math.min(500, windowHeight * 0.75) }}
+                  // TV: the sheet opens half-expanded and can't be dragged up, so content past half the screen
+                  // would sit below the edge; kept within it, this scroll view brings the focused row into view
+                  style={{ maxHeight: isTV ? windowHeight / 2 - 24 : Math.min(500, windowHeight * 0.75) }}
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={{ paddingBottom: 16 }}
                   keyboardShouldPersistTaps="handled"

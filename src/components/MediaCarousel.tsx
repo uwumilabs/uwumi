@@ -7,7 +7,7 @@ import type { ISearch } from 'react-native-consumet';
 import { SkeletonGroup } from 'heroui-native';
 import { Button } from './Button';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
-import { isTV } from '@/constants/utils';
+import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/constants/utils';
 import { useCurrentTheme, useMediaFeed } from '@/hooks';
 import { MediaCard, MediaItem, cardKey, toCardItems } from './CardList';
 import { HUXStack } from './ui-primitives';
@@ -99,10 +99,11 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
             showsHorizontalScrollIndicator={false}
             scrollsToTop={false}
             contentContainerStyle={{ paddingHorizontal: ROW_PADDING, paddingVertical: ROW_VERTICAL_PADDING }}
+            {...tvFocusScrollProps(ROW_PADDING)}
             // FlashList ignores `gap` in contentContainerStyle
             ItemSeparatorComponent={() => <View style={{ width: ITEM_GAP }} />}
             renderItem={({ item, index }) => (
-              <View style={{ width: cardWidth, height: cardWidth * CARD_ASPECT }}>
+              <View style={{ width: cardWidth, height: cardWidth * CARD_ASPECT }} scrollSnapAlign={TV_SNAP_CENTER}>
                 <MediaCard
                   item={item}
                   index={index}
@@ -136,7 +137,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
     if (!isLoading && !error && items.length === 0) return null;
 
     return (
-      <View className="gap-2">
+      <View className="gap-2" scrollSnapAlign={TV_SNAP_CENTER}>
         <HUXStack className="items-center justify-between" props={{ style: { paddingLeft: ROW_PADDING + 4 } }}>
           <Text className="text-foreground text-lg font-semibold">{title}</Text>
           {!isTV && canBrowse && (

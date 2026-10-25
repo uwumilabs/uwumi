@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, ScrollView, Text } from 'react-native';
+import { ActivityIndicator, Linking, Platform, ScrollView, Text, View } from 'react-native';
 import { IAnimeEpisode, IMovieEpisode, IEpisodeServer } from 'react-native-consumet';
 import {
   useWatchProgressStore,
@@ -12,7 +12,7 @@ import {
   useMediaInfo,
 } from '@/hooks';
 import { MediaType } from '@/constants/types';
-import { infoTitle, shareMedia } from '@/constants/utils';
+import { infoTitle, isTV, shareMedia } from '@/constants/utils';
 import { useLocalSearchParams } from 'expo-router';
 import { useActiveProvider } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
@@ -37,23 +37,34 @@ interface SheetButtonProps {
   icon?: React.ReactNode;
   label: string;
   rightIcon?: React.ReactNode;
+  hasTVPreferredFocus?: boolean;
 }
 
-const StyledSheetButton: React.FC<SheetButtonProps> = memo(({ onPress, icon, label, rightIcon }) => {
-  return (
-    <HUXStack className="items-center justify-between gap-3">
-      <RippleButton className="flex-1 p-3.5 rounded-lg bg-default" onPress={onPress}>
-        <HUXStack className="items-center gap-3">
-          {icon ? icon : null}
-          <Text className="text-base font-medium text-accent flex-1">{label}</Text>
-          {rightIcon ? rightIcon : null}
-        </HUXStack>
-      </RippleButton>
-    </HUXStack>
-  );
-});
+const StyledSheetButton: React.FC<SheetButtonProps> = memo(
+  ({ onPress, icon, label, rightIcon, hasTVPreferredFocus }) => {
+    return (
+      <HUXStack className="items-center justify-between gap-3">
+        <RippleButton
+          className="flex-1 p-3.5 rounded-lg bg-default"
+          onPress={onPress}
+          hasTVPreferredFocus={hasTVPreferredFocus}
+          focusScale={1}>
+          <HUXStack className="items-center gap-3">
+            {icon ? icon : null}
+            <Text className="text-base font-medium text-accent flex-1">{label}</Text>
+            {rightIcon ? rightIcon : null}
+          </HUXStack>
+        </RippleButton>
+      </HUXStack>
+    );
+  },
+);
 
 StyledSheetButton.displayName = 'StyledSheetButton';
+
+// On TV the sheet's own scroll view follows focus; a second one nested inside would hide focused rows below its fold
+const SheetList = ({ children }: { children: React.ReactNode }) =>
+  isTV ? <View>{children}</View> : <ScrollView style={{ maxHeight: 400 }}>{children}</ScrollView>;
 
 const ListState = ({
   loading,
@@ -381,6 +392,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
               <HUYStack className="gap-1 mt-2">
                 {/* Mark as Complete/Incomplete */}
                 <StyledSheetButton
+                  hasTVPreferredFocus
                   onPress={handleMarkComplete}
                   icon={<IoniconsIcon name="checkmark" size={20} />}
                   label={isCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}
@@ -420,7 +432,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
             {/* Server Selection Menu */}
             {showServerSelection && (
-              <ScrollView style={{ maxHeight: 400 }}>
+              <SheetList>
                 <HUYStack className="gap-1 mt-2">
                   {isLoading ? (
                     <ListState loading title="Loading servers..." />
@@ -429,9 +441,10 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                   ) : availableServers.length === 0 ? (
                     <ListState title="No servers available" subtitle="Please try again later" severity="error" />
                   ) : (
-                    availableServers.map((server) => (
+                    availableServers.map((server, index) => (
                       <StyledSheetButton
                         key={server.name}
+                        hasTVPreferredFocus={index === 0}
                         onPress={() => handleServerSelect(server)}
                         icon={<IoniconsIcon name="server-outline" size={20} />}
                         label={server.name}
@@ -439,12 +452,12 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                     ))
                   )}
                 </HUYStack>
-              </ScrollView>
+              </SheetList>
             )}
 
             {/* Quality Selection Menu */}
             {showQualitySelection && (
-              <ScrollView style={{ maxHeight: 400 }}>
+              <SheetList>
                 <HUYStack className="gap-1 mt-2">
                   {isLoading ? (
                     <ListState loading title="Loading video sources..." />
@@ -468,6 +481,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                       return (
                         <StyledSheetButton
                           key={quality}
+                          hasTVPreferredFocus={index === 0}
                           onPress={() =>
                             actionMode === 'download' ? handleDownloadWithQuality(url) : handleOpenWithQuality(url)
                           }
@@ -485,7 +499,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                     })
                   )}
                 </HUYStack>
-              </ScrollView>
+              </SheetList>
             )}
           </HUYStack>
         ) : null}

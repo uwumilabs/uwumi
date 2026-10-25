@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { SearchField } from 'heroui-native';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
-import { isTV } from '@/constants/utils';
+import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/constants/utils';
 import MediaCarousel from './MediaCarousel';
 import ContinueWatchingRow from './ContinueWatchingRow';
 import { RippleButton } from './ui-primitives';
@@ -56,18 +56,22 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
     <ScrollView
       contentContainerClassName="gap-6 pb-32"
       showsVerticalScrollIndicator={false}
+      {...tvFocusScrollProps(16)}
       refreshControl={isTV ? undefined : <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
       {/* Looks like the search field but only opens the search screen, so the keyboard never opens here */}
-      <RippleButton onPress={openSearch} className="mx-3 mt-3 p-0 rounded-2xl">
-        <View pointerEvents="none">
-          <SearchField value="">
-            <SearchField.Group>
-              <SearchField.SearchIcon />
-              <SearchField.Input editable={false} focusable={false} placeholder={`Search ${label.toLowerCase()}`} />
-            </SearchField.Group>
-          </SearchField>
-        </View>
-      </RippleButton>
+      <View scrollSnapAlign={TV_SNAP_CENTER}>
+        {/* No focus scale: it spans the screen, so growing would push it past the edges */}
+        <RippleButton onPress={openSearch} className="mx-3 mt-3 p-0 rounded-2xl" focusScale={1}>
+          <View pointerEvents="none">
+            <SearchField value="">
+              <SearchField.Group>
+                <SearchField.SearchIcon />
+                <SearchField.Input editable={false} focusable={false} placeholder={`Search ${label.toLowerCase()}`} />
+              </SearchField.Group>
+            </SearchField>
+          </View>
+        </RippleButton>
+      </View>
 
       {mediaType !== MediaType.MANGA && <ContinueWatchingRow mediaType={mediaType} />}
 

@@ -22,11 +22,11 @@ import WavyAnimation from './WavyAnimation';
 import EpisodeActionsSheet from './EpisodeActionsSheet';
 import { EpisodeDisplayMode, MediaType } from '@/constants/types';
 import { IAnimeEpisode, IMovieEpisode, MediaFormat, TvType } from 'react-native-consumet';
-import { formatTime, isTV } from '@/constants/utils';
+import { formatTime, isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/constants/utils';
 import Select from '../Select';
 import { useProviders, useProviderStore } from '@/constants/provider';
 import List from '../List';
-import { HUYStack, HUXStack, RippleButton } from '../ui-primitives';
+import { HUYStack, HUXStack } from '../ui-primitives';
 import TVFocusWrapper from '../TVFocusWrapper';
 import LinearGradient from '../LinearGradient';
 import ListJumpBar from '../ListJumpBar';
@@ -113,25 +113,16 @@ const ListPressable = memo(
       onOpenActions(item);
     }, [item, onOpenActions]);
 
-    const handleActionsPress = useCallback(() => onOpenActions(item), [item, onOpenActions]);
-
     return (
-      <HUXStack className="items-center gap-1">
-        <TVFocusWrapper
-          onPress={navigateToEpisode}
-          onLongPress={isTV ? undefined : handleLongPress}
-          focusScale={1}
-          focusBorderRadius={16}
-          className="rounded-2xl my-1 flex-1">
-          {children}
-        </TVFocusWrapper>
-        {/* On TV, show a visible "⋮" button */}
-        {isTV && swipeable && (
-          <RippleButton onPress={handleActionsPress} className="p-2">
-            <IoniconsIcon name="ellipsis-vertical" size={20} />
-          </RippleButton>
-        )}
-      </HUXStack>
+      <TVFocusWrapper
+        onPress={navigateToEpisode}
+        onLongPress={handleLongPress}
+        focusScale={1}
+        focusBorderRadius={16}
+        containerStyle={{ marginHorizontal: 8 }}
+        className="rounded-2xl my-1">
+        {children}
+      </TVFocusWrapper>
     );
   },
 );
@@ -252,11 +243,11 @@ const EpisodeContent = ({
     return (
       <HUYStack
         className={cn('flex-1 gap-2 rounded-2xl bg-background p-3 shadow-md', pureBlackBackground && 'bg-black')}>
-        <HUXStack className="items-center justify-between gap-2">
+        <HUXStack className="flex-1 items-center justify-between gap-2">
           <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={titleOnly ? 2 : 1}>
             {titleOnly ? item.title : `EP ${(item.number ?? item.episode ?? '').toString()}`}
           </Text>
-          <HUXStack className="flex-row items-center gap-1">
+          <HUXStack className="flex-row items-center gap-1 ml-auto">
             <MaterialIconsIcon name="closed-caption-off" size={18} />
             {item?.isDubbed ? <IoniconsIcon name="mic" size={18} /> : null}
           </HUXStack>
@@ -283,8 +274,8 @@ const EpisodeContent = ({
         {swipeable && <ThumbnailProgress uniqueId={item?.uniqueId as string} />}
       </View>
       <HUYStack className="flex-1 justify-between gap-2 px-2 ">
-        <Card.Header>
-          <HUXStack className="items-center justify-between gap-2">
+        <Card.Header className="flex-row">
+          <HUXStack className="flex-1 items-center justify-between gap-2">
             <Card.Title className="w-4/5" numberOfLines={1}>
               {item.title}
             </Card.Title>
@@ -342,7 +333,7 @@ const EpisodeRow = memo(
     const swipeableRef = useRef<SwipeableMethods | null>(null);
 
     const row = (
-      <>
+      <View scrollSnapAlign={TV_SNAP_CENTER}>
         <ListPressable item={item} nav={nav} swipeable={swipeable} onOpenActions={onOpenActions}>
           <EpisodeContent
             item={item}
@@ -353,7 +344,7 @@ const EpisodeRow = memo(
           />
         </ListPressable>
         {pulse ? <PulseBorder key={pulse} /> : null}
-      </>
+      </View>
     );
     if (!swipeable || isTV) return row;
 
@@ -589,6 +580,7 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
           <List<IAnimeEpisode | IMovieEpisode>
             ref={flashListRef}
             {...listProps}
+            {...tvFocusScrollProps(0)}
             onCommitLayoutEffect={onListLayout}
             data={isLoading ? [] : episodes}
             // Rendered inside the list so `header` stays visible

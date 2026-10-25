@@ -13,7 +13,7 @@ import {
   type IoniconProps,
 } from '@/components';
 import { EpisodeDownload, useDownloadStore, usePureBlackBackground } from '@/hooks';
-import { formatTime, isTV } from '@/constants/utils';
+import { formatTime } from '@/constants/utils';
 import { ActivityIndicator, Text } from 'react-native';
 import { Separator, Dialog, Card, cn } from 'heroui-native';
 import { Button } from '@/components/Button';
@@ -366,7 +366,7 @@ const EmptyState = () => (
     <IoniconsIcon name="folder-outline" size={64} className="text-foreground" />
     <Text className="text-center text-2xl font-semibold text-foreground/50">No Downloads</Text>
     <Text className="max-w-75 text-center text-base text-foreground/40">
-      {`Downloaded episodes will appear here. ${isTV ? 'Press ⋮ next to an episode' : 'Long press an episode'} to access download options.`}
+      Downloaded episodes will appear here. Long press an episode to access download options.
     </Text>
   </HUYStack>
 );
