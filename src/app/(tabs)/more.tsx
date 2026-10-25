@@ -41,7 +41,6 @@ const More = () => {
       { href: '/(settings)/appearance' as Href, icon: 'color-palette', label: 'Appearance' },
       { href: '/(settings)/player' as Href, icon: 'play-circle', label: 'Player' },
       { href: '/(settings)/extensions' as Href, icon: 'extension-puzzle', label: 'Extensions' },
-      // { href: '/(settings)' as Href, icon: Settings, label: 'Settings' },
       { href: '/(settings)/favorites' as Href, icon: 'heart', label: 'Favorites' },
       { href: '/(settings)/downloads' as Href, icon: 'download', label: 'Downloads' },
       { href: '/(settings)/about' as Href, icon: 'information-circle-outline', label: 'About' },

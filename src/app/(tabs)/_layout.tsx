@@ -13,7 +13,7 @@ export default function TabLayout() {
 
   return (
     <NativeTabs
-      backBehavior="history"
+      backBehavior="initialRoute"
       backgroundColor={pureBlackBackground ? currentTheme?.amoledSurfaceVariant : currentTheme?.segment}
       indicatorColor={currentTheme?.default}
       rippleColor={hexToRGB(currentTheme?.accent, 0.5)}
