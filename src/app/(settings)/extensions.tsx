@@ -58,7 +58,6 @@ function ExtensionCard({
               <Avatar size="md" variant="soft" color="default" alt={`${extension?.name ?? 'Extension'} logo`}>
                 {!!extension.logo && (
                   <Avatar.Image source={{ uri: extension.logo }} asChild>
-                    {/* @ts-expect-error heroui-native's asChild Image takes RN 0.88 ImageProps, whose children are `never` */}
                     <Image style={{ width: '100%', height: '100%' }} contentFit="cover" />
                   </Avatar.Image>
                 )}
@@ -197,7 +196,6 @@ function ExtensionDetailsSheet({
           <Avatar size="lg" variant="soft" color="default" alt={`${extension?.name ?? 'Extension'} logo`}>
             {!!extension.logo && (
               <Avatar.Image source={{ uri: extension.logo }} asChild>
-                {/* @ts-expect-error heroui-native's asChild Image takes RN 0.88 ImageProps, whose children are `never` */}
                 <Image style={{ width: '100%', height: '100%' }} contentFit="cover" />
               </Avatar.Image>
             )}

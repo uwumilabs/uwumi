@@ -46,7 +46,7 @@ type RippleButtonProps = Omit<PressableFeedbackProps, 'onPress'> & {
   hasTVPreferredFocus?: boolean;
 };
 
-export const RippleButton = forwardRef<View, RippleButtonProps>(
+export const RippleButton = forwardRef<React.ComponentRef<typeof View>, RippleButtonProps>(
   ({ onPress, children, containerStyle, className, hasTVPreferredFocus, ...props }, ref) => {
     const currentTheme = useCurrentTheme();
 

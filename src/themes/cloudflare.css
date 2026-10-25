@@ -26,6 +26,8 @@
       --overlay: #fcf7ff;
       /* Android: onSurface */
       --overlay-foreground: #1b1b22;
+      /* Android: scrim, which Material 3 dims to 32% behind sheets and dialogs */
+      --backdrop: rgba(0, 0, 0, 0.32);
 
       /* Android: onSurfaceVariant */
       --muted: #49454e;
@@ -114,6 +116,8 @@
       --overlay: #292730;
       /* Android: onSurface */
       --overlay-foreground: #eff2f5;
+      /* Android: scrim, which Material 3 dims to 32% behind sheets and dialogs */
+      --backdrop: rgba(0, 0, 0, 0.32);
 
       /* Android: onSurfaceVariant */
       --muted: #ffffff;

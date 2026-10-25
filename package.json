@@ -93,7 +93,7 @@
     "expo-splash-screen": "~58.0.11",
     "expo-status-bar": "~58.0.4",
     "expo-web-browser": "~58.0.6",
-    "heroui-native": "1.0.0-rc.3",
+    "heroui-native": "1.0.11",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "npm:react-native-tvos@0.88-stable",
@@ -121,7 +121,7 @@
     "tailwind-merge": "^3.4.0",
     "tailwind-variants": "^3.2.2",
     "tailwindcss": "^4.1.17",
-    "uniwind": "1.4.0",
+    "uniwind": "1.13.0",
     "zustand": "^5.0.1"
   },
   "devDependencies": {

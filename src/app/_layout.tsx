@@ -131,11 +131,13 @@ const DownloadDialog = ({
 
 const AppContent = () => {
   const { isUpdateAvailable, updateInfo, setIsUpdateAvailable } = useUpdateChecker(EXTERNAL_LINKS.GITHUB_RELEASES_API);
-  const [loaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     InterMedium,
     InterSemiBold,
     InterBold,
   });
+  // A font that fails to load falls back to the system font instead of keeping the app on the splash
+  const loaded = fontsLoaded || !!fontError;
   useOtaUpdates(loaded);
 
   const uniwindThemeName = useUniwind();

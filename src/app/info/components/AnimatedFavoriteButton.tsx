@@ -8,7 +8,7 @@ import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
 import { useLocalSearchParams } from 'expo-router';
 import { infoTitle, isTV } from '@/constants/utils';
 
-export const AnimatedFavoriteButton = forwardRef<View, Record<string, any>>((props, ref) => {
+export const AnimatedFavoriteButton = forwardRef<React.ComponentRef<typeof View>, Record<string, any>>((props, ref) => {
   // const { id, ...itemData } = props;
   const { mediaType, metaProvider, type, provider, id, image, title } = useLocalSearchParams<{
     mediaType: MediaType;

@@ -71,9 +71,9 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
   const { episodes } = useEpisodeList();
 
   // TV: refs for an explicit D-pad focus chain across the top row
-  const backBtnRef = useRef<View>(null);
-  const favBtnRef = useRef<View>(null);
-  const webviewBtnRef = useRef<View>(null);
+  const backBtnRef = useRef<React.ComponentRef<typeof View>>(null);
+  const favBtnRef = useRef<React.ComponentRef<typeof View>>(null);
+  const webviewBtnRef = useRef<React.ComponentRef<typeof View>>(null);
   const [tvNodes, setTvNodes] = useState<{ back?: number; fav?: number; webview?: number }>({});
   useEffect(() => {
     if (!isTV) return;
