@@ -52,7 +52,9 @@ const Read = () => {
         contentContainerStyle={{
           paddingVertical: 8,
         }}
-        ListEmptyComponent={<NoResults />}
+        ListEmptyComponent={
+          <NoResults title="No pages found" hint="The provider may be down. Try another one from the chapter list." />
+        }
         showsVerticalScrollIndicator={true}
         renderItem={renderItem}
       />

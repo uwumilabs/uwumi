@@ -3,6 +3,7 @@ import { Platform, ScrollView, View, useWindowDimensions, type ViewProps } from 
 import { BottomSheet as NativeBottomSheet, RNHostView, type SnapPoint } from '@expo/ui';
 import { LayoutAnimationConfig } from 'react-native-reanimated';
 import { useCurrentTheme, useSheetColor } from '@/hooks';
+import { isTV } from '@/constants/utils';
 
 export type BottomSheetRef = {
   present: () => void;
@@ -57,6 +58,8 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
       <NativeBottomSheet
         isPresented={open}
         onDismiss={dismiss}
+        // TVs can't drag it, and the handle would be the first thing the D-pad focuses
+        showDragIndicator={!isTV}
         snapPoints={snapPoints?.map(toSnapPoint)}
         contentPadding={0}
         containerColor={sheetColor}

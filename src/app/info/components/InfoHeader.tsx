@@ -4,7 +4,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from '@/components/LinearGradient';
 import Animated from 'react-native-reanimated';
-import { Button, Chip, ScrollShadow } from 'heroui-native';
+import { Chip, ScrollShadow } from 'heroui-native';
+import { Button } from '@/components/Button';
 import { IAnimeInfo, IMovieInfo } from 'react-native-consumet';
 import {
   AnimatedImage,
@@ -225,7 +226,8 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
         {chips.length > 0 && (
           <HUXStack className="flex-wrap gap-2">
             {chips.map((chip) => (
-              <Chip key={chip} size="sm">
+              // Labels only: nothing for the D-pad to stop on
+              <Chip key={chip} size="sm" focusable={isTV ? false : undefined}>
                 {chip}
               </Chip>
             ))}

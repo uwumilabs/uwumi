@@ -1,9 +1,11 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
+import { TVRow } from './TVRow';
 import { useRouter } from 'expo-router';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { ISearch } from 'react-native-consumet';
-import { Button, SkeletonGroup } from 'heroui-native';
+import { SkeletonGroup } from 'heroui-native';
+import { Button } from './Button';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
 import { isTV } from '@/constants/utils';
 import { useCurrentTheme, useMediaFeed } from '@/hooks';
@@ -89,7 +91,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
 
       return (
         // List fills its parent's height, so the row needs an explicit one
-        <View style={{ height: rowHeight }}>
+        <TVRow style={{ height: rowHeight }}>
           <List<MediaItem>
             horizontal
             data={items}
@@ -118,7 +120,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
               isTV && canBrowse ? (
                 <TVFocusWrapper onPress={openBrowse} style={{ width: cardWidth, marginLeft: ITEM_GAP }}>
                   <View
-                    className="aspect-[2/3.2] rounded-lg items-center justify-center gap-2"
+                    className="aspect-[2/3.2] rounded-[10px] items-center justify-center gap-2"
                     style={{ backgroundColor: currentTheme?.segment }}>
                     <IoniconsIcon name="arrow-forward" size={28} color={currentTheme?.foreground} />
                     <Text className="text-foreground font-semibold">See all</Text>
@@ -127,7 +129,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
               ) : null
             }
           />
-        </View>
+        </TVRow>
       );
     };
 

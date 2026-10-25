@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { Button } from 'heroui-native';
+import { Button } from '@/components/Button';
 import { BaseButton, VideoPlayer, useProgress, useVideoSelector } from 'react-native-video-toolkit';
 import type { SkipTime } from '@/hooks';
 

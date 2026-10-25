@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { useThemeStore, usePureBlackBackground } from '@/hooks';
 import { ThemedView, HUYStack, HUXStack, IoniconsIcon, TVFocusWrapper } from '@/components';
+import { isTV } from '@/constants/utils';
 import { StyleProp, ViewStyle, View, Text, FlatList } from 'react-native';
 import { Separator, Switch } from 'heroui-native';
 import { themes, ThemeName } from '@/themes/theme';
@@ -102,7 +103,7 @@ const AccentCard = memo(({ themeName, currentTheme, pureBlackBackground, onPress
       <TVFocusWrapper
         onPress={onPress}
         focusBorderColor={theme?.accent}
-        focusBorderRadius={14}
+        focusBorderRadius={12}
         focusBorderWidth={3}
         focusScale={1}
         containerStyle={{ padding: 2 }}
@@ -205,12 +206,16 @@ const PureBlackSwitch = memo(() => {
   const setPureBlackBackground = usePureBlackBackground((state) => state.setPureBlackBackground);
 
   if (!currentTheme.includes('dark')) return null;
+  const toggle = () => setPureBlackBackground(!pureBlackBackground);
 
+  // The whole row toggles, so on TV the D-pad lands on the row rather than the small switch
   return (
-    <HUXStack className="items-center p-10 justify-between gap-3">
-      <Text className="text-accent font-semibold">Pure black dark background</Text>
-      <Switch isSelected={pureBlackBackground} onSelectedChange={() => setPureBlackBackground(!pureBlackBackground)} />
-    </HUXStack>
+    <TVFocusWrapper onPress={toggle} focusScale={1} containerStyle={{ marginHorizontal: 8 }}>
+      <HUXStack className="items-center p-10 justify-between gap-3">
+        <Text className="text-accent font-semibold">Pure black dark background</Text>
+        <Switch isSelected={pureBlackBackground} onSelectedChange={toggle} focusable={isTV ? false : undefined} />
+      </HUXStack>
+    </TVFocusWrapper>
   );
 });
 PureBlackSwitch.displayName = 'PureBlackSwitch';

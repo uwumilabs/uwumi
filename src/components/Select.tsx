@@ -80,7 +80,11 @@ export const Select = ({
           {selectOptions.map((item) => {
             const isSelected = item.value === selectedOption?.value;
             return (
-              <RippleButton key={item.value} onPress={() => handleValueChange(item)}>
+              <RippleButton
+                key={item.value}
+                onPress={() => handleValueChange(item)}
+                hasTVPreferredFocus={isSelected}
+                focusScale={1}>
                 <View className="flex-row items-center gap-3 flex-1 py-3 px-4">
                   <Text className="text-base text-foreground flex-1">{item.label}</Text>
                   {isSelected && <IoniconsIcon name="checkmark" size={20} className="text-accent" />}

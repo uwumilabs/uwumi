@@ -1,6 +1,7 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Button, cn, useThemeColor } from 'heroui-native';
+import { cn, useThemeColor } from 'heroui-native';
+import { Button } from '@/components/Button';
 import { VideoPlayer } from 'react-native-video-toolkit';
 import { HUXStack, HUYStack, IoniconsIcon, MaterialIconsIcon } from '@/components';
 import type { ServerFailure } from '@/hooks';

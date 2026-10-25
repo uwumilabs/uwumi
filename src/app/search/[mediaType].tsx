@@ -1,7 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Button, ListGroup, SearchField, Separator } from 'heroui-native';
+import { SearchField, Separator } from 'heroui-native';
+import { ListGroup } from '@/components/ListGroup';
+import { Button } from '@/components/Button';
 import { CardList, HUXStack, HUYStack, IoniconsIcon, RippleButton, ThemedView } from '@/components';
 import { getMetaProvider, mediaTypeLabel } from '@/components/MediaBrowser';
 import { MediaType } from '@/constants/types';
@@ -50,6 +52,17 @@ const Search = () => {
   const recordLiveQuery = useCallback(
     () => addRecentSearch(mediaType, liveQuery),
     [addRecentSearch, mediaType, liveQuery],
+  );
+
+  const removeButton = (item: string) => (
+    <Button
+      variant="ghost"
+      size="sm"
+      isIconOnly
+      accessibilityLabel={`Remove ${item} from recent searches`}
+      onPress={() => removeRecentSearch(mediaType, item)}>
+      <IoniconsIcon name="close" size={18} color={currentTheme?.foreground} />
+    </Button>
   );
 
   return (
@@ -101,24 +114,21 @@ const Search = () => {
                 {recent.map((item, index) => (
                   <React.Fragment key={item}>
                     {index > 0 && <Separator className="mx-4" />}
-                    <ListGroup.Item onPress={() => runSearch(item)}>
-                      <ListGroup.ItemPrefix>
-                        <IoniconsIcon name="time-outline" size={20} color={currentTheme?.foreground} />
-                      </ListGroup.ItemPrefix>
-                      <ListGroup.ItemContent>
-                        <ListGroup.ItemTitle>{item}</ListGroup.ItemTitle>
-                      </ListGroup.ItemContent>
-                      <ListGroup.ItemSuffix>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          isIconOnly
-                          accessibilityLabel={`Remove ${item} from recent searches`}
-                          onPress={() => removeRecentSearch(mediaType, item)}>
-                          <IoniconsIcon name="close" size={18} color={currentTheme?.foreground} />
-                        </Button>
-                      </ListGroup.ItemSuffix>
-                    </ListGroup.Item>
+                    {/* On TV the remove button sits beside the row: the D-pad can't move into a focused row */}
+                    <HUXStack className="items-center">
+                      <View className="flex-1">
+                        <ListGroup.Item onPress={() => runSearch(item)}>
+                          <ListGroup.ItemPrefix>
+                            <IoniconsIcon name="time-outline" size={20} color={currentTheme?.foreground} />
+                          </ListGroup.ItemPrefix>
+                          <ListGroup.ItemContent>
+                            <ListGroup.ItemTitle>{item}</ListGroup.ItemTitle>
+                          </ListGroup.ItemContent>
+                          <ListGroup.ItemSuffix>{!isTV && removeButton(item)}</ListGroup.ItemSuffix>
+                        </ListGroup.Item>
+                      </View>
+                      {isTV && removeButton(item)}
+                    </HUXStack>
                   </React.Fragment>
                 ))}
               </ListGroup>

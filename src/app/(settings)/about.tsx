@@ -2,12 +2,14 @@ import React from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
 import * as Application from 'expo-application';
 import { getStoredOtaVersion, reloadApp } from 'react-native-nitro-ota';
-import { Button, Chip, ListGroup, Separator } from 'heroui-native';
+import { Chip, Separator } from 'heroui-native';
+import { ListGroup } from '@/components/ListGroup';
+import { Button } from '@/components/Button';
 import { HUXStack, HUYStack, Image, IoniconProps, IoniconsIcon, ThemedView } from '@/components';
 import { useUpdateChecker } from '@/hooks/useUpdateChecker';
 import { runningOtaVersion, useCurrentTheme, useHasActiveDownloads, useOtaUpdateStore } from '@/hooks';
 import { EXTERNAL_LINKS } from '@/constants/config';
-import { openBrowser } from '@/constants/utils';
+import { isTV, openBrowser } from '@/constants/utils';
 
 const COMMUNITY_LINKS: { label: string; description: string; icon: IoniconProps['name']; url: string }[] = [
   {
@@ -92,14 +94,14 @@ const About = () => {
             <Text className="text-sm text-foreground/60">Anime, manga and movies in one place</Text>
           </HUYStack>
           <HUXStack className="gap-2">
-            <Chip size="sm">{`v${appVersion}`}</Chip>
+            <Chip size="sm" focusable={isTV ? false : undefined}>{`v${appVersion}`}</Chip>
             {isPreRelease && (
-              <Chip size="sm" color="warning">
+              <Chip size="sm" color="warning" focusable={isTV ? false : undefined}>
                 Pre-release
               </Chip>
             )}
             {__DEV__ && (
-              <Chip size="sm" color="default">
+              <Chip size="sm" color="default" focusable={isTV ? false : undefined}>
                 Development
               </Chip>
             )}

@@ -25,6 +25,8 @@ export interface CardListProps {
   metaProvider: MetaProvider;
   searchQuery?: string;
   onItemPress?: (item: MediaItem) => void;
+  /** Shown when the list is empty, instead of the generic "No results found" */
+  emptyState?: React.ReactElement;
 }
 
 export interface MediaCardProps {
@@ -121,7 +123,7 @@ export const MediaCard: React.FC<MediaCardProps> = memo(
         <AnimatedStyledCard
           entering={animateEntry && !isSearch && index < 12 ? FadeInDown.delay(50 * index).duration(300) : undefined}
           // Height comes from the aspect ratio alone; flex-1 let FlashList's horizontal cells collapse it to 0
-          className={`w-full rounded-lg overflow-hidden p-0 ${isTV ? 'aspect-[2/3.2]' : 'aspect-2/3'}`}>
+          className={`w-full rounded-[10px] overflow-hidden p-0 ${isTV ? 'aspect-[2/3.2]' : 'aspect-2/3'}`}>
           <Card.Body className="w-full h-full p-0 relative">
             <AnimatedImage
               source={{ uri: item.image }}
@@ -161,6 +163,7 @@ export const CardList: React.FC<CardListProps> = ({
   metaProvider,
   searchQuery = '',
   onItemPress,
+  emptyState,
 }) => {
   const isSearch = mediaFeedType === 'search';
   const isMovieSearch = isSearch && mediaType === MediaType.MOVIE;
@@ -212,6 +215,7 @@ export const CardList: React.FC<CardListProps> = ({
     <List<MediaItem>
       key={`${grid.screenWidth}-${mediaType}-${mediaFeedType}-${grid.numColumns}`}
       data={filteredItems}
+      {...(emptyState && { ListEmptyComponent: emptyState })}
       renderItem={({ item, index }) => (
         <View style={{ width: grid.itemWidth, padding: grid.itemSpacing }}>
           <MediaCard

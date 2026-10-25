@@ -1,7 +1,8 @@
 import React, { ReactNode } from 'react';
 import { Text } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, Card, cn } from 'heroui-native';
+import { Card, cn } from 'heroui-native';
+import { Button } from './Button';
 import type { Provider } from '@/constants/provider';
 import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { IoniconProps, IoniconsIcon } from './Icons';

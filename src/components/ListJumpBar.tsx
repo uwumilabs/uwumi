@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button } from 'heroui-native';
+import { Button } from './Button';
 import { isTV } from '@/constants/utils';
 import type { ListRange } from '@/hooks/useListJump';
 import { IoniconsIcon } from './Icons';

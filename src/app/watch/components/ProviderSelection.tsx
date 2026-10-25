@@ -1,6 +1,7 @@
 import { View, Text, useWindowDimensions } from 'react-native';
 import React, { useState } from 'react';
-import { Button, Card, cn } from 'heroui-native';
+import { Card, cn } from 'heroui-native';
+import { Button } from '@/components/Button';
 import { HUXStack, IoniconsIcon, Dialog } from '@/components';
 import { useProviders, useProviderStore, useActiveProvider } from '@/constants/provider';
 import { MediaType } from '@/constants/types';

@@ -4,8 +4,9 @@ import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react
 import { isCompatibleEntry } from 'react-native-consumet';
 import { useExtensionStore, useCurrentTheme } from '@/hooks';
 import { isTV } from '@/constants/utils';
-import { Avatar, Button, Card, Chip, Separator, Switch } from 'heroui-native';
-import { Image, BottomSheet, HUXStack, HUYStack, RippleButton, IoniconsIcon } from '@/components';
+import { Avatar, Card, Chip, Separator, Switch } from 'heroui-native';
+import { Button } from '@/components/Button';
+import { Image, BottomSheet, HUXStack, HUYStack, RippleButton, IoniconsIcon, TVFocusWrapper } from '@/components';
 
 interface ExtensionCardProps {
   extension: any;
@@ -432,10 +433,17 @@ export default function Extensions() {
             </Text>
           </HUYStack>
 
-          <HUXStack className="items-center gap-2">
-            <Switch isSelected={showInstalledOnly} onSelectedChange={setShowInstalledOnly} />
-            <Text className="text-foreground/70 text-xs">Installed only</Text>
-          </HUXStack>
+          {/* The whole toggle is one focus target on TV */}
+          <TVFocusWrapper onPress={() => setShowInstalledOnly(!showInstalledOnly)} focusScale={1}>
+            <HUXStack className="items-center gap-2 px-2 py-1">
+              <Switch
+                isSelected={showInstalledOnly}
+                onSelectedChange={setShowInstalledOnly}
+                focusable={isTV ? false : undefined}
+              />
+              <Text className="text-foreground/70 text-xs">Installed only</Text>
+            </HUXStack>
+          </TVFocusWrapper>
         </HUXStack>
 
         {/* A failed refresh keeps the current registry, so the list stays usable */}

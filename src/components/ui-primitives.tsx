@@ -44,10 +44,12 @@ type RippleButtonProps = Omit<PressableFeedbackProps, 'onPress'> & {
   className?: string;
   /** Whether this element should receive initial focus when the screen mounts (TV only). */
   hasTVPreferredFocus?: boolean;
+  /** Scale while focused on TV. Default: 1.05; rows that fill their container should use 1 */
+  focusScale?: number;
 };
 
 export const RippleButton = forwardRef<React.ComponentRef<typeof View>, RippleButtonProps>(
-  ({ onPress, children, containerStyle, className, hasTVPreferredFocus, ...props }, ref) => {
+  ({ onPress, children, containerStyle, className, hasTVPreferredFocus, focusScale, ...props }, ref) => {
     const currentTheme = useCurrentTheme();
 
     return (
@@ -55,7 +57,9 @@ export const RippleButton = forwardRef<React.ComponentRef<typeof View>, RippleBu
         ref={ref}
         onPress={onPress}
         className={cn('rounded-full p-2', className)}
-        style={[containerStyle, isTV && tvFocusRingStyle({ color: currentTheme?.accent, borderRadius: 12 })]}
+        // No radius here: the ring follows the button's own rounded-* class
+        style={[containerStyle, isTV && tvFocusRingStyle({ color: currentTheme?.accent, scale: focusScale })]}
+        isAnimatedStyleActive={!isTV}
         focusable={isTV ? true : undefined}
         hasTVPreferredFocus={isTV ? hasTVPreferredFocus : undefined}
         animation={{
@@ -95,20 +99,25 @@ const KAOMOJI = [
   'ヽ(°〇°)ﾉ',
 ];
 
-export const NoResults = () => {
+/** Without a `hint`, it points to Extensions, the usual reason a search or feed comes back empty. */
+export const NoResults = ({ title = 'No results found', hint }: { title?: string; hint?: string }) => {
   // Picked once per mount, so it doesn't change on every re-render
   const [randomKaomoji] = useState(() => KAOMOJI[Math.floor(Math.random() * KAOMOJI.length)]);
 
   return (
     <HUYStack className="p-2 pt-4 items-center justify-center gap-2">
       <Text className="text-5xl font-medium text-center text-foreground">{randomKaomoji}</Text>
-      <Text className="text-xl text-accent">No results found</Text>
-      <Text className="text-xs text-foreground text-center">
-        Haven't installed extensions yet? Install them from{' '}
-        <Link href="/(settings)/extensions">
-          <Text className="text-xs text-accent underline">here</Text>
-        </Link>
-      </Text>
+      <Text className="text-xl text-accent">{title}</Text>
+      {hint ? (
+        <Text className="text-xs text-foreground text-center">{hint}</Text>
+      ) : (
+        <Text className="text-xs text-foreground text-center">
+          Haven't installed extensions yet? Install them from{' '}
+          <Link href="/(settings)/extensions">
+            <Text className="text-xs text-accent underline">here</Text>
+          </Link>
+        </Text>
+      )}
     </HUYStack>
   );
 };

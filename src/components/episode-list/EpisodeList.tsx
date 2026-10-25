@@ -31,7 +31,8 @@ import TVFocusWrapper from '../TVFocusWrapper';
 import LinearGradient from '../LinearGradient';
 import ListJumpBar from '../ListJumpBar';
 import { ProviderEmptyState } from '../ListEmptyState';
-import { Button, Card, cn, ScrollShadow } from 'heroui-native';
+import { Card, cn, ScrollShadow } from 'heroui-native';
+import { Button } from '../Button';
 import Progress from '../native/progress/Progress';
 import { IoniconsIcon, MaterialIconsIcon } from '../Icons';
 
@@ -120,7 +121,8 @@ const ListPressable = memo(
           onPress={navigateToEpisode}
           onLongPress={isTV ? undefined : handleLongPress}
           focusScale={1}
-          className="rounded-2xl py-1 flex-1">
+          focusBorderRadius={16}
+          className="rounded-2xl my-1 flex-1">
           {children}
         </TVFocusWrapper>
         {/* On TV, show a visible "⋮" button */}

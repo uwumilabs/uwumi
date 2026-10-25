@@ -1,0 +1,16 @@
+diff --git a/node_modules/react-native-reanimated/android/src/main/java/com/swmansion/reanimated/pseudoSelectors/PseudoSelectorManager.kt b/node_modules/react-native-reanimated/android/src/main/java/com/swmansion/reanimated/pseudoSelectors/PseudoSelectorManager.kt
+index 0ee8503..0352784 100644
+--- a/node_modules/react-native-reanimated/android/src/main/java/com/swmansion/reanimated/pseudoSelectors/PseudoSelectorManager.kt
++++ b/node_modules/react-native-reanimated/android/src/main/java/com/swmansion/reanimated/pseudoSelectors/PseudoSelectorManager.kt
+@@ -142,7 +142,10 @@ class PseudoSelectorManager(
+         callback: PseudoSelectorCallback,
+         isFocused: (newFocus: View?) -> Boolean,
+     ) {
+-        var focused = false
++        // A view already focused when this attaches (hasTVPreferredFocus on mount) would otherwise
++        // only get its :focus style after focus leaves and comes back
++        var focused = isFocused(view.rootView.findFocus())
++        if (focused) callback.onSelectorStateChanged(true)
+         val listener =
+             ViewTreeObserver.OnGlobalFocusChangeListener { _, newFocus ->
+                 val nowFocused = isFocused(newFocus)

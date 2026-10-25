@@ -22,7 +22,7 @@ export interface TVFocusWrapperProps extends PressableProps {
   focusBorderWidth?: number;
   /** Scale multiplier when focused. Default: 1.05 */
   focusScale?: number;
-  /** Border radius of the focus ring. Default: 12 */
+  /** Corner radius of the content inside the ring; the ring adds its border width so the corners stay concentric. Default: 10 */
   focusBorderRadius?: number;
   /** Whether this element should receive initial focus when the screen mounts (TV only). */
   hasTVPreferredFocus?: boolean;
@@ -41,7 +41,7 @@ const TVFocusWrapper: React.FC<TVFocusWrapperProps> = memo(
     focusBorderColor,
     focusBorderWidth = 2,
     focusScale = 1.05,
-    focusBorderRadius = 12,
+    focusBorderRadius = 10,
     hasTVPreferredFocus,
     containerStyle,
     nextFocusUp,
@@ -71,7 +71,7 @@ const TVFocusWrapper: React.FC<TVFocusWrapperProps> = memo(
       color: borderColor,
       scale: focusScale,
       borderWidth: focusBorderWidth,
-      borderRadius: focusBorderRadius,
+      borderRadius: focusBorderRadius + focusBorderWidth,
       duration: 15,
     });
 

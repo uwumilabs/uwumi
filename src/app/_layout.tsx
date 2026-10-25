@@ -20,7 +20,8 @@ import {
 } from '@/hooks';
 import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
-import { Button, Dialog, HeroUINativeProvider } from 'heroui-native';
+import { Dialog, HeroUINativeProvider } from 'heroui-native';
+import { Button } from '@/components/Button';
 import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
 import '../../global.css';
 import { useUniwind } from 'uniwind';
