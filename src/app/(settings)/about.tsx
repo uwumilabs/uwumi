@@ -1,13 +1,12 @@
 import React from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, Share, Text } from 'react-native';
 import * as Application from 'expo-application';
 import { getStoredOtaVersion, reloadApp } from 'react-native-nitro-ota';
-import { Chip, Separator } from '@/components/heroui';
-import { ListGroup } from '@/components/ListGroup';
+import { Chip } from '@/components/heroui';
 import { Button } from '@/components/Button';
-import { HUXStack, HUYStack, Image, IoniconProps, IoniconsIcon, ThemedView } from '@/components';
+import { HUXStack, HUYStack, Image, IoniconProps, IoniconsIcon, NativeList, ThemedView } from '@/components';
 import { useUpdateChecker } from '@/hooks/useUpdateChecker';
-import { runningOtaVersion, useCurrentTheme, useHasActiveDownloads, useOtaUpdateStore } from '@/hooks';
+import { runningOtaVersion, useHasActiveDownloads, useOtaUpdateStore } from '@/hooks';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import { isTV, openBrowser } from '@/constants/utils';
 
@@ -26,7 +25,7 @@ const COMMUNITY_LINKS: { label: string; description: string; icon: IoniconProps[
   },
   {
     label: 'Website',
-    description: 'uwumi-dash.netlify.app',
+    description: 'uwumi.vercel.app',
     icon: 'globe-outline',
     url: EXTERNAL_LINKS.PROJECT_WEBSITE,
   },
@@ -36,23 +35,11 @@ const SectionTitle = ({ children }: { children: string }) => (
   <Text className="px-1 text-xs font-semibold uppercase tracking-wider text-foreground/60">{children}</Text>
 );
 
-const InfoRow = ({ icon, title, value }: { icon: IoniconProps['name']; title: string; value: React.ReactNode }) => {
-  const currentTheme = useCurrentTheme();
-  return (
-    <ListGroup.Item disabled>
-      <ListGroup.ItemPrefix>
-        <IoniconsIcon name={icon} size={20} color={currentTheme?.foreground} />
-      </ListGroup.ItemPrefix>
-      <ListGroup.ItemContent>
-        <ListGroup.ItemTitle>{title}</ListGroup.ItemTitle>
-      </ListGroup.ItemContent>
-      <ListGroup.ItemSuffix>{value}</ListGroup.ItemSuffix>
-    </ListGroup.Item>
-  );
-};
+const InfoRow = ({ icon, title, value }: { icon: IoniconProps['name']; title: string; value: string }) => (
+  <NativeList.Item icon={icon} title={title} trailing={value} />
+);
 
 const About = () => {
-  const currentTheme = useCurrentTheme();
   const { updateInfo, isUpdateAvailable, isLoading, isError, checkForUpdates } = useUpdateChecker(
     EXTERNAL_LINKS.GITHUB_LATEST_RELEASE_API,
   );
@@ -69,13 +56,11 @@ const About = () => {
   const pendingOtaVersion =
     downloadedOtaVersion && downloadedOtaVersion !== runningOtaVersion ? downloadedOtaVersion : null;
 
-  const updateStatus = isLoading ? (
-    <ActivityIndicator size="small" />
-  ) : (
-    <Text className={isError ? 'text-sm text-danger' : 'text-sm text-foreground/70'}>
-      {isError ? "Couldn't check" : isUpdateAvailable ? `v${updateInfo.newVersion} available` : 'Up to date'}
-    </Text>
-  );
+  const updateStatus = isError
+    ? "Couldn't check"
+    : isUpdateAvailable
+      ? `v${updateInfo.newVersion} available`
+      : 'Up to date';
 
   return (
     <ThemedView>
@@ -110,62 +95,39 @@ const About = () => {
 
         <HUYStack className="gap-2">
           <SectionTitle>App</SectionTitle>
-          <ListGroup>
+          <NativeList>
             <InfoRow
               icon="phone-portrait-outline"
               title="Version"
-              value={
-                <Text className="text-sm text-foreground/70">
-                  {buildNumber ? `${appVersion} (${buildNumber})` : appVersion}
-                </Text>
-              }
+              value={buildNumber ? `${appVersion} (${buildNumber})` : appVersion}
             />
-            <Separator className="mx-4" />
             <InfoRow
               icon="layers-outline"
               title="JS bundle"
-              value={
-                <Text className="text-sm text-foreground/70">
-                  {__DEV__ ? 'Metro' : (runningOtaVersion ?? 'Built-in')}
-                </Text>
-              }
+              value={__DEV__ ? 'Metro' : (runningOtaVersion ?? 'Built-in')}
             />
             {otaStatus === 'downloading' && (
-              <>
-                <Separator className="mx-4" />
-                <InfoRow
-                  icon="cloud-download-outline"
-                  title="Downloading update"
-                  value={<Text className="text-sm text-foreground/70">{`${otaPercent ?? 0}%`}</Text>}
-                />
-              </>
+              <InfoRow icon="cloud-download-outline" title="Downloading update" value={`${otaPercent ?? 0}%`} />
             )}
             {pendingOtaVersion && otaStatus !== 'downloading' && (
-              <>
-                <Separator className="mx-4" />
-                <ListGroup.Item onPress={() => reloadApp()} disabled={hasActiveDownloads}>
-                  <ListGroup.ItemPrefix>
-                    <IoniconsIcon name="sparkles-outline" size={20} color={currentTheme?.foreground} />
-                  </ListGroup.ItemPrefix>
-                  <ListGroup.ItemContent>
-                    <ListGroup.ItemTitle>Update ready</ListGroup.ItemTitle>
-                    <ListGroup.ItemDescription>{`${pendingOtaVersion} · ${hasActiveDownloads ? 'restart once downloads finish' : 'tap to restart'}`}</ListGroup.ItemDescription>
-                  </ListGroup.ItemContent>
-                  <ListGroup.ItemSuffix />
-                </ListGroup.Item>
-              </>
+              <NativeList.Item
+                icon="sparkles-outline"
+                title="Update ready"
+                description={`${pendingOtaVersion} · ${hasActiveDownloads ? 'restart once downloads finish' : 'tap to restart'}`}
+                onPress={() => reloadApp()}
+                disabled={hasActiveDownloads}
+              />
             )}
-            <Separator className="mx-4" />
-            <ListGroup.Item onPress={() => checkForUpdates()} disabled={isLoading}>
-              <ListGroup.ItemPrefix>
-                <IoniconsIcon name="refresh-outline" size={20} color={currentTheme?.foreground} />
-              </ListGroup.ItemPrefix>
-              <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>Check for updates</ListGroup.ItemTitle>
-              </ListGroup.ItemContent>
-              <ListGroup.ItemSuffix>{updateStatus}</ListGroup.ItemSuffix>
-            </ListGroup.Item>
-          </ListGroup>
+            <NativeList.Item
+              icon="refresh-outline"
+              title="Check for updates"
+              trailing={updateStatus}
+              trailingLoading={isLoading}
+              trailingTone={isError ? 'danger' : 'muted'}
+              onPress={() => checkForUpdates()}
+              disabled={isLoading}
+            />
+          </NativeList>
 
           {isUpdateAvailable && (
             <Button variant="primary" onPress={() => openBrowser(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE)}>
@@ -177,55 +139,39 @@ const About = () => {
 
         <HUYStack className="gap-2">
           <SectionTitle>Community</SectionTitle>
-          <ListGroup>
-            {COMMUNITY_LINKS.map(({ label, description, icon, url }, index) => (
-              <View key={label}>
-                {index > 0 && <Separator className="mx-4" />}
-                <ListGroup.Item onPress={() => openBrowser(url)}>
-                  <ListGroup.ItemPrefix>
-                    <IoniconsIcon name={icon} size={20} color={currentTheme?.foreground} />
-                  </ListGroup.ItemPrefix>
-                  <ListGroup.ItemContent>
-                    <ListGroup.ItemTitle>{label}</ListGroup.ItemTitle>
-                    <ListGroup.ItemDescription>{description}</ListGroup.ItemDescription>
-                  </ListGroup.ItemContent>
-                  <ListGroup.ItemSuffix />
-                </ListGroup.Item>
-              </View>
+          <NativeList>
+            {COMMUNITY_LINKS.map(({ label, description, icon, url }) => (
+              <NativeList.Item
+                key={label}
+                icon={icon}
+                title={label}
+                description={description}
+                onPress={() => openBrowser(url)}
+              />
             ))}
-          </ListGroup>
+          </NativeList>
         </HUYStack>
 
         <HUYStack className="gap-2">
           <SectionTitle>Support</SectionTitle>
-          <ListGroup>
-            <ListGroup.Item onPress={() => openBrowser(EXTERNAL_LINKS.GITHUB_NEW_ISSUE)}>
-              <ListGroup.ItemPrefix>
-                <IoniconsIcon name="bug-outline" size={20} color={currentTheme?.foreground} />
-              </ListGroup.ItemPrefix>
-              <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>Report a bug</ListGroup.ItemTitle>
-                <ListGroup.ItemDescription>{`Include v${appVersion} in the report`}</ListGroup.ItemDescription>
-              </ListGroup.ItemContent>
-              <ListGroup.ItemSuffix />
-            </ListGroup.Item>
-            <Separator className="mx-4" />
-            <ListGroup.Item
+          <NativeList>
+            <NativeList.Item
+              icon="bug-outline"
+              title="Report a bug"
+              description={`Include v${appVersion} in the report`}
+              onPress={() => openBrowser(EXTERNAL_LINKS.GITHUB_NEW_ISSUE)}
+            />
+            <NativeList.Item
+              icon="share-social-outline"
+              title="Share uwumi"
+              description="Send the download link to a friend"
               onPress={() =>
                 Share.share({
                   message: `Watch anime, read manga and stream movies with uwumi: ${EXTERNAL_LINKS.GITHUB_LATEST_RELEASE}`,
                 })
-              }>
-              <ListGroup.ItemPrefix>
-                <IoniconsIcon name="share-social-outline" size={20} color={currentTheme?.foreground} />
-              </ListGroup.ItemPrefix>
-              <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>Share uwumi</ListGroup.ItemTitle>
-                <ListGroup.ItemDescription>Send the download link to a friend</ListGroup.ItemDescription>
-              </ListGroup.ItemContent>
-              <ListGroup.ItemSuffix />
-            </ListGroup.Item>
-          </ListGroup>
+              }
+            />
+          </NativeList>
         </HUYStack>
 
         <Text className="text-center text-xs text-foreground/50">Made with ♥ by uwumilabs</Text>

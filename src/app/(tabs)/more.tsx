@@ -1,8 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
-import { HUXStack, HUYStack, IoniconsIcon, ThemedView, TVFocusWrapper, IoniconProps } from '@/components';
+import { HUXStack, HUYStack, IoniconsIcon, ThemedView, TVFocusWrapper, IoniconProps, Separator } from '@/components';
 import { type Href, useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
-import { Separator } from '@/components/heroui';
 import { useCurrentTheme } from '@/hooks';
 import { PerfProfiler } from '@/perf/perfHarness';
 

@@ -1,9 +1,9 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { useThemeStore, usePureBlackBackground } from '@/hooks';
-import { ThemedView, HUYStack, HUXStack, IoniconsIcon, TVFocusWrapper } from '@/components';
+import { ThemedView, HUYStack, HUXStack, IoniconsIcon, TVFocusWrapper, Separator } from '@/components';
 import { isTV } from '@/constants/utils';
 import { StyleProp, ViewStyle, View, Text, FlatList } from 'react-native';
-import { Separator, Switch } from '@/components/heroui';
+import { Switch } from '@/components/heroui';
 import { themes, ThemeName } from '@/themes/theme';
 
 interface ThemeButtonProps {

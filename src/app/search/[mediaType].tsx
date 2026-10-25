@@ -1,10 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { SearchField, Separator } from '@/components/heroui';
-import { ListGroup } from '@/components/ListGroup';
+import { SearchField } from '@/components/heroui';
 import { Button } from '@/components/Button';
-import { CardList, HUXStack, HUYStack, IoniconsIcon, ThemedView } from '@/components';
+import { CardList, HUXStack, HUYStack, IoniconsIcon, NativeList, ThemedView } from '@/components';
 import { getMetaProvider, mediaTypeLabel } from '@/components/MediaBrowser';
 import { MediaType } from '@/constants/types';
 import { isTV } from '@/constants/utils';
@@ -53,17 +52,6 @@ const Search = () => {
     [addRecentSearch, mediaType, liveQuery],
   );
 
-  const removeButton = (item: string) => (
-    <Button
-      variant="ghost"
-      size="sm"
-      isIconOnly
-      accessibilityLabel={`Remove ${item} from recent searches`}
-      onPress={() => removeRecentSearch(mediaType, item)}>
-      <IoniconsIcon name="close" size={18} color={currentTheme?.foreground} />
-    </Button>
-  );
-
   return (
     <ThemedView>
       <HUXStack className="items-center gap-1 px-2 py-2">
@@ -106,28 +94,21 @@ const Search = () => {
                   <Button.Label>Clear all</Button.Label>
                 </Button>
               </HUXStack>
-              <ListGroup>
-                {recent.map((item, index) => (
-                  <React.Fragment key={item}>
-                    {index > 0 && <Separator className="mx-4" />}
-                    {/* On TV the remove button sits beside the row: the D-pad can't move into a focused row */}
-                    <HUXStack className="items-center">
-                      <View className="flex-1">
-                        <ListGroup.Item onPress={() => runSearch(item)}>
-                          <ListGroup.ItemPrefix>
-                            <IoniconsIcon name="time-outline" size={20} color={currentTheme?.foreground} />
-                          </ListGroup.ItemPrefix>
-                          <ListGroup.ItemContent>
-                            <ListGroup.ItemTitle>{item}</ListGroup.ItemTitle>
-                          </ListGroup.ItemContent>
-                          <ListGroup.ItemSuffix>{!isTV && removeButton(item)}</ListGroup.ItemSuffix>
-                        </ListGroup.Item>
-                      </View>
-                      {isTV && removeButton(item)}
-                    </HUXStack>
-                  </React.Fragment>
+              <NativeList>
+                {recent.map((item) => (
+                  <NativeList.Item
+                    key={item}
+                    icon="time-outline"
+                    title={item}
+                    onPress={() => runSearch(item)}
+                    action={{
+                      icon: 'close',
+                      label: `Remove ${item} from recent searches`,
+                      onPress: () => removeRecentSearch(mediaType, item),
+                    }}
+                  />
                 ))}
-              </ListGroup>
+              </NativeList>
             </>
           ) : (
             <HUYStack className="items-center gap-2 pt-24">

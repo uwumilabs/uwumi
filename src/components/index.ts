@@ -18,7 +18,7 @@ export { ListJumpBar } from './ListJumpBar';
 export { ListEmptyState, ProviderEmptyState } from './ListEmptyState';
 
 // Native-view components (@expo/ui SwiftUI / Jetpack Compose)
-export { BottomSheet, BottomSheetProvider, Dialog, Progress, Slider } from './native';
+export { BottomSheet, BottomSheetProvider, Dialog, List as NativeList, Progress, Separator, Slider } from './native';
 export {
   IoniconsIcon,
   IoniconProps,
