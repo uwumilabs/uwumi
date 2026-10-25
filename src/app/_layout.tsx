@@ -34,7 +34,7 @@ import { PerfWindows, perfScreenLayout } from '@/perf/perfHarness';
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  initialRouteName: '(tabs)',
+  anchor: '(tabs)',
 };
 
 // TV keeps the toolkit's defaults: a side-panel menu and a D-pad friendly slider.

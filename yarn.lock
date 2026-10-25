@@ -10991,10 +10991,10 @@ react-native-mmkv@^4.3.2:
   resolved "https://registry.yarnpkg.com/react-native-mmkv/-/react-native-mmkv-4.3.2.tgz#522978d2330932c538cce36093040826870ccb49"
   integrity sha512-49OAyfkg0/TMWiWELZN6VuVQPZPhizwL4DTmp8b7B1md3dB/s3LH3mGfC3T+lp9W0y/rqxZMEnotLFTIbOAenQ==
 
-react-native-nitro-modules@0.35.1:
-  version "0.35.1"
-  resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.35.1.tgz#99bfc160be559e3e63044574855ddf1562ef0f19"
-  integrity sha512-XIPN8+1kPCaLEQuzPCgFQwy96B97u66SHQ0hA1xWWSHUQ+GXxM4fAysqgTHvW4SU25IRZqzhaSmGsoZlNDSmRA==
+react-native-nitro-modules@0.37.1:
+  version "0.37.1"
+  resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.37.1.tgz#368bda3038ebe796b219d98e0a364f9166e2cc7c"
+  integrity sha512-KpW6EQVQ/bfegpCGxN9Be+ndvsfj56t4IESEvCASu9gWpJa/NDfHpIeIwCOvZQ3eXmLEj6YD4wCLqcC1FJPr2w==
 
 react-native-nitro-ota@0.14.1:
   version "0.14.1"

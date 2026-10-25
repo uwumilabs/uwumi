@@ -106,7 +106,7 @@
     "react-native-keyboard-controller": "1.22.7",
     "react-native-material-ripple": "^0.9.1",
     "react-native-mmkv": "^4.3.2",
-    "react-native-nitro-modules": "0.35.1",
+    "react-native-nitro-modules": "0.37.1",
     "react-native-nitro-ota": "0.14.1",
     "react-native-orientation-director": "^2.6.5",
     "react-native-reanimated": "4.7.1",

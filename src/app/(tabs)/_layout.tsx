@@ -4,7 +4,7 @@ import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { hexToRGB } from '@/constants/utils';
 
 export const unstable_settings = {
-  initialRouteName: 'index',
+  anchor: 'index',
 };
 
 export default function TabLayout() {

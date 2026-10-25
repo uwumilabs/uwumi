@@ -44,3 +44,7 @@ app-example
 
 # ai slop
 GEMINI.md
+# Written into android/ by build-android.sh (react-native bundle --assets-dest), not source
+android/app/src/main/assets/index.android.bundle
+android/app/src/main/res/raw/
+android/app/src/main/res/drawable*/node_modules_*

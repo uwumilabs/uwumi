@@ -52,6 +52,8 @@ target 'uwumi' do
 
   pod "NitroOtaBundleManager", :path => "../node_modules/react-native-nitro-ota"
 
+
+
   use_react_native!(
     :path => config[:reactNativePath],
     :hermes_enabled => podfile_properties['expo.jsEngine'] == nil || podfile_properties['expo.jsEngine'] == 'hermes',

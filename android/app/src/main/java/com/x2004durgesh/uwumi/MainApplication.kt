@@ -1,8 +1,8 @@
 package com.x2004durgesh.uwumi
 
 
-import android.app.Application
-import com.margelo.nitro.nitroota.core.getStoredBundlePath
+    import android.app.Application
+    import com.margelo.nitro.nitroota.core.getStoredBundlePath
 import android.content.res.Configuration
 
 import com.facebook.react.PackageList
