@@ -48,9 +48,23 @@ const toPlainText = (description: unknown): string => {
 
 interface InfoHeaderProps {
   data: IAnimeInfo | IMovieInfo | undefined;
+  /** "More like this" at the end; anime and movies show it after their episode window instead */
+  withRecommendations?: boolean;
 }
 
-export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
+/** The "More like this" row, shown after the header (manga) or after the episode window */
+export const InfoRecommendations = ({ data }: Pick<InfoHeaderProps, 'data'>) => {
+  const { mediaType, metaProvider } = useLocalSearchParams<{ mediaType: MediaType; metaProvider: MetaProvider }>();
+  const recommendations = data?.recommendations as MediaItem[] | undefined;
+  if (!recommendations?.length) return null;
+  return (
+    <View className="pt-6">
+      <MediaCarousel title="More like this" items={recommendations} mediaType={mediaType} metaProvider={metaProvider} />
+    </View>
+  );
+};
+
+export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendations = true }) => {
   const { mediaType, metaProvider, id, image, title, type, sharedTag } = useLocalSearchParams<{
     mediaType: MediaType;
     metaProvider: MetaProvider;
@@ -101,7 +115,6 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
     ].filter((chip): chip is string => typeof chip === 'string' && chip.trim().length > 0);
   }, [data]);
   const trailerId = data?.trailer?.id;
-  const recommendations = data?.recommendations as MediaItem[] | undefined;
 
   return (
     <View>
@@ -125,7 +138,11 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
             end={[0, 0.5]}
           />
         </View>
-        <View className="p-2.5 z-20" style={{ marginTop: insets.top }} focusable={isTV ? false : undefined}>
+        {/* TV: buttons at the top, details at the bottom of the artwork */}
+        <View
+          className="p-2.5 z-20"
+          style={[{ marginTop: insets.top }, isTV && { flex: 1, justifyContent: 'space-between' }]}
+          focusable={isTV ? false : undefined}>
           <HUXStack className="items-center justify-between" props={{ focusable: isTV ? false : undefined }}>
             <RippleButton
               ref={backBtnRef}
@@ -157,13 +174,16 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
           </HUXStack>
 
           <HUXStack className="gap-2.5 items-center" props={{ focusable: isTV ? false : undefined }}>
-            <AnimatedImage
-              sharedTransitionTag={`shared-image-${transitionTag}`}
-              source={{ uri: poster }}
-              style={{ width: 115, height: 163 }}
-              focusable={isTV ? false : undefined}
-            />
-            <HUYStack className="gap-2 flex-1" props={{ focusable: isTV ? false : undefined }}>
+            {!isTV && (
+              <AnimatedImage
+                sharedTransitionTag={`shared-image-${transitionTag}`}
+                source={{ uri: poster }}
+                style={{ width: 115, height: 163 }}
+              />
+            )}
+            <HUYStack
+              className="gap-2 flex-1"
+              props={{ focusable: isTV ? false : undefined, style: isTV ? { maxWidth: '55%' } : undefined }}>
               <Animated.Text
                 className="text-foreground text-3xl font-bold"
                 numberOfLines={3}
@@ -190,11 +210,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
               </HUXStack>
               <HUXStack className="justify-between" props={{ focusable: isTV ? false : undefined }}>
                 <IconTitle iconName="star-outline" text={normalizeRating(data?.rating)} />
-                {(data?.nextAiringEpisode?.airingTime || data?.nextAiringEpisode?.releaseDate) && (
-                  <AnimatedCountdown
-                  // targetDate={data.nextAiringEpisode.airingTime || data?.nextAiringEpisode?.releaseDate}
-                  />
-                )}
+                {(data?.nextAiringEpisode?.airingTime || data?.nextAiringEpisode?.releaseDate) && <AnimatedCountdown />}
                 <IconTitle iconName="film-outline" text={data?.type} />
               </HUXStack>
             </HUYStack>
@@ -203,25 +219,23 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
       </View>
 
       <HUYStack className="gap-3 px-4 pt-4">
-        {!!description &&
-          (isTV ? (
-            // A nested scroller can't be reached with a D-pad; TV screens have room for the full text
-            <Text className="text-foreground/90 text-base leading-6">{description}</Text>
-          ) : (
-            <ScrollShadow
-              LinearGradientComponent={LinearGradient}
-              size={32}
-              color={pureBlackBackground ? '#000000' : currentTheme?.background}>
-              <ScrollView
-                style={{ maxHeight: DESCRIPTION_MAX_HEIGHT }}
-                // Android: lets this scroll inside the episode list that scrolls the page
-                nestedScrollEnabled
-                scrollsToTop={false}
-                showsVerticalScrollIndicator={false}>
-                <Text className="text-foreground/90 text-base leading-6">{description}</Text>
-              </ScrollView>
-            </ScrollShadow>
-          ))}
+        {!!description && (
+          <ScrollShadow
+            LinearGradientComponent={LinearGradient}
+            size={32}
+            color={pureBlackBackground ? '#000000' : currentTheme?.background}>
+            <ScrollView
+              style={{ maxHeight: DESCRIPTION_MAX_HEIGHT }}
+              // Android: lets this scroll inside the page by touch
+              nestedScrollEnabled
+              // TV: the D-pad can only scroll it while it has focus, as there's nothing focusable inside
+              focusable={isTV ? true : undefined}
+              scrollsToTop={false}
+              showsVerticalScrollIndicator={false}>
+              <Text className="text-foreground/90 text-base leading-6">{description}</Text>
+            </ScrollView>
+          </ScrollShadow>
+        )}
 
         {chips.length > 0 && (
           <HUXStack className="flex-wrap gap-2">
@@ -246,16 +260,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data }) => {
         )}
       </HUYStack>
 
-      {!!recommendations?.length && (
-        <View className="pt-6">
-          <MediaCarousel
-            title="More like this"
-            items={recommendations}
-            mediaType={mediaType}
-            metaProvider={metaProvider}
-          />
-        </View>
-      )}
+      {withRecommendations && <InfoRecommendations data={data} />}
       <View className="h-4" />
     </View>
   );

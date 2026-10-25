@@ -1,4 +1,13 @@
-import { ActivityIndicator, Pressable, StyleSheet, View, Text, TextProps } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  Text,
+  TextProps,
+  useWindowDimensions,
+} from 'react-native';
 import { FlashListRef } from '@shopify/flash-list';
 import React, { useRef, useState, useCallback, useMemo, memo, ReactNode } from 'react';
 import Image from '@/components/Image';
@@ -373,11 +382,20 @@ EpisodeRow.displayName = 'EpisodeRow';
 interface EpisodeListProps {
   /** Rendered above the episode controls, inside the list, so it scrolls with the episodes. */
   header?: ReactNode;
+  /** Info screen: rendered after the episode window */
+  footer?: ReactNode;
   /** Jump to the episode being watched once the list loads; otherwise offer a "Continue" chip. */
   autoScrollToCurrent?: boolean;
 }
 
-export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListProps) => {
+// Info screen: episodes scroll inside a window of 3-5 full rows, sized to the screen, so the page around them stays put
+const EPISODE_ROW_HEIGHT = 131;
+const WINDOW_MIN_ROWS = 3;
+const WINDOW_MAX_ROWS = 5;
+// Room for the controls row and the margins around the window
+const WINDOW_CHROME = 120;
+
+export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: EpisodeListProps) => {
   const pathname = usePathname();
   const {
     mediaType,
@@ -393,8 +411,17 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     season?: string;
   }>();
   const swipeable = pathname.includes('/info/'); // Only enable swipe actions on the /info/[mediaType] screen, not in the episode list inside /watch/[mediaType]
+  // The info screen's episodes sit in a window; the player's episode panel stays one list
+  const windowed = swipeable;
+  const { height: screenHeight } = useWindowDimensions();
+  const windowRows = Math.max(
+    WINDOW_MIN_ROWS,
+    Math.min(WINDOW_MAX_ROWS, Math.floor((screenHeight - WINDOW_CHROME) / EPISODE_ROW_HEIGHT)),
+  );
   const currentTheme = useCurrentTheme();
   const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
+  const pageRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const windowTopRef = useRef(0);
   const setProvider = useProviderStore((state) => state.setProvider);
   const { episodes, providerMediaId, movieSeasons, activeSeason, setSeason, providerToUse, isLoading, error, refetch } =
     useEpisodeList();
@@ -477,6 +504,8 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
   const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const scrollToEpisode = (index: number) => {
     const target = episodes[index];
+    // The window may be below the fold, e.g. when a shared link opens the screen
+    if (windowed) pageRef.current?.scrollTo({ y: windowTopRef.current, animated: true });
     const scroll = () => flashListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
     scroll()
       ?.then(scroll)
@@ -568,6 +597,165 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
     [displayMode, swipeable, nav, currentTheme?.default, handleToggleComplete, openActions],
   );
 
+  const controls = (
+    <HUXStack className="w-full flex-wrap items-center justify-center gap-5 px-4 py-2">
+      {swipeable && (
+        <Select
+          SelectItem={mediaType === MediaType.ANIME ? providers.anime : providers.movie}
+          SelectLabel="Provider"
+          value={providerToUse}
+          onValueChange={handleProviderChange}
+        />
+      )}
+      {movieSeasons && type !== TvType.MOVIE && (
+        <Select
+          SelectItem={
+            movieSeasons?.map((_: any, index: number): { name: string; value: string } => ({
+              name: `Season ${index + 1}`,
+              value: String(index),
+            })) || []
+          }
+          SelectLabel="Season"
+          value={String(activeSeason)}
+          onValueChange={(value: string) => {
+            setSeason(Number(value));
+          }}
+        />
+      )}
+      {episodeRanges.length > 0 && (
+        <Select SelectItem={episodeRanges} SelectLabel="Episodes" value={rangeValue} onValueChange={jumpToRange} />
+      )}
+      {swipeable && (
+        <Pressable
+          onPress={() => {
+            setDisplayMode(
+              displayMode === EpisodeDisplayMode.FullMetadata
+                ? EpisodeDisplayMode.TitleOnly
+                : displayMode === EpisodeDisplayMode.TitleOnly
+                  ? EpisodeDisplayMode.NumberOnly
+                  : EpisodeDisplayMode.FullMetadata,
+            );
+            // The new display mode remounts the list at the top
+            resetScroll();
+          }}>
+          {displayMode === EpisodeDisplayMode.FullMetadata ? (
+            <IoniconsIcon name="list" />
+          ) : displayMode === EpisodeDisplayMode.TitleOnly ? (
+            <MaterialIconsIcon name="format-list-numbered" />
+          ) : (
+            <IoniconsIcon name="image-outline" />
+          )}
+        </Pressable>
+      )}
+      {continueTarget && (
+        // TV: the screen opens on it, the action a viewer most likely came for
+        <Button variant="secondary" size="sm" onPress={scrollToContinue} hasTVPreferredFocus={isTV}>
+          <IoniconsIcon name="play" size={14} color={currentTheme?.foreground} />
+          <Button.Label>
+            {`${sharedIndex >= 0 ? 'Shared' : 'Continue'} · ${continueTarget.season === shownSeason ? '' : `S${continueTarget.season + 1} · `}EP ${(continueTarget.episode.number ?? continueTarget.episode.episode ?? '').toString()}`}
+          </Button.Label>
+        </Button>
+      )}
+    </HUXStack>
+  );
+
+  const list = (
+    <List<IAnimeEpisode | IMovieEpisode>
+      ref={flashListRef}
+      {...listProps}
+      {...tvFocusScrollProps(0)}
+      onCommitLayoutEffect={onListLayout}
+      // No blank space after the last row inside the TV window
+      {...(windowed && {
+        ListFooterComponent: null,
+        // Android: lets the window scroll inside the page by touch
+        nestedScrollEnabled: true,
+      })}
+      data={isLoading ? [] : episodes}
+      // Rendered inside the list so `header` stays visible
+      ListEmptyComponent={
+        isLoading ? (
+          <LoadingState />
+        ) : (
+          <ProviderEmptyState
+            providers={mediaType === MediaType.ANIME ? providers.anime : providers.movie}
+            provider={providerToUse}
+            error={error}
+            onRetry={() => refetch()}
+            onProviderChange={handleProviderChange}
+            itemsLabel="episodes"
+          />
+        )
+      }
+      // ItemSeparatorComponent={() => <View className="h-3" />}
+      ListHeaderComponent={
+        windowed ? undefined : (
+          <>
+            {header}
+            {controls}
+          </>
+        )
+      }
+      onLoad={() => {
+        const index = currentEpisodeIndex();
+        if (!autoScrollToCurrent || index < 0) return;
+        flashListRef?.current?.scrollToIndex({
+          index,
+          animated: true,
+          viewPosition: 1,
+          viewOffset: 200,
+        });
+      }}
+      keyExtractor={episodeKey}
+      renderItem={renderItem}
+    />
+  );
+
+  const shadowColor = pureBlackBackground ? '#000000' : currentTheme?.background;
+  const sheet = swipeable && (
+    <EpisodeActionsSheet
+      open={sheetOpen}
+      onOpenChange={setSheetOpen}
+      episode={selectedEpisode}
+      mediaType={mediaType}
+      provider={providerToUse}
+      mediaId={providerMediaId ?? id}
+      type={type as string}
+    />
+  );
+
+  // Info screen: the page scrolls; the episodes scroll inside a window with fades at its edges
+  if (windowed) {
+    return (
+      <>
+        <ScrollView ref={pageRef} className="flex-1" showsVerticalScrollIndicator={false} {...tvFocusScrollProps(16)}>
+          {header}
+          {/* TV: focus entering the controls or an episode lines both up at the top of the screen */}
+          <View
+            scrollSnapAlign={isTV ? 'start' : undefined}
+            onLayout={(event) => {
+              windowTopRef.current = event.nativeEvent.layout.y;
+            }}>
+            {controls}
+            <View className="px-2" style={{ height: windowRows * EPISODE_ROW_HEIGHT }}>
+              <ScrollShadow
+                key={displayMode}
+                className="flex-1"
+                size={LIST_SHADOW_SIZE}
+                color={shadowColor}
+                LinearGradientComponent={LinearGradient}>
+                {list}
+              </ScrollShadow>
+            </View>
+          </View>
+          {footer}
+          <View className="h-8" />
+        </ScrollView>
+        {sheet}
+      </>
+    );
+  }
+
   return (
     <>
       <View className="flex-1">
@@ -575,125 +763,13 @@ export const EpisodeList = ({ header, autoScrollToCurrent = true }: EpisodeListP
           key={displayMode}
           className="flex-1"
           size={LIST_SHADOW_SIZE}
-          color={pureBlackBackground ? '#000000' : currentTheme?.background}
+          color={shadowColor}
           LinearGradientComponent={LinearGradient}>
-          <List<IAnimeEpisode | IMovieEpisode>
-            ref={flashListRef}
-            {...listProps}
-            {...tvFocusScrollProps(0)}
-            onCommitLayoutEffect={onListLayout}
-            data={isLoading ? [] : episodes}
-            // Rendered inside the list so `header` stays visible
-            ListEmptyComponent={
-              isLoading ? (
-                <LoadingState />
-              ) : (
-                <ProviderEmptyState
-                  providers={mediaType === MediaType.ANIME ? providers.anime : providers.movie}
-                  provider={providerToUse}
-                  error={error}
-                  onRetry={() => refetch()}
-                  onProviderChange={handleProviderChange}
-                  itemsLabel="episodes"
-                />
-              )
-            }
-            // ItemSeparatorComponent={() => <View className="h-3" />}
-            ListHeaderComponent={
-              <>
-                {header}
-                <HUXStack className="w-full flex-wrap items-center justify-center gap-5 px-4 py-2">
-                  {swipeable && (
-                    <Select
-                      SelectItem={mediaType === MediaType.ANIME ? providers.anime : providers.movie}
-                      SelectLabel="Provider"
-                      value={providerToUse}
-                      onValueChange={handleProviderChange}
-                    />
-                  )}
-                  {movieSeasons && type !== TvType.MOVIE && (
-                    <Select
-                      SelectItem={
-                        movieSeasons?.map((_: any, index: number): { name: string; value: string } => ({
-                          name: `Season ${index + 1}`,
-                          value: String(index),
-                        })) || []
-                      }
-                      SelectLabel="Season"
-                      value={String(activeSeason)}
-                      onValueChange={(value: string) => {
-                        setSeason(Number(value));
-                      }}
-                    />
-                  )}
-                  {episodeRanges.length > 0 && (
-                    <Select
-                      SelectItem={episodeRanges}
-                      SelectLabel="Episodes"
-                      value={rangeValue}
-                      onValueChange={jumpToRange}
-                    />
-                  )}
-                  {swipeable && (
-                    <Pressable
-                      onPress={() => {
-                        setDisplayMode(
-                          displayMode === EpisodeDisplayMode.FullMetadata
-                            ? EpisodeDisplayMode.TitleOnly
-                            : displayMode === EpisodeDisplayMode.TitleOnly
-                              ? EpisodeDisplayMode.NumberOnly
-                              : EpisodeDisplayMode.FullMetadata,
-                        );
-                        // The new display mode remounts the list at the top
-                        resetScroll();
-                      }}>
-                      {displayMode === EpisodeDisplayMode.FullMetadata ? (
-                        <IoniconsIcon name="list" />
-                      ) : displayMode === EpisodeDisplayMode.TitleOnly ? (
-                        <MaterialIconsIcon name="format-list-numbered" />
-                      ) : (
-                        <IoniconsIcon name="image-outline" />
-                      )}
-                    </Pressable>
-                  )}
-                  {continueTarget && (
-                    <Button variant="secondary" size="sm" onPress={scrollToContinue}>
-                      <IoniconsIcon name="play" size={14} color={currentTheme?.foreground} />
-                      <Button.Label>
-                        {`${sharedIndex >= 0 ? 'Shared' : 'Continue'} · ${continueTarget.season === shownSeason ? '' : `S${continueTarget.season + 1} · `}EP ${(continueTarget.episode.number ?? continueTarget.episode.episode ?? '').toString()}`}
-                      </Button.Label>
-                    </Button>
-                  )}
-                </HUXStack>
-              </>
-            }
-            onLoad={() => {
-              const index = currentEpisodeIndex();
-              if (!autoScrollToCurrent || index < 0) return;
-              flashListRef?.current?.scrollToIndex({
-                index,
-                animated: true,
-                viewPosition: 1,
-                viewOffset: 200,
-              });
-            }}
-            keyExtractor={episodeKey}
-            renderItem={renderItem}
-          />
+          {list}
         </ScrollShadow>
         <ListJumpBar {...jumpBar} rangesLabel="Episodes" />
       </View>
-      {swipeable && (
-        <EpisodeActionsSheet
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
-          episode={selectedEpisode}
-          mediaType={mediaType}
-          provider={providerToUse}
-          mediaId={providerMediaId ?? id}
-          type={type as string}
-        />
-      )}
+      {sheet}
     </>
   );
 };

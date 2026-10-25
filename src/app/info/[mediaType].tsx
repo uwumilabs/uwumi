@@ -1,4 +1,4 @@
-import { InfoHeader } from './components';
+import { InfoHeader, InfoRecommendations } from './components';
 import { EpisodeList, ThemedView } from '@/components';
 import { useMediaInfo } from '@/hooks';
 import { useLocalSearchParams } from 'expo-router';
@@ -11,16 +11,17 @@ const Info = () => {
   const { mediaType } = useLocalSearchParams<{ mediaType: MediaType }>();
   const { data } = useMediaInfo();
 
-  // One scrolling page: the episode/chapter list is the scroller and everything above it is its header,
-  // which keeps long series virtualized.
-  const header = <InfoHeader data={data} />;
+  // Episodes scroll in their own window inside the page, with "More like this" after it. Manga chapters are still
+  // one scrolling list with everything above it as its header.
+  const isManga = mediaType === MediaType.MANGA;
+  const header = <InfoHeader data={data} withRecommendations={isManga} />;
 
   return (
     <ThemedView useSafeArea focusable={isTV ? false : undefined}>
-      {mediaType === MediaType.MANGA ? (
+      {isManga ? (
         <Chapters header={header} />
       ) : (
-        <EpisodeList header={header} autoScrollToCurrent={false} />
+        <EpisodeList header={header} footer={<InfoRecommendations data={data} />} autoScrollToCurrent={false} />
       )}
     </ThemedView>
   );
