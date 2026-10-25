@@ -1,5 +1,29 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/uwumilabs/uwumi/compare/v4.0.0-rc.1...v4.0.0-rc.2) (2026-10-25)
+
+### Features
+
+* **dash:** move to clerk v7 for the vercel.app proxy and load the middleware from src ([9d08657](https://github.com/uwumilabs/uwumi/commit/9d08657e04d712cfcd7a20b9925fb0583a1b7043))
+* **info:** jump to a shared episode on open and pulse the row it lands on ([a5d5d77](https://github.com/uwumilabs/uwumi/commit/a5d5d77d4d2bc9639b8b4f055712b01421ceb6c4))
+* share shows and episodes as links that open in the app or on the dash ([623b422](https://github.com/uwumilabs/uwumi/commit/623b4228baa07778789b5f2b3eb4956f46a164be))
+* **watch:** give servers unlimited time to load ([ee2df29](https://github.com/uwumilabs/uwumi/commit/ee2df29ffc45b108efb57e3721e83fce06bb475a))
+* **watch:** go into picture-in-picture when leaving a playing video ([28b1fff](https://github.com/uwumilabs/uwumi/commit/28b1ffff24fcfb3181f88e9e679b75d1044eca7b))
+* **watch:** pick servers from the player settings and drop the load timeout ([35340f8](https://github.com/uwumilabs/uwumi/commit/35340f884b1800bfc19c9b4ee573aed5d8f4871b))
+* **watch:** rotate to the next server when one fails ([9c361b5](https://github.com/uwumilabs/uwumi/commit/9c361b58327eae574311f3414a0ce7ee9d3aba1c))
+* **watch:** show +85s when aniskip has no skip times ([70570b7](https://github.com/uwumilabs/uwumi/commit/70570b7569f00d567a6a253ddb2c8ae82a94894c))
+* **watch:** youtube-style episodes strip and heroui server chips ([46b8fed](https://github.com/uwumilabs/uwumi/commit/46b8fed675f02c34e7d9d9c27bb09fc9f66439e7))
+
+### Bug Fixes
+
+* open links in the app's task so recents shows one uwumi ([2beaa33](https://github.com/uwumilabs/uwumi/commit/2beaa3385cc14d7006b8925adcf733ccd76847b7))
+* upgrade uniwind to 1.13 and heroui native to 1.0.11 so assets load on rn 0.88 ([fe718f3](https://github.com/uwumilabs/uwumi/commit/fe718f371fc8e0f6350b2a22018b425912aa7036))
+* **watch:** cap the playback buffer by memory so long streams don't run out of heap ([aca42db](https://github.com/uwumilabs/uwumi/commit/aca42dbb46c50f5b6c1c0ed7d42c58a19b8843a1))
+
+### Performance Improvements
+
+* add a profiling harness and cut startup, episode list and background renders ([b902dc1](https://github.com/uwumilabs/uwumi/commit/b902dc1ec201019b53a3c7116cb8cdd9d59a027c))
+
 ## [4.0.0-rc.1](https://github.com/uwumilabs/uwumi/compare/v4.0.0-rc.0...v4.0.0-rc.1) (2026-10-19)
 
 ### Features
