@@ -46,7 +46,7 @@ import {
   useExternalSubtitleStore,
   type EpisodeItem,
 } from '@/hooks';
-import { useToast } from 'heroui-native';
+import { useToast } from '@/components/heroui';
 import * as DocumentPicker from 'expo-document-picker';
 import { useActiveProvider, useProviders, META_PROVIDERS } from '@/constants/provider';
 import { constants } from '@/constants/config';

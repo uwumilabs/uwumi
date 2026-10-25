@@ -2,7 +2,7 @@ import React, { memo, useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { SearchField } from 'heroui-native';
+import { SearchField } from './heroui';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
 import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/constants/utils';
 import MediaCarousel from './MediaCarousel';

@@ -4,7 +4,7 @@ import { TVRow } from './TVRow';
 import { useRouter } from 'expo-router';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { ISearch } from 'react-native-consumet';
-import { SkeletonGroup } from 'heroui-native';
+import { SkeletonGroup } from './heroui';
 import { Button } from './Button';
 import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
 import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/constants/utils';

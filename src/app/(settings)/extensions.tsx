@@ -4,7 +4,7 @@ import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react
 import { isCompatibleEntry } from 'react-native-consumet';
 import { useExtensionStore, useCurrentTheme } from '@/hooks';
 import { isTV } from '@/constants/utils';
-import { Avatar, Card, Chip, Separator, Switch } from 'heroui-native';
+import { Avatar, Card, Chip, Separator, Switch } from '@/components/heroui';
 import { Button } from '@/components/Button';
 import { Image, BottomSheet, HUXStack, HUYStack, RippleButton, IoniconsIcon, TVFocusWrapper } from '@/components';
 

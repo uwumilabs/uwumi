@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 import { Text } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Card, cn } from 'heroui-native';
+import { Card, cn } from './heroui';
 import { Button } from './Button';
 import type { Provider } from '@/constants/provider';
 import { useCurrentTheme, usePureBlackBackground } from '@/hooks';

@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
 import * as Application from 'expo-application';
 import { getStoredOtaVersion, reloadApp } from 'react-native-nitro-ota';
-import { Chip, Separator } from 'heroui-native';
+import { Chip, Separator } from '@/components/heroui';
 import { ListGroup } from '@/components/ListGroup';
 import { Button } from '@/components/Button';
 import { HUXStack, HUYStack, Image, IoniconProps, IoniconsIcon, ThemedView } from '@/components';

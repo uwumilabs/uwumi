@@ -8,7 +8,7 @@ import React, { useEffect } from 'react';
 import { ThemedView, HUYStack } from '@/components';
 import { storage } from '@/hooks/stores/MMKV';
 import { ScrollView, Text } from 'react-native';
-import { Button } from 'heroui-native';
+import { Button } from '@/components/heroui';
 import { useUniwind } from 'uniwind';
 import { useProviderStore } from '@/constants/provider';
 import { useProviderSelectionStore } from '@/app/watch/components/ProviderSelection';

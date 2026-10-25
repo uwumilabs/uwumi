@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { StatusBar, StatusBarProps } from 'expo-status-bar';
 import { Link } from 'expo-router';
-import { cn, PressableFeedback, PressableFeedbackProps } from 'heroui-native';
+import { cn, PressableFeedback, PressableFeedbackProps } from './heroui';
 import { IoniconProps, IoniconsIcon } from './Icons';
 import { SystemBars } from 'react-native-edge-to-edge';
 import { isTV, tvFocusRingStyle } from '@/constants/utils';

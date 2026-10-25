@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo, useState } from 'react';
-import { Button } from 'heroui-native';
+import { Button } from './heroui';
 import { Text, View } from 'react-native';
 import { useBackHandler, useCurrentTheme, useSheetColor } from '@/hooks';
 import { IoniconsIcon } from './Icons';

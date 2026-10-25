@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { SearchField, Separator } from 'heroui-native';
+import { SearchField, Separator } from '@/components/heroui';
 import { ListGroup } from '@/components/ListGroup';
 import { Button } from '@/components/Button';
 import { CardList, HUXStack, HUYStack, IoniconsIcon, ThemedView } from '@/components';

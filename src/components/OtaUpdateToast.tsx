@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { reloadApp } from 'react-native-nitro-ota';
-import { Toast, useToast, type ToastComponentProps } from 'heroui-native';
+import { Toast, useToast, type ToastComponentProps } from './heroui';
 import { useHasActiveDownloads, useOtaUpdateStore } from '@/hooks';
 import { Progress } from './native';
 import { HUXStack, HUYStack } from './ui-primitives';

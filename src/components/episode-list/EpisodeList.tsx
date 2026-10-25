@@ -31,7 +31,7 @@ import TVFocusWrapper from '../TVFocusWrapper';
 import LinearGradient from '../LinearGradient';
 import ListJumpBar from '../ListJumpBar';
 import { ProviderEmptyState } from '../ListEmptyState';
-import { Card, cn, ScrollShadow } from 'heroui-native';
+import { Card, cn, ScrollShadow } from '../heroui';
 import { Button } from '../Button';
 import Progress from '../native/progress/Progress';
 import { IoniconsIcon, MaterialIconsIcon } from '../Icons';

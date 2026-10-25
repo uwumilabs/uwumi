@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { ListGroup as HeroListGroup } from 'heroui-native';
+import { ListGroup as HeroListGroup } from './heroui';
 import { isTV } from '@/constants/utils';
 import TVFocusWrapper from './TVFocusWrapper';
 

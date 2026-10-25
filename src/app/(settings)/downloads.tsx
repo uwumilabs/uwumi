@@ -15,7 +15,7 @@ import {
 import { EpisodeDownload, useDownloadStore, usePureBlackBackground } from '@/hooks';
 import { formatTime } from '@/constants/utils';
 import { ActivityIndicator, Text } from 'react-native';
-import { Separator, Dialog, Card, cn } from 'heroui-native';
+import { Separator, Dialog, Card, cn } from '@/components/heroui';
 import { Button } from '@/components/Button';
 import { MaterialIconsIcon } from '@/components/Icons';
 

@@ -17,10 +17,10 @@ import { useLocalSearchParams } from 'expo-router';
 import { useActiveProvider } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { HUXStack, HUYStack, RippleButton } from '../ui-primitives';
-import { Separator } from 'heroui-native';
+import { Separator } from '../heroui';
 import { BottomSheet } from '../native/BottomSheet';
 import { IoniconsIcon } from '../Icons';
-import { useToast } from 'heroui-native';
+import { useToast } from '../heroui';
 
 interface EpisodeActionsSheetProps {
   open: boolean;

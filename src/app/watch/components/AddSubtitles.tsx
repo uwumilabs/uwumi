@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { SearchField } from 'heroui-native';
+import { SearchField } from '@/components/heroui';
 import { Button } from '@/components/Button';
 import { Menu, useMenuContext } from 'react-native-video-toolkit';
 import { IoniconsIcon, type IoniconProps } from '@/components';

@@ -13,7 +13,7 @@ import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch } from '@/hooks';
 import { useCardGridDimensions } from '@/hooks/useCardGridDimensions';
 import { resolveProvider, useProviderStore } from '@/constants/provider';
 import List from './List';
-import { Card, SkeletonGroup } from 'heroui-native';
+import { Card, SkeletonGroup } from './heroui';
 import TVFocusWrapper from './TVFocusWrapper';
 
 export type MediaItem = IAnimeResult | IMovieResult;

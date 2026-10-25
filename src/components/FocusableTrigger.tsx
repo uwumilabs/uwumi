@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useState } from 'react';
 import { type ViewProps, type ViewStyle } from 'react-native';
-import { Tabs } from 'heroui-native';
+import { Tabs } from './heroui';
 import { isTV } from '@/constants/utils';
 import { useCurrentTheme } from '@/hooks';
 

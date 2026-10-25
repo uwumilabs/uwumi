@@ -1,5 +1,5 @@
 import React, { Activity, useMemo, useState } from 'react';
-import { Tabs } from 'heroui-native';
+import { Tabs } from './heroui';
 import { View, type ViewProps } from 'react-native';
 import FocusableTrigger from './FocusableTrigger';
 

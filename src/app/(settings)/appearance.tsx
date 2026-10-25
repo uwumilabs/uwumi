@@ -3,7 +3,7 @@ import { useThemeStore, usePureBlackBackground } from '@/hooks';
 import { ThemedView, HUYStack, HUXStack, IoniconsIcon, TVFocusWrapper } from '@/components';
 import { isTV } from '@/constants/utils';
 import { StyleProp, ViewStyle, View, Text, FlatList } from 'react-native';
-import { Separator, Switch } from 'heroui-native';
+import { Separator, Switch } from '@/components/heroui';
 import { themes, ThemeName } from '@/themes/theme';
 
 interface ThemeButtonProps {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { cn } from 'heroui-native';
+import { cn } from '../../heroui';
 import { Host, LinearProgressIndicator } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth } from '@expo/ui/jetpack-compose/modifiers';
 import { useCurrentTheme } from '@/hooks';

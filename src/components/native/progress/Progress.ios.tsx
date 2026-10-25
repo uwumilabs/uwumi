@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { cn } from 'heroui-native';
+import { cn } from '../../heroui';
 import { Host, ProgressView } from '@expo/ui/swift-ui';
 import { background, progressViewStyle, shapes, tint } from '@expo/ui/swift-ui/modifiers';
 import { useCurrentTheme } from '@/hooks';

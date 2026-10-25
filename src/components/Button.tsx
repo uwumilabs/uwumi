@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 import type { PressableStateCallbackType } from 'react-native';
-import { Button as HeroButton } from 'heroui-native';
+import { Button as HeroButton } from './heroui';
 import { isTV, tvFocusRingStyle } from '@/constants/utils';
 import { useCurrentTheme } from '@/hooks';
 

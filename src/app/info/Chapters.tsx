@@ -14,7 +14,7 @@ import { MediaType } from '@/constants/types';
 import { LIST_SHADOW_SIZE, useCurrentTheme, useListJump, useMangaChapters, usePureBlackBackground } from '@/hooks';
 import type { FlashListRef } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { cn, ScrollShadow } from 'heroui-native';
+import { cn, ScrollShadow } from '@/components/heroui';
 import React, { ReactNode, useCallback, useMemo, useRef } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import type { IMangaChapter } from 'react-native-consumet';

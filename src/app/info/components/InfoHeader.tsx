@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from '@/components/LinearGradient';
 import Animated from 'react-native-reanimated';
-import { Chip, ScrollShadow } from 'heroui-native';
+import { Chip, ScrollShadow } from '@/components/heroui';
 import { Button } from '@/components/Button';
 import { IAnimeInfo, IMovieInfo } from 'react-native-consumet';
 import {
