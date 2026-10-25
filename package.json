@@ -8,6 +8,8 @@
     "android": "expo run:android",
     "android:device": "cd android && ./gradlew :app:assembleDebug -PdebugSuffix && cd ..",
     "ios": "expo run:ios",
+    "prebuild:phone": "EXPO_TV=0 expo prebuild --clean",
+    "prebuild:tv": "EXPO_TV=1 expo prebuild --clean",
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "eslint --fix .",

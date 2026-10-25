@@ -1,4 +1,9 @@
-const { withDangerousMod, withAppBuildGradle, withProjectBuildGradle } = require('@expo/config-plugins');
+const {
+  withDangerousMod,
+  withAppBuildGradle,
+  withGradleProperties,
+  withProjectBuildGradle,
+} = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
@@ -45,13 +50,15 @@ const DEBUG_BUILD_TYPE_EXTRAS = `
 
 // 2b. per-ABI split APKs + custom release APK naming — injected into android {}
 // Built as an array so Groovy's ${...} interpolations aren't parsed by JS.
+// ARM only: no x86 phones/TVs to ship to, and Apple Silicon emulators are arm64
+const ABIS = ['armeabi-v7a', 'arm64-v8a'];
 const SPLITS_AND_NAMING = [
   '',
   '    splits {',
   '        abi {',
   '            enable true',
   '            reset()',
-  "            include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'",
+  `            include ${ABIS.map((abi) => `'${abi}'`).join(', ')}`,
   '            universalApk false',
   '        }',
   '    }',
@@ -109,6 +116,17 @@ function withBuildGradleCustomizations(config) {
   });
 }
 
+// 2c. compile native code only for the shipped ABIs (the template builds all four)
+function withArmArchitectures(config) {
+  return withGradleProperties(config, (config) => {
+    const value = ABIS.join(',');
+    const prop = config.modResults.find((item) => item.type === 'property' && item.key === 'reactNativeArchitectures');
+    if (prop) prop.value = value;
+    else config.modResults.push({ type: 'property', key: 'reactNativeArchitectures', value });
+    return config;
+  });
+}
+
 // 3. Add the ffmpeg-kit ivy repo to the root build.gradle's allprojects block.
 // The FFmpeg @aar is a transitive dep of :app, so :app must see this repo — the
 // repo declared in the module's own build.gradle is not used for :app resolution.
@@ -149,6 +167,7 @@ function withRootBuildGradleRepo(config) {
 module.exports = function withAndroidDebugVariant(config) {
   config = withDebugSourceSet(config);
   config = withBuildGradleCustomizations(config);
+  config = withArmArchitectures(config);
   config = withRootBuildGradleRepo(config);
   return config;
 };
