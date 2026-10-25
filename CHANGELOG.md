@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.0-rc.3](https://github.com/uwumilabs/uwumi/compare/v4.0.0-rc.2...v4.0.0-rc.3) (2026-10-25)
+
+### Bug Fixes
+
+* **android:** keep room, nitro and ffmpeg-kit classes from r8 so release builds launch ([9734077](https://github.com/uwumilabs/uwumi/commit/9734077ce535608431dfc8141774ec24e2783114))
+* open on the home tabs by dropping the placeholder settings index that also matched / ([7754747](https://github.com/uwumilabs/uwumi/commit/7754747932ef67d13245061cfee300dcfd3d1c27))
+
 ## [4.0.0-rc.2](https://github.com/uwumilabs/uwumi/compare/v4.0.0-rc.1...v4.0.0-rc.2) (2026-10-25)
 
 ### Features
