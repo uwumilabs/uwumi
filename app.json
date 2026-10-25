@@ -98,7 +98,8 @@
         "expo-build-properties",
         {
           "android": {
-            "enableMinifyInReleaseBuilds": true
+            "enableMinifyInReleaseBuilds": true,
+            "extraProguardRules": "# Room (WorkManager, pulled in by nitro-ota) creates its generated database by reflection at launch\n-keep class * extends androidx.room.RoomDatabase { <init>(); }\n# Nitro creates its Kotlin hybrid objects from C++ over JNI, which R8 can't see\n-keep class com.margelo.nitro.** { *; }\n# ffmpeg-kit's native code finds FFmpegKitConfig/AbiDetect and their callbacks by name\n-keep class com.arthenica.ffmpegkit.** { *; }"
           },
           "ios": {
             "useFrameworks": "static",
