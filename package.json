@@ -20,6 +20,7 @@
     "sync-versions": "node ./src/scripts/sync-versions.js",
     "build-android": "bash src/scripts/build-android.sh",
     "build-ios": "bash src/scripts/build-ios.sh",
+    "build-ios:tv": "bash src/scripts/build-ios.sh tvos",
     "ota": "bash src/scripts/publish-ota.sh",
     "dash": "yarn --cwd dash dev",
     "dash:install": "yarn --cwd dash install",

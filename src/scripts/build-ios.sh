@@ -20,8 +20,28 @@ print_step() {
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VERSION="$(node -p "require('$ROOT_DIR/package.json').version")"
 BUILD_DIR="$ROOT_DIR/ios/build"
-ARCHIVE_PATH="$BUILD_DIR/uwumi.xcarchive"
-IPA_PATH="$BUILD_DIR/uwumi-v$VERSION.ipa"
+
+# `build-ios.sh tvos` archives the Apple TV app instead; ios/ must come from `yarn prebuild:tv`
+PLATFORM="${1:-ios}"
+if grep -q "SDKROOT = appletvos" "$ROOT_DIR/ios/uwumi.xcodeproj/project.pbxproj"; then
+  PREBUILT_FOR="tvos"
+else
+  PREBUILT_FOR="ios"
+fi
+if [ "$PLATFORM" != "$PREBUILT_FOR" ]; then
+  [ "$PLATFORM" = "tvos" ] && PREBUILD_SCRIPT="prebuild:tv" || PREBUILD_SCRIPT="prebuild:phone"
+  echo "❌ ios/ is prebuilt for $PREBUILT_FOR, not $PLATFORM. Run 'yarn $PREBUILD_SCRIPT' first."
+  exit 1
+fi
+if [ "$PLATFORM" = "tvos" ]; then
+  DESTINATION="generic/platform=tvOS"
+  NAME="uwumi-tvos"
+else
+  DESTINATION="generic/platform=iOS"
+  NAME="uwumi"
+fi
+ARCHIVE_PATH="$BUILD_DIR/$NAME.xcarchive"
+IPA_PATH="$BUILD_DIR/$NAME-v$VERSION.ipa"
 
 # The Release configuration embeds the JS bundle itself ("Bundle React Native code and images" phase)
 print_step "STEP 1: ARCHIVING UNSIGNED RELEASE BUILD"
@@ -35,7 +55,7 @@ if ! xcodebuild archive \
   -workspace "$ROOT_DIR/ios/uwumi.xcworkspace" \
   -scheme uwumi \
   -configuration Release \
-  -destination 'generic/platform=iOS' \
+  -destination "$DESTINATION" \
   -archivePath "$ARCHIVE_PATH" \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
@@ -55,6 +75,6 @@ rm -rf "$STAGING_DIR"
 
 echo ""
 echo -e "${GREEN}╔═══════════════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║${NC} ${GREEN}✅ IPA READY: ios/build/uwumi-v$VERSION.ipa${NC}"
+echo -e "${GREEN}║${NC} ${GREEN}✅ IPA READY: ios/build/$NAME-v$VERSION.ipa${NC}"
 echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════════════════╝${NC}"
 echo ""

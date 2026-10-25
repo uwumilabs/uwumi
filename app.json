@@ -83,6 +83,7 @@
       "./plugins/withRnCoreFlavorMarker",
       "./plugins/withPictureInPicture",
       "./plugins/withBackgroundDownloads",
+      "./plugins/withAndroidTV",
       "expo-router",
       [
         "expo-splash-screen",
