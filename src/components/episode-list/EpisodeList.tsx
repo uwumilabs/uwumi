@@ -720,6 +720,7 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
       mediaType={mediaType}
       provider={providerToUse}
       mediaId={providerMediaId ?? id}
+      showId={id}
       type={type as string}
     />
   );

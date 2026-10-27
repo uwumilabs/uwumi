@@ -12,7 +12,7 @@ export const Progress: React.FC<ProgressProps> = ({ value = 0, className, minTra
 
   return (
     <View className={cn('self-stretch', className)}>
-      <Host matchContents={{ vertical: true }} style={{ width: '100%' }}>
+      <Host matchContents={{ vertical: true }} ignoreSafeArea="container" style={{ width: '100%' }}>
         <ProgressView
           value={progress}
           modifiers={[

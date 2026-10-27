@@ -3,7 +3,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { storage } from '@/hooks/stores/MMKV';
 import { MediaType } from '@/constants/types';
 
-const MAX_ENTRIES = 20;
+// The home row shows the first 10 per media type; History shows them all
+const MAX_ENTRIES = 100;
 
 export interface ContinueWatchingEntry {
   key: string;
@@ -24,6 +25,7 @@ interface ContinueWatchingState {
   entries: ContinueWatchingEntry[];
   record: (input: RecordInput) => void;
   remove: (key: string) => void;
+  clearAll: () => void;
 }
 
 export const continueWatchingKey = (mediaType: MediaType, showId: string) => `${mediaType}-${showId}`;
@@ -49,6 +51,7 @@ export const useContinueWatchingStore = create<ContinueWatchingState>()(
           };
         }),
       remove: (key) => set((state) => ({ entries: state.entries.filter((entry) => entry.key !== key) })),
+      clearAll: () => set({ entries: [] }),
     }),
     {
       name: 'continueWatching',

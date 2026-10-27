@@ -44,6 +44,7 @@ import {
   useMediaInfo,
   useContinueWatchingStore,
   useExternalSubtitleStore,
+  usePreferencesStore,
   type EpisodeItem,
 } from '@/hooks';
 import { useToast } from '@/components/heroui';
@@ -383,6 +384,7 @@ const Watch = () => {
         lastUpdate.seekableDuration = newDuration;
       }
 
+      if (usePreferencesStore.getState().incognito) return;
       // Save every 5 seconds: progress events come every 250 ms, so once per 5 s bucket, not on each event in it
       const bucket = `${uniqueId}:${Math.floor(newTime / 5)}`;
       if (uniqueId && newDuration > 0 && savedBucketRef.current !== bucket) {

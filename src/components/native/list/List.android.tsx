@@ -9,13 +9,23 @@ import {
   ListItem as ComposeListItem,
   RNHostView,
   Row,
+  Switch,
   Text,
 } from '@expo/ui/jetpack-compose';
-import { clickable, clip, fillMaxWidth, padding, Shapes, size, weight } from '@expo/ui/jetpack-compose/modifiers';
+import {
+  clickable,
+  clip,
+  fillMaxWidth,
+  padding,
+  Shapes,
+  size,
+  toggleable,
+  weight,
+} from '@expo/ui/jetpack-compose/modifiers';
 import { useCurrentTheme } from '@/hooks';
 import { IoniconsIcon, type IoniconProps } from '../../Icons';
 import { SeparatorLine } from '../separator/Separator';
-import { listItems, type ListItemProps, type ListProps } from './shared';
+import { FlatListContext, listItems, type ListItemProps, type ListProps } from './shared';
 
 // heroui ListGroup's look: a rounded surface card, dividers inset 16 from the edges
 const RADIUS = 24;
@@ -59,16 +69,24 @@ const Item = ({
   onPress,
   disabled,
   action,
+  toggle,
 }: ListItemProps) => {
   const theme = useCurrentTheme();
+  const flat = React.useContext(FlatListContext);
   const pressable = !!onPress && !disabled;
-  const chevron = !!onPress && !action;
-  const hasTrailing = !!trailingLoading || !!trailing || chevron;
+  // Aniyomi's flat rows go without one
+  const chevron = !!onPress && !action && !toggle && !flat;
+  const hasTrailing = !!trailingLoading || !!trailing || chevron || !!toggle;
+  const press = toggle
+    ? [toggleable(toggle.value, () => toggle.onValueChange(!toggle.value), { role: 'switch', enabled: !disabled })]
+    : pressable
+      ? [clickable(onPress)]
+      : [];
 
   const item = (
     <ComposeListItem
       colors={{ containerColor: 'transparent' }}
-      modifiers={[action ? weight(1) : fillMaxWidth(), ...(pressable ? [clickable(onPress)] : [])]}>
+      modifiers={[action ? weight(1) : fillMaxWidth(), ...press]}>
       <ComposeListItem.HeadlineContent>
         <Text color={theme.foreground} style={{ fontSize: 16, fontWeight: '500' }}>
           {title}
@@ -83,12 +101,27 @@ const Item = ({
       ) : null}
       {icon ? (
         <ComposeListItem.LeadingContent>
-          <HostedIcon name={icon} size={20} color={theme.foreground} />
+          <HostedIcon name={icon} size={flat ? 24 : 20} color={flat ? theme.accent : theme.foreground} />
         </ComposeListItem.LeadingContent>
       ) : null}
       {hasTrailing ? (
         <ComposeListItem.TrailingContent>
-          <Trailing text={trailing} trailingLoading={trailingLoading} trailingTone={trailingTone} chevron={chevron} />
+          {toggle ? (
+            <Switch
+              value={toggle.value}
+              enabled={!disabled}
+              colors={{
+                checkedTrackColor: theme.accent,
+                checkedThumbColor: theme.accentForeground,
+                checkedBorderColor: theme.accent,
+                uncheckedTrackColor: 'transparent',
+                uncheckedThumbColor: theme.muted,
+                uncheckedBorderColor: theme.muted,
+              }}
+            />
+          ) : (
+            <Trailing text={trailing} trailingLoading={trailingLoading} trailingTone={trailingTone} chevron={chevron} />
+          )}
         </ComposeListItem.TrailingContent>
       ) : null}
     </ComposeListItem>
@@ -106,10 +139,20 @@ const Item = ({
   );
 };
 
-const ListRoot = ({ children }: ListProps) => {
+const ListRoot = ({ children, variant = 'card' }: ListProps) => {
   const theme = useCurrentTheme();
   const items = listItems(children);
   if (items.length === 0) return null;
+
+  if (variant === 'flat') {
+    return (
+      <Host matchContents={{ vertical: true }} style={{ width: '100%' }}>
+        <FlatListContext.Provider value>
+          <Column modifiers={[fillMaxWidth()]}>{items}</Column>
+        </FlatListContext.Provider>
+      </Host>
+    );
+  }
 
   return (
     <Host matchContents={{ vertical: true }} style={{ width: '100%' }}>

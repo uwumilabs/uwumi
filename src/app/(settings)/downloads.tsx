@@ -14,10 +14,10 @@ import {
   Separator,
 } from '@/components';
 import { EpisodeDownload, useDownloadStore, usePureBlackBackground } from '@/hooks';
-import { formatTime } from '@/constants/utils';
+import { formatBytes, formatTime } from '@/constants/utils';
 import { ActivityIndicator, Text } from 'react-native';
-import { Dialog, Card, cn } from '@/components/heroui';
-import { Button } from '@/components/Button';
+import { Card, cn } from '@/components/heroui';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { MaterialIconsIcon } from '@/components/Icons';
 
 // Sample downloads in every state, for working on this screen. __DEV__ keeps them out of release builds even if
@@ -154,14 +154,6 @@ type DownloadListItem =
 const previewById: Record<string, EpisodeDownload> | undefined =
   __DEV__ && SHOW_PREVIEW_DOWNLOADS ? Object.fromEntries(PREVIEW_DOWNLOADS.map((d) => [d.id, d])) : undefined;
 
-const formatBytes = (bytes: number) => {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
-};
-
 const STATUS_ICONS: Record<DownloadStatus, IoniconProps['name']> = {
   downloading: 'download-outline',
   completed: 'checkmark-circle-outline',
@@ -183,47 +175,6 @@ const getStatusColor = (status: DownloadStatus) => {
 };
 
 const completedDateFormat = new Intl.DateTimeFormat();
-
-interface ConfirmDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title: string;
-  description: string;
-  confirmText: string;
-  cancelText?: string;
-  onConfirm: () => void;
-}
-
-const ConfirmDialog = ({
-  open,
-  onOpenChange,
-  title,
-  description,
-  confirmText,
-  cancelText = 'Cancel',
-  onConfirm,
-}: ConfirmDialogProps) => (
-  <Dialog isOpen={open} onOpenChange={onOpenChange}>
-    <Dialog.Portal>
-      <Dialog.Overlay className="bg-black/50" />
-      <Dialog.Content className="rounded-3xl bg-background p-4">
-        <Dialog.Close className="absolute right-3 top-3" />
-        <HUYStack className="gap-3">
-          <Dialog.Title className="text-lg font-semibold text-foreground">{title}</Dialog.Title>
-          <Dialog.Description className="text-base text-foreground/80">{description}</Dialog.Description>
-          <HUXStack className="flex-row justify-end gap-3">
-            <Button onPress={() => onOpenChange(false)} variant="ghost" isIconOnly={false} className="min-w-25">
-              {cancelText}
-            </Button>
-            <Button onPress={onConfirm} className="min-w-25" variant="danger">
-              {confirmText}
-            </Button>
-          </HUXStack>
-        </HUYStack>
-      </Dialog.Content>
-    </Dialog.Portal>
-  </Dialog>
-);
 
 // Only the progress part re-renders on the download's ticks
 const DownloadProgressInfo = memo(({ id, onCancel }: { id: string; onCancel: (id: string) => void }) => {

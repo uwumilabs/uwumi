@@ -29,6 +29,8 @@ interface EpisodeActionsSheetProps {
   mediaType: MediaType;
   provider: string;
   mediaId: string;
+  /** The info screen's id, which Favorites and Continue Watching key on */
+  showId: string;
   type?: string;
 }
 
@@ -95,7 +97,7 @@ const ListState = ({
 };
 
 const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
-  ({ open, onOpenChange, episode, mediaType, provider, mediaId, type }) => {
+  ({ open, onOpenChange, episode, mediaType, provider, mediaId, showId, type }) => {
     const setProgress = useWatchProgressStore((state) => state.setProgress);
     const getProgress = useWatchProgressStore((state) => state.getProgress);
     const episodeProgress = useWatchProgressStore((state) =>
@@ -315,6 +317,8 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
             headers: sourceHeaders,
             name: episodeName,
             showName: showName,
+            showId,
+            mediaType,
             season: season,
             episode: episodeNumber,
             uniqueId: episode.uniqueId,
@@ -333,7 +337,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         toast.show({ variant: 'success', label: 'Download started', description: successDescription });
         onOpenChange(false);
       },
-      [episode, data, mediaInfo, addDownload, startDownload, onOpenChange, toast],
+      [episode, data, mediaInfo, showId, mediaType, addDownload, startDownload, onOpenChange, toast],
     );
 
     // From a chosen server's qualities back to the server list, otherwise back to the main menu

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Button, HStack, Host, Image, ProgressView, RNHostView, Spacer, Text, VStack } from '@expo/ui/swift-ui';
+import { Button, HStack, Host, Image, ProgressView, RNHostView, Spacer, Text, Toggle, VStack } from '@expo/ui/swift-ui';
 import {
   background,
   buttonStyle,
@@ -9,6 +9,7 @@ import {
   font,
   foregroundStyle,
   frame,
+  labelsHidden,
   padding,
   shapes,
   tint,
@@ -16,7 +17,7 @@ import {
 import { useCurrentTheme } from '@/hooks';
 import { IoniconsIcon, type IoniconProps } from '../../Icons';
 import { SeparatorLine } from '../separator/Separator';
-import { listItems, type ListItemProps, type ListProps } from './shared';
+import { FlatListContext, listItems, type ListItemProps, type ListProps } from './shared';
 
 // heroui ListGroup's look: a rounded surface card, rows padded 16 with a 12 gap, dividers inset 16
 const RADIUS = 24;
@@ -59,24 +60,34 @@ const Item = ({
   onPress,
   disabled,
   action,
+  toggle,
 }: ListItemProps) => {
   const theme = useCurrentTheme();
-  const pressable = !!onPress && !disabled;
+  const flat = React.useContext(FlatListContext);
+  const pressable = !!onPress && !disabled && !toggle;
 
   const content = (
-    <HStack spacing={12} modifiers={[padding({ all: INSET }), contentShape(shapes.rectangle())]}>
-      {icon ? <HostedIcon name={icon} size={20} color={theme.foreground} /> : null}
+    <HStack spacing={flat ? 20 : 12} modifiers={[padding({ all: INSET }), contentShape(shapes.rectangle())]}>
+      {icon ? <HostedIcon name={icon} size={flat ? 24 : 20} color={flat ? theme.accent : theme.foreground} /> : null}
       <VStack alignment="leading" spacing={2}>
         <Text modifiers={[font({ size: 16, weight: 'medium' }), foregroundStyle(theme.foreground)]}>{title}</Text>
         {description ? <Text modifiers={[font({ size: 14 }), foregroundStyle(theme.muted)]}>{description}</Text> : null}
       </VStack>
       <Spacer />
-      <Trailing
-        text={trailing}
-        trailingLoading={trailingLoading}
-        trailingTone={trailingTone}
-        chevron={!!onPress && !action}
-      />
+      {toggle ? (
+        <Toggle
+          isOn={toggle.value}
+          onIsOnChange={toggle.onValueChange}
+          modifiers={[labelsHidden(), tint(theme.accent)]}
+        />
+      ) : (
+        <Trailing
+          text={trailing}
+          trailingLoading={trailingLoading}
+          trailingTone={trailingTone}
+          chevron={!!onPress && !action && !flat}
+        />
+      )}
     </HStack>
   );
 
@@ -99,13 +110,26 @@ const Item = ({
   );
 };
 
-const ListRoot = ({ children }: ListProps) => {
+const ListRoot = ({ children, variant = 'card' }: ListProps) => {
   const theme = useCurrentTheme();
   const items = listItems(children);
   if (items.length === 0) return null;
 
+  // ignoreSafeArea: in a ScrollView under the status bar, SwiftUI would push the rows down by the inset
+  if (variant === 'flat') {
+    return (
+      <Host matchContents={{ vertical: true }} ignoreSafeArea="container" style={{ width: '100%' }}>
+        <FlatListContext.Provider value>
+          <VStack spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+            {items}
+          </VStack>
+        </FlatListContext.Provider>
+      </Host>
+    );
+  }
+
   return (
-    <Host matchContents={{ vertical: true }} style={{ width: '100%' }}>
+    <Host matchContents={{ vertical: true }} ignoreSafeArea="container" style={{ width: '100%' }}>
       <VStack
         spacing={0}
         modifiers={[

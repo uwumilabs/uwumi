@@ -38,3 +38,4 @@ export { LazyTab } from './LazyTab';
 export { default as TVFocusWrapper } from './TVFocusWrapper';
 export type { TVFocusWrapperProps } from './TVFocusWrapper';
 export { default as FocusableTrigger } from './FocusableTrigger';
+export { ConfirmDialog } from './ConfirmDialog';

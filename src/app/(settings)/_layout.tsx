@@ -18,6 +18,7 @@ export default function SettingsLayout() {
           <StackHeader
             title={props.options.title}
             onBack={props.navigation.canGoBack() ? () => props.navigation.goBack() : undefined}
+            right={props.options.headerRight?.({ canGoBack: props.navigation.canGoBack() })}
           />
         ),
       }}>
@@ -28,6 +29,10 @@ export default function SettingsLayout() {
       <Stack.Screen name="downloads" options={{ title: 'Downloads' }} />
       <Stack.Screen name="example" options={{ title: 'Example' }} />
       <Stack.Screen name="extensions" options={{ title: 'Extensions' }} />
+      <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+      <Stack.Screen name="history" options={{ title: 'History' }} />
+      <Stack.Screen name="statistics" options={{ title: 'Statistics' }} />
+      <Stack.Screen name="data" options={{ title: 'Data and storage' }} />
     </Stack>
   );
 }

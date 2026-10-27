@@ -10,3 +10,4 @@ export * from './useExtensionStore';
 export * from './useDownloadStore';
 export * from './useOtaUpdateStore';
 export * from './useContinueWatchingStore';
+export * from './usePreferencesStore';

@@ -7,7 +7,12 @@ import * as Haptics from 'expo-haptics';
 import { TvType } from 'react-native-consumet';
 import { MediaType } from '@/constants/types';
 import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/constants/utils';
-import { ContinueWatchingEntry, useContinueWatchingStore, useWatchProgressStore } from '@/hooks';
+import {
+  ContinueWatchingEntry,
+  useContinueWatchingStore,
+  useDownloadedOnlyFilter,
+  useWatchProgressStore,
+} from '@/hooks';
 import Image from './Image';
 import List from './List';
 import Progress from './native/progress/Progress';
@@ -22,6 +27,28 @@ const ITEM_GAP = 8;
 const CARDS_PER_SCREEN = isTV ? 3.5 : 1.6;
 const THUMBNAIL_ASPECT = 9 / 16;
 const CAPTION_HEIGHT = 44;
+
+// A finished episode opens the show, where "Continue" points at the next one
+export const openContinueWatchingEntry = (
+  router: ReturnType<typeof useRouter>,
+  entry: ContinueWatchingEntry,
+  isCompleted: boolean,
+) =>
+  router.push(
+    isCompleted
+      ? { pathname: '/info/[mediaType]', params: { ...entry.infoParams, mediaType: entry.mediaType } }
+      : { pathname: '/watch/[mediaType]', params: { ...entry.watchParams, mediaType: entry.mediaType } },
+  );
+
+export const continueWatchingEpisodeLabel = ({ watchParams }: ContinueWatchingEntry) =>
+  watchParams.type === TvType.MOVIE
+    ? 'Movie'
+    : [
+        watchParams.seasonNumber && `S${watchParams.seasonNumber}`,
+        watchParams.episodeNumber && `EP ${watchParams.episodeNumber}`,
+      ]
+        .filter(Boolean)
+        .join(' · ');
 
 const ContinueWatchingCard = memo(({ entry, width }: { entry: ContinueWatchingEntry; width: number }) => {
   const router = useRouter();
@@ -41,26 +68,16 @@ const ContinueWatchingCard = memo(({ entry, width }: { entry: ContinueWatchingEn
     }),
   );
   const remove = useContinueWatchingStore((state) => state.remove);
-  const { episodeNumber, seasonNumber, title: episodeTitle, poster, type } = entry.watchParams;
+  const { title: episodeTitle, poster } = entry.watchParams;
 
-  // A finished episode opens the show, where "Continue" points at the next one
-  const open = useCallback(() => {
-    router.push(
-      isCompleted
-        ? { pathname: '/info/[mediaType]', params: { ...entry.infoParams, mediaType: entry.mediaType } }
-        : { pathname: '/watch/[mediaType]', params: { ...entry.watchParams, mediaType: entry.mediaType } },
-    );
-  }, [router, isCompleted, entry]);
+  const open = useCallback(() => openContinueWatchingEntry(router, entry, isCompleted), [router, isCompleted, entry]);
 
   const removeFromRow = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     remove(entry.key);
   }, [remove, entry.key]);
 
-  const episodeLabel =
-    type === TvType.MOVIE
-      ? 'Movie'
-      : [seasonNumber && `S${seasonNumber}`, episodeNumber && `EP ${episodeNumber}`].filter(Boolean).join(' · ');
+  const episodeLabel = continueWatchingEpisodeLabel(entry);
   const caption = isCompleted ? 'Watched · next episode' : minutesLeft ? `${minutesLeft}m left` : episodeTitle;
 
   const title = entry.showTitle || episodeTitle;
@@ -124,6 +141,7 @@ export const ContinueWatchingRow = memo(({ mediaType }: { mediaType: MediaType }
       .map((entry) => entry.uniqueId)
       .join('|'),
   );
+  const downloadedOnly = useDownloadedOnlyFilter();
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = (screenWidth - ROW_PADDING - ITEM_GAP * Math.floor(CARDS_PER_SCREEN)) / CARDS_PER_SCREEN;
 
@@ -134,13 +152,14 @@ export const ContinueWatchingRow = memo(({ mediaType }: { mediaType: MediaType }
       .filter(
         (entry) =>
           entry.mediaType === mediaType &&
+          (!downloadedOnly || downloadedOnly(entry.showId, entry.showTitle)) &&
           !(
             finished.has(entry.uniqueId) &&
             (entry.watchParams.type === TvType.MOVIE || entry.hasNextEpisode === false)
           ),
       )
       .slice(0, MAX_ITEMS);
-  }, [entries, mediaType, finishedKey]);
+  }, [entries, mediaType, finishedKey, downloadedOnly]);
 
   if (items.length === 0) return null;
 

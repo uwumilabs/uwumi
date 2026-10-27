@@ -150,6 +150,14 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
 // In the app's own task: Android's default opens a second uwumi card in recents
 export const openBrowser = (url: string) => openBrowserAsync(url, { createTask: false });
 
+export const formatBytes = (bytes: number) => {
+  if (bytes <= 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
+
 /** A show's title from its info, which providers give as a string or as romaji/english. */
 export const infoTitle = (info?: { title?: string | { english?: string; romaji?: string } }) =>
   typeof info?.title === 'string' ? info.title : (info?.title?.english ?? info?.title?.romaji);

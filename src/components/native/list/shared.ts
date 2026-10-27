@@ -16,12 +16,19 @@ export interface ListItemProps {
   disabled?: boolean;
   /** A separate button at the end of the row, like "remove". On TV it is its own focus stop. */
   action?: { icon: IoniconProps['name']; label: string; onPress: () => void };
+  /** A switch at the end of the row; on Android the whole row flips it */
+  toggle?: { value: boolean; onValueChange: (value: boolean) => void };
 }
 
 export interface ListProps {
   /** `List.Item`s; null/false entries and fragments are fine */
   children: React.ReactNode;
+  /** `flat`: Aniyomi-style edge-to-edge rows with accent icons, no card or dividers */
+  variant?: 'card' | 'flat';
 }
+
+/** Whether the enclosing list is `flat`, for items to pick their icon colour */
+export const FlatListContext = React.createContext(false);
 
 /** The `List.Item` elements among children, with fragments unwrapped, so the list can put dividers between them */
 export const listItems = (children: React.ReactNode): React.ReactElement<ListItemProps>[] =>

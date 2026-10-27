@@ -22,6 +22,7 @@ export const SeparatorLine = ({ orientation = 'horizontal', inset = 0 }: Separat
 export const Separator = ({ orientation = 'horizontal', inset }: SeparatorProps) => (
   <Host
     matchContents={orientation === 'vertical' ? { horizontal: true } : { vertical: true }}
+    ignoreSafeArea="container"
     style={orientation === 'vertical' ? { alignSelf: 'stretch' } : { width: '100%' }}>
     <SeparatorLine orientation={orientation} inset={inset} />
   </Host>

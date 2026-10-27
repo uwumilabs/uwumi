@@ -1,76 +1,81 @@
-import React, { useCallback, useMemo } from 'react';
-import { HUXStack, HUYStack, IoniconsIcon, ThemedView, TVFocusWrapper, IoniconProps, Separator } from '@/components';
+import React from 'react';
+import { ScrollView, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
-import { Text, View } from 'react-native';
-import { useCurrentTheme } from '@/hooks';
+import { Image } from 'expo-image';
+import { NativeList, Separator, ThemedView } from '@/components';
+import { usePreferencesStore, useRemainingDownloadsCount } from '@/hooks';
+import { EXTERNAL_LINKS } from '@/constants/config';
+import { openBrowser } from '@/constants/utils';
 import { PerfProfiler } from '@/perf/perfHarness';
 
-const MenuItem = ({
-  href,
-  icon,
-  label,
-  isFirst,
-}: {
-  href: Href;
-  icon: IoniconProps['name'];
-  label: string;
-  isFirst?: boolean;
-}) => {
-  const router = useRouter();
-  const currentTheme = useCurrentTheme();
+const LOGO = require('../../../assets/images/icon.png');
 
-  const handlePress = useCallback(() => {
-    router.push(href);
-  }, [router, href]);
-
-  return (
-    <TVFocusWrapper onPress={handlePress} style={{ width: '100%' }} focusScale={1} hasTVPreferredFocus={isFirst}>
-      <HUXStack className="p-4 items-center gap-2">
-        <IoniconsIcon name={icon} color={currentTheme.accent} />
-        <Text className="text-lg font-medium text-foreground">{label}</Text>
-      </HUXStack>
-    </TVFocusWrapper>
-  );
-};
-
+// Aniyomi's More tab: logo, the two switches, then the screens, then settings and help
 const More = () => {
-  // Create menu items array with conditional development item inside useMemo
-  const menuItems = useMemo(() => {
-    const baseItems: { href: Href; icon: IoniconProps['name']; label: string }[] = [
-      { href: '/(settings)/appearance' as Href, icon: 'color-palette', label: 'Appearance' },
-      { href: '/(settings)/player' as Href, icon: 'play-circle', label: 'Player' },
-      { href: '/(settings)/extensions' as Href, icon: 'extension-puzzle', label: 'Extensions' },
-      { href: '/(settings)/favorites' as Href, icon: 'heart', label: 'Favorites' },
-      { href: '/(settings)/downloads' as Href, icon: 'download', label: 'Downloads' },
-      { href: '/(settings)/about' as Href, icon: 'information-circle-outline', label: 'About' },
-    ];
+  const router = useRouter();
+  const incognito = usePreferencesStore((state) => state.incognito);
+  const setIncognito = usePreferencesStore((state) => state.setIncognito);
+  const downloadedOnly = usePreferencesStore((state) => state.downloadedOnly);
+  const setDownloadedOnly = usePreferencesStore((state) => state.setDownloadedOnly);
+  const remainingDownloads = useRemainingDownloadsCount();
 
-    // Add development-only menu item for testing purposes
-    if (process.env.NODE_ENV === 'development') {
-      return [
-        ...baseItems,
-        { href: '/(settings)/example' as Href, icon: 'information' as IoniconProps['name'], label: 'Example' },
-      ];
-    }
-
-    return baseItems;
-  }, []); // Empty dependency array since NODE_ENV doesn't change during runtime
-
-  const totalItems = menuItems.length;
+  const go = (href: string) => () => router.push(href as Href);
 
   return (
     <PerfProfiler id="more tab">
       <ThemedView>
-        <HUYStack className="flex-1">
-          <HUYStack className="mt-4">
-            {menuItems.map((item, index) => (
-              <View key={item.label} style={{ width: '100%' }}>
-                <MenuItem href={item.href} icon={item.icon} label={item.label} isFirst={index === 0} />
-                {index < totalItems - 1 && <Separator />}
-              </View>
-            ))}
-          </HUYStack>
-        </HUYStack>
+        <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+          <View className="items-center py-10">
+            <Image source={LOGO} style={{ width: 72, height: 72, borderRadius: 20 }} />
+          </View>
+          <Separator />
+          <NativeList variant="flat">
+            <NativeList.Item
+              icon="cloud-offline-outline"
+              title="Downloaded only"
+              description="Filters favorites and history"
+              toggle={{ value: downloadedOnly, onValueChange: setDownloadedOnly }}
+            />
+            <NativeList.Item
+              icon="glasses-outline"
+              title="Incognito mode"
+              description="Pauses watch history"
+              toggle={{ value: incognito, onValueChange: setIncognito }}
+            />
+          </NativeList>
+          <Separator />
+          <NativeList variant="flat">
+            <NativeList.Item icon="time-outline" title="History" onPress={go('/(settings)/history')} />
+            <NativeList.Item
+              icon="download-outline"
+              title="Download queue"
+              trailing={remainingDownloads > 0 ? `${remainingDownloads} remaining` : undefined}
+              onPress={go('/(settings)/downloads')}
+            />
+            <NativeList.Item icon="heart-outline" title="Favorites" onPress={go('/(settings)/favorites')} />
+            <NativeList.Item
+              icon="extension-puzzle-outline"
+              title="Extensions"
+              onPress={go('/(settings)/extensions')}
+            />
+            <NativeList.Item icon="stats-chart-outline" title="Statistics" onPress={go('/(settings)/statistics')} />
+            <NativeList.Item icon="server-outline" title="Data and storage" onPress={go('/(settings)/data')} />
+          </NativeList>
+          <Separator />
+          <NativeList variant="flat">
+            <NativeList.Item icon="settings-outline" title="Settings" onPress={go('/(settings)/settings')} />
+            <NativeList.Item icon="play-circle-outline" title="Player settings" onPress={go('/(settings)/player')} />
+            <NativeList.Item icon="information-circle-outline" title="About" onPress={go('/(settings)/about')} />
+            <NativeList.Item
+              icon="help-circle-outline"
+              title="Help"
+              onPress={() => openBrowser(EXTERNAL_LINKS.PROJECT_WEBSITE)}
+            />
+            {process.env.NODE_ENV === 'development' && (
+              <NativeList.Item icon="flask-outline" title="Example" onPress={go('/(settings)/example')} />
+            )}
+          </NativeList>
+        </ScrollView>
       </ThemedView>
     </PerfProfiler>
   );

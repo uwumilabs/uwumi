@@ -9,10 +9,12 @@ interface StackHeaderProps {
   title?: string;
   /** Shows the back button when provided. */
   onBack?: () => void;
+  /** An icon button at the right end, e.g. "clear all" */
+  right?: React.ReactNode;
 }
 
 // Custom header because the default Expo Router header has edge-to-edge issues; pads for the status bar itself.
-export const StackHeader: React.FC<StackHeaderProps> = ({ title, onBack }) => {
+export const StackHeader: React.FC<StackHeaderProps> = ({ title, onBack, right }) => {
   const currentTheme = useCurrentTheme();
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const insets = useSafeAreaInsets();
@@ -32,7 +34,7 @@ export const StackHeader: React.FC<StackHeaderProps> = ({ title, onBack }) => {
         <Text className="flex-1 text-foreground text-xl font-semibold text-center" numberOfLines={1}>
           {title}
         </Text>
-        <View className="w-12" />
+        <View className="w-12 items-end">{right}</View>
       </HUXStack>
     </View>
   );

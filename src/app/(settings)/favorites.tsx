@@ -1,14 +1,22 @@
 import { ThemedView, CardList, HorizontalTabs, NoResults } from '@/components';
 import { MediaType } from '@/constants/types';
-import { useFavoriteStore } from '@/hooks';
+import { useDownloadedOnlyFilter, useFavoriteStore } from '@/hooks';
+import { infoTitle } from '@/constants/utils';
 import React from 'react';
 import { View } from 'react-native';
 
 const EMPTY_FAVORITES = <NoResults title="No favorites yet" hint="Use the heart on a show's page to save it here" />;
 
 const Favorites = () => {
-  const { favorites } = useFavoriteStore();
-  // console.log(favorites);
+  const favorites = useFavoriteStore((state) => state.favorites);
+  const downloadedOnly = useDownloadedOnlyFilter();
+  // Manga has no downloads, so "Downloaded only" leaves it alone
+  const ofType = (mediaType: MediaType) =>
+    favorites.filter(
+      (item) =>
+        item.mediaType === mediaType &&
+        (mediaType === MediaType.MANGA || !downloadedOnly || downloadedOnly(String(item.id), infoTitle(item))),
+    );
   const tabItems = [
     {
       key: 'tab1',
@@ -16,7 +24,7 @@ const Favorites = () => {
       content: (
         <View className="h-full">
           <CardList
-            staticData={favorites.filter((item) => item.mediaType === MediaType.ANIME)}
+            staticData={ofType(MediaType.ANIME)}
             mediaType={MediaType.ANIME}
             metaProvider="anilist"
             emptyState={EMPTY_FAVORITES}
@@ -30,7 +38,7 @@ const Favorites = () => {
       content: (
         <View className="h-full">
           <CardList
-            staticData={favorites.filter((item) => item.mediaType === MediaType.MANGA)}
+            staticData={ofType(MediaType.MANGA)}
             mediaType={MediaType.MANGA}
             metaProvider="anilist-manga"
             emptyState={EMPTY_FAVORITES}
@@ -44,7 +52,7 @@ const Favorites = () => {
       content: (
         <View className="h-full">
           <CardList
-            staticData={favorites.filter((item) => item.mediaType === MediaType.MOVIE)}
+            staticData={ofType(MediaType.MOVIE)}
             mediaType={MediaType.MOVIE}
             metaProvider="tmdb"
             emptyState={EMPTY_FAVORITES}

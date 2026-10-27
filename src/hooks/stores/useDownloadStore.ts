@@ -5,8 +5,11 @@ import { FFmpegKit, FFprobeKit, Log, ReturnCode } from 'react-native-ffmpeg-kit'
 import type { VideoTrack, AudioTrack, TextTrack, TextTracks } from 'react-native-video/src';
 import BackgroundService from 'react-native-background-actions';
 import { runOnRuntimeAsync } from 'react-native-worklets';
+import { useMemo } from 'react';
 import { storage } from './MMKV';
+import { usePreferencesStore } from './usePreferencesStore';
 import { DOWNLOADS_DIR, UWUMI_DIR } from '@/constants/config';
+import type { MediaType } from '@/constants/types';
 import { downloadRuntime } from '../runtimes';
 
 // Transient throttle state — not persisted, not in Zustand
@@ -44,6 +47,9 @@ export interface EpisodeDownload {
   headers?: Record<string, string>;
   name: string;
   showName?: string;
+  /** The info screen's id and media type, for "Downloaded only"; missing on downloads made before them */
+  showId?: string;
+  mediaType?: MediaType;
   episode: number;
   season?: number;
   uniqueId?: string; // Episode unique ID from provider
@@ -1031,6 +1037,40 @@ export const useHasActiveDownloads = () =>
   useDownloadStore((state) =>
     Object.values(state.downloads).some(({ status }) => status === 'downloading' || status === 'pending'),
   );
+
+/** How many downloads are running or queued */
+export const useRemainingDownloadsCount = () =>
+  useDownloadStore(
+    (state) =>
+      Object.values(state.downloads).filter(({ status }) => status === 'downloading' || status === 'pending').length,
+  );
+
+/**
+ * With "Downloaded only" on, a test for whether a title has a finished download; null when it's off.
+ * Downloads made before they carried a show id fall back to matching the title.
+ */
+export const useDownloadedOnlyFilter = () => {
+  const enabled = usePreferencesStore((state) => state.downloadedOnly);
+  // A string, so finishing more episodes of an already-downloaded show doesn't re-render
+  const keys = useDownloadStore((state) =>
+    enabled
+      ? [
+          ...new Set(
+            Object.values(state.downloads)
+              .filter(({ status }) => status === 'completed')
+              .map(({ showId, showName }) => (showId ? `id:${showId}` : `title:${showName ?? ''}`)),
+          ),
+        ]
+          .sort()
+          .join('\n')
+      : '',
+  );
+  return useMemo(() => {
+    if (!enabled) return null;
+    const downloaded = new Set(keys.split('\n'));
+    return (id: string, title?: string) => downloaded.has(`id:${id}`) || (!!title && downloaded.has(`title:${title}`));
+  }, [enabled, keys]);
+};
 
 /*
  * USAGE EXAMPLES:
