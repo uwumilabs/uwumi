@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import * as RNFS from '@dr.pogodin/react-native-fs';
 import { FFmpegKit, FFprobeKit, Log, ReturnCode } from 'react-native-ffmpeg-kit';
 import type { VideoTrack, AudioTrack, TextTrack, TextTracks } from 'react-native-video/src';
 import BackgroundService from 'react-native-background-actions';
@@ -8,8 +7,9 @@ import { runOnRuntimeAsync } from 'react-native-worklets';
 import { useMemo } from 'react';
 import { storage } from './MMKV';
 import { usePreferencesStore } from './usePreferencesStore';
-import { DOWNLOADS_DIR, SUB_LANGUAGE, UWUMI_DIR } from '@/constants/config';
-import { formatBytes } from '@/constants/utils';
+import { CACHE_DIR, DOWNLOADS_DIR, SUB_LANGUAGE, UWUMI_DIR } from '@/constants/config';
+import { fileUri, formatBytes, fsDirectory, fsFile } from '@/constants/utils';
+import { excludeFromBackup } from '@/modules/excludeFromBackup';
 import type { MediaType } from '@/constants/types';
 import { downloadRuntime } from '../runtimes';
 
@@ -18,7 +18,7 @@ const progressThrottle = new Map<string, { time: number; pct: number }>();
 const THROTTLE_MS = 300;
 const THROTTLE_PCT = 1;
 
-const TEMP_DIR = `${RNFS.CachesDirectoryPath}/ffmpeg_temp`; // Temporary FFmpeg files
+const TEMP_DIR = `${CACHE_DIR}/ffmpeg_temp`; // Temporary FFmpeg files
 
 const resolveOutputFile = (file: string) => (file.startsWith('/') ? file : `${DOWNLOADS_DIR}/${file}`);
 
@@ -39,13 +39,22 @@ const languageCode = (lang?: string) => {
 let initializing: Promise<boolean> | undefined;
 
 /** Finished downloads whose file is gone, e.g. deleted outside the app, so they stop counting as downloaded */
-const findMissingDownloads = async (downloads: EpisodeDownload[]) => {
-  const missing: string[] = [];
-  for (const download of downloads) {
-    if (download.status !== 'completed' || !download.outputFile) continue;
-    if (!(await RNFS.exists(resolveOutputFile(download.outputFile)))) missing.push(download.id);
+const findMissingDownloads = (downloads: EpisodeDownload[]) =>
+  downloads
+    .filter(
+      ({ status, outputFile }) =>
+        status === 'completed' && !!outputFile && !fsFile(resolveOutputFile(outputFile)).exists,
+    )
+    .map(({ id }) => id);
+
+/** Deletes a download's file, if it's still there */
+const deleteOutputFile = (outputFile: string) => {
+  try {
+    const file = fsFile(resolveOutputFile(outputFile));
+    if (file.exists) file.delete();
+  } catch (error) {
+    console.error(`❌ Failed to delete file: ${outputFile}`, error);
   }
-  return missing;
 };
 
 // Types
@@ -136,10 +145,10 @@ interface DownloadState {
 // Helper Functions
 const ensureDir = async (directory: string): Promise<boolean> => {
   try {
-    const exists = await RNFS.exists(directory);
-    if (!exists) {
-      await RNFS.mkdir(directory, { NSURLIsExcludedFromBackupKey: true });
-    }
+    const folder = fsDirectory(directory);
+    if (!folder.exists) folder.create({ intermediates: true, idempotent: true });
+    // Episodes are large and can be downloaded again, so they stay out of iCloud backups
+    excludeFromBackup(directory);
     return true;
   } catch (error) {
     console.error(`❌ Failed to create directory ${directory}:`, error);
@@ -166,7 +175,7 @@ export const useDownloadStore = create<DownloadState>()(
             await ensureDir(DOWNLOADS_DIR);
             await ensureDir(TEMP_DIR);
 
-            const missing = await findMissingDownloads(Object.values(get().downloads));
+            const missing = findMissingDownloads(Object.values(get().downloads));
             set((state) => {
               const downloads = { ...state.downloads };
               for (const id of missing) delete downloads[id];
@@ -494,15 +503,14 @@ export const useDownloadStore = create<DownloadState>()(
 
               // Check result
               if (ReturnCode.isSuccess(returnCode)) {
-                const fileExists = await RNFS.exists(outputFile);
-                if (fileExists) {
-                  const fileStat = await RNFS.stat(outputFile);
+                const file = fsFile(outputFile);
+                if (file.exists) {
                   // console.log(
                   //   `✅ Download completed: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
                   // );
                   finishSession({
                     status: 'completed',
-                    fileSize: Number(fileStat.size),
+                    fileSize: file.size,
                     completedAt: Date.now(),
                   });
                 } else {
@@ -654,17 +662,7 @@ export const useDownloadStore = create<DownloadState>()(
         }
 
         // Delete the file from filesystem if it exists
-        if (download?.outputFile) {
-          try {
-            const exists = await RNFS.exists(resolveOutputFile(download.outputFile));
-            if (exists) {
-              await RNFS.unlink(resolveOutputFile(download.outputFile));
-              // console.log(`🗑️ Deleted file: ${download.outputFile}`);
-            }
-          } catch (error) {
-            console.error(`❌ Failed to delete file: ${download.outputFile}`, error);
-          }
-        }
+        if (download?.outputFile) deleteOutputFile(download.outputFile);
 
         // Remove from state
         set((state) => {
@@ -690,17 +688,7 @@ export const useDownloadStore = create<DownloadState>()(
 
         // Delete all completed files from filesystem
         for (const download of completedDownloads) {
-          if (download.outputFile) {
-            try {
-              const exists = await RNFS.exists(resolveOutputFile(download.outputFile));
-              if (exists) {
-                await RNFS.unlink(resolveOutputFile(download.outputFile));
-                // console.log(`🗑️ Deleted file: ${download.outputFile}`);
-              }
-            } catch (error) {
-              console.error(`❌ Failed to delete file: ${download.outputFile}`, error);
-            }
-          }
+          if (download.outputFile) deleteOutputFile(download.outputFile);
         }
 
         // Remove from state
@@ -732,17 +720,7 @@ export const useDownloadStore = create<DownloadState>()(
 
         // Delete all files from filesystem
         for (const download of allDownloads) {
-          if (download.outputFile) {
-            try {
-              const exists = await RNFS.exists(resolveOutputFile(download.outputFile));
-              if (exists) {
-                await RNFS.unlink(resolveOutputFile(download.outputFile));
-                // console.log(`🗑️ Deleted file: ${download.outputFile}`);
-              }
-            } catch (error) {
-              console.error(`❌ Failed to delete file: ${download.outputFile}`, error);
-            }
-          }
+          if (download.outputFile) deleteOutputFile(download.outputFile);
         }
 
         // Clear all from state
@@ -880,32 +858,12 @@ export const useDownloadStore = create<DownloadState>()(
         const state = get();
         const downloads = Object.values(state.downloads);
 
-        // Calculate actual storage size from downloads directory
+        // What's on disk, so leftovers count too; from the records if the folder can't be read
         let actualSize = 0;
         try {
-          const exists = await RNFS.exists(DOWNLOADS_DIR);
-          if (exists) {
-            const dirItems = await RNFS.readDir(DOWNLOADS_DIR);
-
-            // Recursively calculate size of all files and subdirectories
-            const calculateDirSize = async (items: any[]): Promise<number> => {
-              let size = 0;
-              for (const item of items) {
-                if (item.isFile()) {
-                  size += Number(item.size) || 0;
-                } else if (item.isDirectory()) {
-                  const subItems = await RNFS.readDir(item.path);
-                  size += await calculateDirSize(subItems);
-                }
-              }
-              return size;
-            };
-
-            actualSize = await calculateDirSize(dirItems);
-          }
+          actualSize = fsDirectory(DOWNLOADS_DIR).size ?? 0;
         } catch (error) {
           console.error('❌ Failed to calculate storage size:', error);
-          // Fallback to calculating from download records
           actualSize = downloads.filter((d) => d.status === 'completed').reduce((sum, d) => sum + (d.fileSize || 0), 0);
         }
 
@@ -920,11 +878,10 @@ export const useDownloadStore = create<DownloadState>()(
       // Cleanup temporary files
       cleanupTempFiles: async () => {
         try {
-          const exists = await RNFS.exists(TEMP_DIR);
-          if (exists) {
-            await RNFS.unlink(TEMP_DIR);
+          const folder = fsDirectory(TEMP_DIR);
+          if (folder.exists) {
+            folder.delete();
             await ensureDir(TEMP_DIR);
-            // console.log('✅ Temp files cleaned up');
           }
         } catch (error) {
           console.error('❌ Failed to cleanup temp files:', error);
@@ -1070,9 +1027,7 @@ export const useHasActiveDownloads = () =>
 
 /** A finished download's file as a file:// URI, encoded, as players and content URIs expect */
 export const downloadedFileUri = (download: EpisodeDownload | undefined) =>
-  download?.status === 'completed' && download.outputFile
-    ? `file://${encodeURI(resolveOutputFile(download.outputFile))}`
-    : undefined;
+  download?.status === 'completed' && download.outputFile ? fileUri(resolveOutputFile(download.outputFile)) : undefined;
 
 /** The episode's downloaded file, if it has a finished download (downloads are saved under its uniqueId) */
 export const useDownloadedFileUri = (uniqueId: string | undefined) =>

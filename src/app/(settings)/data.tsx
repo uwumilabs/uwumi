@@ -3,7 +3,7 @@ import { ScrollView, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
-import * as RNFS from '@dr.pogodin/react-native-fs';
+import { Paths } from 'expo-file-system';
 import { ConfirmDialog, HUYStack, NativeList, Progress, ThemedView } from '@/components';
 import { useToast } from '@/components/heroui';
 import { useContinueWatchingStore, useDownloadStore, useRecentSearchesStore, useWatchProgressStore } from '@/hooks';
@@ -54,11 +54,8 @@ const DataAndStorage = () => {
   const { data: storage, refetch } = useQuery({
     queryKey: ['storage', 'overview', completedKey],
     queryFn: async () => {
-      const [{ totalSpace, freeSpace }, { downloadsSize }] = await Promise.all([
-        RNFS.getFSInfo(),
-        useDownloadStore.getState().getStorageInfo(),
-      ]);
-      return { totalSpace, freeSpace, downloadsSize };
+      const { downloadsSize } = await useDownloadStore.getState().getStorageInfo();
+      return { totalSpace: Paths.totalDiskSpace, freeSpace: Paths.availableDiskSpace, downloadsSize };
     },
   });
 

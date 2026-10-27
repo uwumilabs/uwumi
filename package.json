@@ -70,7 +70,6 @@
     ]
   },
   "dependencies": {
-    "@dr.pogodin/react-native-fs": "^2.36.0",
     "@expo-google-fonts/inter": "^0.2.3",
     "@expo/ui": "~58.0.23",
     "@expo/vector-icons": "^15.0.3",

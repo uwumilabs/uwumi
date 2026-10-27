@@ -1,4 +1,4 @@
-import * as RNFS from '@dr.pogodin/react-native-fs';
+import { Paths } from 'expo-file-system';
 
 export const EXTERNAL_LINKS = {
   GITHUB_REPOSITORY_API: 'https://api.github.com/repos/uwumilabs/uwumi',
@@ -124,8 +124,12 @@ export const SUB_LANGUAGE = {
   Welsh: 'wel',
 } as const;
 
+// Plain paths, as FFmpeg takes them and downloads store them; fsFile/fsDirectory in utils turn them back into URIs
+const pathFromUri = (uri: string) => decodeURIComponent(uri.replace(/^file:\/\//, '')).replace(/\/$/, '');
+
 const APP_DIR_NAME = __DEV__ ? 'uwumi-dev' : 'uwumi';
-export const UWUMI_DIR = `${RNFS.DocumentDirectoryPath}/${APP_DIR_NAME}`;
+export const UWUMI_DIR = `${pathFromUri(Paths.document.uri)}/${APP_DIR_NAME}`;
+export const CACHE_DIR = pathFromUri(Paths.cache.uri);
 // In the app's own storage, so files can't be deleted from under the app
 export const DOWNLOADS_DIR = `${UWUMI_DIR}/downloads`;
 

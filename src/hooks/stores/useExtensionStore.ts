@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { storage } from '@/hooks/stores/MMKV';
-import * as RNFS from '@dr.pogodin/react-native-fs';
+import { File as FsFile } from 'expo-file-system';
 import {
   ExtensionManifest,
   ExtensionRegistry,
@@ -20,7 +20,7 @@ import {
   type IVideoExtractor,
 } from 'react-native-consumet';
 import { UWUMI_DIR } from '@/constants/config';
-import { HttpError } from '@/constants/utils';
+import { fsDirectory, fsFile, HttpError } from '@/constants/utils';
 
 // --- Constants ---
 
@@ -90,11 +90,8 @@ interface ExtensionStoreState {
 
 const ensureDirectoryExists = async (path: string): Promise<boolean> => {
   try {
-    const exists = await RNFS.exists(path);
-    if (!exists) {
-      await RNFS.mkdir(path);
-      console.log('✅ Created directory:', path);
-    }
+    const folder = fsDirectory(path);
+    if (!folder.exists) folder.create({ intermediates: true, idempotent: true });
     return true;
   } catch (error) {
     console.error(`❌ Failed to ensure directory: ${path}`, error);
@@ -158,12 +155,9 @@ const downloadFile = async (url: string, destination: string): Promise<boolean> 
     const parentDir = destination.substring(0, destination.lastIndexOf('/'));
     await ensureDirectoryExists(parentDir);
 
-    if (await RNFS.exists(destination)) {
-      await RNFS.unlink(destination);
-    }
-
-    const { statusCode } = await RNFS.downloadFile({ fromUrl: url, toFile: destination }).promise;
-    return statusCode === 200;
+    // Rejects on a non-2xx response
+    await FsFile.downloadFileAsync(url, fsFile(destination), { idempotent: true });
+    return true;
   } catch (error) {
     console.error(`❌ Failed to download file from ${url}:`, error);
     return false;
@@ -180,8 +174,8 @@ const getFilePath = (type: CodeType, id: string, version: string): string => {
 
 const getFileSize = async (path: string): Promise<number | undefined> => {
   try {
-    const stat = await RNFS.stat(path);
-    return stat.size;
+    const file = fsFile(path);
+    return file.exists ? file.size : undefined;
   } catch {
     return undefined;
   }
@@ -189,9 +183,8 @@ const getFileSize = async (path: string): Promise<number | undefined> => {
 
 const deleteFile = async (path: string): Promise<void> => {
   try {
-    if (await RNFS.exists(path)) {
-      await RNFS.unlink(path);
-    }
+    const file = fsFile(path);
+    if (file.exists) file.delete();
   } catch (err) {
     console.warn(`⚠️ Failed to delete ${path}:`, err);
   }
@@ -228,14 +221,14 @@ const downloadCode = async (type: CodeType, id: string, entry: CodeEntry, force:
     return false;
   }
   try {
-    verifyExtensionCode(await RNFS.readFile(downloadPath, 'utf8'), { id, sha256: entry.sha256 });
+    verifyExtensionCode(await fsFile(downloadPath).text(), { id, sha256: entry.sha256 });
   } catch (error) {
     console.error(`❌ ${id} ${entry.version} failed its integrity check:`, error);
     await deleteFile(downloadPath);
     return false;
   }
   await deleteFile(filePath);
-  await RNFS.moveFile(downloadPath, filePath);
+  fsFile(downloadPath).moveSync(fsFile(filePath), { overwrite: true });
 
   if (cached && cached.version !== entry.version) await deleteFile(getFilePath(type, id, cached.version));
   const cache: CachedItem = {
@@ -251,7 +244,7 @@ const readCode = async (type: CodeType, id: string): Promise<string | null> => {
   const cache = loadJSONFromStorage<CachedItem>(getCacheKey(type, id));
   if (!cache) return null;
   try {
-    return await RNFS.readFile(getFilePath(type, id, cache.version), 'utf8');
+    return await fsFile(getFilePath(type, id, cache.version)).text();
   } catch {
     return null;
   }
@@ -363,8 +356,10 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => ({
 
   clearCache: async () => {
     try {
-      if (await RNFS.exists(EXTENSIONS_CACHE_DIR)) await RNFS.unlink(EXTENSIONS_CACHE_DIR);
-      if (await RNFS.exists(EXTRACTORS_CACHE_DIR)) await RNFS.unlink(EXTRACTORS_CACHE_DIR);
+      for (const dir of [EXTENSIONS_CACHE_DIR, EXTRACTORS_CACHE_DIR]) {
+        const folder = fsDirectory(dir);
+        if (folder.exists) folder.delete();
+      }
 
       const { registry } = get();
       for (const e of registry.extensions) storage.remove(getCacheKey('extension', e.id));
@@ -380,12 +375,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => ({
     let total = 0;
     try {
       for (const dir of [EXTENSIONS_CACHE_DIR, EXTRACTORS_CACHE_DIR]) {
-        if (await RNFS.exists(dir)) {
-          const items = await RNFS.readDir(dir);
-          for (const item of items) {
-            if (item.isFile()) total += (await RNFS.stat(item.path)).size;
-          }
-        }
+        total += fsDirectory(dir).size ?? 0;
       }
     } catch (err) {
       console.error('❌ Failed to get storage size:', err);

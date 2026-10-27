@@ -1,7 +1,7 @@
 import { Platform, Share, type ColorValue, type ViewStyle } from 'react-native';
 import { openBrowserAsync } from 'expo-web-browser';
 import * as IntentLauncher from 'expo-intent-launcher';
-import { File as FsFile } from 'expo-file-system';
+import { Directory, File as FsFile } from 'expo-file-system';
 import { EXTERNAL_LINKS } from './config';
 
 export const formatTime = (seconds: number): string => {
@@ -144,6 +144,11 @@ export const openBrowser = (url: string) => openBrowserAsync(url, { createTask: 
 export const isThumbnailTrack = (track: { kind?: string; lang?: string }) =>
   track.kind === 'thumbnails' || track.lang === 'thumbnails';
 
+/** A plain path as a file:// URI, each segment encoded, so names with spaces, # or ? survive */
+export const fileUri = (path: string) => `file://${path.split('/').map(encodeURIComponent).join('/')}`;
+export const fsFile = (path: string) => new FsFile(fileUri(path));
+export const fsDirectory = (path: string) => new Directory(fileUri(path));
+
 const FLAG_GRANT_READ_URI_PERMISSION = 1;
 
 /**
@@ -163,9 +168,10 @@ export const openVideoInOtherApp = async (fileUri: string, title?: string) => {
   await Share.share({ url: fileUri, title });
 };
 
+// Decimal units (1 GB = 1000 MB), as Android's and iOS's storage screens count them
 export const formatBytes = (bytes: number) => {
   if (bytes <= 0) return '0 B';
-  const k = 1024;
+  const k = 1000;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
