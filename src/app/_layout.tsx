@@ -17,6 +17,7 @@ import {
   useThemeStore,
   useUpdateChecker,
   useSheetColor,
+  useNativeHeaderOptions,
 } from '@/hooks';
 import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
@@ -130,7 +131,23 @@ const DownloadDialog = ({
   );
 };
 
+// In the root stack rather than a nested one, so iOS gives the first of them a native back button too
+const SETTINGS_SCREENS: Record<string, string> = {
+  settings: 'Settings',
+  about: 'About',
+  appearance: 'Appearance',
+  player: 'Player',
+  favorites: 'Favorites',
+  downloads: 'Downloads',
+  extensions: 'Extensions',
+  history: 'History',
+  statistics: 'Statistics',
+  data: 'Data and storage',
+  example: 'Example',
+};
+
 const AppContent = () => {
+  const headerOptions = useNativeHeaderOptions();
   const { isUpdateAvailable, updateInfo, setIsUpdateAvailable } = useUpdateChecker(EXTERNAL_LINKS.GITHUB_RELEASES_API);
   const [fontsLoaded, fontError] = useFonts({
     InterMedium,
@@ -229,7 +246,13 @@ const AppContent = () => {
               <Stack.Screen name="info/[mediaType]" />
               <Stack.Screen name="watch/[mediaType]" />
               <Stack.Screen name="read/[id]" />
-              <Stack.Screen name="(settings)" />
+              {Object.entries(SETTINGS_SCREENS).map(([name, title]) => (
+                <Stack.Screen
+                  key={name}
+                  name={`(settings)/${name}`}
+                  options={{ ...headerOptions, headerShown: true, title }}
+                />
+              ))}
               <Stack.Screen name="+not-found" />
             </Stack>
           </ThemeProvider>

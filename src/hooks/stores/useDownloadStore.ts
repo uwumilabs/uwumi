@@ -9,6 +9,7 @@ import { useMemo } from 'react';
 import { storage } from './MMKV';
 import { usePreferencesStore } from './usePreferencesStore';
 import { DOWNLOADS_DIR, UWUMI_DIR } from '@/constants/config';
+import { formatBytes } from '@/constants/utils';
 import type { MediaType } from '@/constants/types';
 import { downloadRuntime } from '../runtimes';
 
@@ -36,10 +37,16 @@ interface DownloadProgress {
   percentage: number;
   currentTime: number;
   totalDuration: number;
+  /** FFmpeg's speed: seconds of video handled per second (9.6 = 9.6×), not a byte rate */
   speed: number;
+  /** The stream's bits per second */
   bitrate: number;
   size: number;
 }
+
+/** Bytes downloaded per second: the stream's byte rate times how much faster than real time FFmpeg runs */
+export const downloadBytesPerSecond = ({ speed, bitrate }: Pick<DownloadProgress, 'speed' | 'bitrate'>) =>
+  speed > 0 && bitrate > 0 ? (bitrate / 8) * speed : 0;
 
 export interface EpisodeDownload {
   id: string;
@@ -976,7 +983,7 @@ export const useDownloadStore = create<DownloadState>()(
         try {
           const progress = download.progress;
           const progressText = progress
-            ? `${progress.percentage.toFixed(1)}% • ${(progress.speed * 1024).toFixed(1)} KB/s`
+            ? `${progress.percentage.toFixed(1)}% • ${formatBytes(downloadBytesPerSecond(progress))}/s`
             : 'Starting...';
 
           await BackgroundService.updateNotification({
@@ -1058,7 +1065,7 @@ export const useDownloadedOnlyFilter = () => {
           ...new Set(
             Object.values(state.downloads)
               .filter(({ status }) => status === 'completed')
-              .map(({ showId, showName }) => (showId ? `id:${showId}` : `title:${showName ?? ''}`)),
+              .map(({ showId, showName }) => (showId ? `id:${showId}` : `title:${showName?.toLowerCase() ?? ''}`)),
           ),
         ]
           .sort()
@@ -1068,7 +1075,9 @@ export const useDownloadedOnlyFilter = () => {
   return useMemo(() => {
     if (!enabled) return null;
     const downloaded = new Set(keys.split('\n'));
-    return (id: string, title?: string) => downloaded.has(`id:${id}`) || (!!title && downloaded.has(`title:${title}`));
+    // Titles ignore case: providers often give the show's name in capitals
+    return (id: string, title?: string) =>
+      downloaded.has(`id:${id}`) || (!!title && downloaded.has(`title:${title.toLowerCase()}`));
   }, [enabled, keys]);
 };
 

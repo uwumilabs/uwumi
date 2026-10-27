@@ -3,12 +3,13 @@
  * This file contains lightweight, frequently-used components that don't warrant separate files
  */
 
-import React, { ReactNode, forwardRef, useState } from 'react';
+import React, { ReactNode, forwardRef, useContext, useState } from 'react';
 import { View, ViewProps, Text, StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
 import { StatusBar, StatusBarProps } from 'expo-status-bar';
 import { Link } from 'expo-router';
+import { HeaderShownContext } from 'expo-router/react-navigation';
 import { cn, PressableFeedback, PressableFeedbackProps } from './heroui';
 import { IoniconProps, IoniconsIcon } from './Icons';
 import { SystemBars } from 'react-native-edge-to-edge';
@@ -145,13 +146,15 @@ export function ThemedView({
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const currentTheme = useCurrentTheme();
   const insets = useSafeAreaInsets();
+  // A native stack header already covers the status bar
+  const headerShown = useContext(HeaderShownContext);
 
   return (
     <>
       <View
         style={[
           {
-            paddingTop: useSafeArea ? 0 : insets.top,
+            paddingTop: useSafeArea || headerShown ? 0 : insets.top,
             backgroundColor: pureBlackBackground ? '#000' : currentTheme?.background,
           },
           style,

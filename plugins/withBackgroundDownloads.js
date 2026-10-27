@@ -1,4 +1,6 @@
-const { AndroidConfig, withAndroidManifest } = require('@expo/config-plugins');
+const fs = require('fs');
+const path = require('path');
+const { AndroidConfig, withAndroidManifest, withDangerousMod } = require('@expo/config-plugins');
 
 // What downloads need in the Android manifest, which prebuild doesn't generate on its own.
 //   react-native-background-actions starts its service as a dataSync foreground service: Android 14+ throws unless
@@ -13,9 +15,24 @@ const PERMISSIONS = [
   'android.permission.WRITE_SETTINGS',
 ];
 const DOWNLOAD_SERVICE = 'com.asterinet.react.bgactions.RNBackgroundActionsTask';
+// The download notification's small icon (taskIcon in useDownloadStore); without it the service throws
+// "Task icon not found". 96 px is 24 dp at xxxhdpi, and Android scales it down for lower densities
+const NOTIFICATION_ICON = 'assets/images/notification.png';
+const NOTIFICATION_ICON_RES = 'app/src/main/res/drawable-xxxhdpi/notification_icon.png';
+
+const withNotificationIcon = (config) =>
+  withDangerousMod(config, [
+    'android',
+    async (config) => {
+      const target = path.join(config.modRequest.platformProjectRoot, NOTIFICATION_ICON_RES);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.copyFileSync(path.join(config.modRequest.projectRoot, NOTIFICATION_ICON), target);
+      return config;
+    },
+  ]);
 
 const withBackgroundDownloads = (config) =>
-  withAndroidManifest(config, (config) => {
+  withAndroidManifest(withNotificationIcon(config), (config) => {
     const { manifest } = config.modResults;
     manifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
     manifest['uses-permission'] = manifest['uses-permission'] ?? [];

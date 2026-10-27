@@ -5,7 +5,6 @@ export { IconTitle, RippleButton, NoResults, ThemedView, HUXStack, HUYStack } fr
 export { CardList, MediaCard } from './CardList';
 export { MediaCarousel } from './MediaCarousel';
 export { ContinueWatchingRow } from './ContinueWatchingRow';
-export { StackHeader } from './StackHeader';
 export { MediaBrowser } from './MediaBrowser';
 export { EpisodeList, WavyAnimation } from './episode-list';
 

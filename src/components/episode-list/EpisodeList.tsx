@@ -13,6 +13,7 @@ import React, { useRef, useState, useCallback, useMemo, memo, ReactNode } from '
 import Image from '@/components/Image';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import Animated, { SharedValue, css, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { create } from 'zustand';
@@ -194,7 +195,7 @@ const SwipeAction = memo(
 
     const animatedStyle = useAnimatedStyle(() => {
       const progress = Math.min(Math.abs(drag.value) / THRESHOLD, 1);
-      return { transform: [{ scale: 0.9 + progress * 0.1 }], opacity: progress > 0 ? 1 : 0.7 };
+      return { transform: [{ scale: 0.9 + progress * 0.1 }], opacity: progress > 0 ? 1 : 0 };
     });
 
     const firstIconStyle = useAnimatedStyle(() => {
@@ -211,7 +212,10 @@ const SwipeAction = memo(
 
     return (
       <Animated.View
-        style={[animatedStyle, { width: 100, justifyContent: 'center', alignItems: 'center', backgroundColor }]}>
+        style={[
+          animatedStyle,
+          { width: 100, justifyContent: 'center', alignItems: 'center', borderRadius: 16, backgroundColor },
+        ]}>
         {/* Show current state icon (fades out) */}
         <Animated.View
           style={[{ ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center' }, firstIconStyle]}>
@@ -670,6 +674,9 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
         ListFooterComponent: null,
         // Android: lets the window scroll inside the page by touch
         nestedScrollEnabled: true,
+        // Its scroll cancels the rows' swipe; with RN's ScrollView a flick drifting sideways woke the swipe, which
+        // took the touch and stopped the scroll and its fling
+        renderScrollComponent: GestureScrollView,
       })}
       data={isLoading ? [] : episodes}
       // Rendered inside the list so `header` stays visible

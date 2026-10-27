@@ -43,8 +43,16 @@ const DataAndStorage = () => {
   const [confirm, setConfirm] = useState<ClearTarget | null>(null);
   const [clearingTemp, setClearingTemp] = useState(false);
 
+  // Re-measures when a download finishes, as the Downloads screen does
+  const completedKey = useDownloadStore((state) =>
+    Object.values(state.downloads)
+      .filter(({ status }) => status === 'completed')
+      .map(({ id }) => id)
+      .sort()
+      .join(','),
+  );
   const { data: storage, refetch } = useQuery({
-    queryKey: ['storage', 'overview'],
+    queryKey: ['storage', 'overview', completedKey],
     queryFn: async () => {
       const [{ totalSpace, freeSpace }, { downloadsSize }] = await Promise.all([
         RNFS.getFSInfo(),

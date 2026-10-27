@@ -13,7 +13,7 @@ import {
   type IoniconProps,
   Separator,
 } from '@/components';
-import { EpisodeDownload, useDownloadStore, usePureBlackBackground } from '@/hooks';
+import { downloadBytesPerSecond, EpisodeDownload, useDownloadStore, usePureBlackBackground } from '@/hooks';
 import { formatBytes, formatTime } from '@/constants/utils';
 import { ActivityIndicator, Text } from 'react-native';
 import { Card, cn } from '@/components/heroui';
@@ -37,7 +37,7 @@ const PREVIEW_DOWNLOADS: EpisodeDownload[] = (
         percentage: 45,
         currentTime: 540,
         totalDuration: 1200,
-        speed: 2048000,
+        speed: 3.2,
         bitrate: 5000000,
         size: 150000000,
       },
@@ -54,7 +54,7 @@ const PREVIEW_DOWNLOADS: EpisodeDownload[] = (
         percentage: 78,
         currentTime: 3600,
         totalDuration: 4620,
-        speed: 5242880,
+        speed: 6.5,
         bitrate: 8000000,
         size: 520000000,
       },
@@ -180,6 +180,7 @@ const completedDateFormat = new Intl.DateTimeFormat();
 const DownloadProgressInfo = memo(({ id, onCancel }: { id: string; onCancel: (id: string) => void }) => {
   const progress = useDownloadStore((state) => (previewById?.[id] ?? state.downloads[id])?.progress);
   const percent = Math.round(progress?.percentage || 0);
+  const bytesPerSecond = progress ? downloadBytesPerSecond(progress) : 0;
 
   return (
     <HUYStack className="mt-2 gap-2">
@@ -187,7 +188,7 @@ const DownloadProgressInfo = memo(({ id, onCancel }: { id: string; onCancel: (id
       <HUXStack className="flex-row items-center justify-between">
         <HUXStack className="flex-row items-center gap-3">
           <Text className="text-sm font-semibold text-foreground">{percent}%</Text>
-          {!!progress?.speed && <Text className="text-xs text-foreground">{formatBytes(progress.speed)}/s</Text>}
+          {!!bytesPerSecond && <Text className="text-xs text-foreground">{formatBytes(bytesPerSecond)}/s</Text>}
         </HUXStack>
         {!!progress?.currentTime && !!progress?.totalDuration && (
           <Text className="text-sm text-foreground">
