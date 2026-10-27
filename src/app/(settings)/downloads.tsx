@@ -13,10 +13,17 @@ import {
   type IoniconProps,
   Separator,
 } from '@/components';
-import { downloadBytesPerSecond, EpisodeDownload, useDownloadStore, usePureBlackBackground } from '@/hooks';
-import { formatBytes, formatTime } from '@/constants/utils';
+import {
+  downloadBytesPerSecond,
+  downloadedFileUri,
+  EpisodeDownload,
+  useDownloadStore,
+  usePureBlackBackground,
+} from '@/hooks';
+import { formatBytes, formatTime, openVideoInOtherApp } from '@/constants/utils';
 import { ActivityIndicator, Text } from 'react-native';
-import { Card, cn } from '@/components/heroui';
+import { Card, cn, useToast } from '@/components/heroui';
+import { type Href, useRouter } from 'expo-router';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { MaterialIconsIcon } from '@/components/Icons';
 
@@ -204,6 +211,42 @@ const DownloadProgressInfo = memo(({ id, onCancel }: { id: string; onCancel: (id
 });
 DownloadProgressInfo.displayName = 'DownloadProgressInfo';
 
+// A finished download: watch it here, or hand the file to another player
+const DownloadedActions = memo(({ id, canPlay }: { id: string; canPlay: boolean }) => {
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const play = () => {
+    const params = useDownloadStore.getState().downloads[id]?.watchParams;
+    if (params) router.push({ pathname: '/watch/[mediaType]', params } as Href);
+  };
+
+  const openElsewhere = async () => {
+    const download = useDownloadStore.getState().downloads[id];
+    const uri = downloadedFileUri(download);
+    if (!uri) return;
+    try {
+      await openVideoInOtherApp(uri, download?.name);
+    } catch (e) {
+      toast.show({ variant: 'danger', label: "Couldn't open the download", description: String((e as Error).message) });
+    }
+  };
+
+  return (
+    <HUXStack className="mt-2 gap-2">
+      {canPlay && (
+        <RippleButton className="flex-1 items-center justify-center rounded-xl p-3" onPress={play}>
+          <IconTitle iconName="play-outline" text="Play" />
+        </RippleButton>
+      )}
+      <RippleButton className="flex-1 items-center justify-center rounded-xl p-3" onPress={openElsewhere}>
+        <IconTitle iconName="open-outline" text="Open in another app" />
+      </RippleButton>
+    </HUXStack>
+  );
+});
+DownloadedActions.displayName = 'DownloadedActions';
+
 const DownloadCard = memo(
   ({
     id,
@@ -226,6 +269,7 @@ const DownloadCard = memo(
           status: d?.status ?? 'pending',
           error: d?.error,
           completedAt: d?.completedAt,
+          canPlay: !!d?.watchParams,
         };
       }),
     );
@@ -267,7 +311,10 @@ const DownloadCard = memo(
             </HUXStack>
           </HUXStack>
         </Card.Header>
-        <Card.Body>{status === 'downloading' && <DownloadProgressInfo id={id} onCancel={onCancel} />}</Card.Body>
+        <Card.Body>
+          {status === 'downloading' && <DownloadProgressInfo id={id} onCancel={onCancel} />}
+          {status === 'completed' && <DownloadedActions id={id} canPlay={download.canPlay} />}
+        </Card.Body>
 
         <Card.Footer>
           {status !== 'downloading' && (

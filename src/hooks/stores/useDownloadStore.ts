@@ -8,7 +8,7 @@ import { runOnRuntimeAsync } from 'react-native-worklets';
 import { useMemo } from 'react';
 import { storage } from './MMKV';
 import { usePreferencesStore } from './usePreferencesStore';
-import { DOWNLOADS_DIR, UWUMI_DIR } from '@/constants/config';
+import { DOWNLOADS_DIR, SUB_LANGUAGE, UWUMI_DIR } from '@/constants/config';
 import { formatBytes } from '@/constants/utils';
 import type { MediaType } from '@/constants/types';
 import { downloadRuntime } from '../runtimes';
@@ -21,6 +21,19 @@ const THROTTLE_PCT = 1;
 const TEMP_DIR = `${RNFS.CachesDirectoryPath}/ffmpeg_temp`; // Temporary FFmpeg files
 
 const resolveOutputFile = (file: string) => (file.startsWith('/') ? file : `${DOWNLOADS_DIR}/${file}`);
+
+/**
+ * The ISO 639-2 code MP4 needs for a subtitle's language. Providers give names ("English", "Portuguese - Brazilian
+ * Portuguese"), which FFmpeg drops, so players list the tracks as "Track 1, 2, …"
+ */
+const languageCode = (lang?: string) => {
+  if (!lang) return undefined;
+  if (/^[a-z]{3}$/.test(lang)) return lang;
+  const name = (Object.keys(SUB_LANGUAGE) as (keyof typeof SUB_LANGUAGE)[]).find(
+    (key) => key !== 'ALL' && lang.toLowerCase().startsWith(key.toLowerCase()),
+  );
+  return name ? SUB_LANGUAGE[name] : undefined;
+};
 
 // One run per app start, shared by every caller of initialize()
 let initializing: Promise<boolean> | undefined;
@@ -70,6 +83,8 @@ export interface EpisodeDownload {
   /** The info screen's id and media type, for "Downloaded only"; missing on downloads made before them */
   showId?: string;
   mediaType?: MediaType;
+  /** The /watch route's params, to play it from Downloads; missing on downloads made before them */
+  watchParams?: Record<string, string>;
   episode: number;
   season?: number;
   uniqueId?: string; // Episode unique ID from provider
@@ -362,22 +377,16 @@ export const useDownloadStore = create<DownloadState>()(
           // Codec settings
           commandParts.push('-c:v', 'copy', '-c:a', 'copy', '-c:s', 'mov_text', '-bsf:a', 'aac_adtstoasc');
 
-          // Add metadata for external subtitles (properly escaped)
+          // Language and title for external subtitles; English is the default track, as when streaming
           if (download.externalSubtitles && download.externalSubtitles.length > 0) {
+            const codes = download.externalSubtitles.map((sub) => languageCode(sub.language));
+            const defaultIndex = Math.max(codes.indexOf('eng'), 0);
             download.externalSubtitles.forEach((sub, index) => {
               const streamIndex = (streamInfo.textTracks?.length || 0) + index;
-              if (sub.language) {
-                commandParts.push('-metadata:s:s:' + streamIndex, 'language=' + sub.language);
-              }
-              if (sub.title) {
-                // Escape special characters and wrap values with spaces in quotes
-                const needsQuotes = sub.title.includes(' ') || sub.title.includes('"');
-                const escapedTitle = sub.title.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-                commandParts.push(
-                  '-metadata:s:s:' + streamIndex,
-                  needsQuotes ? `"title=${escapedTitle}"` : `title=${escapedTitle}`,
-                );
-              }
+              if (codes[index]) commandParts.push(`-metadata:s:s:${streamIndex}`, `language=${codes[index]}`);
+              // Arguments go to FFmpeg as they are, so a title with spaces needs no quotes
+              if (sub.title) commandParts.push(`-metadata:s:s:${streamIndex}`, `title=${sub.title}`);
+              commandParts.push(`-disposition:s:${streamIndex}`, index === defaultIndex ? 'default' : '0');
             });
           }
 
@@ -1058,6 +1067,16 @@ export const useHasActiveDownloads = () =>
   useDownloadStore((state) =>
     Object.values(state.downloads).some(({ status }) => status === 'downloading' || status === 'pending'),
   );
+
+/** A finished download's file as a file:// URI, encoded, as players and content URIs expect */
+export const downloadedFileUri = (download: EpisodeDownload | undefined) =>
+  download?.status === 'completed' && download.outputFile
+    ? `file://${encodeURI(resolveOutputFile(download.outputFile))}`
+    : undefined;
+
+/** The episode's downloaded file, if it has a finished download (downloads are saved under its uniqueId) */
+export const useDownloadedFileUri = (uniqueId: string | undefined) =>
+  useDownloadStore((state) => (uniqueId ? downloadedFileUri(state.downloads[uniqueId]) : undefined));
 
 /** How many downloads are running or queued */
 export const useRemainingDownloadsCount = () =>

@@ -1,19 +1,9 @@
 import { Platform, Share, type ColorValue, type ViewStyle } from 'react-native';
 import { openBrowserAsync } from 'expo-web-browser';
+import * as IntentLauncher from 'expo-intent-launcher';
+import { File as FsFile } from 'expo-file-system';
 import { EXTERNAL_LINKS } from './config';
-// export const getFetchUrl = () => {
-//   if (process.env.NODE_ENV === 'production') {
-//     return {
-//       apiUrl: process.env.EXPO_PUBLIC_API_URL,
-//       episodeApiUrl: process.env.EXPO_PUBLIC_EPISODE_API_URL,
-//     };
-//   } else {
-//     return {
-//       apiUrl: process.env.EXPO_PUBLIC_API_URL_DEV,
-//       episodeApiUrl: process.env.EXPO_PUBLIC_EPISODE_API_URL_DEV,
-//     };
-//   }
-// };
+
 export const formatTime = (seconds: number): string => {
   // Handle invalid inputs
   if (!Number.isFinite(seconds) || seconds < 0) {
@@ -149,6 +139,25 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
 
 // In the app's own task: Android's default opens a second uwumi card in recents
 export const openBrowser = (url: string) => openBrowserAsync(url, { createTask: false });
+
+const FLAG_GRANT_READ_URI_PERMISSION = 1;
+
+/**
+ * Hands a downloaded video to another app. Android: an "Open with" for video players, through expo-file-system's
+ * FileProvider, as other apps can't read the app's storage directly. iOS: the share sheet (Open in VLC, Save to Files).
+ */
+export const openVideoInOtherApp = async (fileUri: string, title?: string) => {
+  if (Platform.OS === 'android') {
+    await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+      data: new FsFile(fileUri).contentUri,
+      type: 'video/*',
+      flags: FLAG_GRANT_READ_URI_PERMISSION,
+      ...(title && { extra: { title } }),
+    });
+    return;
+  }
+  await Share.share({ url: fileUri, title });
+};
 
 export const formatBytes = (bytes: number) => {
   if (bytes <= 0) return '0 B';

@@ -45,6 +45,7 @@ import {
   useContinueWatchingStore,
   useExternalSubtitleStore,
   usePreferencesStore,
+  useDownloadedFileUri,
   type EpisodeItem,
 } from '@/hooks';
 import { useToast } from '@/components/heroui';
@@ -133,6 +134,10 @@ const Watch = () => {
   const missingOnProvider = switchedProvider && !episodesLoading && !activeEpisodeId;
   const providers = useProviders();
   const uniqueId = listedEpisode?.uniqueId ?? routeUniqueId;
+  // A downloaded episode plays its file, with no servers, so it works offline. If the file won't play, it streams
+  const downloadedUri = useDownloadedFileUri(uniqueId);
+  const [failedDownload, setFailedDownload] = useState<string | undefined>();
+  const localUri = downloadedUri && failedDownload !== uniqueId ? downloadedUri : undefined;
   const episodeNumber = listedEpisode?.number !== undefined ? String(listedEpisode.number) : routeEpisodeNumber;
   const adjacentEpisodes = useMemo(
     () => getAdjacentEpisodes(allEpisodes, currentUniqueId || uniqueId),
@@ -251,7 +256,7 @@ const Watch = () => {
   const rotationKey = useMemo(() => JSON.stringify(target), [target]);
   // A switched provider's list has to load before its episode id is known
   const waitingForList = switchedProvider && episodesLoading;
-  const serversQuery = useEpisodeServers(target, !waitingForList);
+  const serversQuery = useEpisodeServers(target, !waitingForList && !localUri);
   const serverNames = useMemo(
     () => (serversQuery.data ?? EMPTY_SERVERS).map((server) => server.name),
     [serversQuery.data],
@@ -277,12 +282,13 @@ const Watch = () => {
   const { data: externalSubtitles, isLoading: externalSubtitlesLoading } = useExternalSubtitles({
     ...subtitleSearch,
     language: subtitleLanguage,
-    enabled: wantsExternalSubtitles,
+    // A download already carries the subtitles it was saved with
+    enabled: wantsExternalSubtitles && !localUri,
   });
 
   const data = sourcesQuery.data;
   // New text tracks would reload the source, so the player waits for external subtitles, which give up quickly
-  const waitingForSubtitles = wantsExternalSubtitles && (mediaInfoLoading || externalSubtitlesLoading);
+  const waitingForSubtitles = !localUri && wantsExternalSubtitles && (mediaInfoLoading || externalSubtitlesLoading);
 
   useBackHandler(episodesOpen, () => {
     setEpisodesOpen(false);
@@ -430,19 +436,21 @@ const Watch = () => {
 
   const source = useMemo(() => {
     return (
+      localUri ||
       data?.sources?.[0]?.url ||
       data?.sources?.find((s) => s.quality === 'auto' || s.quality === 'default')?.url ||
       data?.sources?.[0]?.url ||
       ''
     );
-  }, [data]);
+  }, [localUri, data]);
 
   const sourceHeaders = useMemo<Record<string, string> | undefined>(() => {
+    if (localUri) return undefined;
     const h = data?.headers;
     if (!h || typeof h !== 'object') return undefined;
     // Flatten to Record<string, string>, dropping any non-string values
     return Object.fromEntries(Object.entries(h).filter(([, v]) => typeof v === 'string')) as Record<string, string>;
-  }, [data?.headers]);
+  }, [localUri, data?.headers]);
 
   // const gestures = Gesture.Exclusive(doubleTapGesture, brightnessVolumeGesture, singleTapGesture);
 
@@ -510,17 +518,21 @@ const Watch = () => {
     [queryClient, subtitleSearch, addSubtitleTracks],
   );
 
-  const phase: ServerPhase | 'loading' | 'playing' = missingOnProvider
-    ? 'missing'
-    : serversQuery.isError
-      ? 'unavailable'
-      : rotation.exhausted
-        ? 'exhausted'
-        : !source || waitingForList || waitingForSubtitles
-          ? 'finding'
-          : loadedAttempt === rotation.attemptKey
-            ? 'playing'
-            : 'loading';
+  const phase: ServerPhase | 'loading' | 'playing' = localUri
+    ? loadedAttempt === rotation.attemptKey
+      ? 'playing'
+      : 'loading'
+    : missingOnProvider
+      ? 'missing'
+      : serversQuery.isError
+        ? 'unavailable'
+        : rotation.exhausted
+          ? 'exhausted'
+          : !source || waitingForList || waitingForSubtitles
+            ? 'finding'
+            : loadedAttempt === rotation.attemptKey
+              ? 'playing'
+              : 'loading';
 
   const providerName = providers[mediaType]?.find(({ value }) => value === currentProvider)?.name ?? currentProvider;
   const chips = useMemo<ServerChip[]>(
@@ -589,6 +601,11 @@ const Watch = () => {
           bufferingStrategy: BufferingStrategyType.DEPENDING_ON_MEMORY,
           enterPictureInPictureOnLeave: !isTV && isPlaying,
           onError: () => {
+            if (localUri) {
+              console.error('❌ The downloaded file would not play, streaming instead:', localUri);
+              setFailedDownload(uniqueId);
+              return;
+            }
             const attempt = rotation.attempt;
             if (!attempt) return;
             const loaded = loadedAttempt === rotation.attemptKey;
@@ -651,9 +668,12 @@ const Watch = () => {
         <DefaultLayout
           title={title}
           titleProps={{ style: { width: dimensions.width * 0.75 }, numberOfLines: 1 }}
-          subtitle={
-            type !== TvType.MOVIE ? `${seasonNumber ? `Season ${seasonNumber}` : ''} Episode ${episodeNumber}` : ''
-          }
+          subtitle={[
+            type !== TvType.MOVIE && `${seasonNumber ? `Season ${seasonNumber} ` : ''}Episode ${episodeNumber}`,
+            localUri && 'Downloaded',
+          ]
+            .filter(Boolean)
+            .join(' · ')}
           pinCaptionTrack={(track) => !!track.title && addedTrackTitles.has(track.title)}
           slots={{
             beforeCaptionTracks: isTV ? undefined : (
@@ -713,12 +733,20 @@ const Watch = () => {
         <PlayerOverlay skipTimes={skipTimes} upNext={upNext} onNext={handleNextEpisode} />
         <ServerLoadingOverlay
           loading={phase === 'loading'}
-          label={`Loading ${rotation.attempt?.server ?? ''} · ${position} of ${rotation.order.length}`}
+          label={
+            localUri
+              ? 'Loading the download'
+              : `Loading ${rotation.attempt?.server ?? ''} · ${position} of ${rotation.order.length}`
+          }
         />
         <PlayerOverlay skipTimes={skipTimes} upNext={upNext} onNext={handleNextEpisode} />
         <ServerLoadingOverlay
           loading={phase === 'loading'}
-          label={`Loading ${rotation.attempt?.server ?? ''} · ${position} of ${rotation.order.length}`}
+          label={
+            localUri
+              ? 'Loading the download'
+              : `Loading ${rotation.attempt?.server ?? ''} · ${position} of ${rotation.order.length}`
+          }
           notice={rotation.switched && rotation.attempt ? `Playing on ${rotation.attempt.server}` : undefined}
         />
         {upNext && (

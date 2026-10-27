@@ -10,10 +10,12 @@ import {
   lastServerKey,
   useSheetColor,
   useDownloadStore,
+  useDownloadedFileUri,
   useMediaInfo,
+  buildEpisodeRouteParams,
 } from '@/hooks';
 import { MediaType } from '@/constants/types';
-import { infoTitle, isTV, shareMedia } from '@/constants/utils';
+import { infoTitle, isTV, openVideoInOtherApp, shareMedia } from '@/constants/utils';
 import { useLocalSearchParams } from 'expo-router';
 import { useActiveProvider } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
@@ -41,6 +43,18 @@ interface SheetButtonProps {
   rightIcon?: React.ReactNode;
   hasTVPreferredFocus?: boolean;
 }
+
+// How to play it from Downloads, as the episode list opens the player
+const toWatchParams = (
+  episode: IAnimeEpisode | IMovieEpisode,
+  context: Parameters<typeof buildEpisodeRouteParams>[1],
+) => {
+  const params = buildEpisodeRouteParams(episode, context);
+  if (!params) return undefined;
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => typeof value === 'string' && value !== ''),
+  ) as Record<string, string>;
+};
 
 const StyledSheetButton: React.FC<SheetButtonProps> = memo(
   ({ onPress, icon, label, rightIcon, hasTVPreferredFocus }) => {
@@ -109,6 +123,8 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     );
     const addDownload = useDownloadStore((state) => state.addDownload);
     const startDownload = useDownloadStore((state) => state.startDownload);
+    const removeDownload = useDownloadStore((state) => state.removeDownload);
+    const downloadedUri = useDownloadedFileUri(episode?.uniqueId);
     const { data: mediaInfo } = useMediaInfo();
     const show = useLocalSearchParams<{ id: string; metaProvider?: string; title?: string }>();
     const sheetColor = useSheetColor();
@@ -265,6 +281,27 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
       [onOpenChange, data, episode, getProgress, setProgress, toast],
     );
 
+    const openDownload = async () => {
+      if (!downloadedUri) return;
+      onOpenChange(false);
+      try {
+        await openVideoInOtherApp(downloadedUri, episode?.title);
+      } catch (e) {
+        toast.show({
+          variant: 'danger',
+          label: "Couldn't open the download",
+          description: String((e as Error).message),
+        });
+      }
+    };
+
+    const deleteDownload = async () => {
+      if (!episode?.uniqueId) return;
+      onOpenChange(false);
+      await removeDownload(episode.uniqueId);
+      toast.show({ variant: 'success', label: 'Download deleted' });
+    };
+
     const handleDownloadWithQuality = useCallback(
       async (videoUrl: string) => {
         if (!episode) return;
@@ -319,6 +356,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
             showName: showName,
             showId,
             mediaType,
+            watchParams: toWatchParams(episode, { mediaType, provider, id: showId, mediaId, type: type ?? '' }),
             season: season,
             episode: episodeNumber,
             uniqueId: episode.uniqueId,
@@ -337,7 +375,20 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
         toast.show({ variant: 'success', label: 'Download started', description: successDescription });
         onOpenChange(false);
       },
-      [episode, data, mediaInfo, showId, mediaType, addDownload, startDownload, onOpenChange, toast],
+      [
+        episode,
+        data,
+        mediaInfo,
+        showId,
+        mediaType,
+        provider,
+        mediaId,
+        type,
+        addDownload,
+        startDownload,
+        onOpenChange,
+        toast,
+      ],
     );
 
     // From a chosen server's qualities back to the server list, otherwise back to the main menu
@@ -405,15 +456,15 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                 {/* Open in External Player */}
 
                 <StyledSheetButton
-                  onPress={() => handleShowQualityOptions('external-player')}
+                  onPress={downloadedUri ? openDownload : () => handleShowQualityOptions('external-player')}
                   icon={<IoniconsIcon name="play" size={20} />}
-                  label="Open in External Player"
+                  label={downloadedUri ? 'Open download in another app' : 'Open in External Player'}
                 />
                 {/* Download */}
                 <StyledSheetButton
-                  onPress={() => handleShowQualityOptions('download')}
-                  icon={<IoniconsIcon name="download-outline" size={20} />}
-                  label="Download"
+                  onPress={downloadedUri ? deleteDownload : () => handleShowQualityOptions('download')}
+                  icon={<IoniconsIcon name={downloadedUri ? 'trash-outline' : 'download-outline'} size={20} />}
+                  label={downloadedUri ? 'Delete download' : 'Download'}
                 />
                 <StyledSheetButton
                   onPress={() => {
