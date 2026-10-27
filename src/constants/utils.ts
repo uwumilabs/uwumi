@@ -140,6 +140,10 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
 // In the app's own task: Android's default opens a second uwumi card in recents
 export const openBrowser = (url: string) => openBrowserAsync(url, { createTask: false });
 
+/** A provider's seek-preview sprite list (thumbnails.vtt), which comes with the subtitles but isn't one */
+export const isThumbnailTrack = (track: { kind?: string; lang?: string }) =>
+  track.kind === 'thumbnails' || track.lang === 'thumbnails';
+
 const FLAG_GRANT_READ_URI_PERMISSION = 1;
 
 /**

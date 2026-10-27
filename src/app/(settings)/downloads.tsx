@@ -26,6 +26,7 @@ import { Card, cn, useToast } from '@/components/heroui';
 import { type Href, useRouter } from 'expo-router';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { MaterialIconsIcon } from '@/components/Icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Sample downloads in every state, for working on this screen. __DEV__ keeps them out of release builds even if
 // this is left on.
@@ -394,6 +395,7 @@ const Downloads = () => {
   const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
   const [selectedDownloadId, setSelectedDownloadId] = useState<string | null>(null);
   const [selectedDownloadStatus, setSelectedDownloadStatus] = useState<string>('');
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     useDownloadStore.getState().initialize();
@@ -550,7 +552,7 @@ const Downloads = () => {
       {/* Downloads List */}
       <List<DownloadListItem>
         data={listData}
-        contentContainerStyle={{ paddingBottom: 16 }}
+        contentContainerStyle={{ paddingBottom: 32 + insets.bottom }}
         keyExtractor={(item) => (item.type === 'header' ? `header-${item.title}` : `item-${item.id}`)}
         getItemType={(item) => item.type}
         renderItem={renderItem}

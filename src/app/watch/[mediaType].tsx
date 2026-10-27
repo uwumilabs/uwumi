@@ -52,7 +52,7 @@ import { useToast } from '@/components/heroui';
 import * as DocumentPicker from 'expo-document-picker';
 import { useActiveProvider, useProviders, META_PROVIDERS } from '@/constants/provider';
 import { constants } from '@/constants/config';
-import { isTV } from '@/constants/utils';
+import { isThumbnailTrack, isTV } from '@/constants/utils';
 import { PerfProfiler, PerfRun } from '@/perf/perfHarness';
 import { useEmbedMode, useProviderSelectionStore } from './components';
 import {
@@ -639,8 +639,7 @@ const Watch = () => {
           uri: source,
           headers: sourceHeaders,
           textTracks: subtitleTracks
-            // @ts-ignore
-            ?.filter((track) => track.kind !== 'thumbnails' && track.lang !== 'thumbnails')
+            ?.filter((track) => !isThumbnailTrack(track as { kind?: string; lang?: string }))
             .map((track, index) => {
               const uri = ('url' in track ? track.url : track.uri) || '';
               return {

@@ -15,7 +15,7 @@ import {
   buildEpisodeRouteParams,
 } from '@/hooks';
 import { MediaType } from '@/constants/types';
-import { infoTitle, isTV, openVideoInOtherApp, shareMedia } from '@/constants/utils';
+import { infoTitle, isThumbnailTrack, isTV, openVideoInOtherApp, shareMedia } from '@/constants/utils';
 import { useLocalSearchParams } from 'expo-router';
 import { useActiveProvider } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
@@ -213,7 +213,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
     const handleOpenWithQuality = useCallback(
       async (videoUrl: string) => {
-        const subtitles = data?.subtitles || [];
+        const subtitles = (data?.subtitles || []).filter((sub) => !isThumbnailTrack(sub));
         const hasSubtitles = subtitles.length > 0;
         const progress = getProgress(episode?.uniqueId!);
         const episodeTitle = episode?.title || `Episode ${episode?.number ?? episode?.episode}`;
