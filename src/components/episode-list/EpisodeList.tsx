@@ -20,6 +20,7 @@ import { create } from 'zustand';
 import {
   useEpisodesIdStore,
   useWatchProgressStore,
+  useDownloadStore,
   useCurrentTheme,
   usePureBlackBackground,
   useEpisodeDisplayStore,
@@ -244,6 +245,15 @@ SwipeAction.displayName = 'SwipeAction';
 
 type EpisodeContentOptions = { isCurrent: boolean; pureBlackBackground: boolean; swipeable: boolean };
 
+// Downloads are saved under the episode's uniqueId. Only the status is read, so progress ticks don't re-render rows
+const DownloadBadge = ({ uniqueId, size }: { uniqueId?: string; size: number }) => {
+  const status = useDownloadStore((state) => (uniqueId ? state.downloads[uniqueId]?.status : undefined));
+  if (status === 'completed') return <IoniconsIcon name="arrow-down-circle" size={size} />;
+  if (status === 'downloading' || status === 'pending')
+    return <IoniconsIcon name="cloud-download-outline" size={size} />;
+  return null;
+};
+
 const EpisodeContent = ({
   item,
   displayMode,
@@ -261,6 +271,7 @@ const EpisodeContent = ({
             {titleOnly ? item.title : `EP ${(item.number ?? item.episode ?? '').toString()}`}
           </Text>
           <HUXStack className="flex-row items-center gap-1 ml-auto">
+            <DownloadBadge uniqueId={item?.uniqueId} size={18} />
             <MaterialIconsIcon name="closed-caption-off" size={18} />
             {item?.isDubbed ? <IoniconsIcon name="mic" size={18} /> : null}
           </HUXStack>
@@ -293,6 +304,7 @@ const EpisodeContent = ({
               {item.title}
             </Card.Title>
             <HUXStack className="items-center gap-1">
+              <DownloadBadge uniqueId={item?.uniqueId} size={14} />
               <MaterialIconsIcon name="closed-caption-off" size={12} />
               {item?.isDubbed ? <IoniconsIcon name="mic" size={12} /> : null}
             </HUXStack>

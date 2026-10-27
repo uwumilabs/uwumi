@@ -18,6 +18,7 @@ import {
   useUpdateChecker,
   useSheetColor,
   useNativeHeaderOptions,
+  useDownloadStore,
 } from '@/hooks';
 import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
@@ -34,6 +35,11 @@ import { isTV, isTVOS, openBrowser } from '@/constants/utils';
 import { PerfWindows, perfScreenLayout } from '@/perf/perfHarness';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+// Forgets finished downloads whose file is gone (it logs failures)
+useDownloadStore
+  .getState()
+  .initialize()
+  .catch(() => {});
 
 export const unstable_settings = {
   anchor: '(tabs)',

@@ -126,10 +126,8 @@ export const SUB_LANGUAGE = {
 
 const APP_DIR_NAME = __DEV__ ? 'uwumi-dev' : 'uwumi';
 export const UWUMI_DIR = `${RNFS.DocumentDirectoryPath}/${APP_DIR_NAME}`;
-// iOS has no shared Downloads folder (RNFS reports an empty path), so downloads stay in the app's Documents.
-export const DOWNLOADS_DIR = RNFS.DownloadDirectoryPath
-  ? `${RNFS.DownloadDirectoryPath}/${APP_DIR_NAME}`
-  : `${UWUMI_DIR}/downloads`;
+// In the app's own storage, so files can't be deleted from under the app
+export const DOWNLOADS_DIR = `${UWUMI_DIR}/downloads`;
 
 export const constants = {
   PROGRESS_COMPLETION_PERCENTAGE: 85,

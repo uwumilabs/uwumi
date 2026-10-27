@@ -22,6 +22,19 @@ const TEMP_DIR = `${RNFS.CachesDirectoryPath}/ffmpeg_temp`; // Temporary FFmpeg 
 
 const resolveOutputFile = (file: string) => (file.startsWith('/') ? file : `${DOWNLOADS_DIR}/${file}`);
 
+// One run per app start, shared by every caller of initialize()
+let initializing: Promise<boolean> | undefined;
+
+/** Finished downloads whose file is gone, e.g. deleted outside the app, so they stop counting as downloaded */
+const findMissingDownloads = async (downloads: EpisodeDownload[]) => {
+  const missing: string[] = [];
+  for (const download of downloads) {
+    if (download.status !== 'completed' || !download.outputFile) continue;
+    if (!(await RNFS.exists(resolveOutputFile(download.outputFile)))) missing.push(download.id);
+  }
+  return missing;
+};
+
 // Types
 
 interface StreamInfo {
@@ -131,26 +144,27 @@ export const useDownloadStore = create<DownloadState>()(
       isBackgroundServiceRunning: false,
 
       // Initialize FFmpeg Kit and directories
-      initialize: async () => {
-        const state = get();
-        if (state.isInitialized) return true;
+      initialize: () => {
+        initializing ??= (async () => {
+          try {
+            await ensureDir(UWUMI_DIR);
+            await ensureDir(DOWNLOADS_DIR);
+            await ensureDir(TEMP_DIR);
 
-        try {
-          // Create directories in internal storage
-          await ensureDir(UWUMI_DIR);
-          await ensureDir(DOWNLOADS_DIR);
-          await ensureDir(TEMP_DIR);
-
-          set({ isInitialized: true });
-          // console.log('✅ FFmpeg Kit initialized');
-          // console.log('📁 Storage locations:');
-          // console.log('   Downloads:', DOWNLOADS_DIR);
-          // console.log('   Temp:', TEMP_DIR);
-          return true;
-        } catch (error) {
-          console.error('❌ FFmpeg init failed:', error);
-          throw error;
-        }
+            const missing = await findMissingDownloads(Object.values(get().downloads));
+            set((state) => {
+              const downloads = { ...state.downloads };
+              for (const id of missing) delete downloads[id];
+              return { downloads, isInitialized: true };
+            });
+            return true;
+          } catch (error) {
+            initializing = undefined;
+            console.error('❌ Downloads init failed:', error);
+            throw error;
+          }
+        })();
+        return initializing;
       },
 
       // Add download to queue
