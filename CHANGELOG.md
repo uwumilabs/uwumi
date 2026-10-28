@@ -1,5 +1,33 @@
 # Changelog
 
+## [4.0.0-rc.4](https://github.com/uwumilabs/uwumi/compare/v4.0.0-rc.3...v4.0.0-rc.4) (2026-10-28)
+
+### Features
+
+* **android:** keep downloads out of backups so extensions and settings still back up ([67ea95a](https://github.com/uwumilabs/uwumi/commit/67ea95abf8363405e0dc04f4504fe13912d91c68))
+* anime and movies tabs in extensions, and a thumbnail-only tv focus ring in continue watching ([b75a33e](https://github.com/uwumilabs/uwumi/commit/b75a33efd50a33a10b1628f9eccb4d8a8b64b0ba))
+* **downloads:** keep them in app storage, show a download icon on episodes and forget deleted files ([9d2a562](https://github.com/uwumilabs/uwumi/commit/9d2a562fd5a7b0c5834dbdea6baaa1baaa139134))
+* **downloads:** play downloaded episodes offline and open them in other apps ([b9540a9](https://github.com/uwumilabs/uwumi/commit/b9540a9c196df78f9d449305b316b2ee6bff2e55))
+* **info:** native see-through header with toolbar buttons, so tv focus reaches back and favorite ([9fa3d2c](https://github.com/uwumilabs/uwumi/commit/9fa3d2c05722c6269d31df70b8deb20fe015d853))
+* **info:** scroll episodes in a window with recommendations after it, and a tv-friendly header ([26c8d7b](https://github.com/uwumilabs/uwumi/commit/26c8d7b3b1dcde8b5b4ff05cbcbb8843c0c91e18))
+* **more:** aniyomi-style more tab with history, statistics, data and storage, incognito mode ([a20388c](https://github.com/uwumilabs/uwumi/commit/a20388c8c869ee0b3b4d3949f716de5aecb96708))
+* native stack headers, smoother episode flings, real download speed and the notification icon ([9137a06](https://github.com/uwumilabs/uwumi/commit/9137a0654764e415be1457485eecf058bfca941e))
+* replace heroui list group and separator with native expo ui list and separator ([79e42a1](https://github.com/uwumilabs/uwumi/commit/79e42a17aaf52e3d0bf8706c5782e4d0261cfd26))
+* **tv:** center focus with smooth scrolling, use remote long press and fit sheets on screen ([d44b590](https://github.com/uwumilabs/uwumi/commit/d44b590ae2027dc8066c9b2b78fc567819bc3d4e))
+* **tv:** left side tab rail that widens on focus, lands on the current tab and handles back ([89f2b98](https://github.com/uwumilabs/uwumi/commit/89f2b98ab728373f39b15042e8785ac417be2c0b))
+* **tv:** put the android apk on tv home screens and add a tvos mode to the ios build ([fd0c520](https://github.com/uwumilabs/uwumi/commit/fd0c5207027040ea985e3e9285b90cf480dd6d41))
+
+### Bug Fixes
+
+* **downloads:** leave out the thumbnail sprite track when saving subtitles ([d648aed](https://github.com/uwumilabs/uwumi/commit/d648aed9fe9f1653d5dd57392b15eb5e89619aed))
+* **ios:** import expo modules as internal in the backup exclusion module ([8b7629b](https://github.com/uwumilabs/uwumi/commit/8b7629b1a08f7764e0c451e03e8ec2d651be1eb8))
+* **tv:** show d-pad focus on every control and keep it inside rows, sheets and lists ([05ee82e](https://github.com/uwumilabs/uwumi/commit/05ee82eba312a2b6be98855e010f457344ee8b12))
+* **watch:** skip conflicting and impossible aniskip intervals, like an outro at the start ([69a4803](https://github.com/uwumilabs/uwumi/commit/69a4803bb5dbfdc159d4cca2c14c714ae3450b31))
+
+### Performance Improvements
+
+* import heroui per component so the bundle only carries the ones the app uses ([a9c6c23](https://github.com/uwumilabs/uwumi/commit/a9c6c23acdfdd04cc4e92fc9ca11352dacdabea9))
+
 ## [4.0.0-rc.3](https://github.com/uwumilabs/uwumi/compare/v4.0.0-rc.2...v4.0.0-rc.3) (2026-10-25)
 
 ### Bug Fixes

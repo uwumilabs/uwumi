@@ -2,7 +2,7 @@
   "expo": {
     "name": "uwumi",
     "slug": "uwumi",
-    "version": "4.0.0-rc.3",
+    "version": "4.0.0-rc.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "uwumi",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
-      "buildNumber": "42",
+      "buildNumber": "43",
       "bundleIdentifier": "com.x2004durgesh.uwumi",
       "infoPlist": {
         "UIFileSharingEnabled": true,
@@ -54,7 +54,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.x2004durgesh.uwumi",
-      "versionCode": 42,
+      "versionCode": 43,
       "intentFilters": [
         {
           "action": "VIEW",
@@ -150,7 +150,9 @@
       "typedRoutes": true,
       "reactCompiler": true,
       "inlineModules": {
-        "watchedDirectories": ["src/modules"]
+        "watchedDirectories": [
+          "src/modules"
+        ]
       }
     }
   }
