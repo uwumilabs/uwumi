@@ -1,4 +1,4 @@
-import { InfoHeader, InfoRecommendations } from './components';
+import { InfoHeader, InfoRecommendations, InfoToolbar } from './components';
 import { EpisodeList, ThemedView } from '@/components';
 import { useMediaInfo } from '@/hooks';
 import { useLocalSearchParams } from 'expo-router';
@@ -18,6 +18,7 @@ const Info = () => {
 
   return (
     <ThemedView useSafeArea focusable={isTV ? false : undefined}>
+      <InfoToolbar data={data} />
       {isManga ? (
         <Chapters header={header} />
       ) : (

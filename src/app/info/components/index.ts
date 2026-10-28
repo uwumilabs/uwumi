@@ -1,3 +1,3 @@
 export * from './AnimatedCountdown';
-export * from './AnimatedFavoriteButton';
+export * from './useFavoriteToggle';
 export * from './InfoHeader';

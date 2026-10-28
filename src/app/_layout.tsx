@@ -249,7 +249,16 @@ const AppContent = () => {
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="browse/[mediaType]" />
               <Stack.Screen name="search/[mediaType]" />
-              <Stack.Screen name="info/[mediaType]" />
+              <Stack.Screen
+                name="info/[mediaType]"
+                options={{
+                  ...headerOptions,
+                  headerShown: true,
+                  headerTransparent: true,
+                  headerStyle: { backgroundColor: 'transparent' },
+                  title: '',
+                }}
+              />
               <Stack.Screen name="watch/[mediaType]" />
               <Stack.Screen name="read/[id]" />
               {Object.entries(SETTINGS_SCREENS).map(([name, title]) => (

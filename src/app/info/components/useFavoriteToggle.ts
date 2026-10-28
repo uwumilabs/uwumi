@@ -1,15 +1,13 @@
-import React, { forwardRef, useCallback, useMemo } from 'react';
-import { View } from 'react-native';
+import { useCallback, useMemo } from 'react';
 import { MediaType, MetaProvider } from '@/constants/types';
 import { MediaFormat, TvType } from 'react-native-consumet';
-import { IoniconsIcon, RippleButton } from '@/components';
-import { useCurrentTheme, useFavoriteStore, useMediaInfo } from '@/hooks';
+import { useFavoriteStore, useMediaInfo } from '@/hooks';
 import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
 import { useLocalSearchParams } from 'expo-router';
 import { infoTitle, isTV } from '@/constants/utils';
 
-export const AnimatedFavoriteButton = forwardRef<React.ComponentRef<typeof View>, Record<string, any>>((props, ref) => {
-  // const { id, ...itemData } = props;
+/** Whether the info screen's title is a favorite, and a toggle for it */
+export const useFavoriteToggle = () => {
   const { mediaType, metaProvider, type, provider, id, image, title } = useLocalSearchParams<{
     mediaType: MediaType;
     metaProvider: MetaProvider;
@@ -25,11 +23,10 @@ export const AnimatedFavoriteButton = forwardRef<React.ComponentRef<typeof View>
   const isFavorited = useFavoriteStore(
     useCallback((state) => state.favorites.some((item) => String(item.id) === idKey), [idKey]),
   );
-  const currentTheme = useCurrentTheme();
   // A shared link carries no poster (and maybe no title), so those come from the loaded info
   const { data } = useMediaInfo();
 
-  const handleFavorite = useCallback(async () => {
+  const toggleFavorite = useCallback(async () => {
     if (!isTV) {
       try {
         await impactAsync(ImpactFeedbackStyle.Light);
@@ -66,15 +63,5 @@ export const AnimatedFavoriteButton = forwardRef<React.ComponentRef<typeof View>
     data,
   ]);
 
-  return (
-    <RippleButton ref={ref} onPress={handleFavorite} {...props}>
-      {isFavorited ? (
-        <IoniconsIcon name="heart-sharp" color={currentTheme.default} />
-      ) : (
-        <IoniconsIcon name="heart-outline" />
-      )}
-    </RippleButton>
-  );
-});
-
-export default AnimatedFavoriteButton;
+  return { isFavorited, toggleFavorite };
+};

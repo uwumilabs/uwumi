@@ -1,15 +1,7 @@
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-  Text,
-  TextProps,
-  useWindowDimensions,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View, Text, TextProps, useWindowDimensions } from 'react-native';
 import { FlashListRef } from '@shopify/flash-list';
-import React, { useRef, useState, useCallback, useMemo, memo, ReactNode } from 'react';
+import React, { useRef, useState, useCallback, useContext, useMemo, memo, ReactNode } from 'react';
+import { HeaderHeightContext } from 'expo-router/react-navigation';
 import Image from '@/components/Image';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -25,6 +17,7 @@ import {
   usePureBlackBackground,
   useEpisodeDisplayStore,
   useListJump,
+  useSolidHeaderOnScroll,
   useEpisodeList,
   LIST_SHADOW_SIZE,
   type EpisodeItem,
@@ -436,8 +429,11 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
   );
   const currentTheme = useCurrentTheme();
   const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
-  const pageRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const pageRef = useRef<React.ComponentRef<typeof Animated.ScrollView>>(null);
   const windowTopRef = useRef(0);
+  // The info screen's native header floats over the page, so scrolls stop below it
+  const headerHeight = useContext(HeaderHeightContext) ?? 0;
+  const solidHeaderOnScroll = useSolidHeaderOnScroll();
   const setProvider = useProviderStore((state) => state.setProvider);
   const { episodes, providerMediaId, movieSeasons, activeSeason, setSeason, providerToUse, isLoading, error, refetch } =
     useEpisodeList();
@@ -521,7 +517,7 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
   const scrollToEpisode = (index: number) => {
     const target = episodes[index];
     // The window may be below the fold, e.g. when a shared link opens the screen
-    if (windowed) pageRef.current?.scrollTo({ y: windowTopRef.current, animated: true });
+    if (windowed) pageRef.current?.scrollTo({ y: Math.max(0, windowTopRef.current - headerHeight), animated: true });
     const scroll = () => flashListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
     scroll()
       ?.then(scroll)
@@ -748,7 +744,13 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
   if (windowed) {
     return (
       <>
-        <ScrollView ref={pageRef} className="flex-1" showsVerticalScrollIndicator={false} {...tvFocusScrollProps(16)}>
+        <Animated.ScrollView
+          ref={pageRef}
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          onScroll={solidHeaderOnScroll}
+          scrollEventThrottle={16}
+          {...tvFocusScrollProps(16 + headerHeight)}>
           {header}
           {/* TV: focus entering the controls or an episode lines both up at the top of the screen */}
           <View
@@ -770,7 +772,7 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
           </View>
           {footer}
           <View className="h-8" />
-        </ScrollView>
+        </Animated.ScrollView>
         {sheet}
       </>
     );

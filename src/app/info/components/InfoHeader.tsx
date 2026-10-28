@@ -1,7 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { findNodeHandle, ScrollView, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useMemo } from 'react';
+import { Platform, ScrollView, Text, View } from 'react-native';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import { useHeaderHeight } from 'expo-router/react-navigation';
 import { LinearGradient } from '@/components/LinearGradient';
 import Animated from 'react-native-reanimated';
 import { Chip, ScrollShadow } from '@/components/heroui';
@@ -23,7 +25,7 @@ import { MediaType, MetaProvider } from '@/constants/types';
 import { hexToRGB, infoTitle, isTV, normalizeRating, openBrowser, shareMedia } from '@/constants/utils';
 import type { MediaItem } from '@/components/CardList';
 import { AnimatedCountdown } from './AnimatedCountdown';
-import { AnimatedFavoriteButton } from './AnimatedFavoriteButton';
+import { useFavoriteToggle } from './useFavoriteToggle';
 
 const DESCRIPTION_MAX_HEIGHT = 150;
 
@@ -64,44 +66,76 @@ export const InfoRecommendations = ({ data }: Pick<InfoHeaderProps, 'data'>) => 
   );
 };
 
-export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendations = true }) => {
-  const { mediaType, metaProvider, id, image, title, type, sharedTag } = useLocalSearchParams<{
+// SF Symbol names, as expo-router types them
+type SFSymbol = Extract<React.ComponentProps<typeof Stack.Toolbar.Button>['icon'], string>;
+
+// Toolbar icons: an SF Symbol on iOS; on Android an image of the Ionicon, as its toolbar takes no font icons
+const useToolbarIcon = (ionicon: React.ComponentProps<typeof Ionicons>['name'], sfSymbol: SFSymbol) => {
+  const { data: image } = useQuery({
+    queryKey: ['toolbarIcon', ionicon],
+    queryFn: () => Ionicons.getImageSource(ionicon, 24, 'white'),
+    enabled: Platform.OS === 'android',
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+  return Platform.OS === 'ios' ? sfSymbol : (image ?? undefined);
+};
+
+/**
+ * Share and favorite as native header buttons, beside the native back button: the D-pad reaches them on TV, with
+ * the same focus highlight as the back button
+ */
+export const InfoToolbar = ({ data }: Pick<InfoHeaderProps, 'data'>) => {
+  const { mediaType, metaProvider, id, title, type } = useLocalSearchParams<{
     mediaType: MediaType;
     metaProvider: MetaProvider;
     id: string;
-    image: string;
     title?: string;
     type?: string;
+  }>();
+  const currentTheme = useCurrentTheme();
+  const { isFavorited, toggleFavorite } = useFavoriteToggle();
+  const shareIcon = useToolbarIcon('share-social-outline', 'square.and.arrow.up');
+  const heartIcon = useToolbarIcon('heart-outline', 'heart');
+  const filledHeartIcon = useToolbarIcon('heart', 'heart.fill');
+
+  return (
+    <Stack.Toolbar placement="right">
+      <Stack.Toolbar.Button
+        icon={shareIcon}
+        hidden={isTV || !shareIcon}
+        accessibilityLabel="Share"
+        onPress={() => shareMedia({ mediaType, id, metaProvider, type, title: title || infoTitle(data) })}
+      />
+      <Stack.Toolbar.Button
+        icon={isFavorited ? filledHeartIcon : heartIcon}
+        hidden={!heartIcon || !filledHeartIcon}
+        tintColor={isFavorited ? currentTheme?.default : undefined}
+        accessibilityLabel={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+        onPress={toggleFavorite}
+      />
+    </Stack.Toolbar>
+  );
+};
+
+export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendations = true }) => {
+  const { mediaType, id, image, title, sharedTag } = useLocalSearchParams<{
+    mediaType: MediaType;
+    id: string;
+    image: string;
+    title?: string;
     sharedTag?: string;
   }>();
   // A shared link may come without the title and poster the cards pass along
   const shownTitle = title || infoTitle(data);
   const poster = image || data?.image;
   const transitionTag = sharedTag ?? id;
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
+  // The header floats over the artwork, so the details start below it
+  const headerHeight = useHeaderHeight();
   const currentTheme = useCurrentTheme();
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const currentProvider = useActiveProvider(mediaType);
   const { episodes } = useEpisodeList();
-
-  // TV: refs for an explicit D-pad focus chain across the top row
-  const backBtnRef = useRef<React.ComponentRef<typeof View>>(null);
-  const favBtnRef = useRef<React.ComponentRef<typeof View>>(null);
-  const webviewBtnRef = useRef<React.ComponentRef<typeof View>>(null);
-  const [tvNodes, setTvNodes] = useState<{ back?: number; fav?: number; webview?: number }>({});
-  useEffect(() => {
-    if (!isTV) return;
-    // Short delay to ensure refs are populated
-    const timer = setTimeout(() => {
-      setTvNodes({
-        back: findNodeHandle(backBtnRef.current),
-        fav: findNodeHandle(favBtnRef.current),
-        webview: findNodeHandle(webviewBtnRef.current),
-      });
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
 
   const description = useMemo(() => toPlainText(data?.description), [data?.description]);
   const chips = useMemo(() => {
@@ -118,7 +152,8 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
 
   return (
     <View>
-      <View className="h-75 relative" focusable={isTV ? false : undefined}>
+      {/* TV: focus inside a block scrolls all of it clear of the see-through header (the page snaps below it) */}
+      <View className="h-75 relative" focusable={isTV ? false : undefined} scrollSnapAlign={isTV ? 'start' : undefined}>
         <View className="absolute inset-0 h-75 w-full" focusable={isTV ? false : undefined}>
           <Image source={{ uri: data?.cover }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         </View>
@@ -138,41 +173,11 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
             end={[0, 0.5]}
           />
         </View>
-        {/* TV: buttons at the top, details at the bottom of the artwork */}
+        {/* TV: details at the bottom of the artwork */}
         <View
           className="p-2.5 z-20"
-          style={[{ marginTop: insets.top }, isTV && { flex: 1, justifyContent: 'space-between' }]}
+          style={[{ paddingTop: headerHeight }, isTV && { flex: 1, justifyContent: 'flex-end' }]}
           focusable={isTV ? false : undefined}>
-          <HUXStack className="items-center justify-between" props={{ focusable: isTV ? false : undefined }}>
-            <RippleButton
-              ref={backBtnRef}
-              onPress={() => router.back()}
-              hasTVPreferredFocus
-              nextFocusRight={tvNodes.fav}
-              nextFocusDown={tvNodes.webview}
-              nextFocusLeft={tvNodes.back}
-              nextFocusUp={tvNodes.back}>
-              <IoniconsIcon name="arrow-back-outline" />
-            </RippleButton>
-
-            <HUXStack className="items-center gap-1">
-              {!isTV && (
-                <RippleButton
-                  accessibilityLabel="Share"
-                  onPress={() => shareMedia({ mediaType, id, metaProvider, type, title: shownTitle })}>
-                  <IoniconsIcon name="share-social-outline" />
-                </RippleButton>
-              )}
-              <AnimatedFavoriteButton
-                ref={favBtnRef}
-                nextFocusLeft={tvNodes.back}
-                nextFocusDown={tvNodes.webview}
-                nextFocusRight={tvNodes.fav}
-                nextFocusUp={tvNodes.fav}
-              />
-            </HUXStack>
-          </HUXStack>
-
           <HUXStack className="gap-2.5 items-center" props={{ focusable: isTV ? false : undefined }}>
             {!isTV && (
               <AnimatedImage
@@ -195,15 +200,11 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
                 {data?.status && <IconTitle iconName="time-outline" text={data?.status} />}
                 {episodes.length > 0 && (
                   <RippleButton
-                    ref={webviewBtnRef}
                     onPress={() =>
                       openBrowser(
                         episodes[0].url! || useExtensionStore.getState().getExtensionInfo(currentProvider)?.baseUrl!,
                       )
-                    }
-                    nextFocusUp={tvNodes.back}
-                    nextFocusLeft={tvNodes.webview}
-                    nextFocusRight={tvNodes.webview}>
+                    }>
                     <IconTitle iconName="globe-outline" text="Webview" />
                   </RippleButton>
                 )}
@@ -218,7 +219,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
         </View>
       </View>
 
-      <HUYStack className="gap-3 px-4 pt-4">
+      <HUYStack className="gap-3 px-4 pt-4" props={{ scrollSnapAlign: isTV ? 'start' : undefined }}>
         {!!description && (
           <ScrollShadow
             LinearGradientComponent={LinearGradient}
