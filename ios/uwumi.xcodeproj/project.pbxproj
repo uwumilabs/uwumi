@@ -34,6 +34,20 @@
 		F11748442D0722820044C1D9 /* uwumi-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "uwumi-Bridging-Header.h"; path = "uwumi/uwumi-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D50E69E8D0F046029A2EFFC9 /* ../src/modules */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = ../src/modules;
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		13B07F8C1A680F5B00A75B9A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -86,7 +100,7 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				C84EB911493262C589800298 /* Pods */,
 				E29A9C9E9433FCA99909C8E5 /* ExpoModulesProviders */,
-				D50E69E8D0F046029A2EFFC9 /* src/modules */,
+				D50E69E8D0F046029A2EFFC9 /* ../src/modules */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -157,13 +171,13 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				D50E69E8D0F046029A2EFFC9 /* ../src/modules */,
+			);
 			name = uwumi;
 			productName = uwumi;
 			productReference = 13B07F961A680F5B00A75B9A /* uwumi.app */;
 			productType = "com.apple.product-type.application";
-			fileSystemSynchronizedGroups = (
-				D50E69E8D0F046029A2EFFC9 /* src/modules */,
-			);
 		};
 /* End PBXNativeTarget section */
 
@@ -302,7 +316,6 @@
 				"${PODS_CONFIGURATION_BUILD_DIR}/RNSVG/RNSVGFilters.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-cxxreact/React-cxxreact_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-timing/React-timing_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/ReactNativeFs/RNFS_PrivacyInfo.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/SDWebImage/SDWebImage.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/SSZipArchive/SSZipArchive.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-launcher/EXDevLauncher.bundle",
@@ -317,7 +330,6 @@
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNSVGFilters.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-cxxreact_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-timing_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNFS_PrivacyInfo.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/SDWebImage.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/SSZipArchive.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevLauncher.bundle",
@@ -654,19 +666,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		D50E69E8D0F046029A2EFFC9 = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			name = src/modules;
-			path = ../src/modules;
-			sourceTree = SOURCE_ROOT;
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
 	};
 	rootObject = 83CBB9F71A601CBA00E9B192 /* Project object */;
 }
