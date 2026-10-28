@@ -1,7 +1,8 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import React from 'react';
 import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
-import { hexToRGB } from '@/constants/utils';
+import { hexToRGB, isTV } from '@/constants/utils';
+import { TVTabs } from '@/components/TVTabs';
 
 export const unstable_settings = {
   anchor: 'index',
@@ -10,6 +11,8 @@ export const unstable_settings = {
 export default function TabLayout() {
   const currentTheme = useCurrentTheme();
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+
+  if (isTV) return <TVTabs />;
 
   return (
     <NativeTabs
