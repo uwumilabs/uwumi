@@ -306,6 +306,28 @@ const ANISKIP_TYPES: Record<string, SkipTime['type']> = {
   recap: 'recap',
 };
 
+// "mixed" is an opening or ending over the story; the plain one wins when both are submitted for an episode
+const MIXED_TYPES = new Set(['mixed-op', 'mixed-ed']);
+
+/**
+ * One interval per kind, without the impossible ones: AniSkip returns every submission, and some are wrong (JJK
+ * episode 18 has a "mixed-ed" at 0:00–1:30 next to its real ending, which showed "Skip outro" as it started).
+ */
+const sanitizeSkipTimes = (results: AniSkipResponse['results'], episodeLength: number): SkipTime[] => {
+  const byKind = new Map<SkipTime['type'], SkipTime>();
+  const ordered = [...results].sort(
+    (a, b) => Number(MIXED_TYPES.has(a.skipType)) - Number(MIXED_TYPES.has(b.skipType)),
+  );
+  for (const { interval, skipType } of ordered) {
+    const type = ANISKIP_TYPES[skipType];
+    if (!type || byKind.has(type) || interval.endTime <= interval.startTime) continue;
+    // An ending can't start in the first half
+    if (type === 'outro' && interval.startTime < episodeLength / 2) continue;
+    byKind.set(type, { type, start: interval.startTime, end: interval.endTime });
+  }
+  return [...byKind.values()].sort((a, b) => a.start - b.start);
+};
+
 /**
  * Community intro/outro/recap timestamps from AniSkip, keyed by MyAnimeList id. Empty when it has none.
  * `episodeLength` is the loaded video's duration in seconds: AniSkip then returns the submissions made for a file of
@@ -341,14 +363,7 @@ export function useSkipTimes({
         if (error instanceof HttpError && error.status === 404) return [];
         throw error;
       }
-      return data.results
-        .filter(({ skipType }) => ANISKIP_TYPES[skipType])
-        .map(({ interval, skipType }) => ({
-          type: ANISKIP_TYPES[skipType],
-          start: interval.startTime,
-          end: interval.endTime,
-        }))
-        .sort((a, b) => a.start - b.start);
+      return sanitizeSkipTimes(data.results, episodeLength);
     },
   });
 }
