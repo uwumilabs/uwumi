@@ -54,6 +54,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.x2004durgesh.uwumi",
+      "permissions": ["android.permission.USE_EXACT_ALARM", "android.permission.SCHEDULE_EXACT_ALARM"],
       "versionCode": 43,
       "intentFilters": [
         {
