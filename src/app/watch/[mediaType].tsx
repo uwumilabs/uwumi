@@ -157,9 +157,10 @@ const Watch = () => {
     episodeLength: loadedLength.uniqueId === uniqueId ? loadedLength.seconds : 0,
     enabled: mediaType === MediaType.ANIME,
   });
-  // AniSkip has no times for many new episodes, and can't be asked without a MAL id
   const skipForward =
-    mediaType === MediaType.ANIME && skipTimes.length === 0 && (skipTimesFetched || (!!mediaInfo && !malId));
+    mediaType === MediaType.ANIME &&
+    !skipTimes.some(({ type }) => type === 'intro') &&
+    (skipTimesFetched || (!!mediaInfo && !malId));
   const upNext = useMemo<UpNext | undefined>(
     () =>
       nextEpisode
