@@ -27,6 +27,7 @@ export interface CardListProps {
   onItemPress?: (item: MediaItem) => void;
   /** Shown when the list is empty, instead of the generic "No results found" */
   emptyState?: React.ReactElement;
+  badges?: ReadonlyMap<MediaItem, number>;
 }
 
 export interface MediaCardProps {
@@ -39,6 +40,7 @@ export interface MediaCardProps {
   animateEntry?: boolean;
   sharedTag?: string;
   onPress?: (item: MediaItem) => void;
+  badge?: number;
 }
 
 // TMDB movie and TV ids share a numeric space, so the id alone isn't unique.
@@ -94,7 +96,18 @@ const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnTyp
 };
 
 export const MediaCard: React.FC<MediaCardProps> = memo(
-  ({ item, index, mediaType, metaProvider, isSearch, preferredFocus, animateEntry = true, sharedTag, onPress }) => {
+  ({
+    item,
+    index,
+    mediaType,
+    metaProvider,
+    isSearch,
+    preferredFocus,
+    animateEntry = true,
+    sharedTag,
+    onPress,
+    badge,
+  }) => {
     const router = useRouter();
     const transitionTag = isSearch ? undefined : (sharedTag ?? String(item.id));
 
@@ -147,6 +160,11 @@ export const MediaCard: React.FC<MediaCardProps> = memo(
               ellipsizeMode="tail">
               {typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english}
             </AnimatedStyledCardTitle>
+            {!!badge && (
+              <Text className="absolute left-2 top-2 z-20 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
+                {badge}
+              </Text>
+            )}
           </Card.Body>
         </AnimatedStyledCard>
       </TVFocusWrapper>
@@ -164,6 +182,7 @@ export const CardList: React.FC<CardListProps> = ({
   searchQuery = '',
   onItemPress,
   emptyState,
+  badges,
 }) => {
   const isSearch = mediaFeedType === 'search';
   const isMovieSearch = isSearch && mediaType === MediaType.MOVIE;
@@ -227,9 +246,11 @@ export const CardList: React.FC<CardListProps> = ({
             // Search results must not pull TV focus away from the search input
             preferredFocus={!isSearch && index === 0}
             onPress={onItemPress}
+            badge={badges?.get(item)}
           />
         </View>
       )}
+      extraData={badges}
       numColumns={grid.numColumns}
       keyExtractor={(item, index) => (item.id != null ? cardKey(item) : `fallback-${index}`)}
       contentContainerStyle={{ paddingHorizontal: grid.horizontalPadding, paddingVertical: grid.verticalPadding }}

@@ -1,6 +1,6 @@
 import { ThemedView, CardList, HorizontalTabs, NoResults } from '@/components';
 import { MediaType } from '@/constants/types';
-import { useDownloadedOnlyFilter, useFavoriteStore } from '@/hooks';
+import { useDownloadedOnlyFilter, useFavoriteStore, useUnwatchedCounts } from '@/hooks';
 import { infoTitle } from '@/constants/utils';
 import React from 'react';
 import { View } from 'react-native';
@@ -9,6 +9,7 @@ const EMPTY_FAVORITES = <NoResults title="No favorites yet" hint="Use the heart 
 
 const Favorites = () => {
   const favorites = useFavoriteStore((state) => state.favorites);
+  const unwatched = useUnwatchedCounts(favorites);
   const downloadedOnly = useDownloadedOnlyFilter();
   // Manga has no downloads, so "Downloaded only" leaves it alone
   const ofType = (mediaType: MediaType) =>
@@ -28,6 +29,7 @@ const Favorites = () => {
             mediaType={MediaType.ANIME}
             metaProvider="anilist"
             emptyState={EMPTY_FAVORITES}
+            badges={unwatched}
           />
         </View>
       ),
@@ -56,6 +58,7 @@ const Favorites = () => {
             mediaType={MediaType.MOVIE}
             metaProvider="tmdb"
             emptyState={EMPTY_FAVORITES}
+            badges={unwatched}
           />
         </View>
       ),
