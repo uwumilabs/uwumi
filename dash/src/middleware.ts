@@ -10,7 +10,9 @@ export default clerkMiddleware(async (auth, req) => {
 
     // Check if user is signed in
     if (!authInfo.userId) {
-      return NextResponse.redirect(new URL("/sign-in", req.url));
+      const signIn = new URL("/sign-in", req.url);
+      signIn.searchParams.set("redirect_url", req.url);
+      return NextResponse.redirect(signIn);
     }
 
     // For admin-only access, you can uncomment and customize this:
