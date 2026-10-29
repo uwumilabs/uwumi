@@ -39,7 +39,8 @@ export default clerkMiddleware(async (auth, req) => {
 });
 
 export const config = {
-  // /__clerk is Clerk's auto-proxy on *.vercel.app; its asset paths have dots, which the first pattern skips.
-  // Shared links (/info) are public pages, so Clerk stays out of them, and out of link-preview bots' way.
-  matcher: ["/((?!.*\\..*|_next|info/).*)", "/", "/(api|trpc)(.*)", "/__clerk/:path*"],
+  // Only routes that need a session run Clerk. Public pages (/, /info) read the user client-side, so a visitor
+  // is never bounced through Clerk's handshake to see them, and a Clerk outage or bad key can't 500 them.
+  // /__clerk is Clerk's auto-proxy on *.vercel.app.
+  matcher: ["/admin/:path*", "/sign-in/:path*", "/sign-up/:path*", "/(api|trpc)(.*)", "/__clerk/:path*"],
 };
