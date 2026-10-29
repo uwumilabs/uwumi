@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0-rc.5](https://github.com/uwumilabs/uwumi/compare/v4.0.0-rc.4...v4.0.0-rc.5) (2026-10-29)
+
+### Features
+
+* **dash:** redesign the site and admin in the uwumi blue, with icons, robots and a link preview ([34aa3c2](https://github.com/uwumilabs/uwumi/commit/34aa3c26a4f384d7611fa7996d122de6be1b00e0))
+* **favorites:** aniyomi-style badge with the episodes left on anime and tv show cards ([908db8c](https://github.com/uwumilabs/uwumi/commit/908db8c85b44da085febf973c27c3bd034c392d3))
+* **notifications:** alert when a favorite's next episode airs, a switch on by default in more ([51889ea](https://github.com/uwumilabs/uwumi/commit/51889ea2332cd759b79d733e3538049cef32358a))
+
+### Bug Fixes
+
+* **android:** use uwumi's silhouette as the notification icon instead of a white dot ([78b8af0](https://github.com/uwumilabs/uwumi/commit/78b8af0a4fef1c95b81ec5782ebd77a1f44cad25))
+* **dash:** run clerk middleware only on admin and auth routes, so public pages never 500 ([edf0675](https://github.com/uwumilabs/uwumi/commit/edf0675b72ee5797a886b264b2d4bdd56164c25d))
+* **info:** fade the android header to solid with the scroll on the ui thread, not a snap ([3dce2a3](https://github.com/uwumilabs/uwumi/commit/3dce2a3a16c5fdeb8f28c83e023cecd55cc73ce9))
+* **middleware:** add redirect url parameter for sign-in flow ([73be07b](https://github.com/uwumilabs/uwumi/commit/73be07b3efdb8028eaa7294883ef9ea0710af393))
+* **notifications:** fire android episode alerts at air time with exact alarms, like ios ([a84ea18](https://github.com/uwumilabs/uwumi/commit/a84ea180fb531ac349da2c60d696bce0ecbca8e2))
+* **notifications:** never cancel an episode alert that's already due but not yet delivered ([a49ac94](https://github.com/uwumilabs/uwumi/commit/a49ac94a003f2bad8e602e003afdcb2b2fe999da))
+* **watch:** offer the +85s jump in the second half when aniskip has no outro, like jjk s2 e12 ([c6a180e](https://github.com/uwumilabs/uwumi/commit/c6a180e07b00d0f5ca121fccb6cae3c17aa2da4c))
+* **watch:** offer the +85s jump whenever aniskip has no intro, not only when it has nothing ([0bb608a](https://github.com/uwumilabs/uwumi/commit/0bb608a94e5650e77cc40c468973d69baf1ee6aa))
+
 ## [4.0.0-rc.4](https://github.com/uwumilabs/uwumi/compare/v4.0.0-rc.3...v4.0.0-rc.4) (2026-10-28)
 
 ### Features
