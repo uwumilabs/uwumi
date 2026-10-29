@@ -1,11 +1,12 @@
 import React from 'react';
-import { ScrollView, View } from 'react-native';
+import { Linking, ScrollView, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { NativeList, Separator, ThemedView } from '@/components';
 import { usePreferencesStore, useRemainingDownloadsCount } from '@/hooks';
 import { EXTERNAL_LINKS } from '@/constants/config';
-import { openBrowser } from '@/constants/utils';
+import { isTV, openBrowser } from '@/constants/utils';
+import { ensureAlertPermission } from '@/utils/episodeAlerts';
 import { PerfProfiler } from '@/perf/perfHarness';
 
 const LOGO = require('../../../assets/images/icon.png');
@@ -17,14 +18,23 @@ const More = () => {
   const setIncognito = usePreferencesStore((state) => state.setIncognito);
   const downloadedOnly = usePreferencesStore((state) => state.downloadedOnly);
   const setDownloadedOnly = usePreferencesStore((state) => state.setDownloadedOnly);
+  const episodeNotifications = usePreferencesStore((state) => state.episodeNotifications);
+  const setEpisodeNotifications = usePreferencesStore((state) => state.setEpisodeNotifications);
   const remainingDownloads = useRemainingDownloadsCount();
 
   const go = (href: string) => () => router.push(href as Href);
+  const toggleEpisodeNotifications = async (value: boolean) => {
+    if (!value) return setEpisodeNotifications(false);
+    const permission = await ensureAlertPermission();
+    if (permission === 'granted') setEpisodeNotifications(true);
+    // Android stops showing the prompt after two refusals; only system settings can grant it then
+    else if (permission === 'blocked') void Linking.openSettings();
+  };
 
   return (
     <PerfProfiler id="more tab">
       <ThemedView>
-        <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
           <View className="items-center py-10">
             <Image source={LOGO} style={{ width: 72, height: 72, borderRadius: 20 }} />
           </View>
@@ -42,6 +52,14 @@ const More = () => {
               description="Pauses watch history"
               toggle={{ value: incognito, onValueChange: setIncognito }}
             />
+            {!isTV && (
+              <NativeList.Item
+                icon="notifications-outline"
+                title="New episode notifications"
+                description="When a favorite gets a new episode"
+                toggle={{ value: episodeNotifications, onValueChange: toggleEpisodeNotifications }}
+              />
+            )}
           </NativeList>
           <Separator />
           <NativeList variant="flat">

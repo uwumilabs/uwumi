@@ -96,6 +96,13 @@
       ],
       "expo-font",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification.png",
+          "color": "#000000"
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

@@ -1,9 +1,11 @@
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import 'react-native-reanimated';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/constants/queryClient';
+import { startEpisodeAlerts } from '@/utils/episodeAlerts';
 import {
   Inter_500Medium as InterMedium,
   Inter_600SemiBold as InterSemiBold,
@@ -13,6 +15,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   useCurrentTheme,
   useOtaUpdates,
+  useEpisodeAlertTaps,
   usePureBlackBackground,
   useThemeStore,
   useUpdateChecker,
@@ -152,6 +155,8 @@ const SETTINGS_SCREENS: Record<string, string> = {
   example: 'Example',
 };
 
+startEpisodeAlerts();
+
 const AppContent = () => {
   const headerOptions = useNativeHeaderOptions();
   const { isUpdateAvailable, updateInfo, setIsUpdateAvailable } = useUpdateChecker(EXTERNAL_LINKS.GITHUB_RELEASES_API);
@@ -163,6 +168,7 @@ const AppContent = () => {
   // A font that fails to load falls back to the system font instead of keeping the app on the splash
   const loaded = fontsLoaded || !!fontError;
   useOtaUpdates(loaded);
+  useEpisodeAlertTaps();
 
   const uniwindThemeName = useUniwind();
   const setTheme = useThemeStore((state) => state.setTheme);
@@ -297,22 +303,6 @@ export default function RootLayout() {
   ]);
   const currentTheme = useCurrentTheme();
   const sheetColor = useSheetColor();
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            retry: 1,
-            staleTime: 10 * 60 * 1000, // 10 minutes
-            gcTime: 60 * 60 * 1000, // 1 hour
-            refetchOnWindowFocus: false,
-            refetchOnMount: false,
-            retryDelay: 1000,
-            networkMode: 'offlineFirst',
-          },
-        },
-      }),
-  );
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

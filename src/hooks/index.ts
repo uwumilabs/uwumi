@@ -13,3 +13,4 @@ export * from './useEpisodeList';
 export * from './useServerRotation';
 export * from './useNativeHeaderOptions';
 export * from './useSolidHeaderOnScroll';
+export * from './useEpisodeAlertTaps';
