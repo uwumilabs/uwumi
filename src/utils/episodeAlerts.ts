@@ -57,6 +57,9 @@ const infoHref = (item: Favorite) => {
   };
 };
 
+// The air time is the identifier's last part
+const alertTime = (identifier: string) => Number(identifier.slice(identifier.lastIndexOf('-') + 1));
+
 const scheduledAlertIds = async () =>
   (await Notifications.getAllScheduledNotificationsAsync())
     .map(({ identifier }) => identifier)
@@ -87,14 +90,16 @@ const syncAlerts = async () => {
       importance: AndroidImportance.DEFAULT,
     });
   }
-  const alerts = alertsFor(favorites, schedules, Date.now());
+  const now = Date.now();
+  const alerts = alertsFor(favorites, schedules, now);
   // On by default, so the first alert worth sending is when we ask; a refusal turns the switch off to match
   if (alerts.length && (await ensureAlertPermission()) !== 'granted') {
     return usePreferencesStore.getState().setEpisodeNotifications(false);
   }
   const wanted = new Set(alerts.map(({ identifier }) => identifier));
   const scheduled = await scheduledAlertIds();
-  await cancelAlerts(scheduled.filter((identifier) => !wanted.has(identifier)));
+  // An alert past its time is due and may just not be delivered yet (Android can hold an alarm); let it fire
+  await cancelAlerts(scheduled.filter((identifier) => !wanted.has(identifier) && !(alertTime(identifier) <= now)));
   const existing = new Set(scheduled);
   for (const { identifier, title, body, item, at } of alerts) {
     if (existing.has(identifier)) continue;
