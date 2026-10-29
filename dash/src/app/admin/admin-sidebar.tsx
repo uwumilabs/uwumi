@@ -8,7 +8,6 @@ import {
   Film,
   Settings,
   LogOut,
-  Play,
   House
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
@@ -47,15 +46,13 @@ export function AdminSidebar() {
   return (
     <Sidebar variant="sidebar">
       <SidebarHeader>
-        <div className="flex items-center space-x-3 px-2 py-2">
-          <div className="bg-primary-gradient p-2 rounded-xl">
-            <Play className="h-5 w-5 text-white" />
-          </div>
+        <div className="flex items-center gap-3 px-2 py-2">
+          <img src="/images/icon.png" alt="" width={36} height={36} className="h-9 w-9 rounded-md" />
           <div>
-            <h1 className="text-lg font-bold text-sidebar-foreground">
+            <h1 className="font-display text-lg font-medium lowercase leading-tight text-sidebar-foreground">
               {APP_CONFIG.name} Admin
             </h1>
-            <p className="text-xs text-sidebar-foreground/70">
+            <p className="text-xs text-muted-foreground">
               Content Management
             </p>
           </div>
@@ -78,12 +75,12 @@ export function AdminSidebar() {
                       className={
                         isActive
                           ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
-                          : ""
+                          : "text-ink-2"
                       }
                     >
                       <Link href={item.href}>
-                        <Icon className="h-5 w-5" />
-                        <span className="font-medium">{item.name}</span>
+                        <Icon className="h-5 w-5" aria-hidden />
+                        <span className="font-display font-medium lowercase">{item.name}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -101,9 +98,9 @@ export function AdminSidebar() {
             <Button
               onClick={handleSignOut}
               variant="ghost"
-              className="w-full justify-start text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
+              className="w-full justify-start text-error hover:bg-paper-3 hover:text-error"
             >
-              <LogOut className="h-5 w-5 mr-2" />
+              <LogOut className="h-5 w-5" aria-hidden />
               <span>Sign Out</span>
             </Button>
           </SidebarMenuItem>

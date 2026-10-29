@@ -1,0 +1,56 @@
+:root {
+  color-scheme: light;
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
+  --text-xs: 0.8125rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.25rem; --text-xl: 1.5625rem; --text-2xl: 1.953rem; --text-3xl: 2.441rem;
+  --text-display-s: clamp(2.25rem, 4vw + 0.5rem, 3.75rem); --text-display: clamp(2.75rem, 5vw + 1rem, 5.25rem);
+  --text-section: clamp(2rem, 2.5vw + 1rem, 3.5rem); --text-title: clamp(1.25rem, 0.75vw + 0.875rem, 1.625rem); --text-lead: clamp(1.125rem, 0.35vw + 1rem, 1.375rem);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+  --color-error: oklch(52% 0.19 27); --color-success: oklch(50% 0.12 150);
+  --container: 1440px; --gutter: 64px; --gap-columns: 32px; --section-gap-s: 120px; --section-gap: 144px; --section-gap-l: 176px;
+  --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
+  --nav-height: 64px;
+  --color-paper: oklch(96% 0.012 259); --color-paper-2: oklch(93% 0.02 259); --color-paper-3: oklch(90% 0.026 259);
+  --color-ink: oklch(18% 0.02 259); --color-ink-2: oklch(28% 0.03 259); --color-muted: oklch(46% 0.05 259);
+  --color-rule: oklch(85% 0.03 259); --color-rule-2: oklch(64% 0.08 259);
+  --color-accent: oklch(49.1% 0.191 259); --color-accent-deep: oklch(42% 0.16 259); --color-accent-soft: oklch(86% 0.06 259);
+  --color-accent-ink: oklch(98% 0.005 259); --color-focus: oklch(49.1% 0.191 259);
+  --color-field: oklch(49.1% 0.191 259); --color-field-ink: oklch(98% 0.005 259); --color-field-pill: oklch(99% 0.005 259); --color-field-pill-hover: oklch(92% 0.03 259);
+  --chart-1: oklch(49.1% 0.191 259); --chart-2: oklch(62% 0.14 259); --chart-3: oklch(74% 0.1 259); --chart-4: oklch(85% 0.06 259); --chart-5: oklch(46% 0.05 259);
+  --font-display: var(--font-outfit), "Outfit", ui-sans-serif, system-ui, sans-serif; --font-body: var(--font-onest), "Onest", ui-sans-serif, sans-serif;
+  --font-outlier: "JetBrains Mono", ui-monospace, monospace;
+  --radius-card: 16px; --radius-pill: 999px; --rule-hair: 1px;
+  --shadow-card: 0 1px 2px oklch(18% 0.02 259 / 0.06);
+  --tracking-display: -0.03em; --display-weight: 500;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-error: oklch(72% 0.15 27); --color-success: oklch(76% 0.13 150);
+  --color-paper: oklch(14% 0.02 262); --color-paper-2: oklch(17.5% 0.025 262); --color-paper-3: oklch(21% 0.03 262);
+  --color-ink: oklch(92% 0.03 259); --color-ink-2: oklch(80% 0.04 259); --color-muted: oklch(68% 0.05 259);
+  --color-rule: oklch(28% 0.04 262); --color-rule-2: oklch(48% 0.08 262);
+  --color-accent: oklch(54% 0.2 259); --color-accent-deep: oklch(47% 0.18 259); --color-accent-soft: oklch(36% 0.09 262);
+  --color-accent-ink: oklch(98% 0.005 259); --color-focus: oklch(64% 0.17 259);
+  --color-field: oklch(47% 0.18 259); --color-field-pill: oklch(99% 0.005 259); --color-field-pill-hover: oklch(92% 0.03 259);
+  --chart-1: oklch(64% 0.17 259); --chart-2: oklch(52% 0.15 259); --chart-3: oklch(40% 0.11 259); --chart-4: oklch(30% 0.07 262); --chart-5: oklch(68% 0.05 259);
+  --shadow-card: 0 1px 2px oklch(8% 0.02 262 / 0.4);
+}
+
+/* shadcn/ui names, pointed at the roles above (export-formats.md) */
+:root {
+  --background: var(--color-paper); --foreground: var(--color-ink);
+  --card: var(--color-paper-2); --card-foreground: var(--color-ink);
+  --popover: var(--color-paper-2); --popover-foreground: var(--color-ink);
+  --primary: var(--color-accent); --primary-foreground: var(--color-accent-ink);
+  --secondary: var(--color-paper-3); --secondary-foreground: var(--color-ink-2);
+  --muted: var(--color-paper-2); --muted-foreground: var(--color-muted);
+  --accent: var(--color-paper-3); --accent-foreground: var(--color-ink);
+  --destructive: var(--color-error); --destructive-foreground: var(--color-paper);
+  --border: var(--color-rule); --input: var(--color-rule-2); --ring: var(--color-focus);
+  --sidebar-background: var(--color-paper-2); --sidebar-foreground: var(--color-ink);
+  --sidebar-primary: var(--color-accent); --sidebar-primary-foreground: var(--color-accent-ink);
+  --sidebar-accent: var(--color-paper-3); --sidebar-accent-foreground: var(--color-ink);
+  --sidebar-border: var(--color-rule); --sidebar-ring: var(--color-focus);
+  --radius: var(--radius-card);
+}

@@ -42,6 +42,11 @@ export const API_ENDPOINTS = {
   analytics: "/api/analytics",
 } as const;
 
+// Production host on Vercel, the localhost dev server otherwise; absolute URLs for previews, robots and the sitemap
+export const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : "http://localhost:3000";
+
 export const LINKS={
   discord: "https://discord.gg/n7xVPxbG4R",
   github: "https://github.com/uwumilabs/uwumi",

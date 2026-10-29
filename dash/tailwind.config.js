@@ -1,3 +1,6 @@
+// Colours resolve to the tokens in src/app/tokens.css; color-mix keeps opacity modifiers (bg-background/80) working
+const token = (name) => `color-mix(in oklab, var(--${name}) calc(<alpha-value> * 100%), transparent)`;
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
 	content: [
@@ -6,115 +9,74 @@ module.exports = {
 		'./src/app/**/*.{js,ts,jsx,tsx,mdx}',
 	],
 	darkMode: ['class'],
+	// base.css owns .container
+	corePlugins: { container: false },
 	theme: {
-    	extend: {
-    		colors: {
-    			background: 'hsl(var(--background))',
-    			foreground: 'hsl(var(--foreground))',
-    			card: {
-    				DEFAULT: 'hsl(var(--card))',
-    				foreground: 'hsl(var(--card-foreground))'
-    			},
-    			popover: {
-    				DEFAULT: 'hsl(var(--popover))',
-    				foreground: 'hsl(var(--popover-foreground))'
-    			},
-    			primary: {
-    				DEFAULT: 'hsl(var(--primary))',
-    				foreground: 'hsl(var(--primary-foreground))'
-    			},
-    			secondary: {
-    				DEFAULT: 'hsl(var(--secondary))',
-    				foreground: 'hsl(var(--secondary-foreground))'
-    			},
-    			muted: {
-    				DEFAULT: 'hsl(var(--muted))',
-    				foreground: 'hsl(var(--muted-foreground))'
-    			},
-    			accent: {
-    				DEFAULT: 'hsl(var(--accent))',
-    				foreground: 'hsl(var(--accent-foreground))'
-    			},
-    			destructive: {
-    				DEFAULT: 'hsl(var(--destructive))',
-    				foreground: 'hsl(var(--destructive-foreground))'
-    			},
-    			border: 'hsl(var(--border))',
-    			input: 'hsl(var(--input))',
-    			ring: 'hsl(var(--ring))',
-    			chart: {
-    				'1': 'hsl(var(--chart-1))',
-    				'2': 'hsl(var(--chart-2))',
-    				'3': 'hsl(var(--chart-3))',
-    				'4': 'hsl(var(--chart-4))',
-    				'5': 'hsl(var(--chart-5))'
-    			},
-    			sidebar: {
-    				DEFAULT: 'hsl(var(--sidebar-background))',
-    				foreground: 'hsl(var(--sidebar-foreground))',
-    				primary: 'hsl(var(--sidebar-primary))',
-    				'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-    				accent: 'hsl(var(--sidebar-accent))',
-    				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-    				border: 'hsl(var(--sidebar-border))',
-    				ring: 'hsl(var(--sidebar-ring))'
-    			}
-    		},
-    		fontFamily: {
-    			inter: [
-    				'Inter',
-    				'system-ui',
-    				'sans-serif'
-    			]
-    		},
-    		animation: {
-    			float: 'float 6s ease-in-out infinite',
-    			glow: 'glow 2s ease-in-out infinite alternate',
-    			'slide-up': 'slideUp 0.8s ease-out',
-    			'fade-in': 'fadeIn 1s ease-out'
-    		},
-    		keyframes: {
-    			float: {
-    				'0%, 100%': {
-    					transform: 'translateY(0px)'
-    				},
-    				'50%': {
-    					transform: 'translateY(-20px)'
-    				}
-    			},
-    			glow: {
-    				'0%': {
-    					boxShadow: '0 0 20px rgba(0, 88, 202, 0.3)'
-    				},
-    				'100%': {
-    					boxShadow: '0 0 30px rgba(0, 88, 202, 0.6)'
-    				}
-    			},
-    			slideUp: {
-    				'0%': {
-    					transform: 'translateY(100px)',
-    					opacity: '0'
-    				},
-    				'100%': {
-    					transform: 'translateY(0)',
-    					opacity: '1'
-    				}
-    			},
-    			fadeIn: {
-    				'0%': {
-    					opacity: '0'
-    				},
-    				'100%': {
-    					opacity: '1'
-    				}
-    			}
-    		},
-    		borderRadius: {
-    			lg: 'var(--radius)',
-    			md: 'calc(var(--radius) - 2px)',
-    			sm: 'calc(var(--radius) - 4px)'
-    		}
-    	}
-    },
-	plugins: [require("tailwindcss-animate")],
-}
+		extend: {
+			colors: {
+				background: token('background'),
+				foreground: token('foreground'),
+				card: { DEFAULT: token('card'), foreground: token('card-foreground') },
+				popover: { DEFAULT: token('popover'), foreground: token('popover-foreground') },
+				primary: { DEFAULT: token('primary'), foreground: token('primary-foreground') },
+				secondary: { DEFAULT: token('secondary'), foreground: token('secondary-foreground') },
+				muted: { DEFAULT: token('muted'), foreground: token('muted-foreground') },
+				accent: { DEFAULT: token('accent'), foreground: token('accent-foreground') },
+				destructive: { DEFAULT: token('destructive'), foreground: token('destructive-foreground') },
+				border: token('border'),
+				input: token('input'),
+				ring: token('ring'),
+				paper: { DEFAULT: token('color-paper'), 2: token('color-paper-2'), 3: token('color-paper-3') },
+				ink: { DEFAULT: token('color-ink'), 2: token('color-ink-2') },
+				rule: { DEFAULT: token('color-rule'), 2: token('color-rule-2') },
+				signal: {
+					DEFAULT: token('color-accent'),
+					deep: token('color-accent-deep'),
+					soft: token('color-accent-soft'),
+					ink: token('color-accent-ink'),
+				},
+				focus: token('color-focus'),
+				error: token('color-error'),
+				success: token('color-success'),
+				chart: {
+					'1': token('chart-1'),
+					'2': token('chart-2'),
+					'3': token('chart-3'),
+					'4': token('chart-4'),
+					'5': token('chart-5'),
+				},
+				sidebar: {
+					DEFAULT: token('sidebar-background'),
+					foreground: token('sidebar-foreground'),
+					primary: token('sidebar-primary'),
+					'primary-foreground': token('sidebar-primary-foreground'),
+					accent: token('sidebar-accent'),
+					'accent-foreground': token('sidebar-accent-foreground'),
+					border: token('sidebar-border'),
+					ring: token('sidebar-ring'),
+				},
+			},
+			fontFamily: {
+				sans: ['var(--font-body)'],
+				display: ['var(--font-display)'],
+			},
+			borderRadius: {
+				lg: 'var(--radius-card)',
+				md: 'calc(var(--radius-card) - 4px)',
+				sm: 'calc(var(--radius-card) - 8px)',
+				pill: 'var(--radius-pill)',
+			},
+			boxShadow: {
+				card: 'var(--shadow-card)',
+			},
+			transitionTimingFunction: {
+				out: 'var(--ease-out)',
+			},
+			transitionDuration: {
+				micro: 'var(--dur-micro)',
+				short: 'var(--dur-short)',
+			},
+		},
+	},
+	plugins: [require('tailwindcss-animate')],
+};

@@ -1,19 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import {
-  Download,
-  Star,
-  GitFork,
-  Eye,
-  AlertCircle,
-  TrendingUp,
-  Calendar,
-  Package,
-  Users,
-  Activity,
-  ExternalLink,
-  RefreshCw,
-} from "lucide-react";
+import { ExternalLink, RefreshCw } from "lucide-react";
 import { Github } from "@/components/svg";
 import {
   LineChart,
@@ -23,14 +9,10 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { githubService, GitHubAnalytics } from "@/services/github";
+import { CHART, StatRow, Breakdown } from "./charts";
 
 const GitHubAnalyticsComponent = () => {
   const [analytics, setAnalytics] = useState<GitHubAnalytics | null>(null);
@@ -81,394 +63,190 @@ const GitHubAnalyticsComponent = () => {
     });
   };
 
-  const COLORS = [
-    "hsl(var(--primary))",
-    "hsl(var(--chart-1))",
-    "hsl(var(--chart-2))",
-    "hsl(var(--chart-3))",
-    "hsl(var(--chart-4))",
-  ];
-
   if (isLoading) {
     return (
-      <Card className="border-border">
-        <CardContent className="p-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">
-                Fetching GitHub analytics...
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6" aria-busy="true" aria-label="Fetching GitHub analytics">
+        <div className="h-28 rounded-lg bg-card motion-safe:animate-pulse" />
+        <div className="h-28 rounded-lg bg-card motion-safe:animate-pulse" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="h-80 rounded-lg bg-card motion-safe:animate-pulse lg:col-span-2" />
+          <div className="h-80 rounded-lg bg-card motion-safe:animate-pulse" />
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="border-border">
-        <CardContent className="p-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                Failed to Load GitHub Data
-              </h3>
-              <p className="text-muted-foreground mb-4">{error}</p>
-              <button
-                onClick={fetchAnalytics}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2 mx-auto"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Retry</span>
-              </button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="rounded-lg bg-card p-8">
+        <p className="font-display text-lg font-medium lowercase text-ink">
+          Failed to Load GitHub Data
+        </p>
+        <p className="mt-1 text-sm text-error">{error}</p>
+        <button
+          onClick={fetchAnalytics}
+          className="mt-4 inline-flex h-9 items-center gap-2 rounded-full bg-primary px-4 font-display text-sm font-medium lowercase text-primary-foreground transition-colors duration-micro ease-out hover:bg-signal-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        >
+          <RefreshCw className="h-4 w-4" aria-hidden />
+          <span>Retry</span>
+        </button>
+      </div>
     );
   }
 
   if (!analytics) return null;
 
   const repoStats = [
-    {
-      title: "Total Downloads",
-      value: formatNumber(analytics.totalDownloads),
-      icon: Download,
-      color: "from-green-500 to-emerald-500",
-      change: "+23%",
-    },
-    {
-      title: "GitHub Stars",
-      value: formatNumber(analytics.repository.stargazers_count),
-      icon: Star,
-      color: "from-yellow-500 to-orange-500",
-      change: "+12%",
-    },
-    {
-      title: "Forks",
-      value: formatNumber(analytics.repository.forks_count),
-      icon: GitFork,
-      color: "from-blue-500 to-cyan-500",
-      change: "+8%",
-    },
-    {
-      title: "Watchers",
-      value: formatNumber(analytics.repository.watchers_count),
-      icon: Eye,
-      color: "from-purple-500 to-violet-500",
-      change: "+15%",
-    },
+    { title: "Total Downloads", value: formatNumber(analytics.totalDownloads) },
+    { title: "GitHub Stars", value: formatNumber(analytics.repository.stargazers_count) },
+    { title: "Forks", value: formatNumber(analytics.repository.forks_count) },
+    { title: "Watchers", value: formatNumber(analytics.repository.watchers_count) },
   ];
 
+  const pillLink =
+    "inline-flex h-9 items-center gap-2 rounded-full px-4 font-display text-sm font-medium lowercase text-ink shadow-[inset_0_0_0_1.5px_var(--color-rule-2)] transition-colors duration-micro ease-out hover:bg-paper-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-2xl font-bold text-foreground flex items-center">
-            <Github className="w-7 h-7 mr-3" />
+          <h2 className="flex items-center gap-3 font-display text-2xl font-medium lowercase text-foreground">
+            <Github className="h-6 w-6" aria-hidden />
             GitHub Analytics
           </h2>
-          <p className="text-muted-foreground">
-            Real-time insights from your repository
-          </p>
+          <p className="text-muted-foreground">Real-time insights from your repository</p>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-4">
           {lastUpdated && (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground tabular-nums">
               Last updated: {lastUpdated.toLocaleTimeString()}
             </span>
           )}
-          <button
-            onClick={fetchAnalytics}
-            className="px-4 py-2 bg-secondary rounded-lg hover:bg-secondary/80 transition-colors duration-200 flex items-center space-x-2"
-          >
-            <RefreshCw className="w-4 h-4" />
+          <button onClick={fetchAnalytics} className={pillLink}>
+            <RefreshCw className="h-4 w-4" aria-hidden />
             <span>Refresh</span>
           </button>
         </div>
       </div>
 
-      {/* Repository Info */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <Card className="bg-gradient-to-r from-gray-900 to-gray-800 border-gray-700 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-xl font-bold mb-2 flex items-center">
-                  <Github className="w-5 h-5 mr-2" />
-                  {analytics.repository.full_name}
-                </h3>
-                <p className="text-gray-300 mb-4">
-                  {analytics.repository.description}
-                </p>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <span className="flex items-center">
-                    <Package className="w-4 h-4 mr-1" />
-                    {analytics.repository.language}
-                  </span>
-                  <span className="flex items-center">
-                    <Calendar className="w-4 h-4 mr-1" />
-                    Created {formatDate(analytics.repository.created_at)}
-                  </span>
-                  <span className="flex items-center">
-                    <Activity className="w-4 h-4 mr-1" />
-                    {formatBytes(analytics.repository.size * 1024)}
-                  </span>
-                </div>
-              </div>
-              <a
-                href={`https://github.com/${analytics.repository.full_name}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>View on GitHub</span>
-              </a>
+      <div className="flex flex-col items-start justify-between gap-6 rounded-lg bg-card p-6 md:flex-row">
+        <div className="min-w-0">
+          <h3 className="font-display text-xl font-medium text-ink">
+            {analytics.repository.full_name}
+          </h3>
+          <p className="mt-1 max-w-[65ch] text-ink-2">{analytics.repository.description}</p>
+          <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+            <div>
+              <dt className="text-muted-foreground">Language</dt>
+              <dd className="m-0">{analytics.repository.language}</dd>
             </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {repoStats.map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: index * 0.1 }}
-          >
-            <Card className="border-border hover:shadow-lg transition-shadow duration-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div
-                    className={`w-12 h-12 rounded-xl bg-gradient-to-r ${stat.color} p-3`}
-                  >
-                    <stat.icon className="w-full h-full text-white" />
-                  </div>
-                  <span className="text-green-500 text-sm font-medium">
-                    {stat.change}
-                  </span>
-                </div>
-                <h3 className="text-2xl font-bold text-foreground mb-1">
-                  {stat.value}
-                </h3>
-                <p className="text-muted-foreground text-sm">{stat.title}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+            <div>
+              <dt className="text-muted-foreground">Created</dt>
+              <dd className="m-0 tabular-nums">{formatDate(analytics.repository.created_at)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Size</dt>
+              <dd className="m-0 tabular-nums">{formatBytes(analytics.repository.size * 1024)}</dd>
+            </div>
+          </dl>
+        </div>
+        <a
+          href={`https://github.com/${analytics.repository.full_name}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={pillLink}
+        >
+          <ExternalLink className="h-4 w-4" aria-hidden />
+          <span>View on GitHub</span>
+        </a>
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Download Trends */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-        >
-          <Card className="border-border">
-            <CardHeader>
-              <CardTitle className="text-foreground flex items-center">
-                <TrendingUp className="w-5 h-5 mr-2" />
-                Download Trends by Version
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={analytics.downloadTrends}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="hsl(var(--border))"
-                  />
-                  <XAxis
-                    dataKey="version"
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                  />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      color: "hsl(var(--foreground))",
-                    }}
-                    formatter={(value) => [
-                      formatNumber(value as number),
-                      "Downloads",
-                    ]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="downloads"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={3}
-                    dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </motion.div>
+      <StatRow stats={repoStats} />
 
-        {/* Asset Breakdown */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-        >
-          <Card className="border-border">
-            <CardHeader>
-              <CardTitle className="text-foreground flex items-center">
-                <Package className="w-5 h-5 mr-2" />
-                Download Distribution
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={analytics.assetBreakdown}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="downloads"
-                  >
-                    {analytics.assetBreakdown.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value) => formatNumber(value as number)}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap justify-center gap-4 mt-4">
-                {analytics.assetBreakdown.map((item, index) => (
-                  <div key={item.name} className="flex items-center">
-                    <div
-                      className="w-3 h-3 rounded-full mr-2"
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {item.name}: {formatNumber(item.downloads)} (
-                      {item.percentage.toFixed(1)}%)
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Releases Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.6 }}
-      >
-        <Card className="border-border overflow-hidden">
-          <CardHeader className="border-b border-border">
-            <CardTitle className="text-foreground flex items-center">
-              <Package className="w-5 h-5 mr-2" />
-              Release History
-            </CardTitle>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Download Trends by Version</CardTitle>
           </CardHeader>
-
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-secondary">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
-                      Version
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
-                      Downloads
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
-                      Assets
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
-                      Published
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {analytics.releases.map((release, index) => (
-                    <motion.tr
-                      key={release.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="hover:bg-secondary/50 transition-colors duration-200"
-                    >
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="font-semibold text-foreground">
-                            {release.tag_name}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {release.name}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <Download className="w-4 h-4 mr-2 text-primary" />
-                          <span className="font-semibold text-foreground">
-                            {formatNumber(release.download_count)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-secondary rounded-full text-xs font-medium text-foreground">
-                          {release.assets.length} files
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">
-                        {formatDate(release.published_at)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <a
-                          href={`https://github.com/${analytics.repository.full_name}/releases/tag/${release.tag_name}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline flex items-center"
-                        >
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          View
-                        </a>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={analytics.downloadTrends} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
+                <CartesianGrid stroke={CHART.grid} vertical={false} />
+                <XAxis dataKey="version" stroke={CHART.axis} fontSize={12} tickLine={false} axisLine={false} padding={{ left: 8, right: 8 }} />
+                <YAxis stroke={CHART.axis} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => formatNumber(value as number)} />
+                <Tooltip
+                  contentStyle={CHART.tooltip}
+                  formatter={(value) => [formatNumber(value as number), "Downloads"]}
+                />
+                <Line type="monotone" dataKey="downloads" stroke={CHART.series[0]} strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
-      </motion.div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Download Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Breakdown
+              items={analytics.assetBreakdown.map((item) => ({ name: item.name, value: item.downloads }))}
+              format={formatNumber}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="overflow-hidden">
+        <CardHeader>
+          <CardTitle>Release History</CardTitle>
+        </CardHeader>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-y border-rule text-left">
+                {["Version", "Downloads", "Assets", "Published", "Actions"].map((head) => (
+                  <th key={head} className="px-6 py-3 font-display font-medium lowercase text-muted-foreground">
+                    {head}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {analytics.releases.map((release) => (
+                <tr key={release.id} className="border-b border-rule last:border-b-0 transition-colors duration-micro ease-out hover:bg-paper-3">
+                  <td className="px-6 py-3">
+                    <p className="font-display font-medium text-ink">{release.tag_name}</p>
+                    <p className="text-muted-foreground">{release.name}</p>
+                  </td>
+                  <td className="px-6 py-3 tabular-nums text-ink">{formatNumber(release.download_count)}</td>
+                  <td className="px-6 py-3 tabular-nums text-ink-2">{release.assets.length} files</td>
+                  <td className="px-6 py-3 tabular-nums text-ink-2">{formatDate(release.published_at)}</td>
+                  <td className="px-6 py-3">
+                    <a
+                      href={`https://github.com/${analytics.repository.full_name}/releases/tag/${release.tag_name}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-ink underline-offset-4 hover:underline hover:decoration-signal focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                    >
+                      <ExternalLink className="h-4 w-4" aria-hidden />
+                      View
+                    </a>
+                  </td>
+                </tr>
+              ))}
+              {analytics.releases.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-muted-foreground">
+                    No releases published yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 };

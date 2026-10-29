@@ -37,25 +37,25 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-dvh flex items-center justify-center bg-background">
           <div className="max-w-md w-full mx-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/20 mb-4">
-                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            <div className="bg-card rounded-lg p-6 text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-paper-3 mb-4">
+                <AlertTriangle className="h-6 w-6 text-error" />
               </div>
 
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              <h3 className="font-display text-lg font-medium lowercase text-ink mb-2">
                 Something went wrong
               </h3>
 
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              <p className="text-sm text-muted-foreground mb-6">
                 {this.state.error?.message ||
                   "An unexpected error occurred. Please try again."}
               </p>
 
               <button
                 onClick={this.handleRetry}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+                className="inline-flex items-center h-9 px-4 rounded-full font-display text-sm font-medium lowercase text-primary-foreground bg-primary hover:bg-signal-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus transition-colors duration-micro ease-out"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Try again

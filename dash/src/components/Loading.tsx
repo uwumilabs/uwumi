@@ -24,10 +24,10 @@ export function LoadingSpinner({
     <div className={`flex items-center justify-center ${className}`}>
       <div className="flex flex-col items-center space-y-2">
         <Loader2
-          className={`${sizeClasses[size]} animate-spin text-purple-600`}
+          className={`${sizeClasses[size]} motion-safe:animate-spin text-signal`}
         />
         {text && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">
+          <p className="text-sm text-muted-foreground">
             {text}
           </p>
         )}
@@ -46,11 +46,11 @@ export function LoadingSkeleton({
   rows = 3,
 }: LoadingSkeletonProps) {
   return (
-    <div className={`animate-pulse ${className}`}>
+    <div className={`motion-safe:animate-pulse ${className}`}>
       {Array.from({ length: rows }).map((_, index) => (
         <div key={index} className="mb-3 last:mb-0">
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md mb-2"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md w-3/4"></div>
+          <div className="h-4 bg-paper-3 rounded-full mb-2"></div>
+          <div className="h-4 bg-paper-3 rounded-full w-3/4"></div>
         </div>
       ))}
     </div>
@@ -64,19 +64,19 @@ interface LoadingCardProps {
 export function LoadingCard({ className = "" }: LoadingCardProps) {
   return (
     <div
-      className={`animate-pulse bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 ${className}`}
+      className={`motion-safe:animate-pulse bg-card rounded-lg p-6 ${className}`}
     >
       <div className="flex items-center space-x-4 mb-4">
-        <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+        <div className="h-12 w-12 bg-paper-3 rounded-full"></div>
         <div className="flex-1">
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md mb-2"></div>
-          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-md w-2/3"></div>
+          <div className="h-4 bg-paper-3 rounded-full mb-2"></div>
+          <div className="h-3 bg-paper-3 rounded-full w-2/3"></div>
         </div>
       </div>
       <div className="space-y-2">
-        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-md"></div>
-        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-md w-5/6"></div>
-        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-md w-4/6"></div>
+        <div className="h-3 bg-paper-3 rounded-full"></div>
+        <div className="h-3 bg-paper-3 rounded-full w-5/6"></div>
+        <div className="h-3 bg-paper-3 rounded-full w-4/6"></div>
       </div>
     </div>
   );
@@ -88,7 +88,7 @@ interface LoadingPageProps {
 
 export function LoadingPage({ text = "Loading..." }: LoadingPageProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-dvh flex items-center justify-center bg-background">
       <div className="text-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}

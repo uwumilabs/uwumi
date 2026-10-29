@@ -34,14 +34,14 @@ export default function AdminLayout({
         <AdminSidebar />
         <SidebarInset>
           {/* Top bar */}
-          <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border">
+          <div className="sticky top-0 z-30 bg-background border-b border-border">
             <div className="flex items-center justify-between px-6 py-4">
               <SidebarTrigger />
 
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center gap-2">
                 {/* User Profile Info */}
-                <div className="hidden sm:flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-primary-gradient flex items-center justify-center text-white font-semibold text-sm">
+                <div className="hidden sm:flex items-center gap-3 pr-2">
+                  <div className="w-8 h-8 rounded-full bg-paper-3 flex items-center justify-center font-display font-medium text-sm text-ink">
                     {user?.imageUrl ? (
                       <img
                         src={user.imageUrl}
@@ -57,7 +57,7 @@ export default function AdminLayout({
                     )}
                   </div>
                   <div className="hidden md:block">
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="font-display text-sm font-medium text-foreground">
                       {user?.fullName || user?.firstName || "User"}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -69,7 +69,8 @@ export default function AdminLayout({
                 {/* Theme Toggle */}
                 <button
                   onClick={toggleTheme}
-                  className="p-2 hover:bg-accent rounded-lg transition-colors"
+                  aria-label="Toggle theme"
+                  className="grid h-10 w-10 place-items-center rounded-full transition-colors duration-micro ease-out hover:bg-paper-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                 >
                   {mounted && theme === "dark" ? (
                     <Sun className="w-5 h-5 text-muted-foreground" />
@@ -79,16 +80,18 @@ export default function AdminLayout({
                 </button>
 
                 {/* Notification Bell */}
-                <button className="p-2 hover:bg-accent rounded-lg transition-colors relative">
-                  <Bell className="w-5 h-5 text-muted-foreground" />
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+                <button
+                  aria-label="Notifications"
+                  className="grid h-10 w-10 place-items-center rounded-full transition-colors duration-micro ease-out hover:bg-paper-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                >
+                  <Bell className="w-5 h-5 text-muted-foreground" aria-hidden />
                 </button>
               </div>
             </div>
           </div>
 
           {/* Page content */}
-          <main className="p-6">{children}</main>
+          <main className="mx-auto w-full max-w-[90rem] p-6">{children}</main>
         </SidebarInset>
       </div>
     </SidebarProvider>

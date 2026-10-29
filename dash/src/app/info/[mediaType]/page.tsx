@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Download, Play } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 import { LINKS } from "@/constants";
-import { cn } from "@/lib/utils";
 import {
   fetchSharedMedia,
   SHARE_MEDIA_TYPES,
@@ -18,6 +16,15 @@ type Props = {
 
 const first = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
+
+// About three lines of the synopsis, ending on a whole sentence where one fits; the app has the rest
+const blurb = (text: string, max = 260) => {
+  if (text.length <= max) return text;
+  const head = text.slice(0, max);
+  const sentence = Math.max(head.lastIndexOf(". "), head.lastIndexOf("! "), head.lastIndexOf("? "));
+  if (sentence > max / 2) return head.slice(0, sentence + 1);
+  return `${head.slice(0, head.lastIndexOf(" ")).replace(/[\s.,;:!?]+$/, "")}…`;
+};
 
 /** A link shared from the app: https://<site>/info/<mediaType>?id=…, the same route and query as uwumi://info/… */
 async function readShare({ params, searchParams }: Props) {
@@ -58,54 +65,45 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 export default async function SharedInfoPage(props: Props) {
   const { title, description, poster, backdrop, episodeLabel, appLink } = await readShare(props);
+  const banner = backdrop && backdrop !== poster ? backdrop : undefined;
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
-      {backdrop && (
-        <img
-          src={backdrop}
-          alt=""
-          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-25 blur-2xl"
-        />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/80 to-background" />
+    <div className="share">
+      <header className="share__bar">
+        <div className="container">
+          <a href="/" className="share__mark">
+            <img src="/images/icon.png" alt="" width={36} height={36} />
+            uwumi
+          </a>
+        </div>
+      </header>
 
-      <div className="relative mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-6 px-6 py-12 text-center">
-        <a href="/" className="text-sm font-semibold tracking-widest text-muted-foreground">
-          uwumi
-        </a>
-        {poster && (
-          <img
-            src={poster}
-            alt={title}
-            className="aspect-[2/3] w-44 rounded-xl object-cover shadow-2xl"
-          />
-        )}
-        <div className="space-y-2">
-          {episodeLabel && <p className="text-sm font-semibold text-primary">{episodeLabel}</p>}
-          <h1 className="text-3xl font-bold">{title}</h1>
-          {description && (
-            <p className="line-clamp-4 text-sm text-muted-foreground">{description}</p>
+      <main className="container share__main">
+        <section className="share__grid" aria-labelledby="share-title">
+          {poster && (
+            <img src={poster} alt={title} className="share__poster" fetchPriority="high" />
           )}
-        </div>
-
-        <div className="flex w-full flex-col gap-3">
-          <a href={appLink} className={cn(buttonVariants({ size: "lg" }), "w-full")}>
-            <Play />
-            Open in uwumi
-          </a>
-          <a
-            href={LINKS.latestRelease}
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full")}
-          >
-            <Download />
-            Download uwumi
-          </a>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Don&apos;t have uwumi yet? Install it, then open this link again.
-        </p>
-      </div>
-    </main>
+          <div className="share__text">
+            {episodeLabel && <p className="share__episode">{episodeLabel}</p>}
+            <h1 id="share-title" className="share__title">{title}</h1>
+            {description && <p className="share__desc">{blurb(description)}</p>}
+            <div className="share__actions">
+              <a href={appLink} className="btn btn--primary">
+                <Play aria-hidden />
+                Open in uwumi
+              </a>
+              <a href={LINKS.latestRelease} className="btn btn--ring">
+                <Download aria-hidden />
+                Download uwumi
+              </a>
+            </div>
+            <p className="share__note">
+              Don&apos;t have uwumi yet? Install it, then open this link again.
+            </p>
+          </div>
+        </section>
+        {banner && <img src={banner} alt="" className="share__banner" loading="lazy" />}
+      </main>
+    </div>
   );
 }
