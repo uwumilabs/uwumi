@@ -157,10 +157,8 @@ const Watch = () => {
     episodeLength: loadedLength.uniqueId === uniqueId ? loadedLength.seconds : 0,
     enabled: mediaType === MediaType.ANIME,
   });
-  const skipForward =
-    mediaType === MediaType.ANIME &&
-    !skipTimes.some(({ type }) => type === 'intro') &&
-    (skipTimesFetched || (!!mediaInfo && !malId));
+  // AniSkip has answered, or can't be asked without a MAL id; SkipSlot jumps where it has no intro or outro
+  const skipForward = mediaType === MediaType.ANIME && (skipTimesFetched || (!!mediaInfo && !malId));
   const upNext = useMemo<UpNext | undefined>(
     () =>
       nextEpisode

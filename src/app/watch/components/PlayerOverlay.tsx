@@ -20,7 +20,11 @@ export interface UpNext {
   title?: string;
 }
 
-/** What the current position can skip, if it's inside an intro, recap or outro, else a plain jump if asked for. */
+/**
+ * What the current position can skip, if it's inside an intro, recap or outro. Otherwise, with `skipForward`, a
+ * plain jump where AniSkip has nothing for this part: no intro in the first half, no outro in the second (JJK S2
+ * has E6 with only its outro, E12 with only its intro).
+ */
 const useSkipAction = (skipTimes: SkipTime[], upNext: UpNext | undefined, onNext: () => void, skipForward = false) => {
   const { currentTime, duration, seek } = useProgress();
   // The player rewinds to 0:00 when a source ends, which would offer "Skip intro" under the Up next card
@@ -29,7 +33,8 @@ const useSkipAction = (skipTimes: SkipTime[], upNext: UpNext | undefined, onNext
   const active = skipTimes.find(({ start, end }) => currentTime >= start && currentTime < end - 1);
   if (ended) return null;
   if (!active) {
-    return skipForward
+    const part = duration > 0 && currentTime >= duration / 2 ? 'outro' : 'intro';
+    return skipForward && !skipTimes.some(({ type }) => type === part)
       ? { label: `+${SKIP_FORWARD_SECONDS}s`, onPress: () => seek(currentTime + SKIP_FORWARD_SECONDS) }
       : null;
   }
@@ -45,7 +50,7 @@ interface SkipProps {
   onNext: () => void;
 }
 
-/** For the controls' bottom row: the skip while one applies, or with `skipForward` a +85s jump otherwise. */
+/** For the controls' bottom row: the skip while one applies, or with `skipForward` a +85s jump where none is known. */
 export const SkipSlot = ({ skipTimes, upNext, onNext, skipForward }: SkipProps & { skipForward?: boolean }) => {
   const action = useSkipAction(skipTimes, upNext, onNext, skipForward);
   if (!action) return null;
