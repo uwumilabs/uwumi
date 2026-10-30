@@ -2,8 +2,11 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { storage } from '@/hooks/stores/MMKV';
 import { MediaType } from '@/constants/types';
-import { MANGA } from 'react-native-consumet';
+import { MANGA, META } from 'react-native-consumet';
 import { useExtensionStore } from '@/hooks/stores/useExtensionStore';
+
+// What META.Anilist.Manga takes (the package doesn't export the MangaParser type itself)
+type MangaParser = NonNullable<ConstructorParameters<typeof META.Anilist.Manga>[0]>;
 
 interface Provider {
   name: string;
@@ -20,6 +23,16 @@ interface ProviderGroups {
   [MediaType.MOVIE]: Provider[];
 }
 
+// Manga providers come with the library rather than as extensions. Values are what's stored, so keep them stable
+const MANGA_PROVIDERS: { name: string; value: string; create: () => MangaParser }[] = [
+  { name: 'MangaDex', value: 'mangadex', create: () => new MANGA.MangaDex() },
+  { name: 'MangaHere', value: 'mangahere', create: () => new MANGA.MangaHere() },
+  { name: 'MangaKakalot', value: 'mangakakalot', create: () => new MANGA.MangaKakalot() },
+  { name: 'MangaPill', value: 'mangapill', create: () => new MANGA.MangaPill() },
+  { name: 'AsuraScans', value: 'asurascans', create: () => new MANGA.AsuraScans() },
+  { name: 'Flame Comics', value: 'flamescans', create: () => new MANGA.FlameScans() },
+];
+
 // Build providers dynamically from the extension store (reads live state each call)
 const getProviders = (): ProviderGroups => {
   const installed = useExtensionStore.getState().getInstalledExtensions();
@@ -32,10 +45,7 @@ const getProviders = (): ProviderGroups => {
         subbed: ext.subbed,
         dubbed: ext.dubbed,
       })),
-    [MediaType.MANGA]: [
-      { name: 'Mangadex', value: 'mangadex' },
-      { name: 'Mangakakalot', value: 'mangakakalot' },
-    ],
+    [MediaType.MANGA]: MANGA_PROVIDERS.map(({ name, value }) => ({ name, value })),
     [MediaType.MOVIE]: installed
       .filter((ext) => ext.category === 'movies')
       .map((ext) => ({
@@ -95,30 +105,21 @@ const META_PROVIDERS = {
   [MediaType.MOVIE]: 'tmdb',
 };
 
-type MangaProviderInstance = InstanceType<typeof MANGA.MangaDex> | InstanceType<typeof MANGA.MangaKakalot>;
+// One instance per provider: some look things up once and reuse them (FlameScans reads the site's build id)
+const mangaInstances = new Map<string, MangaParser>();
 
-// Overloaded function signatures for type inference
-export function createProviderInstance(mediaType: MediaType.MANGA, providerValue: string): MangaProviderInstance;
-export function createProviderInstance(mediaType: MediaType, providerValue: string): MangaProviderInstance {
-  // Manga provider mapping
-  if (mediaType === MediaType.MANGA) {
-    const mangaProviders: Record<string, () => MangaProviderInstance> = {
-      mangadex: () => new MANGA.MangaDex(),
-      mangakakalot: () => new MANGA.MangaKakalot(),
-      // Add new providers here in the future
-    };
-
-    const providerFunc = mangaProviders[providerValue] || mangaProviders[DEFAULT_PROVIDERS[MediaType.MANGA]];
-
-    if (!providerFunc) {
-      throw new Error(`Unsupported manga provider: ${providerValue}`);
-    }
-
-    return providerFunc();
+/** The manga provider for a stored value; an unknown one (from an older version) falls back to the default. */
+export const getMangaProvider = (value: string): MangaParser => {
+  const entry =
+    MANGA_PROVIDERS.find((provider) => provider.value === value) ??
+    MANGA_PROVIDERS.find((provider) => provider.value === DEFAULT_PROVIDERS[MediaType.MANGA])!;
+  let instance = mangaInstances.get(entry.value);
+  if (!instance) {
+    instance = entry.create();
+    mangaInstances.set(entry.value, instance);
   }
-
-  throw new Error(`Unsupported media type: ${mediaType}`);
-}
+  return instance;
+};
 
 interface ProviderState {
   providers: {

@@ -266,7 +266,7 @@ const AppContent = () => {
                 }}
               />
               <Stack.Screen name="watch/[mediaType]" />
-              <Stack.Screen name="read/[id]" />
+              <Stack.Screen name="read/[id]" options={{ ...headerOptions, headerShown: true, title: '' }} />
               {Object.entries(SETTINGS_SCREENS).map(([name, title]) => (
                 <Stack.Screen
                   key={name}

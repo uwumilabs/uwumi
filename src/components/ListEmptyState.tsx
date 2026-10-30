@@ -85,7 +85,7 @@ export const ProviderEmptyState = ({
       title={error ? `Couldn't load ${itemsLabel}` : `No ${itemsLabel} found`}
       description={
         error
-          ? `${providerName} didn't respond. Try again or switch provider.`
+          ? `${providerName} couldn't load them. Try again or switch provider.`
           : `${providerName} has no ${itemsLabel} for this title.`
       }
       detail={error ? errorDetail(error) : undefined}>

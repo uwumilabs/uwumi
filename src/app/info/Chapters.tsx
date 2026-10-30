@@ -1,35 +1,71 @@
 import {
-  IconTitle,
   RippleButton,
   Select,
   List,
   HUXStack,
   HUYStack,
+  IoniconsIcon,
   ListJumpBar,
   ProviderEmptyState,
 } from '@/components';
+import { Button } from '@/components/Button';
 import LinearGradient from '@/components/LinearGradient';
 import { useProviders, useProviderStore, useActiveProvider } from '@/constants/provider';
 import { MediaType } from '@/constants/types';
+import { isTV } from '@/constants/utils';
 import {
   LIST_SHADOW_SIZE,
+  mangaProgressKey,
   useCurrentTheme,
   useListJump,
   useMangaChapters,
+  useMangaProgressStore,
   usePureBlackBackground,
   useSolidHeaderOnScroll,
 } from '@/hooks';
+import { chapterDetails, chapterNumbers, chapterTitle } from '@/utils/manga';
 import { useComposedEventHandler } from 'react-native-reanimated';
 import type { FlashListRef } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { cn, ScrollShadow } from '@/components/heroui';
-import React, { ReactNode, useCallback, useMemo, useRef } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import React, { memo, ReactNode, useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Text } from 'react-native';
 import type { IMangaChapter } from 'react-native-consumet';
 
 interface ChaptersProps {
   header?: ReactNode;
 }
+
+const ChapterRow = memo(
+  ({ chapter, read, onOpen }: { chapter: IMangaChapter; read: boolean; onOpen: (chapter: IMangaChapter) => void }) => {
+    const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+    const numbers = chapterNumbers(chapter);
+    const details = chapterDetails(chapter);
+    const title = chapterTitle(chapter);
+    return (
+      <RippleButton onPress={() => onOpen(chapter)}>
+        {/* Read chapters fade back, as in Aniyomi */}
+        <HUYStack className={cn('gap-1 px-4 py-3', pureBlackBackground && 'bg-black', read && 'opacity-50')}>
+          <HUXStack className="items-center justify-between gap-3">
+            <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={1}>
+              {title}
+            </Text>
+            {/* The title often is the number already ("Chapter 12"); then it isn't repeated */}
+            {!!numbers && !title.includes(String(chapter.chapterNumber ?? '\u0000')) && (
+              <Text className="text-sm text-foreground/60">{numbers}</Text>
+            )}
+          </HUXStack>
+          {!!details && (
+            <Text className="text-xs text-foreground/60" numberOfLines={1}>
+              {details}
+            </Text>
+          )}
+        </HUYStack>
+      </RippleButton>
+    );
+  },
+);
+ChapterRow.displayName = 'ChapterRow';
 
 const Chapters = ({ header }: ChaptersProps) => {
   const { mediaType, id } = useLocalSearchParams<{
@@ -40,11 +76,18 @@ const Chapters = ({ header }: ChaptersProps) => {
   const currentProvider = useActiveProvider(mediaType);
   const providers = useProviders();
   const { data, isLoading, error, refetch } = useMangaChapters({ id, provider: currentProvider });
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+  const progress = useMangaProgressStore((state) => state.progress[mangaProgressKey(id, currentProvider)]);
   const currentTheme = useCurrentTheme();
+  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const router = useRouter();
   const listRef = useRef<FlashListRef<IMangaChapter>>(null);
-  const chapters = useMemo(() => data ?? [], [data]);
+  // Providers give reading order (first chapter first); newest first only flips what's shown
+  const [newestFirst, setNewestFirst] = useState(false);
+  const chapters = useMemo(() => {
+    const list = data ?? [];
+    return newestFirst ? [...list].reverse() : list;
+  }, [data, newestFirst]);
+  const read = useMemo(() => new Set(progress?.read), [progress?.read]);
 
   const chapterRangeLabel = useCallback(
     (start: number, end: number) => {
@@ -61,14 +104,17 @@ const Chapters = ({ header }: ChaptersProps) => {
   });
   const onScroll = useComposedEventHandler([listProps.onScroll, solidHeaderOnScroll]);
 
-  const handleProviderChange = useCallback(
-    (value: string) => {
-      setProvider(mediaType, value);
-    },
-    [mediaType, setProvider],
+  const handleProviderChange = useCallback((value: string) => setProvider(mediaType, value), [mediaType, setProvider]);
+  const openChapter = useCallback(
+    (chapter: Pick<IMangaChapter, 'id'>) =>
+      router.push({ pathname: '/read/[id]', params: { id, chapter: chapter.id, provider: currentProvider } }),
+    [router, id, currentProvider],
   );
+  // The last chapter opened, if this provider still lists it
+  const continueChapter = progress && data?.some(({ id: chapterId }) => chapterId === progress.lastChapterId);
+
   return (
-    <View className="flex-1">
+    <HUYStack className="flex-1">
       <ScrollShadow
         className="flex-1"
         size={LIST_SHADOW_SIZE}
@@ -97,10 +143,7 @@ const Chapters = ({ header }: ChaptersProps) => {
             )
           }
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-          }}
+          contentContainerStyle={{ paddingVertical: 8 }}
           ListHeaderComponent={
             <>
               {header}
@@ -114,45 +157,35 @@ const Chapters = ({ header }: ChaptersProps) => {
                 {ranges.length > 0 && (
                   <Select SelectItem={ranges} SelectLabel="Chapters" value={rangeValue} onValueChange={jumpToRange} />
                 )}
+                {chapters.length > 1 && (
+                  <RippleButton
+                    accessibilityLabel={newestFirst ? 'Show first chapter first' : 'Show newest chapter first'}
+                    onPress={() => setNewestFirst((value) => !value)}>
+                    <IoniconsIcon
+                      name={newestFirst ? 'arrow-down' : 'arrow-up'}
+                      size={20}
+                      color={currentTheme?.foreground}
+                    />
+                  </RippleButton>
+                )}
+                {continueChapter && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onPress={() => openChapter({ id: progress.lastChapterId })}
+                    hasTVPreferredFocus={isTV}>
+                    <IoniconsIcon name="book" size={14} color={currentTheme?.foreground} />
+                    <Button.Label numberOfLines={1}>{`Continue · ${progress.lastChapterTitle}`}</Button.Label>
+                  </Button>
+                )}
               </HUXStack>
             </>
           }
-          renderItem={({ item }) => (
-            <RippleButton
-              onPress={() => {
-                router.push({
-                  pathname: '/read/[id]',
-                  params: {
-                    id: item?.id,
-                  },
-                });
-              }}>
-              <HUYStack className={cn('gap-4 px-2 py-2', pureBlackBackground && 'bg-black')}>
-                <HUXStack className="gap-4">
-                  <HUYStack className="flex-1 justify-between p-2">
-                    <HUYStack>
-                      <HUXStack className="flex-row items-center justify-between gap-2">
-                        <Text className="flex-1 text-base font-bold text-accent" numberOfLines={1}>
-                          {item.title}
-                        </Text>
-                        <HUXStack className="flex-row items-center gap-2">
-                          <IconTitle text={item.volumeNumber} iconName="library-outline" />
-                        </HUXStack>
-                      </HUXStack>
-                    </HUYStack>
-                    <HUXStack className="flex-row items-center justify-between">
-                      <IconTitle text={item.chapterNumber} iconName="albums-outline" />
-                      <IconTitle text={item.pages} iconName="document-text-outline" />
-                    </HUXStack>
-                  </HUYStack>
-                </HUXStack>
-              </HUYStack>
-            </RippleButton>
-          )}
+          renderItem={({ item }) => <ChapterRow chapter={item} read={read.has(item.id)} onOpen={openChapter} />}
         />
       </ScrollShadow>
       <ListJumpBar {...jumpBar} rangesLabel="Chapters" />
-    </View>
+    </HUYStack>
   );
 };
 
