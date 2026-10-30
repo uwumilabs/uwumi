@@ -102,7 +102,7 @@
     "react-dom": "19.3.0",
     "react-native": "npm:react-native-tvos@0.88-stable",
     "react-native-background-actions": "^4.0.1",
-    "react-native-consumet": "^2.0.0",
+    "react-native-consumet": "^3.0.0",
     "react-native-edge-to-edge": "^1.7.0",
     "react-native-ffmpeg-kit": "7.0.0-beta.4",
     "react-native-gesture-handler": "~3.3.0",

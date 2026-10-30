@@ -10893,10 +10893,10 @@ react-native-background-actions@^4.0.1:
   dependencies:
     eventemitter3 "^4.0.7"
 
-react-native-consumet@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/react-native-consumet/-/react-native-consumet-2.0.0.tgz#6eb5fadbb602d8e536f9cf52a7fd311d1694fad3"
-  integrity sha512-5YyIevJ18AiwEJbHzWxdep00G1QDxU5+1vaMAR/Lhw5fhbznA46ukSCB3p5sR1JWITxnT+gAlWLu3jxI2c5LAQ==
+react-native-consumet@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/react-native-consumet/-/react-native-consumet-3.0.0.tgz#1bb62af519611a3b73cb3826f327fb750f26fa97"
+  integrity sha512-F5r/fvF+SwTA0Md1H2Y8n0KnS4t31Pufpc8KAbD9V1wabXlnMtgl3qOfO97sQmC0BOz+/K70wvPbpSFRBq5gFg==
   dependencies:
     "@noble/curves" "^1.9.7"
     ascii-url-encoder "^1.2.0"
