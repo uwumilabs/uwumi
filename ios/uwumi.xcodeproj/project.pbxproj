@@ -34,6 +34,20 @@
 		F11748442D0722820044C1D9 /* uwumi-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "uwumi-Bridging-Header.h"; path = "uwumi/uwumi-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		EFB17EBDD13D4C1A9D17443C /* ../src/modules */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = ../src/modules;
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		13B07F8C1A680F5B00A75B9A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -96,7 +110,7 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				3BB5CDB69CA53AB39270B06C /* Pods */,
 				E706CD0C48DFD7E4B812BD67 /* ExpoModulesProviders */,
-				EFB17EBDD13D4C1A9D17443C /* src/modules */,
+				EFB17EBDD13D4C1A9D17443C /* ../src/modules */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -157,13 +171,13 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				EFB17EBDD13D4C1A9D17443C /* ../src/modules */,
+			);
 			name = uwumi;
 			productName = uwumi;
 			productReference = 13B07F961A680F5B00A75B9A /* uwumi.app */;
 			productType = "com.apple.product-type.application";
-			fileSystemSynchronizedGroups = (
-				EFB17EBDD13D4C1A9D17443C /* src/modules */,
-			);
 		};
 /* End PBXNativeTarget section */
 
@@ -654,19 +668,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		EFB17EBDD13D4C1A9D17443C = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			name = src/modules;
-			path = ../src/modules;
-			sourceTree = SOURCE_ROOT;
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
 	};
 	rootObject = 83CBB9F71A601CBA00E9B192 /* Project object */;
 }
