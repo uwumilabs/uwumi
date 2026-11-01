@@ -1792,7 +1792,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-orientation-director (2.6.5):
+  - react-native-orientation-director (3.1.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -3259,7 +3259,7 @@ SPEC CHECKSUMS:
   react-native-ffmpeg-kit: 4146ed5fc6e506cbc630a53b772b6db23724fdda
   react-native-get-random-values: 903f339dfb7b6d25850f68355de9286f34635251
   react-native-keyboard-controller: 8da3439009d9bea47a38462af94227c2c228708e
-  react-native-orientation-director: 02d7449b64b456828e191e592842ce633ef2d574
+  react-native-orientation-director: 9b258509febe9fa0122be1ace3712c0d8f520f37
   react-native-safe-area-context: 7b143af09becaf26ba247b9a82d355f91b77b9b0
   react-native-video: 42e6fdeb8ddf53ff11360d4f8bc1a28d2a625532
   react-native-webview: 0350e63d9eff606d9923619409987b6cd1ac58f5

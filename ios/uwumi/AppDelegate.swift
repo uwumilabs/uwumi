@@ -2,6 +2,9 @@ import NitroOtaBundleManager
 internal import Expo
 import React
 import ReactAppDependencyProvider
+// React Native Orientation Director @generated begin @react-native-orientation-director/library-import - expo prebuild (DO NOT MODIFY) sync-086b1a32084aa583b0c6bb0d2f672026498a6649
+import OrientationDirector
+// React Native Orientation Director @generated end @react-native-orientation-director/library-import
 
 @main
 class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {
@@ -25,13 +28,13 @@ class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {
     // scene-based life cycle (required by the iOS 27 SDK).
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
-// React Native Orientation Director @generated begin @react-native-orientation-director/supportedInterfaceOrientationsFor-implementation - expo prebuild (DO NOT MODIFY) sync-147d50248b7b55d1acbe02fc03ff4cde90a30975
+// React Native Orientation Director @generated begin @react-native-orientation-director/supportedInterfaceOrientations-implementation - expo prebuild (DO NOT MODIFY) sync-68858d1d7ce6b3de98fb0b6949250dd1c78f36f4
 
   public override func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-    return OrientationDirector.getSupportedInterfaceOrientationsForWindow()
+    return SharedOrientationDirectorImpl.shared.supportedInterfaceOrientations
   }
 
-// React Native Orientation Director @generated end @react-native-orientation-director/supportedInterfaceOrientationsFor-implementation
+// React Native Orientation Director @generated end @react-native-orientation-director/supportedInterfaceOrientations-implementation
 }
 
 class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {

@@ -736,15 +736,6 @@ const Watch = () => {
               ? 'Loading the download'
               : `Loading ${rotation.attempt?.server ?? ''} · ${position} of ${rotation.order.length}`
           }
-        />
-        <PlayerOverlay skipTimes={skipTimes} upNext={upNext} onNext={handleNextEpisode} />
-        <ServerLoadingOverlay
-          loading={phase === 'loading'}
-          label={
-            localUri
-              ? 'Loading the download'
-              : `Loading ${rotation.attempt?.server ?? ''} · ${position} of ${rotation.order.length}`
-          }
           notice={rotation.switched && rotation.attempt ? `Playing on ${rotation.attempt.server}` : undefined}
         />
         {upNext && (

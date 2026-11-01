@@ -10993,10 +10993,10 @@ react-native-nitro-ota@0.14.1:
   resolved "https://registry.yarnpkg.com/react-native-nitro-ota/-/react-native-nitro-ota-0.14.1.tgz#625e77425eb0d0c8e5f4712093de4bbf5953a8ef"
   integrity sha512-rGceiNstZG+je5CysgUjNPmoofOpByx4n79XcX6f5OkITy+HM1/bCW8yWd1QcMlahgi4om8yeLl9ZXcYsCT8mQ==
 
-react-native-orientation-director@^2.6.5:
-  version "2.6.5"
-  resolved "https://registry.yarnpkg.com/react-native-orientation-director/-/react-native-orientation-director-2.6.5.tgz#5fb69a12fc0855ed690f143565b955067258054d"
-  integrity sha512-hTkDu5VrRqHcg/5ihPjZhikA0RQpAv1pp7qja8whvic9ROOPGsDUWMSf0+pWRdIRKhmP1R0JyWmuRpjUYvoK7w==
+react-native-orientation-director@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/react-native-orientation-director/-/react-native-orientation-director-3.1.0.tgz#f3f1ee771f5ef0d47e3da16c2511a5738d1dca67"
+  integrity sha512-JoZD1Gqw3qIhEHFZRKOLb8IiAM+613XClFWbSOEY7QXSnt8eHRd2VZB4hmeOHpiJJ3px+WFQ0+SRl2rnyxqoeg==
 
 react-native-reanimated@4.7.1:
   version "4.7.1"
