@@ -1,10 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Button, HStack, Host, Image, ProgressView, RNHostView, Spacer, Text, Toggle, VStack } from '@expo/ui/swift-ui';
+import {
+  Button,
+  HStack,
+  Host,
+  Image,
+  Popover,
+  ProgressView,
+  RNHostView,
+  Spacer,
+  Text,
+  Toggle,
+  VStack,
+} from '@expo/ui/swift-ui';
 import {
   background,
   buttonStyle,
   contentShape,
+  fixedSize,
   controlSize,
   font,
   foregroundStyle,
@@ -60,6 +73,7 @@ const Item = ({
   onPress,
   disabled,
   action,
+  info,
   toggle,
 }: ListItemProps) => {
   const theme = useCurrentTheme();
@@ -95,14 +109,46 @@ const Item = ({
     content
   );
 
-  if (!action) return row;
+  if (!action && !info) return row;
   return (
     <HStack spacing={0}>
       {row}
-      <Button onPress={action.onPress} modifiers={[buttonStyle('plain'), padding({ trailing: 12 })]}>
-        <HostedIcon name={action.icon} size={18} color={theme.foreground} label={action.label} />
-      </Button>
+      {action ? (
+        <Button onPress={action.onPress} modifiers={[buttonStyle('plain'), padding({ trailing: 12 })]}>
+          <HostedIcon name={action.icon} size={18} color={theme.foreground} label={action.label} />
+        </Button>
+      ) : info ? (
+        <InfoButton {...info} />
+      ) : null}
     </HStack>
+  );
+};
+
+/** A popover bubble from the button, as on iPad, rather than a sheet */
+const InfoButton = ({ title, text }: NonNullable<ListItemProps['info']>) => {
+  const theme = useCurrentTheme();
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover isPresented={open} onIsPresentedChange={setOpen} arrowEdge="top">
+      <Popover.Trigger>
+        <Button onPress={() => setOpen(true)} modifiers={[buttonStyle('plain'), padding({ trailing: 12 })]}>
+          <HostedIcon name="information-circle-outline" size={20} color={theme.foreground} label={`About ${title}`} />
+        </Button>
+      </Popover.Trigger>
+      <Popover.Content>
+        <VStack alignment="leading" spacing={6} modifiers={[padding({ all: 16 }), frame({ width: 300 })]}>
+          <Text modifiers={[font({ size: 16, weight: 'semibold' }), foregroundStyle(theme.foreground)]}>{title}</Text>
+          <Text
+            modifiers={[
+              font({ size: 14 }),
+              foregroundStyle(theme.muted),
+              fixedSize({ horizontal: false, vertical: true }),
+            ]}>
+            {text}
+          </Text>
+        </VStack>
+      </Popover.Content>
+    </Popover>
   );
 };
 

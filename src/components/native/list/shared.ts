@@ -16,6 +16,8 @@ export interface ListItemProps {
   disabled?: boolean;
   /** A separate button at the end of the row, like "remove". On TV it is its own focus stop. */
   action?: { icon: IoniconProps['name']; label: string; onPress: () => void };
+  /** An info button at the end of the row that explains it in a bubble beside the button. On TV it is its own focus stop. */
+  info?: { title: string; text: string };
   /** A switch at the end of the row; on Android the whole row flips it */
   toggle?: { value: boolean; onValueChange: (value: boolean) => void };
 }

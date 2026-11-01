@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View } from 'react-native';
 import {
   Card,
@@ -11,6 +11,8 @@ import {
   Row,
   Switch,
   Text,
+  TooltipBox,
+  type TooltipBoxRef,
 } from '@expo/ui/jetpack-compose';
 import {
   clickable,
@@ -70,6 +72,7 @@ const Item = ({
   onPress,
   disabled,
   action,
+  info,
   toggle,
 }: ListItemProps) => {
   const theme = useCurrentTheme();
@@ -87,7 +90,7 @@ const Item = ({
   const item = (
     <ComposeListItem
       colors={{ containerColor: 'transparent' }}
-      modifiers={[action ? weight(1) : fillMaxWidth(), ...press]}>
+      modifiers={[action || info ? weight(1) : fillMaxWidth(), ...press]}>
       <ComposeListItem.HeadlineContent>
         <Text color={theme.foreground} style={{ fontSize: 16, fontWeight: '500' }}>
           {title}
@@ -117,15 +120,47 @@ const Item = ({
     </ComposeListItem>
   );
 
-  if (!action) return item;
+  if (!action && !info) return item;
   // Beside the row rather than in its trailing slot, so the D-pad can reach it
   return (
     <Row verticalAlignment="center" modifiers={[fillMaxWidth(), padding(0, 0, 8, 0)]}>
       {item}
-      <IconButton onClick={action.onPress}>
-        <HostedIcon name={action.icon} size={18} color={theme.foreground} label={action.label} />
-      </IconButton>
+      {action ? (
+        <IconButton onClick={action.onPress}>
+          <HostedIcon name={action.icon} size={18} color={theme.foreground} label={action.label} />
+        </IconButton>
+      ) : info ? (
+        <InfoButton {...info} />
+      ) : null}
     </Row>
+  );
+};
+
+/** Material's rich tooltip, shown by a tap and kept until the next one */
+const InfoButton = ({ title, text }: NonNullable<ListItemProps['info']>) => {
+  const theme = useCurrentTheme();
+  const tooltip = useRef<TooltipBoxRef>(null);
+  return (
+    <TooltipBox ref={tooltip} isPersistent>
+      <TooltipBox.RichTooltip
+        containerColor={theme.surface}
+        titleContentColor={theme.foreground}
+        contentColor={theme.foreground}>
+        <TooltipBox.RichTooltip.Title>
+          <Text color={theme.foreground} style={{ fontSize: 16, fontWeight: '600' }}>
+            {title}
+          </Text>
+        </TooltipBox.RichTooltip.Title>
+        <TooltipBox.RichTooltip.Text>
+          <Text color={theme.foreground} style={{ fontSize: 14 }}>
+            {text}
+          </Text>
+        </TooltipBox.RichTooltip.Text>
+      </TooltipBox.RichTooltip>
+      <IconButton onClick={() => tooltip.current?.show()}>
+        <HostedIcon name="information-circle-outline" size={20} color={theme.foreground} label={`About ${title}`} />
+      </IconButton>
+    </TooltipBox>
   );
 };
 

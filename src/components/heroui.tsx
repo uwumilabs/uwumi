@@ -9,6 +9,7 @@ export { Dialog } from 'heroui-native/dialog';
 export { useThemeColor } from 'heroui-native/hooks';
 export { PressableFeedback, type PressableFeedbackProps } from 'heroui-native/pressable-feedback';
 export { HeroUINativeProvider } from 'heroui-native/provider';
+export { Input } from 'heroui-native/input';
 export { ScrollShadow } from 'heroui-native/scroll-shadow';
 export { SearchField } from 'heroui-native/search-field';
 export { SkeletonGroup } from 'heroui-native/skeleton-group';

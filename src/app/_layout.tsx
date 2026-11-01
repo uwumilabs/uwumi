@@ -9,6 +9,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/constants/queryClient';
 import { startEpisodeAlerts } from '@/utils/episodeAlerts';
 import { clearCacheOnLaunch } from '@/utils/cache';
+import { runAutoBackupIfDue } from '@/utils/backup';
 import {
   Inter_500Medium as InterMedium,
   Inter_600SemiBold as InterSemiBold,
@@ -229,6 +230,7 @@ const SETTINGS_SCREENS: Record<string, string> = {
 
 startEpisodeAlerts();
 clearCacheOnLaunch();
+runAutoBackupIfDue();
 
 const AppContent = () => {
   const headerOptions = useNativeHeaderOptions();
