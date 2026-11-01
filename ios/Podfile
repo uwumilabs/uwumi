@@ -63,13 +63,16 @@ target 'uwumi' do
   )
 
   post_install do |installer|
-# @generated begin uwumi-rncore-flavor-marker - expo prebuild (DO NOT MODIFY) sync-c6fe7de5a7d56bac70a19487b5f551981b4b6dcf
-    rncore_dir = File.join(installer.sandbox.root.to_s, 'React-Core-prebuilt')
-    rncore_marker = File.join(rncore_dir, '.last_build_configuration')
-    rncore_binary = Dir.glob(File.join(rncore_dir, 'React.xcframework', '*-simulator', 'React.framework', 'React')).first
-    if rncore_binary && !File.exist?(rncore_marker)
-      rncore_debug = `nm "#{rncore_binary}" 2>/dev/null`.include?('RCTPackagerConnection')
-      File.write(rncore_marker, rncore_debug ? 'Debug' : 'Release')
+# @generated begin uwumi-rncore-flavor-marker - expo prebuild (DO NOT MODIFY) sync-7a74b754643ec1bdf40a4af8a8f7650ca668358b
+    [
+      ['React-Core-prebuilt', 'React.xcframework/*-simulator/React.framework/React', 'RCTPackagerConnection'],
+      ['hermes-engine', 'destroot/Library/Frameworks/universal/hermesvm.xcframework/*-simulator/hermesvm.framework/hermesvm', 'CDPDebugAPI'],
+    ].each do |pod, binary_glob, debug_symbol|
+      pod_dir = File.join(installer.sandbox.root.to_s, pod)
+      marker = File.join(pod_dir, '.last_build_configuration')
+      binary = Dir.glob(File.join(pod_dir, binary_glob)).first
+      next if binary.nil? || File.exist?(marker)
+      File.write(marker, `nm "#{binary}" 2>/dev/null`.include?(debug_symbol) ? 'Debug' : 'Release')
     end
 # @generated end uwumi-rncore-flavor-marker
     react_native_post_install(

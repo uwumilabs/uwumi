@@ -43,6 +43,24 @@ fi
 ARCHIVE_PATH="$BUILD_DIR/$NAME.xcarchive"
 IPA_PATH="$BUILD_DIR/$NAME-v$VERSION.ipa"
 
+# The archive swaps React Native's prebuilt core, its dependencies and Hermes in ios/Pods to their Release builds. Swap
+# them back afterwards, pass or fail, so the next `yarn ios` (Debug) doesn't start from Release frameworks
+restore_debug_framework() {
+  local pods="$ROOT_DIR/ios/Pods" artifacts="$1" prefix="$2" script="$ROOT_DIR/node_modules/react-native/$3" tarball version
+  tarball="$(ls "$pods/$artifacts/$prefix"-*-debug.tar.gz 2>/dev/null | head -n 1 || true)"
+  [ -n "$tarball" ] || return 0
+  version="$(basename "$tarball" -debug.tar.gz)"
+  (cd "$pods" && node "$script" -c Debug -r "${version#"$prefix"-}" -p "$pods") ||
+    echo "⚠️  Couldn't restore the Debug $prefix build; switch it back before the next Debug build"
+}
+restore_debug_frameworks() {
+  restore_debug_framework ReactNativeCore-artifacts reactnative-core scripts/replace-rncore-version.js
+  restore_debug_framework ReactNativeDependencies-artifacts reactnative-dependencies \
+    third-party-podspecs/replace_dependencies_version.js
+  restore_debug_framework hermes-engine-artifacts hermes-ios sdks/hermes-engine/utils/replace_hermes_version.js
+}
+trap restore_debug_frameworks EXIT
+
 # The Release configuration embeds the JS bundle itself ("Bundle React Native code and images" phase)
 print_step "STEP 1: ARCHIVING UNSIGNED RELEASE BUILD"
 rm -rf "$ARCHIVE_PATH"
