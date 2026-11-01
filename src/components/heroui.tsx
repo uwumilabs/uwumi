@@ -3,6 +3,7 @@
 export { Avatar } from 'heroui-native/avatar';
 export { Button } from 'heroui-native/button';
 export { Card } from 'heroui-native/card';
+export { Checkbox } from 'heroui-native/checkbox';
 export { Chip } from 'heroui-native/chip';
 export { Dialog } from 'heroui-native/dialog';
 export { useThemeColor } from 'heroui-native/hooks';
@@ -11,7 +12,6 @@ export { HeroUINativeProvider } from 'heroui-native/provider';
 export { ScrollShadow } from 'heroui-native/scroll-shadow';
 export { SearchField } from 'heroui-native/search-field';
 export { SkeletonGroup } from 'heroui-native/skeleton-group';
-export { Switch } from 'heroui-native/switch';
 export { Tabs } from 'heroui-native/tabs';
 export { Toast, useToast, type ToastComponentProps } from 'heroui-native/toast';
 export { cn } from 'heroui-native/utils';

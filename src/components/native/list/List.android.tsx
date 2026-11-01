@@ -25,6 +25,7 @@ import {
 import { useCurrentTheme } from '@/hooks';
 import { IoniconsIcon, type IoniconProps } from '../../Icons';
 import { SeparatorLine } from '../separator/Separator';
+import { switchColors } from '../switch/Switch.android';
 import { FlatListContext, listItems, type ListItemProps, type ListProps } from './shared';
 
 // heroui ListGroup's look: a rounded surface card, dividers inset 16 from the edges
@@ -107,18 +108,7 @@ const Item = ({
       {hasTrailing ? (
         <ComposeListItem.TrailingContent>
           {toggle ? (
-            <Switch
-              value={toggle.value}
-              enabled={!disabled}
-              colors={{
-                checkedTrackColor: theme.accent,
-                checkedThumbColor: theme.accentForeground,
-                checkedBorderColor: theme.accent,
-                uncheckedTrackColor: 'transparent',
-                uncheckedThumbColor: theme.muted,
-                uncheckedBorderColor: theme.muted,
-              }}
-            />
+            <Switch value={toggle.value} enabled={!disabled} colors={switchColors(theme)} />
           ) : (
             <Trailing text={trailing} trailingLoading={trailingLoading} trailingTone={trailingTone} chevron={chevron} />
           )}

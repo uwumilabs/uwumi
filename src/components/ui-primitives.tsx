@@ -199,6 +199,11 @@ export const HUYStack = ({ children, props, className }: SimpleStackProps) => {
   );
 };
 
+/** An Aniyomi-style settings section title, above a flat list */
+export const SectionTitle = ({ children }: { children: string }) => (
+  <Text className="px-4 pb-1 pt-5 text-sm font-semibold text-accent">{children}</Text>
+);
+
 // Allow importing components individually
 export default {
   IconTitle,
@@ -207,4 +212,5 @@ export default {
   ThemedView,
   HUXStack,
   HUYStack,
+  SectionTitle,
 };

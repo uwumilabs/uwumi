@@ -4,7 +4,7 @@ import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react
 import { isCompatibleEntry, type ProviderType } from 'react-native-consumet';
 import { useExtensionStore, useCurrentTheme } from '@/hooks';
 import { isTV } from '@/constants/utils';
-import { Avatar, Card, Chip, Switch } from '@/components/heroui';
+import { Avatar, Card, Chip } from '@/components/heroui';
 import { Button } from '@/components/Button';
 import {
   Image,
@@ -16,6 +16,7 @@ import {
   TVFocusWrapper,
   Separator,
   HorizontalTabs,
+  Switch,
 } from '@/components';
 
 interface ExtensionCardProps {
@@ -451,11 +452,7 @@ export default function Extensions() {
           {/* The whole toggle is one focus target on TV */}
           <TVFocusWrapper onPress={() => setShowInstalledOnly(!showInstalledOnly)} focusScale={1}>
             <HUXStack className="items-center gap-2 px-2 py-1">
-              <Switch
-                isSelected={showInstalledOnly}
-                onSelectedChange={setShowInstalledOnly}
-                focusable={isTV ? false : undefined}
-              />
+              <Switch value={showInstalledOnly} />
               <Text className="text-foreground/70 text-xs">Installed only</Text>
             </HUXStack>
           </TVFocusWrapper>

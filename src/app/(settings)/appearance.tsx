@@ -1,9 +1,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { useThemeStore, usePureBlackBackground } from '@/hooks';
-import { ThemedView, HUYStack, HUXStack, IoniconsIcon, TVFocusWrapper, Separator } from '@/components';
-import { isTV } from '@/constants/utils';
+import { ThemedView, HUYStack, HUXStack, IoniconsIcon, TVFocusWrapper, Separator, Switch } from '@/components';
 import { StyleProp, ViewStyle, View, Text, FlatList } from 'react-native';
-import { Switch } from '@/components/heroui';
 import { themes, ThemeName } from '@/themes/theme';
 
 interface ThemeButtonProps {
@@ -213,7 +211,7 @@ const PureBlackSwitch = memo(() => {
     <TVFocusWrapper onPress={toggle} focusScale={1} containerStyle={{ marginHorizontal: 8 }}>
       <HUXStack className="items-center p-10 justify-between gap-3">
         <Text className="text-accent font-semibold">Pure black dark background</Text>
-        <Switch isSelected={pureBlackBackground} onSelectedChange={toggle} focusable={isTV ? false : undefined} />
+        <Switch value={pureBlackBackground} />
       </HUXStack>
     </TVFocusWrapper>
   );

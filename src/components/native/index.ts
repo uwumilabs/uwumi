@@ -11,3 +11,5 @@ export type { DialogProps } from './dialog/Dialog';
 export { Progress } from './progress/Progress';
 export type { ProgressProps } from './progress/Progress';
 export { Slider } from './slider/Slider';
+export { Switch } from './switch/Switch';
+export type { SwitchProps } from './switch/Switch';

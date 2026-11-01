@@ -1,5 +1,5 @@
 // UI Primitives (consolidated small components)
-export { IconTitle, RippleButton, NoResults, ThemedView, HUXStack, HUYStack } from './ui-primitives';
+export { IconTitle, RippleButton, NoResults, ThemedView, HUXStack, HUYStack, SectionTitle } from './ui-primitives';
 
 // Media Components
 export { CardList, MediaCard } from './CardList';
@@ -17,7 +17,16 @@ export { ListJumpBar } from './ListJumpBar';
 export { ListEmptyState, ProviderEmptyState } from './ListEmptyState';
 
 // Native-view components (@expo/ui SwiftUI / Jetpack Compose)
-export { BottomSheet, BottomSheetProvider, Dialog, List as NativeList, Progress, Separator, Slider } from './native';
+export {
+  BottomSheet,
+  BottomSheetProvider,
+  Dialog,
+  List as NativeList,
+  Progress,
+  Separator,
+  Slider,
+  Switch,
+} from './native';
 export {
   IoniconsIcon,
   IoniconProps,
@@ -38,3 +47,4 @@ export { default as TVFocusWrapper } from './TVFocusWrapper';
 export type { TVFocusWrapperProps } from './TVFocusWrapper';
 export { default as FocusableTrigger } from './FocusableTrigger';
 export { ConfirmDialog } from './ConfirmDialog';
+export { ChoiceDialog, choiceLabel, type ChoiceOption } from './ChoiceDialog';
