@@ -1,9 +1,10 @@
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
+import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useMemo } from 'react';
-import 'react-native-reanimated';
+import Animated, { Easing, FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/constants/queryClient';
 import { startEpisodeAlerts } from '@/utils/episodeAlerts';
@@ -25,6 +26,8 @@ import {
   useNativeHeaderOptions,
   useDownloadStore,
   usePlayerSettingsStore,
+  usePreferencesStore,
+  PLAYBACK_RATES,
 } from '@/hooks';
 import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
@@ -35,7 +38,13 @@ import '../../global.css';
 import { useUniwind } from 'uniwind';
 import { BottomSheet, BottomSheetProvider, IoniconsIcon, LinearGradient, OtaUpdateToast, Slider } from '@/components';
 import { themes } from '@/themes/theme';
-import { VideoPortalHost, VideoProvider, defaultTheme, type SheetProps } from 'react-native-video-toolkit';
+import {
+  VideoPortalHost,
+  VideoProvider,
+  defaultTheme,
+  usePlaybackRate,
+  type SheetProps,
+} from 'react-native-video-toolkit';
 import RNOrientationDirector, { Orientation } from 'react-native-orientation-director';
 import { hexToRGB, isTV, isTVOS, openBrowser } from '@/constants/utils';
 import { PerfWindows, perfScreenLayout } from '@/perf/perfHarness';
@@ -164,6 +173,33 @@ const HeaderScrim = () => {
   );
 };
 
+// Android's native headers take the status bar's room from the window, which the banner already covers
+const HEADER_UNDER_BANNER = { headerConfig: { disableTopInsetApplication: true } };
+
+const IncognitoFrame = ({ children }: { children: (bannerShown: boolean) => React.ReactNode }) => {
+  const incognito = usePreferencesStore((state) => state.incognito);
+  const fullScreen = /^\/(watch|read)\//.test(usePathname());
+  const insets = useSafeAreaInsets();
+  const theme = useCurrentTheme();
+  const shown = incognito && !fullScreen;
+  const childInsets = useMemo(() => (shown ? { ...insets, top: 0 } : insets), [shown, insets]);
+  return (
+    <View style={{ flex: 1 }}>
+      {shown && (
+        <Animated.View
+          entering={FadeInUp.duration(400).easing(Easing.bezier(0.05, 0.7, 0.1, 1))}
+          exiting={FadeOutUp.duration(200).easing(Easing.bezier(0.3, 0, 0.8, 0.15))}
+          style={{ paddingTop: insets.top, backgroundColor: theme.accent }}>
+          <Text className="py-1 text-center text-xs font-semibold" style={{ color: theme.accentForeground }}>
+            Incognito mode
+          </Text>
+        </Animated.View>
+      )}
+      <SafeAreaInsetsContext.Provider value={childInsets}>{children(shown)}</SafeAreaInsetsContext.Provider>
+    </View>
+  );
+};
+
 const screenLayout = ({ route, children }: { route: { name: string }; children: React.ReactNode }) => {
   const screen = perfScreenLayout ? perfScreenLayout({ route, children }) : <>{children}</>;
   if (Platform.OS !== 'android' || route.name !== 'info/[mediaType]') return screen;
@@ -196,6 +232,10 @@ clearCacheOnLaunch();
 
 const AppContent = () => {
   const headerOptions = useNativeHeaderOptions();
+  // The player keeps its speed for the session; it starts at the default speed, and moves to a new default
+  const defaultSpeed = usePlayerSettingsStore((state) => state.defaultSpeed);
+  const { setPlaybackRate } = usePlaybackRate();
+  useEffect(() => setPlaybackRate(defaultSpeed), [defaultSpeed, setPlaybackRate]);
   const { isUpdateAvailable, updateInfo, setIsUpdateAvailable } = useUpdateChecker(EXTERNAL_LINKS.GITHUB_RELEASES_API);
   const [fontsLoaded, fontError] = useFonts({
     InterMedium,
@@ -287,36 +327,46 @@ const AppContent = () => {
         }}>
         <BottomSheetProvider>
           <ThemeProvider value={navigationTheme}>
-            {/* freezeOnBlur: screens under the top one (the tabs under watch, info under watch) stop re-rendering */}
-            <Stack screenOptions={{ headerShown: false, freezeOnBlur: true }} screenLayout={screenLayout}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="browse/[mediaType]" />
-              <Stack.Screen name="search/[mediaType]" />
-              <Stack.Screen
-                name="info/[mediaType]"
-                options={{
-                  ...headerOptions,
-                  headerShown: true,
-                  headerTransparent: true,
-                  headerStyle: { backgroundColor: 'transparent' },
-                  title: '',
-                }}
-              />
-              <Stack.Screen name="watch/[mediaType]" />
-              {/* Over the pages, so the reader's menu tap can hide it without moving them */}
-              <Stack.Screen
-                name="read/[id]"
-                options={{ ...headerOptions, headerShown: true, headerTransparent: true, title: '' }}
-              />
-              {Object.entries(SETTINGS_SCREENS).map(([name, title]) => (
-                <Stack.Screen
-                  key={name}
-                  name={`(settings)/${name}`}
-                  options={{ ...headerOptions, headerShown: true, title }}
-                />
-              ))}
-              <Stack.Screen name="+not-found" />
-            </Stack>
+            <IncognitoFrame>
+              {(bannerShown) => (
+                // freezeOnBlur: screens under the top one (the tabs under watch, info under watch) stop re-rendering
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    freezeOnBlur: true,
+                    unstable_nativeProps: bannerShown ? HEADER_UNDER_BANNER : undefined,
+                  }}
+                  screenLayout={screenLayout}>
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="browse/[mediaType]" />
+                  <Stack.Screen name="search/[mediaType]" />
+                  <Stack.Screen
+                    name="info/[mediaType]"
+                    options={{
+                      ...headerOptions,
+                      headerShown: true,
+                      headerTransparent: true,
+                      headerStyle: { backgroundColor: 'transparent' },
+                      title: '',
+                    }}
+                  />
+                  <Stack.Screen name="watch/[mediaType]" />
+                  {/* Over the pages, so the reader's menu tap can hide it without moving them */}
+                  <Stack.Screen
+                    name="read/[id]"
+                    options={{ ...headerOptions, headerShown: true, headerTransparent: true, title: '' }}
+                  />
+                  {Object.entries(SETTINGS_SCREENS).map(([name, title]) => (
+                    <Stack.Screen
+                      key={name}
+                      name={`(settings)/${name}`}
+                      options={{ ...headerOptions, headerShown: true, title }}
+                    />
+                  ))}
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+              )}
+            </IncognitoFrame>
           </ThemeProvider>
         </BottomSheetProvider>
         <PerfWindows />
@@ -356,6 +406,7 @@ export default function RootLayout() {
       enableScreenRotation: rotateToLandscape,
       autoHideDelay: controlsHideMs,
       enableDoubleTapGestures: doubleTapSeek,
+      playbackRates: PLAYBACK_RATES,
     }),
     [pipButton, rotateToLandscape, controlsHideMs, doubleTapSeek],
   );

@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { useThemeStore, usePureBlackBackground } from '@/hooks';
+import { isTV } from '@/constants/utils';
 import { ThemedView, HUYStack, HUXStack, IoniconsIcon, TVFocusWrapper, Separator, Switch } from '@/components';
 import { StyleProp, ViewStyle, View, Text, FlatList } from 'react-native';
 import { themes, ThemeName } from '@/themes/theme';
@@ -206,12 +207,13 @@ const PureBlackSwitch = memo(() => {
   if (!currentTheme.includes('dark')) return null;
   const toggle = () => setPureBlackBackground(!pureBlackBackground);
 
-  // The whole row toggles, so on TV the D-pad lands on the row rather than the small switch
+  // On TV the whole row toggles, so the D-pad lands on the row rather than the small switch; on phones the switch
+  // takes the tap itself
   return (
-    <TVFocusWrapper onPress={toggle} focusScale={1} containerStyle={{ marginHorizontal: 8 }}>
+    <TVFocusWrapper onPress={isTV ? toggle : undefined} focusScale={1} containerStyle={{ marginHorizontal: 8 }}>
       <HUXStack className="items-center p-10 justify-between gap-3">
         <Text className="text-accent font-semibold">Pure black dark background</Text>
-        <Switch value={pureBlackBackground} />
+        <Switch value={pureBlackBackground} onValueChange={isTV ? undefined : setPureBlackBackground} />
       </HUXStack>
     </TVFocusWrapper>
   );

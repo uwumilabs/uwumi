@@ -449,10 +449,10 @@ export default function Extensions() {
             </Text>
           </HUYStack>
 
-          {/* The whole toggle is one focus target on TV */}
-          <TVFocusWrapper onPress={() => setShowInstalledOnly(!showInstalledOnly)} focusScale={1}>
+          {/* On TV the whole toggle is one focus target; on phones the switch takes the tap itself */}
+          <TVFocusWrapper onPress={isTV ? () => setShowInstalledOnly(!showInstalledOnly) : undefined} focusScale={1}>
             <HUXStack className="items-center gap-2 px-2 py-1">
-              <Switch value={showInstalledOnly} />
+              <Switch value={showInstalledOnly} onValueChange={isTV ? undefined : setShowInstalledOnly} />
               <Text className="text-foreground/70 text-xs">Installed only</Text>
             </HUXStack>
           </TVFocusWrapper>

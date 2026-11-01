@@ -16,12 +16,20 @@ import {
   ThemedView,
   TVFocusWrapper,
 } from '@/components';
-import { continueWatchingEpisodeLabel, openContinueWatchingEntry } from '@/components/ContinueWatchingRow';
+import {
+  continueWatchingEpisodeLabel,
+  mangaPageLabel,
+  openContinueWatchingEntry,
+  openMangaProgress,
+  type MangaHistoryEntry,
+  useMangaHistory,
+} from '@/components/ContinueWatchingRow';
 import {
   type ContinueWatchingEntry,
   useContinueWatchingStore,
   useCurrentTheme,
   useDownloadedOnlyFilter,
+  useMangaProgressStore,
   useWatchProgressStore,
 } from '@/hooks';
 import { MediaType } from '@/constants/types';
@@ -128,14 +136,93 @@ const HistoryList = ({ mediaType }: { mediaType: MediaType }) => {
   );
 };
 
+const MangaHistoryRow = memo(({ entry }: { entry: MangaHistoryEntry }) => {
+  const router = useRouter();
+  const theme = useCurrentTheme();
+  const hide = useMangaProgressStore((state) => state.hide);
+  const { progress } = entry;
+  const open = useCallback(() => openMangaProgress(router, entry), [router, entry]);
+  const caption = [progress.lastChapterTitle, mangaPageLabel(progress), timeFormat.format(progress.updatedAt)]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <HUXStack className="items-center gap-2 px-4 py-2">
+      <TVFocusWrapper
+        onPress={open}
+        style={{ flex: 1 }}
+        focusScale={1}
+        focusBorderRadius={12}
+        accessibilityLabel={progress.title}>
+        <HUXStack className="items-center gap-3">
+          <View className="overflow-hidden rounded-lg bg-default" style={{ width: 56, aspectRatio: 2 / 3 }}>
+            <Image source={progress.image} style={{ width: '100%', height: '100%' }} />
+          </View>
+          <HUYStack className="flex-1 gap-0.5">
+            <Text className="text-base font-medium text-foreground" numberOfLines={2}>
+              {progress.title}
+            </Text>
+            <Text className="text-sm text-foreground/60" numberOfLines={1}>
+              {caption}
+            </Text>
+          </HUYStack>
+        </HUXStack>
+      </TVFocusWrapper>
+      <RippleButton onPress={() => hide(entry.key)} accessibilityLabel="Remove from history">
+        <IoniconsIcon name="trash-outline" size={22} color={theme.foreground} />
+      </RippleButton>
+    </HUXStack>
+  );
+});
+MangaHistoryRow.displayName = 'MangaHistoryRow';
+
+type MangaRow = { type: 'day'; key: string; label: string } | { type: 'entry'; key: string; entry: MangaHistoryEntry };
+
+const MangaHistoryList = () => {
+  const history = useMangaHistory();
+  const rows = useMemo(() => {
+    const result: MangaRow[] = [];
+    let lastDay = '';
+    for (const entry of history) {
+      const day = dayLabel(entry.progress.updatedAt);
+      if (day !== lastDay) {
+        result.push({ type: 'day', key: `day-${day}`, label: day });
+        lastDay = day;
+      }
+      result.push({ type: 'entry', key: entry.key, entry });
+    }
+    return result;
+  }, [history]);
+
+  return (
+    <View className="h-full">
+      <List<MangaRow>
+        data={rows}
+        keyExtractor={(row) => row.key}
+        getItemType={(row) => row.type}
+        ListEmptyComponent={<NoResults title="Nothing read recently" hint="Chapters you read show up here" />}
+        renderItem={({ item }) =>
+          item.type === 'day' ? (
+            <Text className="px-4 pb-1 pt-4 text-sm font-semibold text-foreground/60">{item.label}</Text>
+          ) : (
+            <MangaHistoryRow entry={item.entry} />
+          )
+        }
+      />
+    </View>
+  );
+};
+
 const TABS = [
   { key: 'anime', label: 'Anime', content: <HistoryList mediaType={MediaType.ANIME} /> },
+  { key: 'manga', label: 'Manga', content: <MangaHistoryList /> },
   { key: 'movies', label: 'Movies', content: <HistoryList mediaType={MediaType.MOVIE} /> },
 ];
 
 const History = () => {
   const theme = useCurrentTheme();
   const clearAll = useContinueWatchingStore((state) => state.clearAll);
+  const hideAllManga = useMangaProgressStore((state) => state.hideAll);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
@@ -154,10 +241,11 @@ const History = () => {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Clear history?"
-        description="Removes every show from History and Continue watching. Episode progress stays."
+        description="Empties History, Continue watching and Continue reading. Episode progress and read chapters stay."
         confirmText="Clear"
         onConfirm={() => {
           clearAll();
+          hideAllManga();
           setConfirmOpen(false);
         }}
       />

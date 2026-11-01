@@ -12,7 +12,7 @@ import { Button } from '@/components/Button';
 import LinearGradient from '@/components/LinearGradient';
 import { useProviders, useProviderStore, useActiveProvider } from '@/constants/provider';
 import { MediaType } from '@/constants/types';
-import { isTV } from '@/constants/utils';
+import { infoTitle, isTV } from '@/constants/utils';
 import {
   LIST_SHADOW_SIZE,
   mangaProgressKey,
@@ -20,7 +20,9 @@ import {
   useListJump,
   useMangaChapters,
   useMangaProgressStore,
+  useMediaInfo,
   usePureBlackBackground,
+  resumePage,
 } from '@/hooks';
 import { chapterDetails, chapterNumbers, chapterTitle } from '@/utils/manga';
 import type { FlashListRef } from '@shopify/flash-list';
@@ -35,10 +37,21 @@ interface ChaptersProps {
 }
 
 const ChapterRow = memo(
-  ({ chapter, read, onOpen }: { chapter: IMangaChapter; read: boolean; onOpen: (chapter: IMangaChapter) => void }) => {
+  ({
+    chapter,
+    read,
+    page,
+    onOpen,
+  }: {
+    chapter: IMangaChapter;
+    read: boolean;
+    /** Where reading stopped in it, as Mihon shows */
+    page?: number;
+    onOpen: (chapter: IMangaChapter) => void;
+  }) => {
     const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
     const numbers = chapterNumbers(chapter);
-    const details = chapterDetails(chapter);
+    const details = [chapterDetails(chapter), page && `Page ${page}`].filter(Boolean).join(' · ');
     const title = chapterTitle(chapter);
     return (
       <RippleButton onPress={() => onOpen(chapter)}>
@@ -101,11 +114,19 @@ const Chapters = ({ header }: ChaptersProps) => {
   });
 
   const handleProviderChange = useCallback((value: string) => setProvider(mediaType, value), [mediaType, setProvider]);
+  // The manga's title and cover go along, for Continue reading and History
+  const { data: info } = useMediaInfo();
+  const mangaTitle = infoTitle(info);
+  const mangaImage = info?.image;
   const openChapter = useCallback(
     (chapter: Pick<IMangaChapter, 'id'>) =>
-      router.push({ pathname: '/read/[id]', params: { id, chapter: chapter.id, provider: currentProvider } }),
-    [router, id, currentProvider],
+      router.push({
+        pathname: '/read/[id]',
+        params: { id, chapter: chapter.id, provider: currentProvider, title: mangaTitle, image: mangaImage },
+      }),
+    [router, id, currentProvider, mangaTitle, mangaImage],
   );
+  const lastPage = progress ? resumePage(progress, progress.lastChapterId) : 1;
   // The last chapter opened, if this provider still lists it
   const continueChapter = progress && data?.some(({ id: chapterId }) => chapterId === progress.lastChapterId);
 
@@ -176,7 +197,14 @@ const Chapters = ({ header }: ChaptersProps) => {
               </HUXStack>
             </>
           }
-          renderItem={({ item }) => <ChapterRow chapter={item} read={read.has(item.id)} onOpen={openChapter} />}
+          renderItem={({ item }) => (
+            <ChapterRow
+              chapter={item}
+              read={read.has(item.id)}
+              page={item.id === progress?.lastChapterId && lastPage > 1 ? lastPage : undefined}
+              onOpen={openChapter}
+            />
+          )}
         />
       </ScrollShadow>
       <ListJumpBar {...jumpBar} />

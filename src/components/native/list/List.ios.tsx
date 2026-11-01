@@ -9,7 +9,6 @@ import {
   font,
   foregroundStyle,
   frame,
-  labelsHidden,
   padding,
   shapes,
   tint,
@@ -17,6 +16,7 @@ import {
 import { useCurrentTheme } from '@/hooks';
 import { IoniconsIcon, type IoniconProps } from '../../Icons';
 import { SeparatorLine } from '../separator/Separator';
+import { toggleModifiers } from '../switch/Switch.ios';
 import { FlatListContext, listItems, type ListItemProps, type ListProps } from './shared';
 
 // heroui ListGroup's look: a rounded surface card, rows padded 16 with a 12 gap, dividers inset 16
@@ -75,11 +75,7 @@ const Item = ({
       </VStack>
       <Spacer />
       {toggle ? (
-        <Toggle
-          isOn={toggle.value}
-          onIsOnChange={toggle.onValueChange}
-          modifiers={[labelsHidden(), tint(theme.accent)]}
-        />
+        <Toggle isOn={toggle.value} onIsOnChange={toggle.onValueChange} modifiers={toggleModifiers(theme)} />
       ) : (
         <Trailing
           text={trailing}

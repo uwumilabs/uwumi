@@ -9,8 +9,12 @@ import { MediaType } from '@/constants/types';
 import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/constants/utils';
 import {
   ContinueWatchingEntry,
+  type MangaProgress,
+  parseMangaProgressKey,
+  resumePage,
   useContinueWatchingStore,
   useDownloadedOnlyFilter,
+  useMangaProgressStore,
   useWatchProgressStore,
 } from '@/hooks';
 import Image from './Image';
@@ -190,5 +194,134 @@ export const ContinueWatchingRow = memo(({ mediaType }: { mediaType: MediaType }
   );
 });
 ContinueWatchingRow.displayName = 'ContinueWatchingRow';
+
+// Manga covers are portrait, so more of them fit across
+const MANGA_CARDS_PER_SCREEN = isTV ? 6.5 : 3.2;
+const COVER_ASPECT = 3 / 2;
+
+export type MangaHistoryEntry = { key: string; progress: MangaProgress };
+
+/** Reopens the last chapter read, at the page it was left on */
+export const openMangaProgress = (router: ReturnType<typeof useRouter>, { key, progress }: MangaHistoryEntry) => {
+  const { anilistId, provider } = parseMangaProgressKey(key);
+  router.push({
+    pathname: '/read/[id]',
+    params: {
+      id: anilistId,
+      chapter: progress.lastChapterId,
+      provider,
+      title: progress.title,
+      image: progress.image,
+    },
+  });
+};
+
+/** "Page 5 of 52" while a chapter is part read */
+export const mangaPageLabel = (progress: MangaProgress) => {
+  const page = resumePage(progress, progress.lastChapterId);
+  return page > 1 ? `Page ${page}${progress.pageCount ? ` of ${progress.pageCount}` : ''}` : undefined;
+};
+
+/** Manga read, most recent first; ones read before their title was kept are left out, having nothing to show */
+export const useMangaHistory = () => {
+  const progress = useMangaProgressStore((state) => state.progress);
+  return useMemo(
+    () =>
+      Object.entries(progress)
+        .filter(([, value]) => value.title && !value.hidden)
+        .map(([key, value]) => ({ key, progress: value }))
+        .sort((a, b) => b.progress.updatedAt - a.progress.updatedAt),
+    [progress],
+  );
+};
+
+const ContinueReadingCard = memo(({ entry, width }: { entry: MangaHistoryEntry; width: number }) => {
+  const router = useRouter();
+  const hide = useMangaProgressStore((state) => state.hide);
+  const { progress } = entry;
+  const page = resumePage(progress, progress.lastChapterId);
+  const percent = page > 1 && progress.pageCount ? (page / progress.pageCount) * 100 : 0;
+
+  const open = useCallback(() => openMangaProgress(router, entry), [router, entry]);
+  const removeFromRow = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    hide(entry.key);
+  }, [hide, entry.key]);
+
+  const cover = (
+    <View className="overflow-hidden rounded-xl bg-default" style={{ width: '100%', aspectRatio: 1 / COVER_ASPECT }}>
+      <Image source={progress.image} style={{ width: '100%', height: '100%' }} />
+      {percent > 0 && <Progress className="absolute inset-x-2 bottom-2" value={percent} />}
+    </View>
+  );
+  const details = (
+    <HUYStack className="pt-1.5">
+      <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
+        {progress.title}
+      </Text>
+      <Text className="text-xs text-foreground/60" numberOfLines={1}>
+        {mangaPageLabel(progress) ?? progress.lastChapterTitle}
+      </Text>
+    </HUYStack>
+  );
+  const pressProps = {
+    onPress: open,
+    onLongPress: removeFromRow,
+    accessibilityHint: 'Long press to remove from Continue reading',
+  };
+
+  return isTV ? (
+    <View style={{ width }}>
+      <TVFocusWrapper {...pressProps} focusBorderRadius={12} accessibilityLabel={progress.title}>
+        {cover}
+      </TVFocusWrapper>
+      {details}
+    </View>
+  ) : (
+    <TVFocusWrapper {...pressProps} style={{ width }}>
+      {cover}
+      {details}
+    </TVFocusWrapper>
+  );
+});
+ContinueReadingCard.displayName = 'ContinueReadingCard';
+
+/** The manga home's row: each manga's last chapter, opening at the page it was left on. Hidden when there are none. */
+export const ContinueReadingRow = memo(() => {
+  const history = useMangaHistory();
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth =
+    (screenWidth - ROW_PADDING - ITEM_GAP * Math.floor(MANGA_CARDS_PER_SCREEN)) / MANGA_CARDS_PER_SCREEN;
+  const items = history.slice(0, MAX_ITEMS);
+
+  if (items.length === 0) return null;
+
+  return (
+    <View className="gap-2" scrollSnapAlign={TV_SNAP_CENTER}>
+      <Text className="text-foreground text-lg font-semibold" style={{ paddingLeft: ROW_PADDING + 4 }}>
+        Continue reading
+      </Text>
+      <TVRow style={{ height: cardWidth * COVER_ASPECT + CAPTION_HEIGHT + ROW_VERTICAL_PADDING * 2 }}>
+        <List<MangaHistoryEntry>
+          horizontal
+          data={items}
+          keyExtractor={(entry) => entry.key}
+          showsHorizontalScrollIndicator={false}
+          scrollsToTop={false}
+          contentContainerStyle={{ paddingHorizontal: ROW_PADDING, paddingVertical: ROW_VERTICAL_PADDING }}
+          {...tvFocusScrollProps(ROW_PADDING)}
+          ItemSeparatorComponent={() => <View style={{ width: ITEM_GAP }} />}
+          ListFooterComponent={null}
+          renderItem={({ item }) => (
+            <View scrollSnapAlign={TV_SNAP_CENTER}>
+              <ContinueReadingCard entry={item} width={cardWidth} />
+            </View>
+          )}
+        />
+      </TVRow>
+    </View>
+  );
+});
+ContinueReadingRow.displayName = 'ContinueReadingRow';
 
 export default ContinueWatchingRow;

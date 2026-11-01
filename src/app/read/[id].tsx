@@ -18,11 +18,13 @@ import { HUXStack, HUYStack, IoniconsIcon, ListEmptyState, ThemedView } from '@/
 import { Button } from '@/components/Button';
 import { ReaderPage } from '@/components/reader/ReaderPage';
 import { TapZonesOverlay, tapActionAt } from '@/components/reader/TapZones';
+import { ZoomablePage } from '@/components/reader/ZoomablePage';
 import { isTV } from '@/constants/utils';
 import { getProviders } from '@/constants/provider';
 import { MediaType } from '@/constants/types';
 import {
   mangaProgressKey,
+  resumePage,
   type ReaderBackground,
   useChapterPages,
   useCurrentTheme,
@@ -134,13 +136,26 @@ const Read = () => {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  // `continued`: opened from the previous or next chapter button, so the reader was already open
+  // `continued`: opened from the previous or next chapter button, so the reader was already open. `title` and `image`
+  // are the manga's, kept with its progress for Continue reading and History
   const {
     id,
     chapter: chapterId,
     provider,
     continued,
-  } = useLocalSearchParams<{ id: string; chapter: string; provider: string; continued?: string }>();
+    title: mangaTitle,
+    image: mangaImage,
+  } = useLocalSearchParams<{
+    id: string;
+    chapter: string;
+    provider: string;
+    continued?: string;
+    title?: string;
+    image?: string;
+  }>();
+  const progressKey = mangaProgressKey(id, provider);
+  // Where this chapter was left, read once: the page saves as it's read would move it otherwise
+  const [startPage] = useState(() => resumePage(useMangaProgressStore.getState().progress[progressKey], chapterId));
   const chapters = useMangaChapters({ id, provider });
   const pages = useChapterPages({ chapterId, provider });
   const markRead = useMangaProgressStore((state) => state.markRead);
@@ -168,6 +183,13 @@ const Read = () => {
 
   // The menu is the header, laid over the pages; the list keeps its height clear while it's hidden too
   const [menuVisible, setMenuVisible] = useState(true);
+  // A zoomed page pans under a drag, so the list stops paging until it's zoomed back out. A new mode starts unzoomed
+  const [zoomed, setZoomed] = useState(false);
+  const [zoomMode, setZoomMode] = useState(readingMode);
+  if (zoomMode !== readingMode) {
+    setZoomMode(readingMode);
+    setZoomed(false);
+  }
   const headerHeight = useHeaderHeight();
   const [topInset, setTopInset] = useState(headerHeight);
   if (headerHeight > topInset) setTopInset(headerHeight);
@@ -175,13 +197,18 @@ const Read = () => {
   // A chapter counts as read once its pages load
   const loaded = !!pages.data?.length;
   useEffect(() => {
-    if (loaded && current) markRead(mangaProgressKey(id, provider), { id: current.id, title: chapterTitle(current) });
-  }, [loaded, current, id, provider, markRead]);
+    if (loaded && current) {
+      markRead(progressKey, { id: current.id, title: chapterTitle(current) }, { title: mangaTitle, image: mangaImage });
+    }
+  }, [loaded, current, progressKey, mangaTitle, mangaImage, markRead]);
 
   const openChapter = useCallback(
     (chapter: IMangaChapter) =>
-      router.replace({ pathname: '/read/[id]', params: { id, chapter: chapter.id, provider, continued: '1' } }),
-    [router, id, provider],
+      router.replace({
+        pathname: '/read/[id]',
+        params: { id, chapter: chapter.id, provider, continued: '1', title: mangaTitle, image: mangaImage },
+      }),
+    [router, id, provider, mangaTitle, mangaImage],
   );
   const nav = useMemo(
     () => <ChapterNav previous={previous} next={next} onOpen={openChapter} />,
@@ -198,12 +225,15 @@ const Read = () => {
     return rtl ? list.reverse() : list;
   }, [pages.data, rtl]);
   const pageCount = pages.data?.length ?? 0;
+  // The page's place in the list: after the start, counted from the other end when right to left
+  const pageIndex = (page: number) => (rtl ? items.length - 1 - page : page);
+  const startIndex = paged || startPage > 1 ? pageIndex(Math.min(startPage, pageCount)) : undefined;
 
   // By where the tap lands: the menu, or Mihon's next or previous (a page when paged, three quarters of a screen in
   // the long strip)
-  const onPageTap = useCallback(
-    ({ nativeEvent }: GestureResponderEvent) => {
-      const action = tapActionAt(nativeEvent.pageX / width, nativeEvent.pageY / height, tapZones, invertTapZones, rtl);
+  const tapAt = useCallback(
+    (x: number, y: number) => {
+      const action = tapActionAt(x / width, y / height, tapZones, invertTapZones, rtl);
       if (action === 'menu') return setMenuVisible((visible) => !visible);
       const list = listRef.current;
       if (!list) return;
@@ -216,6 +246,10 @@ const Read = () => {
       if (index >= 0 && index < items.length) list.scrollToIndex({ index, animated: true });
     },
     [width, height, tapZones, invertTapZones, rtl, paged, items.length],
+  );
+  const onPageTap = useCallback(
+    ({ nativeEvent }: GestureResponderEvent) => tapAt(nativeEvent.pageX, nativeEvent.pageY),
+    [tapAt],
   );
 
   const renderItem = useCallback(
@@ -233,12 +267,20 @@ const Read = () => {
             height={viewport?.height ?? height}
           />
         );
-      } else {
-        content = paged ? (
-          <ReaderPage page={item.page} width={viewport?.width ?? width} height={viewport?.height ?? height} />
+      } else if (paged) {
+        const pageBox = { width: viewport?.width ?? width, height: viewport?.height ?? height };
+        const page = <ReaderPage page={item.page} {...pageBox} />;
+        // Zooms with a double tap or a pinch; the tap zones come through its single tap. Keyed by page, so a
+        // recycled cell starts unzoomed
+        return isTV ? (
+          page
         ) : (
-          <ReaderPage page={item.page} width={pageWidth} />
+          <ZoomablePage key={item.page.img} {...pageBox} onTap={tapAt} onZoomChange={setZoomed}>
+            {page}
+          </ZoomablePage>
         );
+      } else {
+        content = <ReaderPage page={item.page} width={pageWidth} />;
       }
       // Padded per page, so the chapter buttons keep the full width. TV pages take the D-pad's focus themselves,
       // so they get no tap zones
@@ -264,6 +306,7 @@ const Read = () => {
       pageWidth,
       padding,
       onPageTap,
+      tapAt,
     ],
   );
 
@@ -277,8 +320,9 @@ const Read = () => {
       // In the long strip the last page can be shorter than the screen and never be the topmost
       const page = !paged && numbers.includes(pageCount) ? pageCount : Math.min(...numbers);
       usePageStore.setState({ chapterId, page });
+      useMangaProgressStore.getState().setPage(progressKey, chapterId, page, pageCount);
     },
-    [paged, pageCount, chapterId],
+    [paged, pageCount, chapterId, progressKey],
   );
 
   let body: React.ReactNode;
@@ -327,11 +371,16 @@ const Read = () => {
             key={`${chapterId}-${readingMode}`}
             data={items}
             keyExtractor={(item) => (item.kind === 'page' ? `${item.page.page}-${item.page.img}` : item.kind)}
-            getItemType={(item) => item.kind}
+            // Paged, every item is one screen; as one type, the chapter's start (unmeasured when opening further in)
+            // is estimated at the pages' measured size rather than a guess, which put every page after it off the
+            // paging snap
+            getItemType={paged ? undefined : (item) => item.kind}
             renderItem={renderItem}
             horizontal={horizontal}
             pagingEnabled={paged}
-            initialScrollIndex={paged ? (rtl ? items.length - 2 : 1) : undefined}
+            scrollEnabled={!zoomed}
+            // Paged modes open on a page rather than the chapter's start; the strip opens at its top unless resuming
+            initialScrollIndex={startIndex}
             ItemSeparatorComponent={
               readingMode === 'long-strip-gaps' ? () => <View style={{ height: PAGE_GAP }} /> : undefined
             }

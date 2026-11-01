@@ -3,6 +3,9 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { constants } from '@/constants/config';
 import { storage } from './MMKV';
 
+/** The player menu's speeds, which the default speed is one of */
+export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
 export interface PlayerSettings {
   /** How far into an episode, in percent, it counts as watched */
   watchedPercent: number;
@@ -20,6 +23,8 @@ export interface PlayerSettings {
   autoPip: boolean;
   /** Double tap a side to seek */
   doubleTapSeek: boolean;
+  /** The speed videos start at */
+  defaultSpeed: number;
 }
 
 interface PlayerSettingsState extends PlayerSettings {
@@ -37,6 +42,7 @@ export const usePlayerSettingsStore = create<PlayerSettingsState>()(
       pipButton: true,
       autoPip: true,
       doubleTapSeek: true,
+      defaultSpeed: 1,
       update: (settings) => set(settings),
     }),
     {

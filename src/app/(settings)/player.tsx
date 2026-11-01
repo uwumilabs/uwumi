@@ -3,7 +3,7 @@ import { ScrollView } from 'react-native';
 import { ChoiceDialog, choiceLabel, type ChoiceOption, NativeList, SectionTitle, ThemedView } from '@/components';
 import { SUB_LANGUAGE } from '@/constants/config';
 import { isTV } from '@/constants/utils';
-import { useExternalSubtitleStore, usePlayerSettingsStore } from '@/hooks';
+import { PLAYBACK_RATES, useExternalSubtitleStore, usePlayerSettingsStore } from '@/hooks';
 
 const OFF = 'off';
 
@@ -19,6 +19,7 @@ const HIDE_OPTIONS = [2000, 3000, 4000, 5000, 7000, 10000].map((value) => ({
   label: `${value / 1000} seconds`,
   value,
 }));
+const SPEED_OPTIONS = PLAYBACK_RATES.map((value) => ({ label: value === 1 ? 'Normal' : `${value}x`, value }));
 const SKIP_OPTIONS = [30, 60, 75, 85, 90, 120].map((value) => ({ label: `${value}s`, value }));
 
 type Choice = Omit<React.ComponentProps<typeof ChoiceDialog<string | number>>, 'open' | 'onOpenChange'>;
@@ -44,6 +45,15 @@ const Player = () => {
             onPress={() =>
               pick('Mark episode as watched at', WATCHED_OPTIONS, settings.watchedPercent, (watchedPercent) =>
                 update({ watchedPercent }),
+              )
+            }
+          />
+          <NativeList.Item
+            title="Default playback speed"
+            description={choiceLabel(SPEED_OPTIONS, settings.defaultSpeed) ?? `${settings.defaultSpeed}x`}
+            onPress={() =>
+              pick('Default playback speed', SPEED_OPTIONS, settings.defaultSpeed, (defaultSpeed) =>
+                update({ defaultSpeed }),
               )
             }
           />
