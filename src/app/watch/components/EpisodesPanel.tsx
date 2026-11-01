@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, Text, TVFocusGuideView, useWindowDimensions, View } from 'react-native';
 import type { FlashListRef } from '@shopify/flash-list';
 import { useLocalSearchParams } from 'expo-router';
 import { cn } from '@/components/heroui';
@@ -19,10 +19,15 @@ const THUMBNAIL_HEIGHT = (CARD_WIDTH * 9) / 16;
 const CARD_GAP = 10;
 const TITLE_HEIGHT = 44;
 
+const TV_THUMBNAIL_WIDTH = 144;
+const TV_THUMBNAIL_HEIGHT = (TV_THUMBNAIL_WIDTH * 9) / 16;
+const TV_PANEL_EDGE = 48;
+const TV_PANEL_COLOR = 'rgba(0,0,0,0.92)';
+
 const SLIDE = { duration: 240, easing: Easing.out(Easing.cubic) };
 const CLOSE_DISTANCE_RATIO = 0.3;
 const CLOSE_VELOCITY = 800;
-const tvPanelWidth = (width: number) => Math.min(600, Math.max(320, width * 0.33));
+const tvPanelWidth = (width: number) => Math.min(560, Math.max(360, width * 0.42));
 
 const episodeNumber = (episode: EpisodeItem, index: number) => String(episode.number ?? episode.episode ?? index + 1);
 
@@ -70,56 +75,139 @@ const EpisodeCard = memo(
 );
 EpisodeCard.displayName = 'EpisodeCard';
 
-const EpisodesStrip = memo(({ onSelect }: { onSelect: (episode: EpisodeItem) => void }) => {
-  const { mediaType, isDubbed } = useLocalSearchParams<{ mediaType: MediaType; isDubbed?: string }>();
-  const { episodes } = useEpisodeList();
-  const currentUniqueId = useEpisodesIdStore((store) => store.currentUniqueId);
-  const listRef = useRef<FlashListRef<EpisodeItem>>(null);
+const EpisodeRow = memo(
+  ({
+    episode,
+    index,
+    isCurrent,
+    preferFocus,
+    onPress,
+    onFocus,
+  }: {
+    episode: EpisodeItem;
+    index: number;
+    isCurrent: boolean;
+    preferFocus: boolean;
+    onPress: (episode: EpisodeItem) => void;
+    onFocus: () => void;
+  }) => {
+    const image = typeof episode.image === 'string' ? episode.image : episode.image?.hd;
+    const number = episodeNumber(episode, index);
+    return (
+      <TVFocusWrapper
+        onPress={() => onPress(episode)}
+        onFocus={onFocus}
+        hasTVPreferredFocus={preferFocus}
+        focusScale={1}
+        focusBorderRadius={12}
+        className={cn('flex-row items-center gap-3 rounded-[14px] p-1.5', isCurrent && 'bg-white/10')}>
+        <View
+          className="overflow-hidden rounded-xl bg-white/10"
+          style={{ width: TV_THUMBNAIL_WIDTH, height: TV_THUMBNAIL_HEIGHT }}>
+          <Image source={image} style={{ width: '100%', height: '100%' }} />
+          {!isCurrent && <ThumbnailProgress uniqueId={episode.uniqueId as string} />}
+        </View>
+        <View className="flex-1 gap-1 pr-2">
+          <Text className="text-xs font-black text-accent">{`EP ${number}`}</Text>
+          <Text className="text-sm font-semibold text-white" numberOfLines={2}>
+            {episode.title || `Episode ${number}`}
+          </Text>
+          {isCurrent && (
+            <HUXStack className="items-center gap-2">
+              <WavyAnimation />
+              <Text className="text-xs text-white/70">Now playing</Text>
+            </HUXStack>
+          )}
+        </View>
+      </TVFocusWrapper>
+    );
+  },
+);
+EpisodeRow.displayName = 'EpisodeRow';
 
-  const rangeLabel = useCallback(
-    (start: number, end: number) => `EP ${episodeNumber(episodes[start], start)}–${episodeNumber(episodes[end], end)}`,
-    [episodes],
-  );
-  // Only the range parts: the scroll tracking is for vertical, Reanimated-wrapped lists
-  const { listProps, ranges, rangeValue, jumpToRange } = useListJump({ items: episodes, listRef, rangeLabel });
-  const currentIndex = episodes.findIndex((episode) => episode.uniqueId === currentUniqueId);
+const EpisodesStrip = memo(
+  ({ onSelect, onFocusInside }: { onSelect: (episode: EpisodeItem) => void; onFocusInside: () => void }) => {
+    const { mediaType, isDubbed } = useLocalSearchParams<{ mediaType: MediaType; isDubbed?: string }>();
+    const { episodes } = useEpisodeList();
+    const currentUniqueId = useEpisodesIdStore((store) => store.currentUniqueId);
+    const listRef = useRef<FlashListRef<EpisodeItem>>(null);
+    // TV: the row the remote lands on as the panel opens. Cleared once focus is in, so a recycled row
+    // showing the current episode again doesn't pull the focus back to it
+    const [focusId, setFocusId] = useState(() => currentUniqueId ?? episodes[0]?.uniqueId);
+    const rowFocused = useCallback(() => {
+      setFocusId(undefined);
+      onFocusInside();
+    }, [onFocusInside]);
 
-  return (
-    <>
-      <HUXStack className="flex-1 justify-center items-center gap-2 px-4 pb-3">
+    const rangeLabel = useCallback(
+      (start: number, end: number) =>
+        `EP ${episodeNumber(episodes[start], start)}–${episodeNumber(episodes[end], end)}`,
+      [episodes],
+    );
+    // Only the range parts: the scroll tracking is for vertical, Reanimated-wrapped lists
+    const { listProps, ranges, rangeValue, jumpToRange } = useListJump({ items: episodes, listRef, rangeLabel });
+    const currentIndex = episodes.findIndex((episode) => episode.uniqueId === currentUniqueId);
+
+    const pickers = (
+      <>
         <ProviderSelection mediaType={mediaType} isDubbed={isDubbed} />
         {ranges.length > 0 && (
           <Select size="sm" SelectItem={ranges} SelectLabel="Episodes" value={rangeValue} onValueChange={jumpToRange} />
         )}
-      </HUXStack>
-      <View style={isTV ? styles.tvList : styles.list}>
-        <List<EpisodeItem>
-          ref={listRef}
-          horizontal={!isTV}
-          data={episodes}
-          keyExtractor={(episode, index) => (episode.uniqueId as string) ?? `${episode.id}-${index}`}
-          showsHorizontalScrollIndicator={false}
-          scrollsToTop={false}
-          // One card early, so the strip reads previous → current → next
-          initialScrollIndex={currentIndex > 0 ? currentIndex - 1 : undefined}
-          onViewableItemsChanged={listProps.onViewableItemsChanged}
-          viewabilityConfig={listProps.viewabilityConfig}
-          contentContainerStyle={{ paddingHorizontal: 16 }}
-          ItemSeparatorComponent={() => <View style={{ width: CARD_GAP, height: CARD_GAP }} />}
-          ListFooterComponent={null}
-          renderItem={({ item, index }) => (
-            <EpisodeCard
-              episode={item}
-              index={index}
-              isCurrent={item.uniqueId === currentUniqueId}
-              onPress={onSelect}
-            />
-          )}
-        />
-      </View>
-    </>
-  );
-});
+      </>
+    );
+
+    return (
+      <>
+        {isTV ? (
+          <View className="gap-3 px-5 pb-3">
+            <Text className="text-xl font-bold text-white">Episodes</Text>
+            <HUXStack className="flex-wrap items-center gap-2">{pickers}</HUXStack>
+          </View>
+        ) : (
+          <HUXStack className="flex-1 justify-center items-center gap-2 px-4 pb-3">{pickers}</HUXStack>
+        )}
+        <View style={isTV ? styles.tvList : styles.list}>
+          <List<EpisodeItem>
+            ref={listRef}
+            horizontal={!isTV}
+            data={episodes}
+            keyExtractor={(episode, index) => (episode.uniqueId as string) ?? `${episode.id}-${index}`}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+            scrollsToTop={false}
+            // One card early, so the strip reads previous → current → next
+            initialScrollIndex={currentIndex > 0 ? currentIndex - 1 : undefined}
+            onViewableItemsChanged={listProps.onViewableItemsChanged}
+            viewabilityConfig={listProps.viewabilityConfig}
+            contentContainerStyle={isTV ? styles.tvListContent : styles.listContent}
+            ItemSeparatorComponent={() => <View style={{ width: CARD_GAP, height: isTV ? 6 : CARD_GAP }} />}
+            ListFooterComponent={null}
+            renderItem={({ item, index }) =>
+              isTV ? (
+                <EpisodeRow
+                  episode={item}
+                  index={index}
+                  isCurrent={item.uniqueId === currentUniqueId}
+                  preferFocus={item.uniqueId === focusId}
+                  onPress={onSelect}
+                  onFocus={rowFocused}
+                />
+              ) : (
+                <EpisodeCard
+                  episode={item}
+                  index={index}
+                  isCurrent={item.uniqueId === currentUniqueId}
+                  onPress={onSelect}
+                />
+              )
+            }
+          />
+        </View>
+      </>
+    );
+  },
+);
 EpisodesStrip.displayName = 'EpisodesStrip';
 
 interface EpisodesPanelProps {
@@ -138,14 +226,16 @@ export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelPro
   const [mounted, setMounted] = useState(open);
   if (open && !mounted) setMounted(true);
 
-  // How far the panel travels to hide, kept across opens; the window's size until it's laid out
-  const size = useSharedValue(isTV ? tvPanelWidth(width) : height);
+  // How far the panel travels to hide (on TV, with its faded edge), kept across opens; the window's size until it's laid out
+  const size = useSharedValue(isTV ? tvPanelWidth(width) + TV_PANEL_EDGE : height);
   const shown = useSharedValue(0);
   const drag = useSharedValue(0);
 
   useEffect(() => {
     if (open) {
-      hideControls();
+      // TV hides them once a row has focus (onFocusInside): hidden while a player button still has it,
+      // the player would take the focus back
+      if (!isTV) hideControls();
       drag.set(withTiming(0, SLIDE));
     }
     shown.set(
@@ -201,7 +291,7 @@ export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelPro
         <Animated.View
           pointerEvents={open ? 'auto' : 'none'}
           onLayout={(event) => {
-            size.set(isTV ? event.nativeEvent.layout.width : event.nativeEvent.layout.height);
+            size.set(isTV ? event.nativeEvent.layout.width + TV_PANEL_EDGE : event.nativeEvent.layout.height);
           }}
           style={[isTV ? [styles.tvPanel, { width: tvPanelWidth(width) }] : styles.panel, panelStyle]}>
           {!isTV && (
@@ -212,7 +302,22 @@ export const EpisodesPanel = ({ open, onOpenChange, onSelect }: EpisodesPanelPro
             />
           )}
           {!isTV && <View className="mb-2 h-1 w-10 self-center rounded-full bg-white/40" />}
-          <EpisodesStrip onSelect={select} />
+          {isTV ? (
+            <>
+              <LinearGradient
+                colors={['transparent', TV_PANEL_COLOR]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.tvEdge}
+              />
+              {/* The D-pad stays in the panel rather than reaching the player's controls behind it */}
+              <TVFocusGuideView trapFocusUp trapFocusDown trapFocusLeft trapFocusRight style={styles.tvContent}>
+                <EpisodesStrip onSelect={select} onFocusInside={hideControls} />
+              </TVFocusGuideView>
+            </>
+          ) : (
+            <EpisodesStrip onSelect={select} onFocusInside={hideControls} />
+          )}
         </Animated.View>
       </GestureDetector>
     </>
@@ -227,11 +332,15 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     bottom: 0,
-    paddingTop: 24,
-    backgroundColor: 'rgba(0,0,0,0.92)',
+    paddingTop: 28,
+    backgroundColor: TV_PANEL_COLOR,
   },
+  tvEdge: { position: 'absolute', top: 0, bottom: 0, left: -TV_PANEL_EDGE, width: TV_PANEL_EDGE },
+  tvContent: { flex: 1 },
   list: { height: THUMBNAIL_HEIGHT + TITLE_HEIGHT },
+  listContent: { paddingHorizontal: 16 },
   tvList: { flex: 1 },
+  tvListContent: { paddingHorizontal: 14, paddingTop: 4, paddingBottom: 24 },
 });
 
 export default EpisodesPanel;
