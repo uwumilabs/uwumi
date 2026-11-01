@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { ScrollView, Text } from 'react-native';
-import { HUXStack, HUYStack, IoniconsIcon, type IoniconProps, ThemedView } from '@/components';
+import { HorizontalTabs, HUXStack, HUYStack, IoniconsIcon, type IoniconProps, ThemedView } from '@/components';
 import {
   useContinueWatchingStore,
   useCurrentTheme,
   useDownloadStore,
-  useExtensionStore,
   useFavoriteStore,
+  useMangaProgressStore,
   useWatchProgressStore,
 } from '@/hooks';
 import { MediaType } from '@/constants/types';
+import { getProviders } from '@/constants/provider';
 
 type Stat = { label: string; value: string | number; icon?: IoniconProps['name'] };
+type Section = { title: string; stats: Stat[] };
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -22,44 +24,114 @@ const formatDuration = (seconds: number) => {
   return hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
 };
 
+// Watch progress and downloads are keyed by episode: `${anilistId}$ep=…` for anime, `${tmdbId}-${type}-s…-e…` for
+// TMDB movies and shows
+const ANIME_EPISODE = /^(\d+)\$ep=/;
+const TMDB_EPISODE = /^(\d+)-(\w+)-s\d+-e\d+$/;
+
+/** The title an episode belongs to, read from its uniqueId */
+const titleOf = (uniqueId: string) => {
+  const anime = ANIME_EPISODE.exec(uniqueId);
+  if (anime) return { mediaType: MediaType.ANIME, key: anime[1] };
+  const tmdb = TMDB_EPISODE.exec(uniqueId);
+  return tmdb ? { mediaType: MediaType.MOVIE, key: `${tmdb[2]}:${tmdb[1]}` } : undefined;
+};
+
+const countDistinct = (keys: (string | undefined)[]) => new Set(keys.filter(Boolean)).size;
+
+const favoritesOf = (mediaType: MediaType) =>
+  useFavoriteStore.getState().favorites.filter((item) => item.mediaType === mediaType).length;
+
 // The stores as they are on opening; nothing here changes while the screen is up
-const readStats = () => {
-  const favorites = useFavoriteStore.getState().favorites;
-  const progresses = Object.values(useWatchProgressStore.getState().progresses);
-  const downloads = Object.values(useDownloadStore.getState().downloads);
-  const extensions = useExtensionStore.getState().getInstalledExtensions();
-  const countFavorites = (mediaType: MediaType) => favorites.filter((item) => item.mediaType === mediaType).length;
-  const watched = progresses.filter((progress) => progress.isCompleted);
+const watchSections = (mediaType: MediaType.ANIME | MediaType.MOVIE): Section[] => {
+  const progresses = Object.entries(useWatchProgressStore.getState().progresses).filter(
+    ([uniqueId]) => titleOf(uniqueId)?.mediaType === mediaType,
+  );
+  const watched = progresses.filter(([, progress]) => progress.isCompleted);
+  const downloads = Object.values(useDownloadStore.getState().downloads).filter(
+    (download) =>
+      download.status === 'completed' && (download.mediaType ?? titleOf(download.id)?.mediaType) === mediaType,
+  );
+  const history = useContinueWatchingStore.getState().entries.filter((entry) => entry.mediaType === mediaType);
   const watchedSeconds = progresses.reduce(
-    (total, progress) =>
+    (total, [, progress]) =>
       total + (progress.isCompleted ? progress.duration || progress.currentTime : progress.currentTime),
     0,
   );
 
-  return {
-    overview: [
-      { label: 'Favorites', value: favorites.length, icon: 'heart-outline' },
-      { label: 'Watched time', value: formatDuration(watchedSeconds), icon: 'time-outline' },
-      { label: 'Shows watched', value: useContinueWatchingStore.getState().entries.length, icon: 'tv-outline' },
-    ],
-    favorites: [
-      { label: 'Anime', value: countFavorites(MediaType.ANIME) },
-      { label: 'Manga', value: countFavorites(MediaType.MANGA) },
-      { label: 'Movies', value: countFavorites(MediaType.MOVIE) },
-    ],
-    episodes: [
-      { label: 'Started', value: progresses.length },
-      { label: 'Watched', value: watched.length },
-      { label: 'Downloaded', value: downloads.filter(({ status }) => status === 'completed').length },
-    ],
-    extensions: [
-      { label: 'Anime', value: extensions.filter(({ category }) => category === 'anime').length },
-      { label: 'Movies', value: extensions.filter(({ category }) => category === 'movies').length },
-    ],
-  } satisfies Record<string, Stat[]>;
+  return [
+    {
+      title: 'Overview',
+      stats: [
+        { label: 'In favorites', value: favoritesOf(mediaType), icon: 'heart-outline' },
+        { label: 'Watched duration', value: formatDuration(watchedSeconds), icon: 'time-outline' },
+        {
+          label: 'Titles watched',
+          value: countDistinct(watched.map(([uniqueId]) => titleOf(uniqueId)?.key)),
+          icon: 'checkmark-done-outline',
+        },
+      ],
+    },
+    {
+      title: 'Titles',
+      stats: [
+        { label: 'Started', value: countDistinct(progresses.map(([uniqueId]) => titleOf(uniqueId)?.key)) },
+        { label: 'In history', value: history.length },
+        {
+          label: 'Downloaded',
+          value: countDistinct(downloads.map((download) => titleOf(download.id)?.key ?? download.showName)),
+        },
+      ],
+    },
+    {
+      title: 'Episodes',
+      stats: [
+        { label: 'Started', value: progresses.length },
+        { label: 'Watched', value: watched.length },
+        { label: 'Downloaded', value: downloads.length },
+      ],
+    },
+    {
+      title: 'Sources',
+      stats: [
+        { label: 'Providers', value: getProviders()[mediaType].length },
+        { label: 'Used', value: countDistinct(history.map((entry) => entry.watchParams.provider)) },
+      ],
+    },
+  ];
 };
 
-const StatSection = ({ title, stats, large }: { title: string; stats: Stat[]; large?: boolean }) => {
+const mangaSections = (): Section[] => {
+  // Keyed `${anilistId}|${provider}`
+  const progress = Object.entries(useMangaProgressStore.getState().progress).map(([key, value]) => {
+    const [anilistId, provider] = key.split('|');
+    return { anilistId, provider, read: value.read.length };
+  });
+
+  return [
+    {
+      title: 'Overview',
+      stats: [
+        { label: 'In favorites', value: favoritesOf(MediaType.MANGA), icon: 'heart-outline' },
+        { label: 'Chapters read', value: progress.reduce((total, { read }) => total + read, 0), icon: 'book-outline' },
+        {
+          label: 'Titles started',
+          value: countDistinct(progress.map(({ anilistId }) => anilistId)),
+          icon: 'library-outline',
+        },
+      ],
+    },
+    {
+      title: 'Sources',
+      stats: [
+        { label: 'Providers', value: getProviders()[MediaType.MANGA].length },
+        { label: 'Used', value: countDistinct(progress.map(({ provider }) => provider)) },
+      ],
+    },
+  ];
+};
+
+const StatSection = ({ title, stats, large }: Section & { large?: boolean }) => {
   const theme = useCurrentTheme();
   return (
     <HUYStack className="gap-2">
@@ -81,17 +153,24 @@ const StatSection = ({ title, stats, large }: { title: string; stats: Stat[]; la
   );
 };
 
+const TabContent = ({ sections }: { sections: Section[] }) => (
+  <ScrollView contentContainerClassName="gap-6 p-4 pb-12">
+    {sections.map((section, index) => (
+      <StatSection key={section.title} {...section} large={index === 0} />
+    ))}
+  </ScrollView>
+);
+
 const Statistics = () => {
-  const [stats] = useState(readStats);
+  const [tabs] = useState(() => [
+    { key: 'anime', label: 'Anime', content: <TabContent sections={watchSections(MediaType.ANIME)} /> },
+    { key: 'manga', label: 'Manga', content: <TabContent sections={mangaSections()} /> },
+    { key: 'movies', label: 'Movies', content: <TabContent sections={watchSections(MediaType.MOVIE)} /> },
+  ]);
 
   return (
     <ThemedView>
-      <ScrollView contentContainerClassName="gap-6 p-4 pb-12">
-        <StatSection title="Overview" stats={stats.overview} large />
-        <StatSection title="Favorites" stats={stats.favorites} />
-        <StatSection title="Episodes" stats={stats.episodes} />
-        <StatSection title="Extensions" stats={stats.extensions} />
-      </ScrollView>
+      <HorizontalTabs items={tabs} initialTab="anime" />
     </ThemedView>
   );
 };

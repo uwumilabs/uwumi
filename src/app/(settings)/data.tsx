@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
 import { ScrollView, Text } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
 import { Paths } from 'expo-file-system';
-import { ConfirmDialog, HUYStack, NativeList, Progress, ThemedView } from '@/components';
+import { ConfirmDialog, HUYStack, NativeList, Progress, SectionTitle, ThemedView } from '@/components';
 import { useToast } from '@/components/heroui';
-import { useContinueWatchingStore, useDownloadStore, useRecentSearchesStore, useWatchProgressStore } from '@/hooks';
+import {
+  useContinueWatchingStore,
+  useDownloadStore,
+  usePreferencesStore,
+  useRecentSearchesStore,
+  useWatchProgressStore,
+} from '@/hooks';
 import { MediaType } from '@/constants/types';
 import { formatBytes } from '@/constants/utils';
+import { cacheSize, clearCache } from '@/utils/cache';
 
 type ClearTarget = 'history' | 'progress' | 'searches';
 
@@ -33,15 +39,13 @@ const CLEAR: Record<ClearTarget, { title: string; description: string; done: str
   },
 };
 
-const SectionTitle = ({ children }: { children: string }) => (
-  <Text className="px-4 pb-1 pt-5 text-sm font-semibold text-accent">{children}</Text>
-);
-
 const DataAndStorage = () => {
   const router = useRouter();
   const { toast } = useToast();
   const [confirm, setConfirm] = useState<ClearTarget | null>(null);
-  const [clearingTemp, setClearingTemp] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const clearOnLaunch = usePreferencesStore((state) => state.clearCacheOnLaunch);
+  const setClearOnLaunch = usePreferencesStore((state) => state.setClearCacheOnLaunch);
 
   // Re-measures when a download finishes, as the Downloads screen does
   const completedKey = useDownloadStore((state) =>
@@ -53,41 +57,49 @@ const DataAndStorage = () => {
   );
   const { data: storage, refetch } = useQuery({
     queryKey: ['storage', 'overview', completedKey],
+    // Playback fills the video cache behind React Query's back, so each visit measures again
+    staleTime: 0,
+    refetchOnMount: 'always',
     queryFn: async () => {
       const { downloadsSize } = await useDownloadStore.getState().getStorageInfo();
-      return { totalSpace: Paths.totalDiskSpace, freeSpace: Paths.availableDiskSpace, downloadsSize };
+      const cache = cacheSize();
+      return {
+        totalSpace: Paths.totalDiskSpace,
+        freeSpace: Paths.availableDiskSpace,
+        appSize: (Paths.document.size ?? 0) + cache,
+        downloadsSize,
+        cacheSize: cache,
+      };
     },
   });
 
-  const clearImageCache = async () => {
-    await Promise.all([Image.clearDiskCache(), Image.clearMemoryCache()]);
-    toast.show({ variant: 'success', label: 'Image cache cleared' });
-  };
-
-  const clearTempFiles = async () => {
-    setClearingTemp(true);
+  const clear = async () => {
+    setClearing(true);
     try {
-      await useDownloadStore.getState().cleanupTempFiles();
+      const before = cacheSize();
+      await clearCache();
       await refetch();
-      toast.show({ variant: 'success', label: 'Temporary files cleared' });
+      toast.show({
+        variant: 'success',
+        label: `Cache cleared, ${formatBytes(Math.max(0, before - cacheSize()))} freed`,
+      });
     } finally {
-      setClearingTemp(false);
+      setClearing(false);
     }
   };
 
   const pending = confirm ? CLEAR[confirm] : null;
-  const usedPercent = storage ? ((storage.totalSpace - storage.freeSpace) / storage.totalSpace) * 100 : 0;
 
   return (
     <ThemedView>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <SectionTitle>Storage usage</SectionTitle>
-        <HUYStack className="gap-2 px-4 py-2">
-          <Text className="text-base font-medium text-foreground">Device storage</Text>
-          <Progress value={usedPercent} />
+        <HUYStack className="gap-2.5 px-4 py-2">
+          <Text className="text-base font-medium text-foreground">Internal storage</Text>
+          <Progress value={storage ? (storage.appSize / storage.totalSpace) * 100 : 0} />
           <Text className="text-sm text-foreground/60">
             {storage
-              ? `Available: ${formatBytes(storage.freeSpace)} / Total: ${formatBytes(storage.totalSpace)}`
+              ? `uwumi: ${formatBytes(storage.appSize)} · Available: ${formatBytes(storage.freeSpace)} / Total: ${formatBytes(storage.totalSpace)}`
               : 'Checking…'}
           </Text>
         </HUYStack>
@@ -100,29 +112,22 @@ const DataAndStorage = () => {
             onPress={() => router.push('/(settings)/downloads')}
           />
           <NativeList.Item
-            icon="images-outline"
-            title="Clear image cache"
-            description="Posters and thumbnails download again as you browse"
-            onPress={clearImageCache}
+            title="Clear cache"
+            description={storage ? `Used: ${formatBytes(storage.cacheSize)}` : 'Checking…'}
+            trailingLoading={clearing}
+            onPress={clearing ? undefined : clear}
           />
           <NativeList.Item
-            icon="trash-outline"
-            title="Clear temporary download files"
-            description="Leftovers from cancelled or failed downloads"
-            trailingLoading={clearingTemp}
-            onPress={clearingTemp ? undefined : clearTempFiles}
+            title="Clear cache on app launch"
+            toggle={{ value: clearOnLaunch, onValueChange: setClearOnLaunch }}
           />
         </NativeList>
 
         <SectionTitle>History</SectionTitle>
         <NativeList variant="flat">
-          <NativeList.Item icon="time-outline" title="Clear watch history" onPress={() => setConfirm('history')} />
-          <NativeList.Item
-            icon="play-skip-back-outline"
-            title="Clear watch progress"
-            onPress={() => setConfirm('progress')}
-          />
-          <NativeList.Item icon="search-outline" title="Clear search history" onPress={() => setConfirm('searches')} />
+          <NativeList.Item title="Clear watch history" onPress={() => setConfirm('history')} />
+          <NativeList.Item title="Clear watch progress" onPress={() => setConfirm('progress')} />
+          <NativeList.Item title="Clear search history" onPress={() => setConfirm('searches')} />
         </NativeList>
       </ScrollView>
 
