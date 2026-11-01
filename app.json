@@ -2,7 +2,7 @@
   "expo": {
     "name": "uwumi",
     "slug": "uwumi",
-    "version": "4.0.0-rc.5",
+    "version": "4.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "uwumi",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
-      "buildNumber": "44",
+      "buildNumber": "45",
       "bundleIdentifier": "com.x2004durgesh.uwumi",
       "infoPlist": {
         "UIFileSharingEnabled": true,
@@ -58,7 +58,7 @@
         "android.permission.USE_EXACT_ALARM",
         "android.permission.SCHEDULE_EXACT_ALARM"
       ],
-      "versionCode": 44,
+      "versionCode": 45,
       "intentFilters": [
         {
           "action": "VIEW",

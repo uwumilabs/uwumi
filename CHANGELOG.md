@@ -1,5 +1,25 @@
 # Changelog
 
+## [4.0.0](https://github.com/uwumilabs/uwumi/compare/v4.0.0-rc.5...v4.0.0) (2026-11-01)
+
+### Features
+
+* **backup:** backup and restore, with automatic backups kept outside uwumi on android and ios ([aff2c30](https://github.com/uwumilabs/uwumi/commit/aff2c3077786db92e93dcef55505e16766ab61b5))
+* manga resume and continue reading, reader zoom, default playback speed and an incognito banner ([3f413e1](https://github.com/uwumilabs/uwumi/commit/3f413e1d7d79bdbdc446342c3a5c98a8f92af70f))
+* **manga:** six providers, chapters in reading order and a reader that sends image headers ([90bb92d](https://github.com/uwumilabs/uwumi/commit/90bb92d4e8b94ed580ca9169ba2a8326e38762e6))
+* **settings:** aniyomi player and reader settings, with mihon's reading modes and tap zones ([9f87e29](https://github.com/uwumilabs/uwumi/commit/9f87e290110ae86f126911f12bb9588dcec3c046))
+* **settings:** aniyomi-style statistics and data and storage, with cache size and clear on launch ([c14c41f](https://github.com/uwumilabs/uwumi/commit/c14c41f96e500da854f76cab4c0c1d5367cd1442))
+* **ui:** native switch styled like heroui's, a checkbox choice dialog and a shared section title ([9565d03](https://github.com/uwumilabs/uwumi/commit/9565d03c56d0d540cd68d7cee2a1088f36cae1e2))
+* **watch:** redo the tv episodes panel as rows that open with focus on the current episode ([e91daa8](https://github.com/uwumilabs/uwumi/commit/e91daa8f10c9bd652cc15da6dbe97d58b0581d0d))
+
+### Bug Fixes
+
+* **info:** back to top in the episode window, and the info page keeps its place under the player ([2155643](https://github.com/uwumilabs/uwumi/commit/2155643f5a7e022c96aab9383ebe145b3c09c27f))
+* **info:** gradient header on android that doesn't turn black, and no ep badge on movies ([26f6144](https://github.com/uwumilabs/uwumi/commit/26f6144d20e69ed0708dd2052b4e77a638d6a2af))
+* **ios:** keep debug builds on the debug react native core and hermes after a release archive ([a9c98e5](https://github.com/uwumilabs/uwumi/commit/a9c98e52177fff4242589d37482014599d943992))
+* **ios:** upgrade orientation director to 3.1.0 and drop the duplicated player overlays ([4b04a28](https://github.com/uwumilabs/uwumi/commit/4b04a2843f95dd2800e31a1e7268898648d0259c))
+* **tv:** give the player the app's sheet and slider on tv too ([3af5d0d](https://github.com/uwumilabs/uwumi/commit/3af5d0d51e94205d1894c8a0df3d86f860374bd5))
+
 ## [4.0.0-rc.5](https://github.com/uwumilabs/uwumi/compare/v4.0.0-rc.4...v4.0.0-rc.5) (2026-10-29)
 
 ### Features
