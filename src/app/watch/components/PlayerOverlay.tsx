@@ -2,12 +2,10 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Button } from '@/components/Button';
 import { BaseButton, VideoPlayer, useProgress, useVideoSelector } from 'react-native-video-toolkit';
-import type { SkipTime } from '@/hooks';
+import { usePlayerSettingsStore, type SkipTime } from '@/hooks';
 
 // An outro that runs this close to the end leads straight into the next episode
 const OUTRO_TAIL_SECONDS = 5;
-// About an anime opening's length, for episodes AniSkip has no times for
-const SKIP_FORWARD_SECONDS = 85;
 
 const SKIP_LABELS: Record<SkipTime['type'], string> = {
   intro: 'Skip intro',
@@ -27,6 +25,8 @@ export interface UpNext {
  */
 const useSkipAction = (skipTimes: SkipTime[], upNext: UpNext | undefined, onNext: () => void, skipForward = false) => {
   const { currentTime, duration, seek } = useProgress();
+  // About an anime opening's length by default, for episodes AniSkip has no times for
+  const skipSeconds = usePlayerSettingsStore((state) => state.skipIntroSeconds);
   // The player rewinds to 0:00 when a source ends, which would offer "Skip intro" under the Up next card
   const ended = useVideoSelector((state) => state.ended);
   // Ends a second early so the button doesn't flash as playback leaves the range
@@ -35,7 +35,7 @@ const useSkipAction = (skipTimes: SkipTime[], upNext: UpNext | undefined, onNext
   if (!active) {
     const part = duration > 0 && currentTime >= duration / 2 ? 'outro' : 'intro';
     return skipForward && !skipTimes.some(({ type }) => type === part)
-      ? { label: `+${SKIP_FORWARD_SECONDS}s`, onPress: () => seek(currentTime + SKIP_FORWARD_SECONDS) }
+      ? { label: `+${skipSeconds}s`, onPress: () => seek(currentTime + skipSeconds) }
       : null;
   }
   if (active.type === 'outro' && upNext && duration > 0 && active.end >= duration - OUTRO_TAIL_SECONDS) {
@@ -50,7 +50,7 @@ interface SkipProps {
   onNext: () => void;
 }
 
-/** For the controls' bottom row: the skip while one applies, or with `skipForward` a +85s jump where none is known. */
+/** For the controls' bottom row: the skip while one applies, or with `skipForward` a jump (+85s by default) where none is known. */
 export const SkipSlot = ({ skipTimes, upNext, onNext, skipForward }: SkipProps & { skipForward?: boolean }) => {
   const action = useSkipAction(skipTimes, upNext, onNext, skipForward);
   if (!action) return null;

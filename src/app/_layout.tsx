@@ -1,7 +1,7 @@
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/constants/queryClient';
@@ -23,6 +23,7 @@ import {
   useSheetColor,
   useNativeHeaderOptions,
   useDownloadStore,
+  usePlayerSettingsStore,
 } from '@/hooks';
 import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
 import { EXTERNAL_LINKS } from '@/constants/config';
@@ -147,6 +148,7 @@ const SETTINGS_SCREENS: Record<string, string> = {
   about: 'About',
   appearance: 'Appearance',
   player: 'Player',
+  reader: 'Reader',
   favorites: 'Favorites',
   downloads: 'Downloads',
   extensions: 'Extensions',
@@ -268,7 +270,11 @@ const AppContent = () => {
                 }}
               />
               <Stack.Screen name="watch/[mediaType]" />
-              <Stack.Screen name="read/[id]" options={{ ...headerOptions, headerShown: true, title: '' }} />
+              {/* Over the pages, so the reader's menu tap can hide it without moving them */}
+              <Stack.Screen
+                name="read/[id]"
+                options={{ ...headerOptions, headerShown: true, headerTransparent: true, title: '' }}
+              />
               {Object.entries(SETTINGS_SCREENS).map(([name, title]) => (
                 <Stack.Screen
                   key={name}
@@ -305,6 +311,21 @@ export default function RootLayout() {
   ]);
   const currentTheme = useCurrentTheme();
   const sheetColor = useSheetColor();
+  const rotateToLandscape = usePlayerSettingsStore((state) => state.rotateToLandscape);
+  const controlsHideMs = usePlayerSettingsStore((state) => state.controlsHideMs);
+  const pipButton = usePlayerSettingsStore((state) => state.pipButton);
+  const doubleTapSeek = usePlayerSettingsStore((state) => state.doubleTapSeek);
+  const videoConfig = useMemo(
+    () => ({
+      useCustomVideoTracks: true,
+      enableFullscreen: false,
+      enablePictureInPicture: pipButton,
+      enableScreenRotation: rotateToLandscape,
+      autoHideDelay: controlsHideMs,
+      enableDoubleTapGestures: doubleTapSeek,
+    }),
+    [pipButton, rotateToLandscape, controlsHideMs, doubleTapSeek],
+  );
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -325,11 +346,7 @@ export default function RootLayout() {
                 buttonSecondaryBorder: currentTheme.border,
               },
             }}
-            config={{
-              useCustomVideoTracks: true,
-              enablePictureInPicture: true,
-              enableFullscreen: false,
-            }}
+            config={videoConfig}
             components={videoComponents}
             portalHost={VIDEO_PORTAL_HOST}>
             <AppContent />

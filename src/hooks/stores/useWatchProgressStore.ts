@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { storage } from '@/hooks/stores/MMKV';
-import { constants } from '@/constants/config';
+import { usePlayerSettingsStore } from './usePlayerSettingsStore';
 
 interface WatchProgress {
   currentTime: number;
@@ -30,12 +30,14 @@ export const useWatchProgressStore = create<WatchProgressState>()(
 
         // Determine completion status:
         // 1. If explicitly set in the progress object, use that value
-        // 2. Otherwise, auto-mark as completed if progress reaches PROGRESS_COMPLETION_PERCENTAGE +
+        // 2. Otherwise, auto-mark as completed once progress reaches the player setting's watched percent
         // 3. Preserve existing completed status if already marked
         const isCompleted =
           progress.isCompleted !== undefined
             ? progress.isCompleted
-            : progress.progress >= constants.PROGRESS_COMPLETION_PERCENTAGE || currentProgress?.isCompleted || false;
+            : progress.progress >= usePlayerSettingsStore.getState().watchedPercent ||
+              currentProgress?.isCompleted ||
+              false;
 
         set((state) => ({
           progresses: {

@@ -20,8 +20,14 @@ const Settings = () => {
           <NativeList.Item
             icon="play-circle-outline"
             title="Player"
-            description="External subtitles"
+            description="Controls, intro skip, gestures, subtitles"
             onPress={go('/(settings)/player')}
+          />
+          <NativeList.Item
+            icon="book-outline"
+            title="Reader"
+            description="Background, page number, side padding"
+            onPress={go('/(settings)/reader')}
           />
           <NativeList.Item
             icon="download-outline"

@@ -12,3 +12,5 @@ export * from './useOtaUpdateStore';
 export * from './useContinueWatchingStore';
 export * from './usePreferencesStore';
 export * from './useMangaProgressStore';
+export * from './usePlayerSettingsStore';
+export * from './useReaderSettingsStore';

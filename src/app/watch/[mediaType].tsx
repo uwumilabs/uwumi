@@ -45,6 +45,7 @@ import {
   useContinueWatchingStore,
   useExternalSubtitleStore,
   usePreferencesStore,
+  usePlayerSettingsStore,
   useDownloadedFileUri,
   type EpisodeItem,
 } from '@/hooks';
@@ -106,6 +107,7 @@ const Watch = () => {
   const fullscreen = useVideoSelector((state) => state.fullscreen);
   const videoRef = useVideoSelector((state) => state.videoRef);
   const isPlaying = useVideoSelector((state) => state.isPlaying);
+  const autoPip = usePlayerSettingsStore((state) => state.autoPip);
   const { enterFullscreen, exitFullscreen } = useFullscreen();
   const navigation = useNavigation();
   const [episodesOpen, setEpisodesOpen] = useState(false);
@@ -151,14 +153,15 @@ const Watch = () => {
   // Keyed by episode, so the next episode doesn't query skip times with this one's length
   const [loadedLength, setLoadedLength] = useState<{ uniqueId?: string; seconds: number }>({ seconds: 0 });
   const malId = (mediaInfo as IAnimeInfo | undefined)?.malId;
+  const aniSkip = usePlayerSettingsStore((state) => state.aniSkip);
   const { data: skipTimes = [], isFetched: skipTimesFetched } = useSkipTimes({
     malId,
     episodeNumber,
     episodeLength: loadedLength.uniqueId === uniqueId ? loadedLength.seconds : 0,
-    enabled: mediaType === MediaType.ANIME,
+    enabled: mediaType === MediaType.ANIME && aniSkip,
   });
-  // AniSkip has answered, or can't be asked without a MAL id; SkipSlot jumps where it has no intro or outro
-  const skipForward = mediaType === MediaType.ANIME && (skipTimesFetched || (!!mediaInfo && !malId));
+  // AniSkip is off, has answered, or can't be asked without a MAL id; SkipSlot jumps where it has no intro or outro
+  const skipForward = mediaType === MediaType.ANIME && (!aniSkip || skipTimesFetched || (!!mediaInfo && !malId));
   const upNext = useMemo<UpNext | undefined>(
     () =>
       nextEpisode
@@ -598,7 +601,7 @@ const Watch = () => {
           allowsEaxternalPlayback: true,
           mixWithOthers: 'mix',
           bufferingStrategy: BufferingStrategyType.DEPENDING_ON_MEMORY,
-          enterPictureInPictureOnLeave: !isTV && isPlaying,
+          enterPictureInPictureOnLeave: !isTV && isPlaying && autoPip,
           onError: () => {
             if (localUri) {
               console.error('❌ The downloaded file would not play, streaming instead:', localUri);
