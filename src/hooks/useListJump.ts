@@ -92,6 +92,6 @@ export function useListJump<T>({ items, listRef, rangeLabel }: UseListJumpOption
     rangeValue,
     jumpToRange,
     resetScroll,
-    jumpBar: { visible: jumpBarVisible, onTop: scrollToTop, ranges, rangeValue, onRangeChange: jumpToRange },
+    jumpBar: { visible: jumpBarVisible, onTop: scrollToTop },
   };
 }

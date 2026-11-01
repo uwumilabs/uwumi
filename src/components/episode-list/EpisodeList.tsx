@@ -425,9 +425,9 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
     season?: string;
   }>();
   const isMovie = type === MediaFormat.MOVIE || type === TvType.MOVIE;
-  const swipeable = pathname.includes('/info/'); // Only enable swipe actions on the /info/[mediaType] screen, not in the episode list inside /watch/[mediaType]
-  // The info screen's episodes sit in a window; the player's episode panel stays one list
-  const windowed = swipeable;
+  // Swipe actions on the info screen only. Read once: the path turns to /watch/… while the player is open over the
+  // screen, which would rebuild the list behind it (losing its scroll) if it followed along
+  const [swipeable] = useState(() => pathname.includes('/info/'));
   const { height: screenHeight } = useWindowDimensions();
   const windowRows = Math.max(
     WINDOW_MIN_ROWS,
@@ -522,7 +522,7 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
   const scrollToEpisode = (index: number) => {
     const target = episodes[index];
     // The window may be below the fold, e.g. when a shared link opens the screen
-    if (windowed) pageRef.current?.scrollTo({ y: Math.max(0, windowTopRef.current - headerHeight), animated: true });
+    pageRef.current?.scrollTo({ y: Math.max(0, windowTopRef.current - headerHeight), animated: true });
     const scroll = () => flashListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
     scroll()
       ?.then(scroll)
@@ -684,14 +684,12 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
       {...tvFocusScrollProps(0)}
       onCommitLayoutEffect={onListLayout}
       // No blank space after the last row inside the TV window
-      {...(windowed && {
-        ListFooterComponent: null,
-        // Android: lets the window scroll inside the page by touch
-        nestedScrollEnabled: true,
-        // Its scroll cancels the rows' swipe; with RN's ScrollView a flick drifting sideways woke the swipe, which
-        // took the touch and stopped the scroll and its fling
-        renderScrollComponent: GestureScrollView,
-      })}
+      ListFooterComponent={null}
+      // Android: lets the window scroll inside the page by touch
+      nestedScrollEnabled
+      // Its scroll cancels the rows' swipe; with RN's ScrollView a flick drifting sideways woke the swipe, which
+      // took the touch and stopped the scroll and its fling
+      renderScrollComponent={GestureScrollView}
       data={isLoading ? [] : episodes}
       // Rendered inside the list so `header` stays visible
       ListEmptyComponent={
@@ -709,14 +707,6 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
         )
       }
       // ItemSeparatorComponent={() => <View className="h-3" />}
-      ListHeaderComponent={
-        windowed ? undefined : (
-          <>
-            {header}
-            {controls}
-          </>
-        )
-      }
       onLoad={() => {
         const index = currentEpisodeIndex();
         if (!autoScrollToCurrent || index < 0) return;
@@ -746,55 +736,38 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
     />
   );
 
-  // Info screen: the page scrolls; the episodes scroll inside a window with fades at its edges
-  if (windowed) {
-    return (
-      <>
-        <Animated.ScrollView
-          ref={pageRef}
-          className="flex-1"
-          showsVerticalScrollIndicator={false}
-          {...tvFocusScrollProps(16 + headerHeight)}>
-          {header}
-          {/* TV: focus entering the controls or an episode lines both up at the top of the screen */}
-          <View
-            scrollSnapAlign={isTV ? 'start' : undefined}
-            onLayout={(event) => {
-              windowTopRef.current = event.nativeEvent.layout.y;
-            }}>
-            {controls}
-            <View className="px-2" style={{ height: windowRows * EPISODE_ROW_HEIGHT }}>
-              <ScrollShadow
-                key={displayMode}
-                className="flex-1"
-                size={LIST_SHADOW_SIZE}
-                color={shadowColor}
-                LinearGradientComponent={LinearGradient}>
-                {list}
-              </ScrollShadow>
-            </View>
-          </View>
-          {footer}
-          <View className="h-8" />
-        </Animated.ScrollView>
-        {sheet}
-      </>
-    );
-  }
-
+  // The page scrolls; the episodes scroll inside a window with fades at its edges
   return (
     <>
-      <View className="flex-1">
-        <ScrollShadow
-          key={displayMode}
-          className="flex-1"
-          size={LIST_SHADOW_SIZE}
-          color={shadowColor}
-          LinearGradientComponent={LinearGradient}>
-          {list}
-        </ScrollShadow>
-        <ListJumpBar {...jumpBar} rangesLabel="Episodes" />
-      </View>
+      <Animated.ScrollView
+        ref={pageRef}
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        {...tvFocusScrollProps(16 + headerHeight)}>
+        {header}
+        {/* TV: focus entering the controls or an episode lines both up at the top of the screen */}
+        <View
+          scrollSnapAlign={isTV ? 'start' : undefined}
+          onLayout={(event) => {
+            windowTopRef.current = event.nativeEvent.layout.y;
+          }}>
+          {controls}
+          <View className="px-2" style={{ height: windowRows * EPISODE_ROW_HEIGHT }}>
+            <ScrollShadow
+              key={displayMode}
+              className="flex-1"
+              size={LIST_SHADOW_SIZE}
+              color={shadowColor}
+              LinearGradientComponent={LinearGradient}>
+              {list}
+            </ScrollShadow>
+            {/* Back to top over the window; the range picker is in the controls above it */}
+            <ListJumpBar {...jumpBar} bottom={12} />
+          </View>
+        </View>
+        {footer}
+        <View className="h-8" />
+      </Animated.ScrollView>
       {sheet}
     </>
   );

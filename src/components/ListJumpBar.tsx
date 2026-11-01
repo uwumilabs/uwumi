@@ -3,22 +3,20 @@ import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from './Button';
 import { isTV } from '@/constants/utils';
-import type { ListRange } from '@/hooks/useListJump';
 import { IoniconsIcon } from './Icons';
-import Select from './Select';
-import { HUXStack } from './ui-primitives';
 
 interface ListJumpBarProps {
   visible: boolean;
   onTop: () => void;
-  ranges: ListRange[];
-  rangeValue: string;
-  onRangeChange: (value: string) => void;
-  rangesLabel: string;
+  /** From the container's bottom edge; clear of the navigation bar by default, for full-screen lists */
+  bottom?: number;
 }
 
-/** Floating back-to-top button, plus the range picker for long lists. Render it over the list's container. */
-export const ListJumpBar = ({ visible, onTop, ranges, rangeValue, onRangeChange, rangesLabel }: ListJumpBarProps) => {
+/**
+ * Floating back-to-top button for long lists, once they're scrolled far. Render it over the list's container; the
+ * range picker sits with the list's other controls.
+ */
+export const ListJumpBar = ({ visible, onTop, bottom }: ListJumpBarProps) => {
   const insets = useSafeAreaInsets();
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: withTiming(visible ? 1 : 0, { duration: 200 }),
@@ -31,21 +29,10 @@ export const ListJumpBar = ({ visible, onTop, ranges, rangeValue, onRangeChange,
   return (
     <Animated.View
       pointerEvents={visible ? 'box-none' : 'none'}
-      style={[styles.bar, { bottom: insets.bottom + 16 }, animatedStyle]}>
-      <HUXStack className="items-center gap-2">
-        <Button isIconOnly size="sm" onPress={onTop} accessibilityLabel="Back to top">
-          <IoniconsIcon name="arrow-up" size={18} className="text-accent-foreground" />
-        </Button>
-        {ranges.length > 0 && (
-          <Select
-            size="sm"
-            SelectItem={ranges}
-            SelectLabel={rangesLabel}
-            value={rangeValue}
-            onValueChange={onRangeChange}
-          />
-        )}
-      </HUXStack>
+      style={[styles.bar, { bottom: bottom ?? insets.bottom + 16 }, animatedStyle]}>
+      <Button isIconOnly size="sm" onPress={onTop} accessibilityLabel="Back to top">
+        <IoniconsIcon name="arrow-up" size={18} className="text-accent-foreground" />
+      </Button>
     </Animated.View>
   );
 };

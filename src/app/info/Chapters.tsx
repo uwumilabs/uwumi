@@ -179,7 +179,7 @@ const Chapters = ({ header }: ChaptersProps) => {
           renderItem={({ item }) => <ChapterRow chapter={item} read={read.has(item.id)} onOpen={openChapter} />}
         />
       </ScrollShadow>
-      <ListJumpBar {...jumpBar} rangesLabel="Chapters" />
+      <ListJumpBar {...jumpBar} />
     </HUYStack>
   );
 };
