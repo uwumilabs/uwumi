@@ -56,7 +56,7 @@ const VideoSheet = ({ open, onOpenChange, children, style }: SheetProps) => (
   </BottomSheet>
 );
 
-const videoComponents = isTV || isTVOS ? undefined : { Sheet: VideoSheet, Slider };
+const videoComponents = { Sheet: VideoSheet, Slider };
 const VIDEO_PORTAL_HOST = 'video-player';
 
 // Storage Permission Utility using native module
