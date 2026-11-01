@@ -17,7 +17,6 @@ import {
   usePureBlackBackground,
   useEpisodeDisplayStore,
   useListJump,
-  useSolidHeaderOnScroll,
   useEpisodeList,
   LIST_SHADOW_SIZE,
   type EpisodeItem,
@@ -236,7 +235,8 @@ const SwipeAction = memo(
 
 SwipeAction.displayName = 'SwipeAction';
 
-type EpisodeContentOptions = { isCurrent: boolean; pureBlackBackground: boolean; swipeable: boolean };
+// A movie is its one episode, so it has no EP number to show
+type EpisodeContentOptions = { isCurrent: boolean; pureBlackBackground: boolean; swipeable: boolean; isMovie: boolean };
 
 // Downloads are saved under the episode's uniqueId. Only the status is read, so progress ticks don't re-render rows
 const DownloadBadge = ({ uniqueId, size }: { uniqueId?: string; size: number }) => {
@@ -253,6 +253,7 @@ const EpisodeContent = ({
   isCurrent,
   pureBlackBackground,
   swipeable,
+  isMovie,
 }: { item: IAnimeEpisode | IMovieEpisode; displayMode: EpisodeDisplayMode } & EpisodeContentOptions) => {
   if (displayMode === EpisodeDisplayMode.TitleOnly || displayMode === EpisodeDisplayMode.NumberOnly) {
     const titleOnly = displayMode === EpisodeDisplayMode.TitleOnly;
@@ -261,7 +262,7 @@ const EpisodeContent = ({
         className={cn('flex-1 gap-2 rounded-2xl bg-background p-3 shadow-md', pureBlackBackground && 'bg-black')}>
         <HUXStack className="flex-1 items-center justify-between gap-2">
           <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={titleOnly ? 2 : 1}>
-            {titleOnly ? item.title : `EP ${(item.number ?? item.episode ?? '').toString()}`}
+            {titleOnly || isMovie ? item.title : `EP ${(item.number ?? item.episode ?? '').toString()}`}
           </Text>
           <HUXStack className="flex-row items-center gap-1 ml-auto">
             <DownloadBadge uniqueId={item?.uniqueId} size={18} />
@@ -285,9 +286,11 @@ const EpisodeContent = ({
           source={typeof item?.image === 'string' ? item.image : (item?.image?.hd ?? '')}
           style={{ width: 160, height: 107 }}
         />
-        <Text className="absolute left-2 bottom-2.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
-          {`EP ${(item.number ?? item.episode ?? '').toString()}`}
-        </Text>
+        {!isMovie && (
+          <Text className="absolute left-2 bottom-2.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
+            {`EP ${(item.number ?? item.episode ?? '').toString()}`}
+          </Text>
+        )}
         {swipeable && <ThumbnailProgress uniqueId={item?.uniqueId as string} />}
       </View>
       <HUYStack className="flex-1 justify-between gap-2 px-2 ">
@@ -336,6 +339,7 @@ interface EpisodeRowProps {
   item: IAnimeEpisode | IMovieEpisode;
   displayMode: EpisodeDisplayMode;
   swipeable: boolean;
+  isMovie: boolean;
   nav: EpisodeNav;
   actionColor?: string;
   onToggleComplete: (item: IAnimeEpisode | IMovieEpisode) => void;
@@ -344,7 +348,7 @@ interface EpisodeRowProps {
 
 // Each row selects whether it's the current episode, so the list's own re-renders skip the rows
 const EpisodeRow = memo(
-  ({ item, displayMode, swipeable, nav, actionColor, onToggleComplete, onOpenActions }: EpisodeRowProps) => {
+  ({ item, displayMode, swipeable, isMovie, nav, actionColor, onToggleComplete, onOpenActions }: EpisodeRowProps) => {
     const isCurrent = useEpisodesIdStore((state) => !!item?.uniqueId && state.currentUniqueId === item.uniqueId);
     const pulse = usePulseStore((state) => (state.key === episodeKey(item) ? state.at : 0));
     const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
@@ -359,6 +363,7 @@ const EpisodeRow = memo(
             isCurrent={isCurrent}
             pureBlackBackground={pureBlackBackground}
             swipeable={swipeable}
+            isMovie={isMovie}
           />
         </ListPressable>
         {pulse ? <PulseBorder key={pulse} /> : null}
@@ -419,6 +424,7 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
     episode?: string;
     season?: string;
   }>();
+  const isMovie = type === MediaFormat.MOVIE || type === TvType.MOVIE;
   const swipeable = pathname.includes('/info/'); // Only enable swipe actions on the /info/[mediaType] screen, not in the episode list inside /watch/[mediaType]
   // The info screen's episodes sit in a window; the player's episode panel stays one list
   const windowed = swipeable;
@@ -433,7 +439,6 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
   const windowTopRef = useRef(0);
   // The info screen's native header floats over the page, so scrolls stop below it
   const headerHeight = useContext(HeaderHeightContext) ?? 0;
-  const solidHeaderOnScroll = useSolidHeaderOnScroll();
   const setProvider = useProviderStore((state) => state.setProvider);
   const { episodes, providerMediaId, movieSeasons, activeSeason, setSeason, providerToUse, isLoading, error, refetch } =
     useEpisodeList();
@@ -600,13 +605,14 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
         item={item}
         displayMode={displayMode}
         swipeable={swipeable}
+        isMovie={isMovie}
         nav={nav}
         actionColor={currentTheme?.default}
         onToggleComplete={handleToggleComplete}
         onOpenActions={openActions}
       />
     ),
-    [displayMode, swipeable, nav, currentTheme?.default, handleToggleComplete, openActions],
+    [displayMode, swipeable, isMovie, nav, currentTheme?.default, handleToggleComplete, openActions],
   );
 
   const controls = (
@@ -748,8 +754,6 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
           ref={pageRef}
           className="flex-1"
           showsVerticalScrollIndicator={false}
-          onScroll={solidHeaderOnScroll}
-          scrollEventThrottle={16}
           {...tvFocusScrollProps(16 + headerHeight)}>
           {header}
           {/* TV: focus entering the controls or an episode lines both up at the top of the screen */}

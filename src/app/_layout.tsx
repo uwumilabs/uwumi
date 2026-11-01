@@ -1,5 +1,6 @@
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { useHeaderHeight } from 'expo-router/react-navigation';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
@@ -32,11 +33,11 @@ import { Button } from '@/components/Button';
 import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
 import '../../global.css';
 import { useUniwind } from 'uniwind';
-import { BottomSheet, BottomSheetProvider, IoniconsIcon, OtaUpdateToast, Slider } from '@/components';
+import { BottomSheet, BottomSheetProvider, IoniconsIcon, LinearGradient, OtaUpdateToast, Slider } from '@/components';
 import { themes } from '@/themes/theme';
 import { VideoPortalHost, VideoProvider, defaultTheme, type SheetProps } from 'react-native-video-toolkit';
 import RNOrientationDirector, { Orientation } from 'react-native-orientation-director';
-import { isTV, isTVOS, openBrowser } from '@/constants/utils';
+import { hexToRGB, isTV, isTVOS, openBrowser } from '@/constants/utils';
 import { PerfWindows, perfScreenLayout } from '@/perf/perfHarness';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -139,6 +140,38 @@ const DownloadDialog = ({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog>
+  );
+};
+
+/**
+ * Android, under the info screen's see-through header: the background fading out downwards, like iOS's scroll edge
+ * effect, so the header's buttons stay readable over the artwork and whatever scrolls under them. iOS draws its own.
+ * Part of the screen rather than the header, so it can run on past the header and fade out gradually even where the
+ * header is short (TV has no status bar above it).
+ */
+const HeaderScrim = () => {
+  const theme = useCurrentTheme();
+  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+  const headerHeight = useHeaderHeight();
+  const color = pureBlackBackground ? '#000000' : theme.background;
+  return (
+    <LinearGradient
+      pointerEvents="none"
+      colors={[hexToRGB(color, 0.95), hexToRGB(color, 0.75), hexToRGB(color, 0)]}
+      locations={[0, 0.5, 1]}
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, height: headerHeight * 1.7 }}
+    />
+  );
+};
+
+const screenLayout = ({ route, children }: { route: { name: string }; children: React.ReactNode }) => {
+  const screen = perfScreenLayout ? perfScreenLayout({ route, children }) : <>{children}</>;
+  if (Platform.OS !== 'android' || route.name !== 'info/[mediaType]') return screen;
+  return (
+    <View style={{ flex: 1 }}>
+      {screen}
+      <HeaderScrim />
+    </View>
   );
 };
 
@@ -255,7 +288,7 @@ const AppContent = () => {
         <BottomSheetProvider>
           <ThemeProvider value={navigationTheme}>
             {/* freezeOnBlur: screens under the top one (the tabs under watch, info under watch) stop re-rendering */}
-            <Stack screenOptions={{ headerShown: false, freezeOnBlur: true }} screenLayout={perfScreenLayout}>
+            <Stack screenOptions={{ headerShown: false, freezeOnBlur: true }} screenLayout={screenLayout}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="browse/[mediaType]" />
               <Stack.Screen name="search/[mediaType]" />

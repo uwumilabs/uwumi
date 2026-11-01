@@ -21,10 +21,8 @@ import {
   useMangaChapters,
   useMangaProgressStore,
   usePureBlackBackground,
-  useSolidHeaderOnScroll,
 } from '@/hooks';
 import { chapterDetails, chapterNumbers, chapterTitle } from '@/utils/manga';
-import { useComposedEventHandler } from 'react-native-reanimated';
 import type { FlashListRef } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { cn, ScrollShadow } from '@/components/heroui';
@@ -96,13 +94,11 @@ const Chapters = ({ header }: ChaptersProps) => {
     },
     [chapters],
   );
-  const solidHeaderOnScroll = useSolidHeaderOnScroll();
   const { listProps, ranges, rangeValue, jumpToRange, jumpBar } = useListJump({
     items: chapters,
     listRef,
     rangeLabel: chapterRangeLabel,
   });
-  const onScroll = useComposedEventHandler([listProps.onScroll, solidHeaderOnScroll]);
 
   const handleProviderChange = useCallback((value: string) => setProvider(mediaType, value), [mediaType, setProvider]);
   const openChapter = useCallback(
@@ -123,7 +119,6 @@ const Chapters = ({ header }: ChaptersProps) => {
         <List
           ref={listRef}
           {...listProps}
-          onScroll={onScroll}
           data={isLoading ? [] : chapters}
           // Rendered inside the list so `header` stays visible
           ListEmptyComponent={
