@@ -18,7 +18,7 @@ import { HUXStack, HUYStack, IoniconsIcon, ListEmptyState, ThemedView } from '@/
 import { Button } from '@/components/Button';
 import { ReaderPage } from '@/components/reader/ReaderPage';
 import { TapZonesOverlay, tapActionAt } from '@/components/reader/TapZones';
-import { ZoomablePage } from '@/components/reader/ZoomablePage';
+import { ZoomablePage } from '@/components/ZoomablePage';
 import { isTV } from '@/constants/utils';
 import { getProviders } from '@/constants/provider';
 import { MediaType } from '@/constants/types';

@@ -2,7 +2,8 @@ import { Platform, Share, type ColorValue, type ViewStyle } from 'react-native';
 import { openBrowserAsync } from 'expo-web-browser';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { Directory, File as FsFile } from 'expo-file-system';
-import { EXTERNAL_LINKS } from './config';
+import { Image as ExpoImage } from 'expo-image';
+import { CACHE_DIR, EXTERNAL_LINKS } from './config';
 
 export const formatTime = (seconds: number): string => {
   // Handle invalid inputs
@@ -166,6 +167,26 @@ export const openVideoInOtherApp = async (fileUri: string, title?: string) => {
     return;
   }
   await Share.share({ url: fileUri, title });
+};
+
+/**
+ * Shares an image. iOS shares the file itself, from the image cache, named after `title`. Android can only share text
+ * without a native share module, so it shares the image's link, which chat apps show as a preview.
+ */
+export const shareImage = async (uri: string, title?: string) => {
+  const cached = Platform.OS === 'ios' ? await ExpoImage.getCachePathAsync(uri) : null;
+  if (cached) {
+    const extension = /\.(jpe?g|png|webp|gif)(?:\?|$)/i.exec(uri)?.[1] ?? 'jpg';
+    const base = (title ?? '').replace(/[\\/:*?"<>|]/g, '').trim() || 'image';
+    const folder = fsDirectory(`${CACHE_DIR}/share`);
+    if (!folder.exists) folder.create({ intermediates: true, idempotent: true });
+    const file = new FsFile(folder, `${base}.${extension}`);
+    if (file.exists) file.delete();
+    new FsFile(cached.startsWith('file:') ? cached : fileUri(cached)).copy(file);
+    await Share.share({ url: file.uri });
+    return;
+  }
+  await Share.share({ message: title ? `${title}\n${uri}` : uri });
 };
 
 // Decimal units (1 GB = 1000 MB), as Android's and iOS's storage screens count them

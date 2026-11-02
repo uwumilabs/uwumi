@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Platform, ScrollView, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import {
   HUXStack,
   HUYStack,
   IconTitle,
+  ImagePreview,
   IoniconsIcon,
   MediaCarousel,
   RippleButton,
@@ -149,9 +150,13 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
     ].filter((chip): chip is string => typeof chip === 'string' && chip.trim().length > 0);
   }, [data]);
   const trailerId = data?.trailer?.id;
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   return (
     <View>
+      {!!poster && (
+        <ImagePreview uri={poster} title={shownTitle} visible={previewOpen} onClose={() => setPreviewOpen(false)} />
+      )}
       {/* TV: focus inside a block scrolls all of it clear of the see-through header (the page snaps below it) */}
       <View className="h-75 relative" focusable={isTV ? false : undefined} scrollSnapAlign={isTV ? 'start' : undefined}>
         <View className="absolute inset-0 h-75 w-full" focusable={isTV ? false : undefined}>
@@ -180,11 +185,17 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
           focusable={isTV ? false : undefined}>
           <HUXStack className="gap-2.5 items-center" props={{ focusable: isTV ? false : undefined }}>
             {!isTV && (
-              <AnimatedImage
-                sharedTransitionTag={`shared-image-${transitionTag}`}
-                source={{ uri: poster }}
-                style={{ width: 115, height: 163 }}
-              />
+              <Pressable
+                onPress={() => setPreviewOpen(true)}
+                disabled={!poster}
+                accessibilityRole="imagebutton"
+                accessibilityLabel="View cover">
+                <AnimatedImage
+                  sharedTransitionTag={`shared-image-${transitionTag}`}
+                  source={{ uri: poster }}
+                  style={{ width: 115, height: 163 }}
+                />
+              </Pressable>
             )}
             <HUYStack
               className="gap-2 flex-1"
