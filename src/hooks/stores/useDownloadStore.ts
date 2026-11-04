@@ -4,6 +4,7 @@ import { FFmpegKit, FFprobeKit, Level, Log, ReturnCode } from 'react-native-ffmp
 import type { VideoTrack, AudioTrack, TextTrack, TextTracks } from 'react-native-video/src';
 import BackgroundService from 'react-native-background-actions';
 import { runOnRuntimeAsync } from 'react-native-worklets';
+import { File as FsFile } from 'expo-file-system';
 import { useMemo } from 'react';
 import { storage } from './MMKV';
 import { usePreferencesStore } from './usePreferencesStore';
@@ -11,6 +12,7 @@ import { CACHE_DIR, DOWNLOADS_DIR, SUB_LANGUAGE, UWUMI_DIR } from '@/constants/c
 import { fileUri, formatBytes, fsDirectory, fsFile } from '@/constants/utils';
 import { excludeFromBackup } from '@/modules/excludeFromBackup';
 import type { MediaType } from '@/constants/types';
+import { parseThumbnailVtt, toThumbnailVtt, type SeekPreviewCue } from '@/utils/seekPreview';
 import { downloadRuntime } from '../runtimes';
 
 // Transient throttle state — not persisted, not in Zustand
@@ -49,14 +51,105 @@ const findMissingDownloads = (downloads: EpisodeDownload[]) =>
     )
     .map(({ id }) => id);
 
-/** Deletes a download's file, if it's still there */
+/** The folder beside a download that holds its seek-preview sprites ("E01 - Name.thumbs") */
+const thumbnailsDir = (outputFile: string) => outputFile.replace(/\.[^./]+$/, '') + '.thumbs';
+
+/** Deletes a download's file and its sprites, if they're still there */
 const deleteOutputFile = (outputFile: string) => {
   try {
     const file = fsFile(resolveOutputFile(outputFile));
     if (file.exists) file.delete();
+    const sprites = fsDirectory(resolveOutputFile(thumbnailsDir(outputFile)));
+    if (sprites.exists) sprites.delete();
   } catch (error) {
     console.error(`❌ Failed to delete file: ${outputFile}`, error);
   }
+};
+
+/** The provider's sprite sheets, downloaded into `dir`; the cues then name the local copies */
+const copyProviderSprites = async (vttUrl: string, headers: Record<string, string> | undefined, dir: string) => {
+  const cues = parseThumbnailVtt(await (await fetch(vttUrl, { headers })).text(), vttUrl);
+  if (!cues.length) throw new Error('The sprite list is empty');
+  const names = new Map<string, string>();
+  for (const uri of new Set(cues.map((cue) => cue.uri))) {
+    const extension = uri.split(/[?#]/)[0]!.match(/\.(webp|jpe?g|png)$/i)?.[0] ?? '.jpg';
+    const name = `sheet_${names.size}${extension}`;
+    await FsFile.downloadFileAsync(uri, fsFile(`${dir}/${name}`), { headers, idempotent: true });
+    names.set(uri, name);
+  }
+  return cues.map((cue) => ({ ...cue, uri: names.get(cue.uri)! }));
+};
+
+const SPRITE_WIDTH = 160;
+const SPRITE_COLUMNS = 10;
+const SPRITES_PER_SHEET = 100;
+
+/**
+ * Sprite sheets cut from the downloaded file, for sources that send none. Only keyframes are decoded, so it's quick,
+ * and each tile is the keyframe nearest its time.
+ */
+const cutSprites = async (file: string, dir: string, duration: number, video?: VideoTrack) => {
+  const interval = duration > 3600 ? 10 : 5;
+  const height = video?.width && video.height ? Math.round((SPRITE_WIDTH * video.height) / video.width / 2) * 2 : 90;
+  const session = await FFmpegKit.executeWithArguments([
+    '-skip_frame',
+    'nokey',
+    '-i',
+    file,
+    '-an',
+    '-sn',
+    '-vf',
+    `fps=1/${interval},scale=${SPRITE_WIDTH}:${height},tile=${SPRITE_COLUMNS}x${SPRITES_PER_SHEET / SPRITE_COLUMNS}`,
+    '-vsync',
+    'vfr',
+    '-q:v',
+    '5',
+    '-y',
+    `${dir}/sprite_%03d.jpg`,
+  ]);
+  const returnCode = await session.getReturnCode();
+  if (!ReturnCode.isSuccess(returnCode)) throw new Error(`FFmpeg exited with code ${returnCode.getValue()}`);
+
+  return Array.from({ length: Math.ceil(duration / interval) }, (_, i): SeekPreviewCue => {
+    const tile = i % SPRITES_PER_SHEET;
+    return {
+      start: i * interval,
+      end: Math.min((i + 1) * interval, duration),
+      uri: `sprite_${String(Math.floor(i / SPRITES_PER_SHEET) + 1).padStart(3, '0')}.jpg`,
+      x: (tile % SPRITE_COLUMNS) * SPRITE_WIDTH,
+      y: Math.floor(tile / SPRITE_COLUMNS) * height,
+      w: SPRITE_WIDTH,
+      h: height,
+      sheetWidth: SPRITE_WIDTH * SPRITE_COLUMNS,
+      sheetHeight: height * (SPRITES_PER_SHEET / SPRITE_COLUMNS),
+    };
+  });
+};
+
+/**
+ * Seek-bar sprites beside a finished download: the provider's when it sent some, else cut from the file. Returns the
+ * sprite list's path, relative like `outputFile`.
+ */
+const saveThumbnails = async (download: EpisodeDownload, duration: number, video?: VideoTrack) => {
+  const relativeDir = thumbnailsDir(download.outputFile!);
+  const dir = resolveOutputFile(relativeDir);
+  await ensureDir(dir);
+  let cues: SeekPreviewCue[] | undefined;
+  if (download.thumbnailsVtt) {
+    cues = await copyProviderSprites(download.thumbnailsVtt, download.headers, dir).catch((error) => {
+      console.warn("Couldn't copy the provider's seek-preview sprites; cutting them from the file", error);
+      return undefined;
+    });
+  }
+  if (!cues) {
+    if (!(duration > 0)) throw new Error('Unknown duration');
+    cues = await cutSprites(resolveOutputFile(download.outputFile!), dir, duration, video);
+  }
+  const vtt = fsFile(`${dir}/thumbnails.vtt`);
+  if (vtt.exists) vtt.delete();
+  vtt.create();
+  await vtt.write(toThumbnailVtt(cues, (name) => name));
+  return `${relativeDir}/thumbnails.vtt`;
 };
 
 // Types
@@ -102,6 +195,10 @@ export interface EpisodeDownload {
   uniqueId?: string; // Episode unique ID from provider
   episodeId?: string; // Fallback episode ID
   externalSubtitles?: TextTracks;
+  /** The provider's seek-preview sprite list, copied beside the file once it's downloaded */
+  thumbnailsVtt?: string;
+  /** The saved sprite list, relative to the downloads folder like `outputFile` */
+  thumbnailsFile?: string;
   status: 'pending' | 'downloading' | 'completed' | 'failed' | 'cancelled';
   progress?: DownloadProgress;
   outputFile?: string;
@@ -559,6 +656,24 @@ export const useDownloadStore = create<DownloadState>()(
                     fileSize: file.size,
                     completedAt: Date.now(),
                   });
+                  // Best effort, after the download already counts as done
+                  const finished = get().downloads[downloadId];
+                  if (finished) {
+                    saveThumbnails(finished, totalDuration, streamInfo.videoTracks[0])
+                      .then((thumbnailsFile) =>
+                        set((state) =>
+                          state.downloads[downloadId]
+                            ? {
+                                downloads: {
+                                  ...state.downloads,
+                                  [downloadId]: { ...state.downloads[downloadId], thumbnailsFile },
+                                },
+                              }
+                            : {},
+                        ),
+                      )
+                      .catch((error) => console.warn('No seek-preview sprites for this download:', error));
+                  }
                 } else {
                   console.error(`❌ Output file not found: ${outputFile}`);
                   finishSession({ status: 'failed', error: 'Download completed but output file not found' });
@@ -1091,6 +1206,13 @@ export const downloadedFileUri = (download: EpisodeDownload | undefined) =>
 /** The episode's downloaded file, if it has a finished download (downloads are saved under its uniqueId) */
 export const useDownloadedFileUri = (uniqueId: string | undefined) =>
   useDownloadStore((state) => (uniqueId ? downloadedFileUri(state.downloads[uniqueId]) : undefined));
+
+/** The seek-preview sprite list saved beside the episode's download, as a file:// URI */
+export const useDownloadedThumbnailsUri = (uniqueId: string | undefined) =>
+  useDownloadStore((state) => {
+    const thumbnailsFile = uniqueId ? state.downloads[uniqueId]?.thumbnailsFile : undefined;
+    return thumbnailsFile ? fileUri(resolveOutputFile(thumbnailsFile)) : undefined;
+  });
 
 /** How many downloads are running or queued */
 export const useRemainingDownloadsCount = () =>

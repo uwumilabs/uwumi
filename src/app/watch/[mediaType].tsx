@@ -47,6 +47,8 @@ import {
   usePreferencesStore,
   usePlayerSettingsStore,
   useDownloadedFileUri,
+  useDownloadedThumbnailsUri,
+  useSeekPreviewStore,
   type EpisodeItem,
 } from '@/hooks';
 import { useToast } from '@/components/heroui';
@@ -80,6 +82,8 @@ const subtitleType = (uri: string) => {
 const EMPTY_SERVERS: IEpisodeServer[] = [];
 // A failure after this much playback is a broken stream rather than a bad server, so that server gets one reload
 const MID_PLAYBACK_MS = 10_000;
+// Saved progress this close to the end counts as finished
+const RESTART_TAIL_SECONDS = 10;
 
 const Watch = () => {
   const router = useRouter();
@@ -455,6 +459,16 @@ const Watch = () => {
     return Object.fromEntries(Object.entries(h).filter(([, v]) => typeof v === 'string')) as Record<string, string>;
   }, [localUri, data?.headers]);
 
+  // Seek-bar previews: the sprites saved with a download, or the provider's while streaming
+  const downloadedThumbnails = useDownloadedThumbnailsUri(localUri ? uniqueId : undefined);
+  const providerThumbnails = useMemo(() => data?.subtitles?.find((track) => isThumbnailTrack(track))?.url, [data]);
+  const setSeekPreviewSource = useSeekPreviewStore((state) => state.setSource);
+  useEffect(() => {
+    const url = localUri ? downloadedThumbnails : providerThumbnails;
+    setSeekPreviewSource(url ? { url, headers: localUri ? undefined : sourceHeaders } : null);
+    return () => setSeekPreviewSource(null);
+  }, [localUri, downloadedThumbnails, providerThumbnails, sourceHeaders, setSeekPreviewSource]);
+
   // const gestures = Gesture.Exclusive(doubleTapGesture, brightnessVolumeGesture, singleTapGesture);
 
   // The source's own tracks first, so they're picked over external ones in the same language
@@ -628,7 +642,13 @@ const Watch = () => {
             pendingAddRef.current = null;
             const resume = resumeRef.current?.uniqueId === uniqueId ? resumeRef.current.at : undefined;
             resumeRef.current = null;
-            const startAt = pending?.resumeAt ?? resume ?? (getProgress(uniqueId)?.currentTime || 0);
+            // A watched episode starts over: resuming at its end would end it at once and roll on to the next
+            const saved = getProgress(uniqueId);
+            const savedAt =
+              saved && !saved.isCompleted && saved.currentTime < value.duration - RESTART_TAIL_SECONDS
+                ? saved.currentTime
+                : 0;
+            const startAt = pending?.resumeAt ?? resume ?? savedAt;
             lastProgressUpdateRef.current.currentTime = startAt;
             videoRef?.current?.seek(startAt);
             const addedTrack = pending && value.textTracks.find((track) => track.title === pending.title);
@@ -742,7 +762,9 @@ const Watch = () => {
           }
           notice={rotation.switched && rotation.attempt ? `Playing on ${rotation.attempt.server}` : undefined}
         />
-        {upNext && (
+        {/* The toolkit's ended flag outlives a source until the next one loads, so a new episode would otherwise
+            count down to the one after it before it plays */}
+        {upNext && phase === 'playing' && (
           <VideoPlayer.UpNext
             title={upNext.title ? `${upNext.label} · ${upNext.title}` : upNext.label}
             onPlayNext={handleNextEpisode}

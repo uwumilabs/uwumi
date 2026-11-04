@@ -88,6 +88,11 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - Import `Easing` from `react-native-reanimated`, not `react-native`, inside worklets.
 - uniwind only styles RN core views and `withUniwind` wrappers. A third-party native view styled with `className` renders 0×0, so wrap it.
 - Every inline iOS SwiftUI `Host` in a scrolling screen needs `ignoreSafeArea="container"`.
+- uwumi renders the player's seek bar itself: it passes its own `Slider` (`src/components/native/slider`) to the toolkit through `videoComponents`. Player additions to the seek bar go there, for example `SeekPreview`.
+  - Seek previews come from `useSeekPreviewStore`: the provider's `thumbnails.vtt` while streaming, or the sprites saved beside a download.
+- The toolkit's `VideoProvider` is global (in `_layout`), and its `ended` flag stays true until the next source loads. So the watch screen only renders `VideoPlayer.UpNext` once its own source has loaded (`phase === 'playing'`). Otherwise a new episode counts down to the one after it before it plays.
+  - Saved progress that's completed, or within 10 s of the end, starts the episode from 0. Resuming at the end would end it at once and set off the same chain.
+  - `@expo/ui`'s Compose `Slider` takes a plain `value` and a JS `onValueChange` (58.0.27). Its `useNativeState` and `useWorkletCallback` only work with `TextField`, `SyncSwitch`, `LoadingIndicator` and some modifiers.
 - Read zustand stores with selectors, never `useXStore()` whole. In the player, use `useVideoSelector`, not `useVideo`. Rows read small stores rather than taking new props.
 - Don't call `openBrowserAsync` directly. Use `openBrowser()` from `src/constants/utils.ts`, or Android shows a second task in recents.
 - Worklet runtimes (`runOnRuntimeAsync`) are only for pure, high-frequency work whose input is already off the JS thread. The FFmpeg progress parsing is the only current case.

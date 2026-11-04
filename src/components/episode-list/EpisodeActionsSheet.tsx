@@ -365,6 +365,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
             uniqueId: episode.uniqueId,
             episodeId: episode.id,
             externalSubtitles: resolvedSubtitles,
+            thumbnailsVtt: data?.subtitles?.find((sub) => isThumbnailTrack(sub))?.url,
           });
 
           // Probing the stream can take half a minute, so close the sheet and say so instead of sitting on it

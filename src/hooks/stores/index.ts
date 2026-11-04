@@ -14,3 +14,4 @@ export * from './usePreferencesStore';
 export * from './useMangaProgressStore';
 export * from './usePlayerSettingsStore';
 export * from './useReaderSettingsStore';
+export * from './useSeekPreviewStore';
