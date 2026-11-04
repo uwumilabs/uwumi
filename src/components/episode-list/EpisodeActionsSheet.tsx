@@ -17,7 +17,7 @@ import {
 import { MediaType } from '@/constants/types';
 import { infoTitle, isThumbnailTrack, isTV, openVideoInOtherApp, shareMedia } from '@/constants/utils';
 import { useLocalSearchParams } from 'expo-router';
-import { useActiveProvider } from '@/constants/provider';
+import { useActiveProvider, useProviders } from '@/constants/provider';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { HUXStack, HUYStack, RippleButton } from '../ui-primitives';
 import { BottomSheet } from '../native/BottomSheet';
@@ -118,6 +118,10 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
       episode?.uniqueId ? state.progresses[episode.uniqueId] : undefined,
     );
     const currentProvider = useActiveProvider(mediaType);
+    const providers = useProviders();
+    const providerName =
+      providers[mediaType]?.find(({ value }) => value === (currentProvider || provider))?.name ??
+      (currentProvider || provider);
     const rememberedServer = useLastServerStore(
       (state) => state.servers[lastServerKey(mediaType, currentProvider || provider)],
     );
@@ -202,7 +206,6 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
     }, [episode, getProgress, setProgress, onOpenChange, toast]);
 
     const handleShowQualityOptions = (mode: 'external-player' | 'download') => {
-      if (!episode?.id) return;
       setActionMode(mode);
       // Trigger the query to fetch sources
       setShouldFetchSources(true);
@@ -328,7 +331,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
               ? Number(seasonFromMedia)
               : undefined;
 
-        const subtitles = data?.subtitles || [];
+        const subtitles = (data?.subtitles || []).filter((sub) => !isThumbnailTrack(sub));
         const externalSubtitles = subtitles.map((sub) => ({
           title: sub.lang || 'Unknown',
           language: (sub.lang || 'en') as any,
@@ -364,16 +367,23 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
             externalSubtitles: resolvedSubtitles,
           });
 
+          // Probing the stream can take half a minute, so close the sheet and say so instead of sitting on it
+          onOpenChange(false);
+          toast.show({ label: 'Getting the download ready', description: successDescription });
           await startDownload(downloadId);
+
+          // startDownload records a failed probe on the download rather than throwing
+          const started = useDownloadStore.getState().downloads[downloadId];
+          if (started?.status === 'failed') {
+            toast.show({ variant: 'danger', label: "Couldn't start the download", description: started.error });
+          } else if (started?.status === 'downloading') {
+            toast.show({ variant: 'success', label: 'Download started', description: successDescription });
+          }
         } catch (e) {
           console.error('❌ Error starting download:', e);
           const message = String((e as Error).message || 'Unknown error');
           toast.show({ variant: 'danger', label: 'Failed to start download', description: message });
-          return;
         }
-
-        toast.show({ variant: 'success', label: 'Download started', description: successDescription });
-        onOpenChange(false);
       },
       [
         episode,
@@ -489,7 +499,13 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
             {showServerSelection && (
               <SheetList>
                 <HUYStack className="gap-1 mt-2">
-                  {isLoading ? (
+                  {!episode.id ? (
+                    <ListState
+                      title={`Not on ${providerName}`}
+                      subtitle="This episode isn’t available there. Try another provider."
+                      severity="error"
+                    />
+                  ) : isLoading ? (
                     <ListState loading title="Loading servers..." />
                   ) : error ? (
                     <ListState title="Failed to load servers" subtitle="Please try again" severity="error" />
@@ -535,7 +551,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
 
                       return (
                         <StyledSheetButton
-                          key={quality}
+                          key={`${index}-${url}`}
                           hasTVPreferredFocus={index === 0}
                           onPress={() =>
                             actionMode === 'download' ? handleDownloadWithQuality(url) : handleOpenWithQuality(url)
@@ -547,7 +563,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(
                               <IoniconsIcon name="play" size={18} />
                             )
                           }
-                          label={quality}
+                          label={source.server ? `${quality} · ${source.server}` : quality}
                           rightIcon={<IoniconsIcon name="chevron-forward" size={18} className="text-foreground" />}
                         />
                       );

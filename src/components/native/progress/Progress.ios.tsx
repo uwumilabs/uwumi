@@ -6,7 +6,13 @@ import { background, progressViewStyle, shapes, tint } from '@expo/ui/swift-ui/m
 import { useCurrentTheme } from '@/hooks';
 import type { ProgressProps } from './Progress';
 
-export const Progress: React.FC<ProgressProps> = ({ value = 0, className, minTrackColor, maxTrackColor }) => {
+export const Progress: React.FC<ProgressProps> = ({
+  value = 0,
+  indeterminate,
+  className,
+  minTrackColor,
+  maxTrackColor,
+}) => {
   const currentTheme = useCurrentTheme();
   const progress = Math.max(0, Math.min(100, value)) / 100;
 
@@ -14,7 +20,7 @@ export const Progress: React.FC<ProgressProps> = ({ value = 0, className, minTra
     <View className={cn('self-stretch', className)}>
       <Host matchContents={{ vertical: true }} ignoreSafeArea="container" style={{ width: '100%' }}>
         <ProgressView
-          value={progress}
+          value={indeterminate ? undefined : progress}
           modifiers={[
             progressViewStyle('linear'),
             tint(maxTrackColor || currentTheme.accent),

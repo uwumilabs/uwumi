@@ -4,8 +4,7 @@ import { type Href, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { NativeList, Separator, ThemedView } from '@/components';
 import { usePreferencesStore, useRemainingDownloadsCount } from '@/hooks';
-import { EXTERNAL_LINKS } from '@/constants/config';
-import { isTV, openBrowser } from '@/constants/utils';
+import { isTV } from '@/constants/utils';
 import { ensureAlertPermission } from '@/utils/episodeAlerts';
 import { PerfProfiler } from '@/perf/perfHarness';
 
@@ -84,11 +83,6 @@ const More = () => {
             <NativeList.Item icon="settings-outline" title="Settings" onPress={go('/(settings)/settings')} />
             <NativeList.Item icon="play-circle-outline" title="Player settings" onPress={go('/(settings)/player')} />
             <NativeList.Item icon="information-circle-outline" title="About" onPress={go('/(settings)/about')} />
-            <NativeList.Item
-              icon="help-circle-outline"
-              title="Help"
-              onPress={() => openBrowser(EXTERNAL_LINKS.PROJECT_WEBSITE)}
-            />
             {process.env.NODE_ENV === 'development' && (
               <NativeList.Item icon="flask-outline" title="Example" onPress={go('/(settings)/example')} />
             )}

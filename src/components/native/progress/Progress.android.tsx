@@ -6,7 +6,13 @@ import { fillMaxWidth } from '@expo/ui/jetpack-compose/modifiers';
 import { useCurrentTheme } from '@/hooks';
 import type { ProgressProps } from './Progress';
 
-export const Progress: React.FC<ProgressProps> = ({ value = 0, className, minTrackColor, maxTrackColor }) => {
+export const Progress: React.FC<ProgressProps> = ({
+  value = 0,
+  indeterminate,
+  className,
+  minTrackColor,
+  maxTrackColor,
+}) => {
   const currentTheme = useCurrentTheme();
   const progress = Math.max(0, Math.min(100, value)) / 100;
 
@@ -14,7 +20,7 @@ export const Progress: React.FC<ProgressProps> = ({ value = 0, className, minTra
     <View className={cn('self-stretch', className)}>
       <Host matchContents={{ vertical: true }} style={{ width: '100%' }}>
         <LinearProgressIndicator
-          progress={progress}
+          progress={indeterminate ? null : progress}
           color={maxTrackColor || currentTheme.accent}
           trackColor={minTrackColor || currentTheme.default}
           modifiers={[fillMaxWidth()]}

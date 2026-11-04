@@ -133,7 +133,8 @@ const Watch = () => {
     : allEpisodes.find((episode) => episode.id === episodeId);
   const activeEpisodeId = switchedProvider ? listedEpisode?.id : episodeId;
   const activeMediaId = switchedProvider ? providerMediaId : mediaId;
-  const missingOnProvider = switchedProvider && !episodesLoading && !activeEpisodeId;
+  // The route's id is empty when the provider didn't find the title; after a switch, the list has to load first
+  const missingOnProvider = !activeEpisodeId && !(switchedProvider && episodesLoading);
   const providers = useProviders();
   const uniqueId = listedEpisode?.uniqueId ?? routeUniqueId;
   // A downloaded episode plays its file, with no servers, so it works offline. If the file won't play, it streams

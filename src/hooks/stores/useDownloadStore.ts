@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { FFmpegKit, FFprobeKit, Log, ReturnCode } from 'react-native-ffmpeg-kit';
+import { FFmpegKit, FFprobeKit, Level, Log, ReturnCode } from 'react-native-ffmpeg-kit';
 import type { VideoTrack, AudioTrack, TextTrack, TextTracks } from 'react-native-video/src';
 import BackgroundService from 'react-native-background-actions';
 import { runOnRuntimeAsync } from 'react-native-worklets';
@@ -35,6 +35,8 @@ const languageCode = (lang?: string) => {
   return name ? SUB_LANGUAGE[name] : undefined;
 };
 
+const IMAGE_CODECS = new Set(['png', 'mjpeg', 'gif', 'webp', 'bmp']);
+
 // One run per app start, shared by every caller of initialize()
 let initializing: Promise<boolean> | undefined;
 
@@ -61,6 +63,7 @@ const deleteOutputFile = (outputFile: string) => {
 
 interface StreamInfo {
   duration: number;
+  isHls: boolean;
   videoTracks: VideoTrack[];
   audioTracks: AudioTrack[];
   textTracks: TextTrack[];
@@ -125,7 +128,7 @@ interface DownloadState {
   removeDownload: (downloadId: string) => Promise<void>;
   clearCompleted: () => Promise<void>;
   clearAll: () => Promise<void>;
-  getStreamInfo: (url: string, headers?: Record<string, string>) => Promise<StreamInfo>;
+  getStreamInfo: (url: string, headers?: Record<string, string>, persistent?: boolean) => Promise<StreamInfo>;
   downloadQueue: (
     episodes: Omit<EpisodeDownload, 'id' | 'status' | 'createdAt'>[],
     onQueueProgress?: (progress: any) => void,
@@ -175,10 +178,27 @@ export const useDownloadStore = create<DownloadState>()(
             await ensureDir(DOWNLOADS_DIR);
             await ensureDir(TEMP_DIR);
 
+            // FFmpeg sessions outlive a JS reload (an OTA applied in-process, or dev), but their callbacks don't, and
+            // a killed app leaves records stuck as downloading. Neither resumes, so stop the sessions and fail the
+            // records: left as downloading, Download would be a no-op
+            await FFmpegKit.cancel();
+            const interrupted = Object.values(get().downloads).filter(
+              ({ status }) => status === 'downloading' || status === 'pending',
+            );
+            for (const { outputFile } of interrupted) if (outputFile) deleteOutputFile(outputFile);
+
             const missing = findMissingDownloads(Object.values(get().downloads));
             set((state) => {
               const downloads = { ...state.downloads };
               for (const id of missing) delete downloads[id];
+              for (const { id } of interrupted) {
+                downloads[id] = {
+                  ...downloads[id],
+                  status: 'failed',
+                  error: 'Interrupted. Download it again',
+                  outputFile: undefined,
+                };
+              }
               return { downloads, isInitialized: true };
             });
             return true;
@@ -287,23 +307,41 @@ export const useDownloadStore = create<DownloadState>()(
 
           // Get stream info
           let streamInfo;
+          // Some CDNs (NetflixMirror's) answer only the first request on a reused connection, so FFmpeg loads one
+          // audio playlist and no video; those get a fresh connection per request
+          let persistent = true;
           try {
             streamInfo = await get().getStreamInfo(download.url, download.headers);
+            if (!streamInfo.videoTracks.length) {
+              persistent = false;
+              streamInfo = await get().getStreamInfo(download.url, download.headers, false);
+            }
+            if (!streamInfo.videoTracks.length)
+              throw new Error("Couldn't load this quality's video. Try again, or another quality or server");
+            // Some servers (megaplay-hd) put a 1×1 PNG before each HLS segment's MPEG-TS data. Players resync past
+            // it, but FFmpeg 6 takes the segments for pictures, so there's no audio or real video to save
+            if (streamInfo.isHls && streamInfo.videoTracks.every(({ codecs }) => IMAGE_CODECS.has(codecs ?? '')))
+              throw new Error("This server's stream can't be downloaded. Try another server");
           } catch (streamError) {
             console.error(
               `❌ FFprobe failed for: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
               streamError,
             );
-            set((state) => ({
-              downloads: {
-                ...state.downloads,
-                [downloadId]: {
-                  ...state.downloads[downloadId],
-                  status: 'failed',
-                  error: streamError instanceof Error ? streamError.message : 'FFprobe failed to analyze video stream',
+            set((state) => {
+              // Not if it was cancelled or removed meanwhile
+              if (state.downloads[downloadId]?.status !== 'downloading') return {};
+              return {
+                downloads: {
+                  ...state.downloads,
+                  [downloadId]: {
+                    ...state.downloads[downloadId],
+                    status: 'failed',
+                    error:
+                      streamError instanceof Error ? streamError.message : 'FFprobe failed to analyze video stream',
+                  },
                 },
-              },
-            }));
+              };
+            });
 
             // Stop background service if no more downloads
             const hasActiveDownloads = Object.values(get().downloads).some((d) => d.status === 'downloading');
@@ -312,6 +350,9 @@ export const useDownloadStore = create<DownloadState>()(
             }
             return;
           }
+
+          // Cancelled or removed while the stream was being probed
+          if (get().downloads[downloadId]?.status !== 'downloading') return;
 
           // Strip characters that break file paths (path separators, reserved chars, control chars)
           const sanitizePathSegment = (s: string) =>
@@ -353,8 +394,12 @@ export const useDownloadStore = create<DownloadState>()(
               : undefined;
 
           const commandParts: string[] = [];
-          // Providers disguise HLS segments with fake extensions (.jpg/.js); allow them all
-          commandParts.push('-allowed_extensions', 'ALL');
+          // HLS demuxer options. FFmpeg rejects them for a direct file ("Option allowed_extensions not found")
+          if (streamInfo.isHls) {
+            // Providers disguise HLS segments with fake extensions (.jpg/.js); allow them all
+            commandParts.push('-allowed_extensions', 'ALL');
+            if (!persistent) commandParts.push('-http_persistent', '0');
+          }
           if (headerString) {
             commandParts.push('-headers', headerString);
           }
@@ -385,6 +430,13 @@ export const useDownloadStore = create<DownloadState>()(
 
           // Codec settings
           commandParts.push('-c:v', 'copy', '-c:a', 'copy', '-c:s', 'mov_text', '-bsf:a', 'aac_adtstoasc');
+
+          // FFmpeg 6.0 writes the source's own subtitles as "und" once converted to mov_text (players then list
+          // "Track 1, 2"), so give them the languages the probe read
+          streamInfo.textTracks.forEach((track, index) => {
+            const code = languageCode(track.language);
+            if (code && code !== 'und') commandParts.push(`-metadata:s:s:${index}`, `language=${code}`);
+          });
 
           // Language and title for external subtitles; English is the default track, as when streaming
           if (download.externalSubtitles && download.externalSubtitles.length > 0) {
@@ -496,12 +548,6 @@ export const useDownloadStore = create<DownloadState>()(
                     activeSessionIds,
                   };
                 });
-              if (!ReturnCode.isSuccess(returnCode) && !ReturnCode.isCancel(returnCode)) {
-                const logs = await completedSession.getAllLogsAsString();
-                console.error('[FFmpeg] FAILED code:', returnCode, '\n', logs?.slice(0, 500));
-              }
-
-              // Check result
               if (ReturnCode.isSuccess(returnCode)) {
                 const file = fsFile(outputFile);
                 if (file.exists) {
@@ -522,21 +568,21 @@ export const useDownloadStore = create<DownloadState>()(
                 //   `🚫 Download cancelled: ${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`,
                 // );
                 finishSession({ status: 'cancelled' });
-              } /*else {
-                // Failed
-                console.error(`❌ FFmpeg failed with return code: ${returnCode}`);
-                set((state) => ({
-                  downloads: {
-                    ...state.downloads,
-                    [downloadId]: {
-                      ...state.downloads[downloadId],
-                      status: 'failed',
-                      error: `FFmpeg failed with return code: ${returnCode}`,
-                    },
-                  },
-                  activeSessionIds: new Set([...state.activeSessionIds].filter((id) => id !== sessionId)),
-                }));
-              }*/
+              } else {
+                // Marked failed so it can be downloaded again; left as downloading, Download would be a no-op
+                const logs = (await completedSession.getAllLogsAsString()) ?? '';
+                // The log opens with FFmpeg's banner; why it stopped is at the end
+                const reason = logs
+                  .split('\n')
+                  .reverse()
+                  .find((line) => /error|invalid|no streams|failed|forbidden|not found/i.test(line))
+                  ?.trim();
+                console.error(`[FFmpeg] failed with code ${returnCode.getValue()}:\n${logs.slice(-1500)}`);
+                finishSession({
+                  status: 'failed',
+                  error: reason || `FFmpeg failed with code ${returnCode.getValue()}`,
+                });
+              }
 
               // Stop background service if no more active downloads
               const hasActiveDownloads = Object.values(get().downloads).some((d) => d.status === 'downloading');
@@ -731,9 +777,10 @@ export const useDownloadStore = create<DownloadState>()(
       },
 
       // Get stream info
-      getStreamInfo: async (url, headers) => {
+      getStreamInfo: async (url, headers, persistent = true) => {
         try {
           const args: string[] = ['-allowed_extensions', 'ALL'];
+          if (!persistent) args.push('-http_persistent', '0');
           if (headers && Object.keys(headers).length > 0) {
             const headerString =
               Object.entries(headers)
@@ -748,12 +795,20 @@ export const useDownloadStore = create<DownloadState>()(
           if (!ReturnCode.isSuccess(returnCode)) {
             const output = await session.getOutput();
             const logs = await session.getAllLogsAsString();
-            console.error('[FFprobe] returnCode:', returnCode, '\noutput:', output, '\nlogs:', logs);
-            throw new Error(`FFprobe exited with code ${returnCode}: ${logs?.slice(0, 300) || output?.slice(0, 300)}`);
+            console.error('[FFprobe] returnCode:', returnCode.getValue(), '\noutput:', output, '\nlogs:', logs);
+            throw new Error(
+              `FFprobe exited with code ${returnCode.getValue()}: ${logs?.slice(0, 300) || output?.slice(0, 300)}`,
+            );
           }
 
           if (ReturnCode.isSuccess(returnCode)) {
-            const output = await session.getOutput();
+            // getOutput() mixes in what the decoders log, which can land inside the JSON (h264's "non-existing SPS");
+            // ffprobe prints the JSON itself at the STDERR level
+            const logs = await session.getAllLogs();
+            const output = logs
+              .filter((log) => log.getLevel() === Level.AV_LOG_STDERR)
+              .map((log) => log.getMessage())
+              .join('');
             const info = JSON.parse(output);
 
             let duration = 0;
@@ -799,6 +854,9 @@ export const useDownloadStore = create<DownloadState>()(
 
             return {
               duration,
+              isHls: String(info.format?.format_name ?? '')
+                .split(',')
+                .includes('hls'),
               videoTracks,
               audioTracks,
               textTracks,
@@ -961,10 +1019,11 @@ export const useDownloadStore = create<DownloadState>()(
         if (!download || !state.isBackgroundServiceRunning) return;
 
         try {
-          const progress = download.progress;
+          // No FFmpeg session yet while the stream is being probed
+          const progress = download.sessionId ? download.progress : undefined;
           const progressText = progress
             ? `${progress.percentage.toFixed(1)}% • ${formatBytes(downloadBytesPerSecond(progress))}/s`
-            : 'Starting...';
+            : 'Getting ready…';
 
           await BackgroundService.updateNotification({
             taskTitle: `${download.name}${download.season ? ` Season ${download.season}` : ''} - Episode ${download.episode}`,

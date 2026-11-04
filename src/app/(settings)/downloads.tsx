@@ -187,15 +187,17 @@ const completedDateFormat = new Intl.DateTimeFormat();
 // Only the progress part re-renders on the download's ticks
 const DownloadProgressInfo = memo(({ id, onCancel }: { id: string; onCancel: (id: string) => void }) => {
   const progress = useDownloadStore((state) => (previewById?.[id] ?? state.downloads[id])?.progress);
+  // FFmpeg has no session yet while the stream is being probed
+  const preparing = useDownloadStore((state) => !previewById?.[id] && !state.downloads[id]?.sessionId);
   const percent = Math.round(progress?.percentage || 0);
   const bytesPerSecond = progress ? downloadBytesPerSecond(progress) : 0;
 
   return (
     <HUYStack className="mt-2 gap-2">
-      <Progress value={percent} />
+      <Progress value={percent} indeterminate={preparing} />
       <HUXStack className="flex-row items-center justify-between">
         <HUXStack className="flex-row items-center gap-3">
-          <Text className="text-sm font-semibold text-foreground">{percent}%</Text>
+          <Text className="text-sm font-semibold text-foreground">{preparing ? 'Getting ready…' : `${percent}%`}</Text>
           {!!bytesPerSecond && <Text className="text-xs text-foreground">{formatBytes(bytesPerSecond)}/s</Text>}
         </HUXStack>
         {!!progress?.currentTime && !!progress?.totalDuration && (

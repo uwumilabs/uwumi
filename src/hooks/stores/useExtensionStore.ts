@@ -423,10 +423,21 @@ const runCachedCode = async <T>(
   }
 };
 
+/** Dev builds: a bundle at UWUMI_DIR/dev-extensions/<id>.js runs instead of the installed one, to try a fix unpublished */
+const readDevExtension = async (id: string): Promise<string | null> => {
+  if (!__DEV__) return null;
+  const file = fsFile(`${UWUMI_DIR}/dev-extensions/${id}.js`);
+  return file.exists ? file.text() : null;
+};
+
 async function loadInstalledProvider(id: string, category: 'anime' | 'movies') {
   const { providerManager } = getExtensionManagers();
   const metadata = providerManager.getExtensionMetadata(id);
   if (metadata.category !== category) throw new Error(`${metadata.name} isn't a ${category} provider`);
+  const devCode = await readDevExtension(id);
+  if (devCode) {
+    return providerManager.executeProviderCode(devCode, metadata.factoryName, metadata, { skipIntegrity: true });
+  }
   return runCachedCode('extension', id, false, (code) =>
     providerManager.executeProviderCode(code, metadata.factoryName, metadata),
   );
