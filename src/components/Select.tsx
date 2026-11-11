@@ -1,9 +1,10 @@
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import { Button } from './heroui';
 import { Text, View } from 'react-native';
-import { useBackHandler, useCurrentTheme, useSheetColor } from '@/hooks';
+import { useBackHandler } from '@/hooks/useBackHandler';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { IoniconsIcon } from './Icons';
-import { isTV, tvFocusRingStyle } from '@/constants/utils';
+import { isTV, tvFocusRingStyle } from '@/utils/tv';
 import { BottomSheet } from './native/BottomSheet';
 import { RippleButton } from './ui-primitives';
 
@@ -12,7 +13,7 @@ type SelectOption = {
   value: string;
 };
 
-export const Select = ({
+const SelectView = ({
   SelectItem,
   SelectLabel,
   value,
@@ -25,33 +26,20 @@ export const Select = ({
   onValueChange: (value: string) => void;
   size?: 'sm' | 'md' | 'lg';
 }) => {
-  const selectOptions = useMemo(
-    () =>
-      SelectItem.map((item) => ({
-        value: item.value,
-        label: item.name,
-      })),
-    [SelectItem],
-  );
-
-  const selectedOption = useMemo(() => selectOptions.find((item) => item.value === value), [selectOptions, value]);
-  const sheetColor = useSheetColor();
+  const selectedOption = useMemo(() => SelectItem.find((item) => item.value === value), [SelectItem, value]);
   const currentTheme = useCurrentTheme();
   const [isOpen, setIsOpen] = useState(false);
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-  };
 
   useBackHandler(
     isTV && isOpen,
     useCallback(() => {
-      handleOpenChange(false);
+      setIsOpen(false);
       return true;
     }, []),
   );
 
   const handleValueChange = useCallback(
-    (option: { value: string; label: string }) => {
+    (option: SelectOption) => {
       onValueChange(option.value);
       setIsOpen(false);
     },
@@ -64,20 +52,20 @@ export const Select = ({
         variant="primary"
         size={size}
         onPress={() => setIsOpen(true)}
-        style={isTV ? tvFocusRingStyle({ color: currentTheme?.accentForeground, borderWidth: 5 }) : undefined}>
+        // The press-scale animated style sits on the same view and stops the ring's :focus styles from applying
+        isAnimatedStyleActive={!isTV}
+        style={isTV ? tvFocusRingStyle({ color: currentTheme.accentForeground, borderWidth: 5 }) : undefined}>
         {selectedOption ? (
-          <View className="flex-row items-center gap-2">
-            <Button.Label>{selectedOption.label}</Button.Label>
-          </View>
+          <Button.Label>{selectedOption.name}</Button.Label>
         ) : (
           <Button.Label className="text-foreground">{SelectLabel}</Button.Label>
         )}
         <IoniconsIcon name="chevron-down" size={size === 'sm' ? 16 : 20} className="text-accent-foreground" />
       </Button>
 
-      <BottomSheet open={isOpen} onOpenChange={handleOpenChange} scrollable>
+      <BottomSheet open={isOpen} onOpenChange={setIsOpen}>
         <View className="flex-1 gap-1">
-          {selectOptions.map((item) => {
+          {SelectItem.map((item) => {
             const isSelected = item.value === selectedOption?.value;
             return (
               <RippleButton
@@ -86,7 +74,7 @@ export const Select = ({
                 hasTVPreferredFocus={isSelected}
                 focusScale={1}>
                 <View className="flex-row items-center gap-3 flex-1 py-3 px-4">
-                  <Text className="text-base text-foreground flex-1">{item.label}</Text>
+                  <Text className="text-base text-foreground flex-1">{item.name}</Text>
                   {isSelected && <IoniconsIcon name="checkmark" size={20} className="text-accent" />}
                 </View>
               </RippleButton>
@@ -98,4 +86,7 @@ export const Select = ({
   );
 };
 
-export default memo(Select);
+export const Select = memo(SelectView);
+Select.displayName = 'Select';
+
+export default Select;

@@ -1,53 +1,32 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
 import { IAnimeResult, IMovieResult } from 'react-native-consumet';
-import { storage } from './MMKV';
+import { persistStorage } from './MMKV';
+
+type Favorite = IAnimeResult | IMovieResult;
+type TitleRef = { id: string | number; type?: unknown };
+
+/** The same title: TMDB movie and TV ids share a numeric space, so the type tells them apart where both have one */
+export const isSameTitle = (a: TitleRef, b: TitleRef) =>
+  String(a.id) === String(b.id) && (!a.type || !b.type || a.type === b.type);
 
 interface FavoriteState {
-  favorites: (IAnimeResult | IMovieResult)[];
-  addFavorite: (item: IAnimeResult | IMovieResult) => void;
-  removeFavorite: (id: string) => void;
-  isFavorite: (id: string) => boolean;
-  clearAll: () => void;
+  favorites: Favorite[];
+  addFavorite: (item: Favorite) => void;
+  removeFavorite: (title: TitleRef) => void;
 }
 
 export const useFavoriteStore = create<FavoriteState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       favorites: [],
-
-      addFavorite: (item: IAnimeResult | IMovieResult) => {
-        //console.log('Adding favorite:', item);
-        set((state) => ({
-          favorites: [...state.favorites, item].filter(Boolean),
-        }));
-      },
-
-      removeFavorite: (id) => {
-        //console.log('Removing favorite:', id);
-        const idKey = String(id);
-        set((state) => ({
-          favorites: state.favorites.filter((item) => String(item.id) !== idKey),
-        }));
-      },
-
-      isFavorite: (id) => {
-        const idKey = String(id);
-        return get().favorites.some((item) => String(item.id) === idKey);
-      },
-
-      clearAll: () => {
-        //console.log('Clearing all favorites');
-        set({ favorites: [] });
-      },
+      addFavorite: (item) => set((state) => ({ favorites: [...state.favorites, item] })),
+      removeFavorite: (title) =>
+        set((state) => ({ favorites: state.favorites.filter((item) => !isSameTitle(item, title)) })),
     }),
     {
       name: 'favorites',
-      storage: createJSONStorage(() => ({
-        setItem: (name, value) => storage.set(name, value),
-        getItem: (name) => storage.getString(name) ?? null,
-        removeItem: (name) => storage.remove(name),
-      })),
+      storage: persistStorage,
     },
   ),
 );

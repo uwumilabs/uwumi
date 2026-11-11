@@ -1,69 +1,28 @@
-/**
- * This file is only for development and testing purposes.
- * It is not intended for production use.
- * This file doesnt get bundled in the production build.(may be😁)
- * It is used to test the functionality of library, stores,hooks other screens etc.
- */
-import React, { useEffect } from 'react';
-import { ThemedView, HUYStack } from '@/components';
-import { storage } from '@/hooks/stores/MMKV';
+// Development only (More lists it in dev builds): MMKV's keys, to inspect or wipe
+import React from 'react';
 import { ScrollView, Text } from 'react-native';
+import { ThemedView, HUYStack } from '@/components/ui-primitives';
+import { storage } from '@/hooks/stores/MMKV';
 import { Button } from '@/components/heroui';
-import { useUniwind } from 'uniwind';
-import { useProviderStore } from '@/constants/provider';
-import { useProviderSelectionStore } from '@/app/watch/components/ProviderSelection';
-import { useSettings } from 'react-native-video-toolkit';
 
-const Example = () => {
-  const uni = useUniwind();
-  const setProvider = useProviderStore((state) => state.setProvider);
-  const { openSettings, closeSettings } = useSettings();
-  const { setDub, isEmbed } = useProviderSelectionStore();
-  useEffect(() => {
-    setDub(true);
-  }, []);
-  const getAllMMKVKeys = () => {
-    const keys = storage.getAllKeys();
-    //console.log('All MMKV Keys:', keys);
-    //get all the data from MMKV storage
-    //console.log(storage.getBoolean('hasCompletedOnboarding'));
-    keys.forEach((key) => {
-      const value = storage.getString(key);
-      const typeOfValue = typeof value;
-      console.log(`Key: ${key}, Value: ${value}, Type: ${typeOfValue}`);
-    });
-    console.log(uni);
-  };
-
-  const deleteAllMMKVKeys = () => {
-    const keys = storage.getAllKeys();
-    keys.forEach((key) => {
-      storage.remove(key);
-      //console.log(`Deleted key: ${key}`);
-    });
-  };
-
-  return (
-    <ThemedView>
-      <ScrollView className="space-y-3">
-        <HUYStack className="p-4 gap-3">
-          <Text className="text-xs font-bold text-accent mt-4">MMKV Storage</Text>
-          <Button
-            onPress={() => {
-              getAllMMKVKeys();
-            }}>
-            Get All MMKV Keys
-          </Button>
-          <Button
-            onPress={() => {
-              deleteAllMMKVKeys();
-            }}>
-            delete All MMKV Keys
-          </Button>
-        </HUYStack>
-      </ScrollView>
-    </ThemedView>
-  );
+const logAllKeys = () => {
+  for (const key of storage.getAllKeys()) console.log(`Key: ${key}, Value: ${storage.getString(key)}`);
 };
+
+const deleteAllKeys = () => {
+  for (const key of storage.getAllKeys()) storage.remove(key);
+};
+
+const Example = () => (
+  <ThemedView>
+    <ScrollView className="space-y-3">
+      <HUYStack className="p-4 gap-3">
+        <Text className="text-xs font-bold text-accent mt-4">MMKV Storage</Text>
+        <Button onPress={logAllKeys}>Get All MMKV Keys</Button>
+        <Button onPress={deleteAllKeys}>delete All MMKV Keys</Button>
+      </HUYStack>
+    </ScrollView>
+  </ThemedView>
+);
 
 export default Example;

@@ -25,7 +25,6 @@ function copyRecursive(src, dest) {
   }
 }
 
-// 1. Copy plugins/android-debug -> android/app/src/debug
 function withDebugSourceSet(config) {
   return withDangerousMod(config, [
     'android',
@@ -38,9 +37,6 @@ function withDebugSourceSet(config) {
   ]);
 }
 
-// 2. Inject build.gradle customizations that prebuild would otherwise wipe.
-
-// 2a. debug buildType tweaks — injected after `signingConfig signingConfigs.debug`
 const DEBUG_BUILD_TYPE_EXTRAS = `
             versionNameSuffix "-debug"
             // Only add .debug suffix when -PdebugSuffix is passed (for real devices)
@@ -48,7 +44,6 @@ const DEBUG_BUILD_TYPE_EXTRAS = `
                 applicationIdSuffix ".debug"
             }`;
 
-// 2b. per-ABI split APKs + custom release APK naming — injected into android {}
 // Built as an array so Groovy's ${...} interpolations aren't parsed by JS.
 // ARM only: no x86 phones/TVs to ship to, and Apple Silicon emulators are arm64
 const ABIS = ['armeabi-v7a', 'arm64-v8a'];
@@ -83,7 +78,7 @@ function withBuildGradleCustomizations(config) {
   return withAppBuildGradle(config, (config) => {
     let contents = config.modResults.contents;
 
-    // 2a — debug buildType. Anchor on the buildTypes.debug block; the
+    // Anchor on the buildTypes.debug block; the
     // signingConfigs.debug block is followed by storeFile, so this is unique.
     if (!contents.includes('versionNameSuffix "-debug"')) {
       const anchor = /(debug\s*\{\s*signingConfig\s+signingConfigs\.debug)/;
@@ -97,7 +92,7 @@ function withBuildGradleCustomizations(config) {
       }
     }
 
-    // 2b — ABI splits + APK naming. Anchor on the namespace line (unique, always
+    // Anchor on the namespace line (unique, always
     // present in the android {} block). Order inside android {} does not matter.
     if (!contents.includes('applicationVariants.all')) {
       const anchor = /(namespace\s+['"][^'"]+['"])/;
@@ -116,7 +111,7 @@ function withBuildGradleCustomizations(config) {
   });
 }
 
-// 2c. compile native code only for the shipped ABIs (the template builds all four)
+// compile native code only for the shipped ABIs (the template builds all four)
 function withArmArchitectures(config) {
   return withGradleProperties(config, (config) => {
     const value = ABIS.join(',');
@@ -127,7 +122,6 @@ function withArmArchitectures(config) {
   });
 }
 
-// 3. Add the ffmpeg-kit ivy repo to the root build.gradle's allprojects block.
 // The FFmpeg @aar is a transitive dep of :app, so :app must see this repo — the
 // repo declared in the module's own build.gradle is not used for :app resolution.
 const FFMPEG_IVY_REPO = [
@@ -148,7 +142,7 @@ function withRootBuildGradleRepo(config) {
     let contents = config.modResults.contents;
 
     if (contents.includes('2004durgesh/ffmpeg-kit/releases/download')) {
-      return config; // already applied
+      return config;
     }
 
     const anchor = /(allprojects\s*\{\s*repositories\s*\{)/;

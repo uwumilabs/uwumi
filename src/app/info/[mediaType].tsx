@@ -1,11 +1,12 @@
-import { InfoHeader, InfoRecommendations, InfoToolbar } from './components';
-import { EpisodeList, ThemedView } from '@/components';
-import { useMediaInfo } from '@/hooks';
+import { InfoHeader, InfoRecommendations, InfoToolbar } from '@/components/info/InfoHeader';
+import EpisodeList from '@/components/episode-list/EpisodeList';
+import { ThemedView } from '@/components/ui-primitives';
+import { useMediaInfo } from '@/hooks/queries/infoQueries';
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { MediaType } from '@/constants/types';
-import { isTV } from '@/constants/utils';
-import Chapters from './Chapters';
+import { isTV } from '@/utils/tv';
+import Chapters from '@/components/info/Chapters';
 
 const Info = () => {
   const { mediaType } = useLocalSearchParams<{ mediaType: MediaType }>();
@@ -22,7 +23,7 @@ const Info = () => {
       {isManga ? (
         <Chapters header={header} />
       ) : (
-        <EpisodeList header={header} footer={<InfoRecommendations data={data} />} autoScrollToCurrent={false} />
+        <EpisodeList header={header} footer={<InfoRecommendations data={data} />} />
       )}
     </ThemedView>
   );

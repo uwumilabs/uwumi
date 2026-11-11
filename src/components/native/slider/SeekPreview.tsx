@@ -2,16 +2,14 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { File as FsFile } from 'expo-file-system';
-import { formatTime } from '@/constants/utils';
+import { formatTime } from '@/utils/format';
 import { useSeekPreviewStore, type SeekPreviewSource } from '@/hooks/stores/useSeekPreviewStore';
-import { findCue, parseThumbnailVtt } from '@/utils/seekPreview';
+import { findCue, loadThumbnailVtt } from '@/utils/seekPreview';
 
 const TILE_WIDTH = 160;
 
 const loadCues = async ({ url, headers }: SeekPreviewSource) => {
-  const text = url.startsWith('file:') ? await new FsFile(url).text() : await (await fetch(url, { headers })).text();
-  const cues = parseThumbnailVtt(text, url);
+  const cues = await loadThumbnailVtt(url, headers);
   // Fetched before the first drag, so the tiles show at once
   Image.prefetch([...new Set(cues.map((cue) => cue.uri))], { headers, cachePolicy: 'memory-disk' }).catch(() => {});
   return cues;

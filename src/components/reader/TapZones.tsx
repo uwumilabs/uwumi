@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { css } from 'react-native-reanimated';
-import type { InvertTapZones, TapZonesLayout } from '@/hooks';
+import type { InvertTapZones, TapZonesLayout } from '@/hooks/stores/useReaderSettingsStore';
 
 export type TapAction = 'next' | 'previous' | 'menu';
 

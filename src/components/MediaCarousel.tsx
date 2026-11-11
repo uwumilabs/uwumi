@@ -1,35 +1,28 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
-import { TVRow } from './TVRow';
+import { ROW, TVRow, rowCardWidth } from './TVRow';
 import { useRouter } from 'expo-router';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { ISearch } from 'react-native-consumet';
 import { SkeletonGroup } from './heroui';
 import { Button } from './Button';
-import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
-import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/constants/utils';
-import { useCurrentTheme, useMediaFeed } from '@/hooks';
-import { MediaCard, MediaItem, cardKey, toCardItems } from './CardList';
+import { MediaFeedType, MediaType } from '@/constants/types';
+import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/utils/tv';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { useMediaFeed } from '@/hooks/queries/mediaQueries';
+import { CARD_ASPECT, CARD_ASPECT_CLASS, MediaCard, MediaItem, cardKey, toCardItems } from './CardList';
 import { HUXStack } from './ui-primitives';
 import { IoniconsIcon } from './Icons';
 import TVFocusWrapper from './TVFocusWrapper';
 import List from './List';
 
-const MAX_ITEMS = 10;
 // Only the first page, which keeps its reference as Browse loads more pages of the same feed, so the row skips those
 const firstPage = (data: InfiniteData<ISearch<MediaItem>, number>) => data.pages[0];
-const ROW_PADDING = 12;
-const ITEM_GAP = 8;
-// A fractional count leaves part of the next card visible, which signals the row scrolls.
 const CARDS_PER_SCREEN = isTV ? 6.5 : 3.3;
-const CARD_ASPECT = isTV ? 3.2 / 2 : 3 / 2;
-// TV: room for the focus ring's 1.05 scale, which the list would otherwise clip
-const ROW_VERTICAL_PADDING = isTV ? 10 : 0;
 
 interface MediaCarouselProps {
   title: string;
   mediaType: MediaType;
-  metaProvider: MetaProvider;
   feed?: Exclude<MediaFeedType, 'search'>;
   browseTitle?: string;
   items?: MediaItem[];
@@ -37,39 +30,39 @@ interface MediaCarouselProps {
 }
 
 export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
-  ({ title, browseTitle, feed, items: staticItems, mediaType, metaProvider, isFirstRow = false }) => {
+  ({ title, browseTitle, feed, items: staticItems, mediaType, isFirstRow = false }) => {
     const router = useRouter();
     const currentTheme = useCurrentTheme();
     const { width: screenWidth } = useWindowDimensions();
-    const cardWidth = (screenWidth - ROW_PADDING - ITEM_GAP * Math.floor(CARDS_PER_SCREEN)) / CARDS_PER_SCREEN;
-    const rowHeight = cardWidth * CARD_ASPECT + ROW_VERTICAL_PADDING * 2;
+    const cardWidth = rowCardWidth(screenWidth, CARDS_PER_SCREEN);
+    const rowHeight = cardWidth * CARD_ASPECT + ROW.verticalPadding * 2;
 
     const isStatic = staticItems !== undefined;
     const canBrowse = !isStatic && !!feed && !!browseTitle;
     const tagPrefix = isStatic ? 'similar' : feed;
 
-    const feedResult = useMediaFeed<MediaItem, ISearch<MediaItem>>(mediaType, metaProvider, feed ?? 'trending', {
+    const feedResult = useMediaFeed<MediaItem, ISearch<MediaItem>>(mediaType, feed ?? 'trending', {
       enabled: !isStatic && !!feed,
       select: firstPage,
     });
     const isLoading = !isStatic && feedResult.isLoading && !feedResult.data;
     const error = isStatic ? null : feedResult.error;
     const items = useMemo(
-      () => (isStatic ? toCardItems(staticItems) : toCardItems(feedResult.data?.results).slice(0, MAX_ITEMS)),
+      () => (isStatic ? toCardItems(staticItems) : toCardItems(feedResult.data?.results).slice(0, ROW.maxItems)),
       [isStatic, staticItems, feedResult.data],
     );
 
     const openBrowse = useCallback(() => {
-      router.push({ pathname: '/browse/[mediaType]', params: { mediaType, feed, metaProvider, title: browseTitle } });
-    }, [router, mediaType, feed, metaProvider, browseTitle]);
+      router.push({ pathname: '/browse/[mediaType]', params: { mediaType, feed, title: browseTitle } });
+    }, [router, mediaType, feed, browseTitle]);
 
     const renderBody = () => {
       if (isLoading) {
         return (
           <SkeletonGroup isLoading animation={false}>
-            <HUXStack className="overflow-hidden" props={{ style: { paddingLeft: ROW_PADDING, gap: ITEM_GAP } }}>
+            <HUXStack className="overflow-hidden" style={{ paddingLeft: ROW.padding, gap: ROW.gap }}>
               {Array.from({ length: Math.ceil(CARDS_PER_SCREEN) }).map((_, i) => (
-                <View key={i} style={{ width: cardWidth }} className={isTV ? 'aspect-[2/3.2]' : 'aspect-2/3'}>
+                <View key={i} style={{ width: cardWidth }} className={CARD_ASPECT_CLASS}>
                   <SkeletonGroup.Item className="w-full h-full rounded-lg" />
                 </View>
               ))}
@@ -80,7 +73,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
 
       if (error) {
         return (
-          <HUXStack className="items-center gap-2" props={{ style: { paddingHorizontal: ROW_PADDING } }}>
+          <HUXStack className="items-center gap-2" style={{ paddingHorizontal: ROW.padding }}>
             <Text className="text-sm text-muted">Couldn't load {title.toLowerCase()}.</Text>
             <Button variant="ghost" size="sm" onPress={() => feedResult.refetch()}>
               <Button.Label>Retry</Button.Label>
@@ -98,17 +91,16 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
             keyExtractor={(item, index) => (item.id != null ? cardKey(item) : `fallback-${index}`)}
             showsHorizontalScrollIndicator={false}
             scrollsToTop={false}
-            contentContainerStyle={{ paddingHorizontal: ROW_PADDING, paddingVertical: ROW_VERTICAL_PADDING }}
-            {...tvFocusScrollProps(ROW_PADDING)}
+            contentContainerStyle={{ paddingHorizontal: ROW.padding, paddingVertical: ROW.verticalPadding }}
+            {...tvFocusScrollProps(ROW.padding)}
             // FlashList ignores `gap` in contentContainerStyle
-            ItemSeparatorComponent={() => <View style={{ width: ITEM_GAP }} />}
+            ItemSeparatorComponent={() => <View style={{ width: ROW.gap }} />}
             renderItem={({ item, index }) => (
               <View style={{ width: cardWidth, height: cardWidth * CARD_ASPECT }} scrollSnapAlign={TV_SNAP_CENTER}>
                 <MediaCard
                   item={item}
                   index={index}
                   mediaType={mediaType}
-                  metaProvider={metaProvider}
                   preferredFocus={isFirstRow && index === 0}
                   animateEntry={false}
                   // The same title can sit in several rows; tags must stay unique on one screen
@@ -119,7 +111,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
             // TV: the header link is hard to reach with a D-pad, so the row ends with a "See all" tile
             ListFooterComponent={
               isTV && canBrowse ? (
-                <TVFocusWrapper onPress={openBrowse} style={{ width: cardWidth, marginLeft: ITEM_GAP }}>
+                <TVFocusWrapper onPress={openBrowse} style={{ width: cardWidth, marginLeft: ROW.gap }}>
                   <View
                     className="aspect-[2/3.2] rounded-[10px] items-center justify-center gap-2"
                     style={{ backgroundColor: currentTheme?.segment }}>
@@ -138,7 +130,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = memo(
 
     return (
       <View className="gap-2" scrollSnapAlign={TV_SNAP_CENTER}>
-        <HUXStack className="items-center justify-between" props={{ style: { paddingLeft: ROW_PADDING + 4 } }}>
+        <HUXStack className="items-center justify-between" style={{ paddingLeft: ROW.padding + 4 }}>
           <Text className="text-foreground text-lg font-semibold">{title}</Text>
           {!isTV && canBrowse && (
             <Button variant="ghost" size="sm" onPress={openBrowse}>

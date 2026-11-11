@@ -2,7 +2,8 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Button } from '@/components/Button';
 import { BaseButton, VideoPlayer, useProgress, useVideoSelector } from 'react-native-video-toolkit';
-import { usePlayerSettingsStore, type SkipTime } from '@/hooks';
+import { usePlayerSettingsStore } from '@/hooks/stores/usePlayerSettingsStore';
+import { type SkipTime } from '@/hooks/queries/watchQueries';
 
 // An outro that runs this close to the end leads straight into the next episode
 const OUTRO_TAIL_SECONDS = 5;

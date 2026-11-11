@@ -1,26 +1,23 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
+import { ThemedView, HUXStack, HUYStack, IconTitle, RippleButton } from '@/components/ui-primitives';
+import { List } from '@/components/List';
+import { Progress } from '@/components/native/progress/Progress';
+import { IoniconsIcon, type IoniconProps } from '@/components/Icons';
+import { Separator } from '@/components/native/separator/Separator';
 import {
-  ThemedView,
-  List,
-  HUXStack,
-  HUYStack,
-  Progress,
-  IconTitle,
-  IoniconsIcon,
-  RippleButton,
-  type IoniconProps,
-  Separator,
-} from '@/components';
-import {
-  downloadBytesPerSecond,
   downloadedFileUri,
-  EpisodeDownload,
+  isActive,
+  isPreparing,
+  type DownloadStatus,
+  type EpisodeDownload,
   useDownloadStore,
-  usePureBlackBackground,
-} from '@/hooks';
-import { formatBytes, formatTime, openVideoInOtherApp } from '@/constants/utils';
+} from '@/downloads/useDownloadStore';
+import { downloadBytesPerSecond } from '@/downloads/service';
+import { usePureBlackBackground } from '@/hooks/stores/useThemeStore';
+import { formatBytes, formatTime } from '@/utils/format';
+import { openVideoInOtherApp } from '@/utils/share';
 import { ActivityIndicator, Text } from 'react-native';
 import { Card, cn, useToast } from '@/components/heroui';
 import { type Href, useRouter } from 'expo-router';
@@ -33,7 +30,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const SHOW_PREVIEW_DOWNLOADS = false;
 const PREVIEW_DOWNLOADS: EpisodeDownload[] = (
   [
-    // Downloading
     {
       id: 'dummy-1',
       name: 'Attack on Titan',
@@ -69,7 +65,6 @@ const PREVIEW_DOWNLOADS: EpisodeDownload[] = (
       fileSize: 720000000,
       createdAt: Date.now() - 1800000,
     },
-    // Pending
     {
       id: 'dummy-3',
       name: 'One Piece',
@@ -87,7 +82,6 @@ const PREVIEW_DOWNLOADS: EpisodeDownload[] = (
       status: 'pending',
       createdAt: Date.now() - 150000,
     },
-    // Completed
     {
       id: 'dummy-5',
       name: 'Naruto Shippuden',
@@ -123,7 +117,6 @@ const PREVIEW_DOWNLOADS: EpisodeDownload[] = (
       createdAt: Date.now() - 172800000,
       completedAt: Date.now() - 169200000,
     },
-    // Failed
     {
       id: 'dummy-8',
       name: 'Tokyo Revengers',
@@ -154,7 +147,6 @@ const PREVIEW_DOWNLOADS: EpisodeDownload[] = (
   ] satisfies Omit<EpisodeDownload, 'url'>[]
 ).map((download) => ({ ...download, url: '' }));
 
-type DownloadStatus = EpisodeDownload['status'];
 type DownloadListItem =
   | { type: 'header'; title: string; count: number }
   | { type: 'item'; id: string; status: DownloadStatus };
@@ -178,7 +170,7 @@ const getStatusColor = (status: DownloadStatus) => {
     case 'cancelled':
       return 'red';
     default:
-      return '$color1';
+      return undefined;
   }
 };
 
@@ -187,8 +179,7 @@ const completedDateFormat = new Intl.DateTimeFormat();
 // Only the progress part re-renders on the download's ticks
 const DownloadProgressInfo = memo(({ id, onCancel }: { id: string; onCancel: (id: string) => void }) => {
   const progress = useDownloadStore((state) => (previewById?.[id] ?? state.downloads[id])?.progress);
-  // FFmpeg has no session yet while the stream is being probed
-  const preparing = useDownloadStore((state) => !previewById?.[id] && !state.downloads[id]?.sessionId);
+  const preparing = useDownloadStore((state) => !previewById?.[id] && isPreparing(state.downloads[id]));
   const percent = Math.round(progress?.percentage || 0);
   const bytesPerSecond = progress ? downloadBytesPerSecond(progress) : 0;
 
@@ -315,14 +306,14 @@ const DownloadCard = memo(
           </HUXStack>
         </Card.Header>
         <Card.Body>
-          {status === 'downloading' && <DownloadProgressInfo id={id} onCancel={onCancel} />}
+          {isActive(status) && <DownloadProgressInfo id={id} onCancel={onCancel} />}
           {status === 'completed' && <DownloadedActions id={id} canPlay={download.canPlay} />}
         </Card.Body>
 
         <Card.Footer>
-          {status !== 'downloading' && (
+          {!isActive(status) && (
             <HUXStack className="mt-2 flex-row items-center gap-2">
-              <Text className="text-sm font-medium" style={{ color: getStatusColor(status) }}>
+              <Text className="text-sm font-medium text-foreground" style={{ color: getStatusColor(status) }}>
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </Text>
               {download.error && (
@@ -390,7 +381,6 @@ const Downloads = () => {
       .join('\n'),
   );
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
-  // Alert dialog states
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [clearCompletedDialogOpen, setClearCompletedDialogOpen] = useState(false);
@@ -422,7 +412,7 @@ const Downloads = () => {
   const completedKey = useMemo(() => [...completedIds].sort().join(','), [completedIds]);
   const { data: storageInfo = { downloadsSize: 0, totalDownloads: 0 } } = useQuery({
     queryKey: ['downloads', 'storage', completedKey],
-    queryFn: () => useDownloadStore.getState().getStorageInfo(),
+    queryFn: () => useDownloadStore.getState().storageInfo(),
     enabled: isInitialized,
     placeholderData: keepPreviousData,
   });
@@ -501,7 +491,7 @@ const Downloads = () => {
     return (
       <ThemedView>
         <HUYStack className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="$color" />
+          <ActivityIndicator size="large" />
           <Text className="mt-4 text-xl text-foreground/70">Initializing downloads...</Text>
         </HUYStack>
       </ThemedView>
@@ -510,7 +500,6 @@ const Downloads = () => {
 
   return (
     <ThemedView>
-      {/* Storage Info Header */}
       <HUYStack className="gap-3 p-4" style={{ backgroundColor: pureBlackBackground ? '#000' : undefined }}>
         <HUXStack className="flex-row items-center justify-between">
           <HUXStack className="flex-row items-center gap-2">
@@ -527,14 +516,12 @@ const Downloads = () => {
           <Text className="text-lg font-semibold text-foreground">{storageInfo.totalDownloads}</Text>
         </HUXStack>
 
-        {/* Action Buttons */}
         {entries.length > 0 && (
           <HUXStack className="mt-2 flex-row gap-2">
             {completedIds.length > 0 && (
               <RippleButton
                 onPress={handleClearCompleted}
                 style={{ flex: 1 }}
-                containerStyle={{ backgroundColor: '$color4' }}
                 className="flex-1 items-center justify-center gap-2 rounded-xl p-3">
                 <IconTitle iconName="trash-outline" text="Clear Completed" />
               </RippleButton>
@@ -551,7 +538,6 @@ const Downloads = () => {
 
       <Separator />
 
-      {/* Downloads List */}
       <List<DownloadListItem>
         data={listData}
         contentContainerStyle={{ paddingBottom: 32 + insets.bottom }}
@@ -561,7 +547,6 @@ const Downloads = () => {
         ListEmptyComponent={<EmptyState />}
       />
 
-      {/* Confirm Dialogs */}
       <ConfirmDialog
         open={removeDialogOpen}
         onOpenChange={setRemoveDialogOpen}

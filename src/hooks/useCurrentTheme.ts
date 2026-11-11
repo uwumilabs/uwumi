@@ -1,16 +1,22 @@
-import { themes } from '@/themes/theme';
-import { useThemeStore } from './stores/useThemeStore';
 import { useMemo } from 'react';
+import { themes } from '@/themes/theme';
+import { usePureBlackBackground, useThemeStore } from './stores/useThemeStore';
 
+const AMOLED_SURFACE = '#0c0c0c';
+
+/** The theme's colours, and the ones pure black changes: screens go black, sheets and the TV rail near black */
 export const useCurrentTheme = () => {
-  const currentTheme = useThemeStore((state) => state.currentTheme);
+  const themeName = useThemeStore((state) => state.themeName);
+  const isDark = useThemeStore((state) => state.isDark);
+  const pureBlack = usePureBlackBackground((state) => state.pureBlackBackground);
 
   return useMemo(() => {
-    const fallbackKey = (Object.keys(themes)[0] ?? 'default-dark') as keyof typeof themes;
-    const baseTheme = themes[currentTheme as keyof typeof themes] ?? themes[fallbackKey];
+    const theme = themes[themeName];
     return {
-      ...baseTheme,
-      amoledSurfaceVariant: '#0c0c0c',
+      ...theme,
+      screenBackground: pureBlack ? '#000000' : theme.background,
+      sheetBackground: isDark && pureBlack ? AMOLED_SURFACE : theme.background,
+      railBackground: pureBlack ? AMOLED_SURFACE : theme.segment,
     };
-  }, [currentTheme]);
+  }, [themeName, isDark, pureBlack]);
 };

@@ -1,57 +1,15 @@
-import { DEFAULT_PROVIDERS, META_PROVIDERS, useActiveProvider } from '@/constants/provider';
+import { useActiveProvider } from '@/hooks/stores/useProviderStore';
+import { TMDB_API_KEY } from '@/constants/config';
 import { useLocalSearchParams } from 'expo-router';
-import { MediaType, MetaProvider } from '@/constants/types';
+import { MediaType } from '@/constants/types';
 import { useQuery } from '@tanstack/react-query';
 import { IAnimeInfo, IMovieInfo, MediaFormat, META, TvType, IMetaAnimeEpisode } from 'react-native-consumet';
-import { loadAnimeProvider, loadMovieProvider } from '../stores';
+import { loadAnimeProvider, loadMovieProvider } from '@/hooks/stores/useExtensionStore';
 
-export const TMDB_API_KEY = process.env.EXPO_PUBLIC_TMDB_API_KEY;
-
-export function useInfo({
-  mediaType,
-  metaProvider,
-  type,
-  id,
-  provider,
-}: {
-  mediaType: MediaType;
-  metaProvider: MetaProvider;
-  type: MediaFormat | TvType;
-  id: string;
-  provider: string;
-}) {
-  //   console.log('useInfo is called',{
-  //   mediaType,
-  //   metaProvider,
-  //   type,
-  //   id,
-  //   provider,
-  // });
-  return useQuery<IAnimeInfo | IMovieInfo>({
-    // Only TMDB fetches through the provider; AniList info is the same whichever provider plays it
-    queryKey: [mediaType, 'info', id, metaProvider, type, metaProvider === 'tmdb' ? provider : null],
-    queryFn: async () => {
-      let data: IAnimeInfo | IMovieInfo | undefined;
-      try {
-        if (metaProvider === 'anilist' || metaProvider === 'anilist-manga') {
-          data = (await new META.Anilist().fetchAnilistInfoById(id)) as unknown as IAnimeInfo;
-        }
-        if (metaProvider === 'tmdb') {
-          const movieProvider = await loadMovieProvider(provider);
-          data = await new META.TMDB(TMDB_API_KEY, movieProvider).fetchMediaInfo(id, type);
-        }
-      } catch (error) {
-        console.error('Error fetching info data:', error);
-        throw error;
-      }
-      if (!data) {
-        throw new Error(`Unsupported meta provider: ${metaProvider}`);
-      }
-      // console.log(metaProvider, data);
-      return data;
-    },
-  });
-}
+// A TMDB title's info carries its seasons' episodes on the provider, so the info page and the episode list share it
+const tmdbInfoKey = (id: string, type: MediaFormat | TvType, provider: string) => ['tmdb', 'info', id, type, provider];
+const fetchTmdbInfo = async (id: string, type: MediaFormat | TvType, provider: string) =>
+  new META.TMDB(TMDB_API_KEY, await loadMovieProvider(provider)).fetchMediaInfo(id, type);
 
 /**
  * The current route's show info. The info page, its episode sheet and the watch screen all read it through the query
@@ -64,12 +22,20 @@ export function useMediaInfo() {
     type: MediaFormat | TvType;
   }>();
   const provider = useActiveProvider(mediaType);
-  return useInfo({ mediaType, id, type, metaProvider: META_PROVIDERS[mediaType] as MetaProvider, provider });
+  const isMovie = mediaType === MediaType.MOVIE;
+  return useQuery<IAnimeInfo | IMovieInfo>({
+    // AniList info is the same whichever provider plays it
+    queryKey: isMovie ? tmdbInfoKey(id, type, provider) : [mediaType, 'info', id],
+    queryFn: async () =>
+      isMovie
+        ? fetchTmdbInfo(id, type, provider)
+        : ((await new META.Anilist().fetchAnilistInfoById(id)) as unknown as IAnimeInfo),
+  });
 }
 
 export function useAnimeEpisodes({
   id,
-  provider = DEFAULT_PROVIDERS.anime,
+  provider,
   enabled = true,
 }: {
   id: string;
@@ -93,7 +59,7 @@ export function useAnimeEpisodes({
 export function useMoviesEpisodes({
   id,
   type,
-  provider = DEFAULT_PROVIDERS.movie,
+  provider,
   enabled = true,
 }: {
   id: string;
@@ -102,14 +68,8 @@ export function useMoviesEpisodes({
   enabled?: boolean;
 }) {
   return useQuery<IMovieInfo>({
-    queryKey: ['movies', 'episodes', id, type, provider],
+    queryKey: tmdbInfoKey(id, type, provider),
+    queryFn: () => fetchTmdbInfo(id, type, provider),
     enabled: enabled && !!id,
-    queryFn: async () => {
-      // let url = `${getFetchUrl().episodeApiUrl}/movies/tmdb/episodes/${id}?type=${type.split(' ')[0]}&provider=${provider}`;
-      // console.log(url);
-      // const { data } = await axios.get(url);
-      const movieProvider = await loadMovieProvider(provider);
-      return new META.TMDB(TMDB_API_KEY, movieProvider).fetchMediaInfo(id, type);
-    },
   });
 }

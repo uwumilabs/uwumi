@@ -3,8 +3,9 @@ import { Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Card, cn } from './heroui';
 import { Button } from './Button';
-import type { Provider } from '@/constants/provider';
-import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
+import type { Provider } from '@/hooks/stores/useProviderStore';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { usePureBlackBackground } from '@/hooks/stores/useThemeStore';
 import { IoniconProps, IoniconsIcon } from './Icons';
 import { HUXStack, HUYStack } from './ui-primitives';
 

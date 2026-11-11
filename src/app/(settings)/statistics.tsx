@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { ScrollView, Text } from 'react-native';
-import { HorizontalTabs, HUXStack, HUYStack, IoniconsIcon, type IoniconProps, ThemedView } from '@/components';
-import {
-  useContinueWatchingStore,
-  useCurrentTheme,
-  useDownloadStore,
-  useFavoriteStore,
-  useMangaProgressStore,
-  useWatchProgressStore,
-} from '@/hooks';
+import { HorizontalTabs } from '@/components/HorizontalTabs';
+import { HUXStack, HUYStack, ThemedView } from '@/components/ui-primitives';
+import { IoniconsIcon, type IoniconProps } from '@/components/Icons';
+import { useContinueWatchingStore } from '@/hooks/stores/useContinueWatchingStore';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { useDownloadStore } from '@/downloads/useDownloadStore';
+import { useFavoriteStore } from '@/hooks/stores/useFavoriteStore';
+import { parseMangaProgressKey, useMangaProgressStore } from '@/hooks/stores/useMangaProgressStore';
+import { titleOfUniqueId } from '@/utils/episodes';
+import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
 import { MediaType } from '@/constants/types';
-import { getProviders } from '@/constants/provider';
+import { getProviders } from '@/hooks/stores/useProviderStore';
 
 type Stat = { label: string; value: string | number; icon?: IoniconProps['name'] };
 type Section = { title: string; stats: Stat[] };
@@ -24,17 +25,10 @@ const formatDuration = (seconds: number) => {
   return hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
 };
 
-// Watch progress and downloads are keyed by episode: `${anilistId}$ep=…` for anime, `${tmdbId}-${type}-s…-e…` for
-// TMDB movies and shows
-const ANIME_EPISODE = /^(\d+)\$ep=/;
-const TMDB_EPISODE = /^(\d+)-(\w+)-s\d+-e\d+$/;
-
-/** The title an episode belongs to, read from its uniqueId */
+// Watch progress and downloads are keyed by episode; TMDB movie and show ids overlap, so the type is part of the key
 const titleOf = (uniqueId: string) => {
-  const anime = ANIME_EPISODE.exec(uniqueId);
-  if (anime) return { mediaType: MediaType.ANIME, key: anime[1] };
-  const tmdb = TMDB_EPISODE.exec(uniqueId);
-  return tmdb ? { mediaType: MediaType.MOVIE, key: `${tmdb[2]}:${tmdb[1]}` } : undefined;
+  const title = titleOfUniqueId(uniqueId);
+  return title && { mediaType: title.mediaType, key: title.type ? `${title.type}:${title.id}` : title.id };
 };
 
 const countDistinct = (keys: (string | undefined)[]) => new Set(keys.filter(Boolean)).size;
@@ -102,11 +96,10 @@ const watchSections = (mediaType: MediaType.ANIME | MediaType.MOVIE): Section[] 
 };
 
 const mangaSections = (): Section[] => {
-  // Keyed `${anilistId}|${provider}`
-  const progress = Object.entries(useMangaProgressStore.getState().progress).map(([key, value]) => {
-    const [anilistId, provider] = key.split('|');
-    return { anilistId, provider, read: value.read.length };
-  });
+  const progress = Object.entries(useMangaProgressStore.getState().progress).map(([key, value]) => ({
+    ...parseMangaProgressKey(key),
+    read: value.read.length,
+  }));
 
   return [
     {

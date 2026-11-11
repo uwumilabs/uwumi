@@ -15,12 +15,12 @@ const PERMISSIONS = [
   'android.permission.WRITE_SETTINGS',
 ];
 const DOWNLOAD_SERVICE = 'com.asterinet.react.bgactions.RNBackgroundActionsTask';
-// The download notification's small icon (taskIcon in useDownloadStore); without it the service throws
+// The download notification's small icon; without it the service throws
 // "Task icon not found". 96 px is 24 dp at xxxhdpi, and Android scales it down for lower densities
 const NOTIFICATION_ICON = 'assets/images/notification.png';
 const NOTIFICATION_ICON_RES = 'app/src/main/res/drawable-xxxhdpi/notification_icon.png';
 
-// Downloads live in the app's files (DOWNLOADS_DIR in src/constants/config.ts; uwumi-dev in debug builds). Android's
+// Downloads live in the app's files (DOWNLOADS_DIR; uwumi-dev in debug builds). Android's
 // backup stops for an app over 25 MB, so episodes would also cost the extensions and settings their backup; they stay
 // out of it, as iOS keeps them out of iCloud. fullBackupContent covers Android 11 and older, dataExtractionRules 12+
 const DOWNLOAD_EXCLUDES = ['uwumi/downloads', 'uwumi-dev/downloads']

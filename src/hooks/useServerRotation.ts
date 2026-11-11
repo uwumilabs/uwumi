@@ -1,5 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { IEpisodeServer } from 'react-native-consumet';
+import { NoSourcesError, useEpisodeServers, useEpisodeSources, type EpisodeTarget } from '@/hooks/queries/watchQueries';
+import { lastServerKey, useLastServerStore } from '@/hooks/stores/useLastServerStore';
 
 /** Why a server was skipped. */
 export type ServerFailure = 'unavailable' | 'no-video' | 'playback';
@@ -33,7 +35,7 @@ const isCurrent = (state: RotationState, attempt: ServerAttempt) =>
  * Picks the server to play and moves on when one fails: a picked server first, then the last one that played, then
  * the provider's order. `key` names the episode, provider and dub setting; a new key starts over.
  */
-export function useServerRotation(key: string, servers: IEpisodeServer[], remembered: string | undefined) {
+function useServerRotation(key: string, servers: IEpisodeServer[], remembered: string | undefined) {
   const [stored, setState] = useState(() => initialState(key));
   // Reset while rendering, so a new episode never renders with the last one's failures
   let state = stored;
@@ -89,4 +91,65 @@ export function useServerRotation(key: string, servers: IEpisodeServer[], rememb
     pick,
     retryAll,
   };
+}
+
+const NO_SERVERS: IEpisodeServer[] = [];
+// A failure after this much playback is a broken stream rather than a bad server, so that server gets one reload
+const MID_PLAYBACK_MS = 10_000;
+
+/**
+ * Playing an episode from its provider's servers: each try of a server (an attempt) gets fresh sources and its own
+ * native player, the last server that played is tried first, and a server that fails moves on to the next. A stream
+ * that played a while and broke gets one reload. A reload or a switch picks up where playback was.
+ */
+export function useServerPlayback(target: EpisodeTarget, enabled: boolean) {
+  const serversQuery = useEpisodeServers(target, enabled);
+  const servers = serversQuery.data ?? NO_SERVERS;
+  const rememberKey = lastServerKey(target.mediaType, target.provider);
+  const remembered = useLastServerStore((state) => state.servers[rememberKey]);
+  const remember = useLastServerStore((state) => state.remember);
+  const key = useMemo(() => JSON.stringify(target), [target]);
+  const rotation = useServerRotation(key, servers, remembered);
+  const sourcesQuery = useEpisodeSources(target, rotation.server, rotation.attemptKey);
+  // Recorded while rendering: the query is keyed by the attempt, so this error is the current server's
+  if (sourcesQuery.isError && rotation.attempt && !rotation.failed[rotation.attempt.server]) {
+    rotation.fail(rotation.attempt, sourcesQuery.error instanceof NoSourcesError ? 'no-video' : 'unavailable');
+  }
+
+  const [loadedAttempt, setLoadedAttempt] = useState<string | null>(null);
+  const loaded = loadedAttempt === rotation.attemptKey;
+  const loadedAtRef = useRef(0);
+  // Where the next attempt picks up, when the one before it had been playing; for this episode only
+  const resumeRef = useRef<{ key: string; at: number } | null>(null);
+  const { attempt, attemptKey, reload, fail, pick: pickServer } = rotation;
+
+  /** Call as the attempt's video loads; returns where to resume, if this attempt took over a playing one */
+  const onLoad = useCallback(() => {
+    setLoadedAttempt(attemptKey);
+    loadedAtRef.current = Date.now();
+    if (attempt) remember(rememberKey, attempt.server);
+    const resume = resumeRef.current?.key === key ? resumeRef.current.at : undefined;
+    resumeRef.current = null;
+    return resume;
+  }, [attemptKey, attempt, remember, rememberKey, key]);
+
+  const onError = useCallback(
+    (playhead: number) => {
+      if (!attempt) return;
+      if (loaded) resumeRef.current = { key, at: playhead };
+      if (loaded && attempt.reloads === 0 && Date.now() - loadedAtRef.current > MID_PLAYBACK_MS) reload(attempt);
+      else fail(attempt, 'playback');
+    },
+    [attempt, loaded, key, reload, fail],
+  );
+
+  const pick = useCallback(
+    (name: string, playhead: number) => {
+      if (loaded) resumeRef.current = { key, at: playhead };
+      pickServer(name);
+    },
+    [loaded, key, pickServer],
+  );
+
+  return { serversQuery, servers, sources: sourcesQuery.data, rotation, loaded, onLoad, onError, pick };
 }

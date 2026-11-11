@@ -132,7 +132,7 @@ export interface SubtitleTrack {
   index?: number;
   title?: string;
   language?: string;
-  type: TextTrackType | 'application/x-media-cues';
+  type: TextTrackType;
   selected?: boolean;
   uri: string;
 }

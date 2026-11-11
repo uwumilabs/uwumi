@@ -1,7 +1,7 @@
 import React from 'react';
 import { Host, Rectangle } from '@expo/ui/swift-ui';
 import { foregroundStyle, frame, padding } from '@expo/ui/swift-ui/modifiers';
-import { useCurrentTheme } from '@/hooks';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import type { SeparatorLineProps, SeparatorProps } from './Separator';
 
 // A 1pt line in the theme's separator colour, like Android's divider; SwiftUI's Divider is a fainter hairline

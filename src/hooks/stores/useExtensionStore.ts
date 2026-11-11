@@ -5,7 +5,6 @@ import {
   ExtensionManifest,
   ExtensionRegistry,
   ExtensionRegistryData,
-  ExtractorInfo,
   ExtractorManager,
   IntegrityError,
   ProviderManager,
@@ -19,12 +18,10 @@ import {
   type IMovieProvider,
   type IVideoExtractor,
 } from 'react-native-consumet';
-import { UWUMI_DIR } from '@/constants/config';
-import { fsDirectory, fsFile, HttpError } from '@/constants/utils';
+import { UWUMI_DIR, ensureDirectory, fsFile } from '@/utils/files';
+import { fetchText } from '@/utils/http';
 
-// --- Constants ---
-
-export const REGISTRY_URL =
+const REGISTRY_URL =
   'https://raw.githubusercontent.com/uwumilabs/react-native-consumet/refs/heads/main/src/extension-registry.json';
 
 const EXTENSIONS_CACHE_DIR = `${UWUMI_DIR}/extensions`;
@@ -56,48 +53,16 @@ interface ExtensionStoreState {
   installedVersion: number;
   isLoading: boolean;
   error: string | null;
-
-  // Core methods
-  initializeDirectories: () => Promise<boolean>;
-  updateRegistry: (registryUrl?: string) => Promise<void>;
-  // Extension management
+  /** Downloads the signed registry; a failure keeps the current one and sets `error` */
+  updateRegistry: () => Promise<void>;
+  /** Installs (or updates) the extension and its extractors; false when it couldn't be */
   installExtension: (extensionId: string, force?: boolean) => Promise<boolean>;
-  updateExtension: (extensionId: string) => Promise<boolean>;
   uninstallExtension: (extensionId: string) => Promise<boolean>;
   isExtensionInstalled: (extensionId: string) => boolean;
   getInstalledExtensions: () => ExtensionManifest[];
-
-  // Extractor management (internal - automatically handled)
-  installExtractor: (extractorName: string, force?: boolean) => Promise<boolean>;
-  updateExtractor: (extractorName: string) => Promise<boolean>;
-  uninstallExtractor: (extractorName: string) => Promise<boolean>;
-  isExtractorInstalled: (extractorName: string) => boolean;
-  getInstalledExtractors: () => ExtractorInfo[];
-
-  // File operations
-  readExtensionCode: (extensionId: string) => Promise<string | null>;
-  readExtractorCode: (extractorName: string) => Promise<string | null>;
-
-  // Utility methods
   getExtensionInfo: (extensionId: string) => ExtensionManifest | null;
-  getExtractorInfo: (extractorName: string) => ExtractorInfo | null;
   checkForUpdates: () => Promise<{ extensions: string[]; extractors: string[] }>;
-  clearCache: () => Promise<void>;
-  getStorageSize: () => Promise<number>;
 }
-
-// --- Utility Functions ---
-
-const ensureDirectoryExists = async (path: string): Promise<boolean> => {
-  try {
-    const folder = fsDirectory(path);
-    if (!folder.exists) folder.create({ intermediates: true, idempotent: true });
-    return true;
-  } catch (error) {
-    console.error(`❌ Failed to ensure directory: ${path}`, error);
-    return false;
-  }
-};
 
 const loadJSONFromStorage = <T>(key: string): T | null => {
   try {
@@ -132,12 +97,6 @@ const loadInitialRegistry = (): RegistryMetadata => {
   }
 };
 
-const downloadText = async (url: string): Promise<string> => {
-  const response = await fetch(url);
-  if (!response.ok) throw new HttpError(response.status, url);
-  return response.text();
-};
-
 const registryErrorMessage = (error: unknown): string => {
   if (error instanceof RegistrySignatureError) {
     return error.code === 'SIGNATURE_MISMATCH'
@@ -152,8 +111,7 @@ const registryErrorMessage = (error: unknown): string => {
 
 const downloadFile = async (url: string, destination: string): Promise<boolean> => {
   try {
-    const parentDir = destination.substring(0, destination.lastIndexOf('/'));
-    await ensureDirectoryExists(parentDir);
+    ensureDirectory(destination.substring(0, destination.lastIndexOf('/')));
 
     // Rejects on a non-2xx response
     await FsFile.downloadFileAsync(url, fsFile(destination), { idempotent: true });
@@ -258,25 +216,24 @@ const uninstallCode = async (type: CodeType, id: string) => {
   return true;
 };
 
-// --- Zustand Store ---
+const findExtractor = (registry: RegistryMetadata, name: string) =>
+  registry.extractors.find((e) => e.name.toLowerCase() === name.toLowerCase());
+
+/** The extensions installed here, by id: also ones the current registry no longer lists */
+export const installedExtensionIds = () =>
+  storage.getAllKeys().flatMap((key) => (key.startsWith(EXTENSION_PREFIX) ? [key.slice(EXTENSION_PREFIX.length)] : []));
+
 export const useExtensionStore = create<ExtensionStoreState>((set, get) => ({
   registry: loadInitialRegistry(),
   installedVersion: 0,
   isLoading: false,
   error: null,
 
-  initializeDirectories: async () => {
-    const a = await ensureDirectoryExists(EXTENSIONS_CACHE_DIR);
-    const b = await ensureDirectoryExists(EXTRACTORS_CACHE_DIR);
-    return a && b;
-  },
-
-  updateRegistry: async (registryUrl = REGISTRY_URL) => {
+  updateRegistry: async () => {
     set({ isLoading: true, error: null });
     try {
-      await get().initializeDirectories();
       // The signature covers the exact bytes, so verify the text as downloaded
-      const [text, signature] = await Promise.all([downloadText(registryUrl), downloadText(`${registryUrl}.sig`)]);
+      const [text, signature] = await Promise.all([fetchText(REGISTRY_URL), fetchText(`${REGISTRY_URL}.sig`)]);
       const registry: RegistryMetadata = {
         ...parseSignedRegistry(text, signature),
         updatedAt: new Date().toISOString(),
@@ -293,15 +250,11 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => ({
     const extension = get().registry.extensions.find((e) => e.id === extensionId);
     if (!extension || !isCompatibleEntry(extension)) return false;
 
-    for (const extractor of extension.extractors ?? []) {
-      await get().installExtractor(extractor);
-    }
+    for (const extractor of extension.extractors ?? []) await installExtractor(extractor);
     const installed = await installCode('extension', extensionId, extension, force);
     if (installed) set((state) => ({ installedVersion: state.installedVersion + 1 }));
     return installed;
   },
-
-  updateExtension: async (id) => get().installExtension(id),
 
   uninstallExtension: async (id) => {
     const removed = await uninstallCode('extension', id);
@@ -314,27 +267,7 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => ({
 
   getInstalledExtensions: () => get().registry.extensions.filter((e) => get().isExtensionInstalled(e.id)),
 
-  installExtractor: async (name, force = false) => {
-    const extractor = get().getExtractorInfo(name);
-    if (!extractor || !isCompatibleEntry(extractor)) return false;
-    return installCode('extractor', name, extractor, force);
-  },
-
-  updateExtractor: async (name) => get().installExtractor(name),
-
-  uninstallExtractor: async (name) => uninstallCode('extractor', name),
-
-  isExtractorInstalled: (name) => !!loadJSONFromStorage<CachedItem>(getCacheKey('extractor', name)),
-
-  getInstalledExtractors: () => get().registry.extractors.filter((e) => get().isExtractorInstalled(e.name)),
-
-  readExtensionCode: async (id) => readCode('extension', id),
-
-  readExtractorCode: async (name) => readCode('extractor', name),
-
   getExtensionInfo: (id) => get().registry.extensions.find((e) => e.id === id) || null,
-  getExtractorInfo: (name) =>
-    get().registry.extractors.find((e) => e.name.toLowerCase() === name.toLowerCase()) || null,
 
   checkForUpdates: async () => {
     const { registry } = get();
@@ -353,38 +286,13 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => ({
 
     return { extensions: extUpdates, extractors: extrUpdates };
   },
-
-  clearCache: async () => {
-    try {
-      for (const dir of [EXTENSIONS_CACHE_DIR, EXTRACTORS_CACHE_DIR]) {
-        const folder = fsDirectory(dir);
-        if (folder.exists) folder.delete();
-      }
-
-      const { registry } = get();
-      for (const e of registry.extensions) storage.remove(getCacheKey('extension', e.id));
-      for (const x of registry.extractors) storage.remove(getCacheKey('extractor', x.name));
-      storage.remove(REGISTRY_METADATA_KEY);
-      set({ registry: ExtensionRegistry, error: null });
-    } catch (err) {
-      console.error('❌ Failed to clear cache:', err);
-    }
-  },
-
-  getStorageSize: async () => {
-    let total = 0;
-    try {
-      for (const dir of [EXTENSIONS_CACHE_DIR, EXTRACTORS_CACHE_DIR]) {
-        total += fsDirectory(dir).size ?? 0;
-      }
-    } catch (err) {
-      console.error('❌ Failed to get storage size:', err);
-    }
-    return total;
-  },
 }));
 
-// --- Running installed code ---
+const installExtractor = async (name: string, force = false) => {
+  const extractor = findExtractor(useExtensionStore.getState().registry, name);
+  if (!extractor || !isCompatibleEntry(extractor)) return false;
+  return installCode('extractor', name, extractor, force);
+};
 
 // The managers cache compiled code per id and sha256, so keep one pair per registry
 let managers:
@@ -407,8 +315,7 @@ const runCachedCode = async <T>(
   installIfMissing: boolean,
   run: (code: string) => Promise<T>,
 ): Promise<T> => {
-  const store = useExtensionStore.getState();
-  const install = type === 'extension' ? store.installExtension : store.installExtractor;
+  const install = type === 'extension' ? useExtensionStore.getState().installExtension : installExtractor;
   let code = await readCode(type, id);
   const installed = !!loadJSONFromStorage<CachedItem>(getCacheKey(type, id));
   if (code === null && (installIfMissing || installed) && (await install(id, installed))) {
@@ -455,5 +362,3 @@ export async function loadServerExtractor(serverName: string): Promise<IVideoExt
   if (!name || !metadata) throw new Error(`No extractor found for server: "${serverName}"`);
   return runCachedCode('extractor', name, true, (code) => extractorManager.executeExtractorCode(code, metadata));
 }
-
-export default useExtensionStore;

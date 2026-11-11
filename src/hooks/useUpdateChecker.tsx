@@ -1,76 +1,57 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { compareVersions, fetchJson } from '@/constants/utils';
+import * as Application from 'expo-application';
+import { EXTERNAL_LINKS } from '@/constants/config';
+import { fetchJson } from '@/utils/http';
 import pkg from '../../package.json';
 
-interface UpdateData {
-  tag_name: string;
-  created_at: string;
-  prerelease: boolean;
-}
+/** The installed binary's version; package.json's can differ once an OTA bundle is running */
+export const APP_VERSION = Application.nativeApplicationVersion ?? pkg.version;
 
-interface UpdateInfo {
-  currentVersion: string;
-  newVersion: string;
-  updateType: string;
-  createdAt: string;
-  isNewVersionPreRelease: boolean;
-}
+/** A build that isn't a stable release: 4.0.0-rc.1, 4.0.0-beta.2 */
+export const isPreRelease = (version: string) => version.includes('-');
 
-export function useUpdateChecker(url?: string) {
+type UpdateKind = 'major' | 'minor' | 'patch' | 'stable';
+
+const UPDATE_LABELS: Record<UpdateKind, string> = {
+  major: 'A major update',
+  minor: 'A minor update',
+  patch: 'A patch update',
+  stable: 'The stable release',
+};
+
+const updateKind = (local: string, remote: string): UpdateKind | null => {
+  const [localParts, remoteParts] = [local, remote].map((version) => version.split('-')[0].split('.').map(Number));
+  const kinds: UpdateKind[] = ['major', 'minor', 'patch'];
+  for (const [index, kind] of kinds.entries()) {
+    if (localParts[index] !== remoteParts[index]) return localParts[index] < remoteParts[index] ? kind : null;
+  }
+  return isPreRelease(local) && !isPreRelease(remote) ? 'stable' : null;
+};
+
+/**
+ * Whether GitHub has a newer stable release than this binary. Closing the update dialog dismisses it for the
+ * session, in this hook's caller only.
+ */
+export function useUpdateChecker() {
   const [dismissed, setDismissed] = useState(false);
-
-  const { data, isLoading, isError, error, refetch, isSuccess } = useQuery({
-    queryKey: ['updateChecker', url],
-    queryFn: async (): Promise<UpdateData | UpdateData[]> => {
-      if (!url) throw new Error('URL is required');
-      return fetchJson<UpdateData | UpdateData[]>(url);
-    },
-    enabled: !!url,
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['updateChecker'],
+    // Pre-releases aren't "latest", so only a stable release is offered
+    queryFn: () => fetchJson<{ tag_name: string }>(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE_API),
     staleTime: 1000 * 60 * 15,
     retry: 2,
   });
-
-  const updateInfo = useMemo<UpdateInfo>(() => {
-    if (data && isSuccess) {
-      const localVersion = pkg.version;
-      const remoteVersion = Array.isArray(data) ? data[0].tag_name.replace('v', '') : data.tag_name.replace('v', '');
-
-      // Get update type
-      const updateType = compareVersions(localVersion, remoteVersion);
-
-      return {
-        currentVersion: localVersion,
-        newVersion: remoteVersion,
-        updateType,
-        createdAt: Array.isArray(data) ? data[0].created_at : data.created_at,
-        isNewVersionPreRelease: Array.isArray(data) ? data[0].prerelease : data.prerelease,
-      };
-    }
-    return {
-      currentVersion: pkg.version,
-      newVersion: '',
-      updateType: '',
-      createdAt: '',
-      isNewVersionPreRelease: false,
-    };
-  }, [data, isSuccess]);
-
-  // Only a newer stable release counts, and closing the dialog keeps it closed for this session
-  const hasUpdate =
-    !!updateInfo.newVersion && !updateInfo.updateType.includes('No update') && !updateInfo.isNewVersionPreRelease;
-  const isUpdateAvailable = hasUpdate && !dismissed;
-  const setIsUpdateAvailable = useCallback((available: boolean) => setDismissed(!available), []);
+  const newVersion = data?.tag_name.replace('v', '') ?? '';
+  const kind = newVersion ? updateKind(APP_VERSION, newVersion) : null;
 
   return {
-    isUpdateAvailable,
-    isUpdateChecked: isSuccess || isError, // Checked if either success or error
-    updateInfo,
+    hasUpdate: !!kind,
+    isUpdateAvailable: !!kind && !dismissed,
+    dismiss: () => setDismissed(true),
+    updateInfo: { currentVersion: APP_VERSION, newVersion, label: kind ? UPDATE_LABELS[kind] : '' },
     checkForUpdates: refetch,
-    setIsUpdateAvailable,
     isLoading,
     isError,
-    error,
-    data,
   };
 }

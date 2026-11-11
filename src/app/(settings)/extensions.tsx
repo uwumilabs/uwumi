@@ -2,22 +2,19 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { isCompatibleEntry, type ProviderType } from 'react-native-consumet';
-import { useExtensionStore, useCurrentTheme } from '@/hooks';
-import { isTV } from '@/constants/utils';
-import { Avatar, Card, Chip } from '@/components/heroui';
+import { useExtensionStore } from '@/hooks/stores/useExtensionStore';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { isTV } from '@/utils/tv';
+import { Avatar, Card, Chip, useToast } from '@/components/heroui';
 import { Button } from '@/components/Button';
-import {
-  Image,
-  BottomSheet,
-  HUXStack,
-  HUYStack,
-  RippleButton,
-  IoniconsIcon,
-  TVFocusWrapper,
-  Separator,
-  HorizontalTabs,
-  Switch,
-} from '@/components';
+import TVFocusWrapper from '@/components/TVFocusWrapper';
+import { Image } from '@/components/Image';
+import { BottomSheet } from '@/components/native/BottomSheet';
+import { HUXStack, HUYStack, RippleButton } from '@/components/ui-primitives';
+import { IoniconsIcon } from '@/components/Icons';
+import { Separator } from '@/components/native/separator/Separator';
+import { HorizontalTabs } from '@/components/HorizontalTabs';
+import { Switch } from '@/components/native/switch/Switch';
 
 interface ExtensionCardProps {
   extension: any;
@@ -52,9 +49,6 @@ function ExtensionCard({
     return <IoniconsIcon name="checkmark-circle-outline" size={12} color={currentTheme?.success} />;
   };
 
-  // Debug logging
-  //console.log(`Extension ${extension.id}: installed=${isInstalled}, hasUpdate=${hasUpdate}`);
-
   return (
     <Card
       className="rounded-3xl p-4"
@@ -64,7 +58,6 @@ function ExtensionCard({
       }}>
       <Card.Body>
         <HUYStack className="gap-3">
-          {/* Header with logo and basic info */}
           <HUXStack className="justify-between items-start">
             <HUXStack className="gap-3 items-center flex-1">
               <Avatar size="md" variant="soft" color="default" alt={`${extension?.name ?? 'Extension'} logo`}>
@@ -127,7 +120,6 @@ function ExtensionCard({
             </RippleButton>
           </HUXStack>
 
-          {/* Action buttons */}
           <HUXStack className="gap-2 items-center justify-between flex-wrap">
             <HUXStack className="gap-2 flex-1">
               {hasUpdate && isInstalled && (
@@ -203,7 +195,6 @@ function ExtensionDetailsSheet({
       snapPoints={['80%']}
       scrollable>
       <View className="p-4 gap-4">
-        {/* Header */}
         <HUXStack className="items-center gap-3">
           <Avatar size="lg" variant="soft" color="default" alt={`${extension?.name ?? 'Extension'} logo`}>
             {!!extension.logo && (
@@ -231,7 +222,6 @@ function ExtensionDetailsSheet({
           </HUYStack>
         )}
 
-        {/* Details */}
         <HUYStack className="gap-3">
           {!!extension.author?.name && (
             <HUXStack className="justify-between items-center">
@@ -273,7 +263,6 @@ function ExtensionDetailsSheet({
           )}
         </HUYStack>
 
-        {/* Features */}
         {(extension.languages || extension.extractors || extension.subbed || extension.dubbed) && (
           <HUYStack className="gap-3">
             {!!extension.languages?.length && (
@@ -334,14 +323,11 @@ export default function Extensions() {
   const registry = useExtensionStore((state) => state.registry);
   const isLoading = useExtensionStore((state) => state.isLoading);
   const error = useExtensionStore((state) => state.error);
-  const {
-    updateRegistry,
-    installExtension,
-    uninstallExtension,
-    updateExtension,
-    isExtensionInstalled,
-    checkForUpdates,
-  } = useExtensionStore.getState();
+  // Installed is read from storage, so the badges re-render on installs and removals through this
+  useExtensionStore((state) => state.installedVersion);
+  const { updateRegistry, installExtension, uninstallExtension, isExtensionInstalled, checkForUpdates } =
+    useExtensionStore.getState();
+  const { toast } = useToast();
 
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const [selectedExtension, setSelectedExtension] = useState<any>(null);
@@ -362,27 +348,25 @@ export default function Extensions() {
 
   const onRefresh = async () => {
     setIsRefreshing(true);
-    try {
-      await updateRegistry();
-      await fetchUpdates();
-    } catch (error) {
-      console.error('Refresh failed:', error);
-    }
+    await updateRegistry();
+    await fetchUpdates();
     setIsRefreshing(false);
   };
 
-  const handleAction = async (action: () => Promise<boolean>, extensionId: string) => {
-    setLoadingStates((prev) => ({ ...prev, [extensionId]: true }));
+  const handleAction = async (
+    action: () => Promise<boolean>,
+    extension: { id: string; name: string },
+    verb: string,
+  ) => {
+    setLoadingStates((prev) => ({ ...prev, [extension.id]: true }));
     try {
-      const success = await action();
-      //console.log(`Action ${action.name} for ${extensionId}: ${success ? 'success' : 'failed'}`);
-
-      // Always refresh updates after any action
+      if (!(await action())) toast.show({ variant: 'danger', label: `Couldn't ${verb} ${extension.name}` });
       await fetchUpdates();
     } catch (error) {
-      console.error('Action failed:', error);
+      console.error(`Couldn't ${verb} ${extension.id}:`, error);
+      toast.show({ variant: 'danger', label: `Couldn't ${verb} ${extension.name}`, description: String(error) });
     } finally {
-      setLoadingStates((prev) => ({ ...prev, [extensionId]: false }));
+      setLoadingStates((prev) => ({ ...prev, [extension.id]: false }));
     }
   };
 
@@ -431,14 +415,9 @@ export default function Extensions() {
     );
   }
 
-  // Debug logging for updates
-  //console.log('Available updates array:', availableUpdates);
-  //console.log('Updates count:', updatesCount);
-
   return (
     <>
       <HUYStack className="flex-1">
-        {/* Header Stats */}
         <HUXStack
           className="px-4 py-3 items-center justify-between border-b"
           style={{ borderColor: currentTheme.separator }}>
@@ -495,9 +474,9 @@ export default function Extensions() {
                         isLoading={loadingStates[extension.id] || false}
                         hasUpdate={availableUpdates.includes(extension.id)}
                         isCompatible={isCompatibleEntry(extension)}
-                        onInstall={() => handleAction(() => installExtension(extension.id), extension.id)}
-                        onUninstall={() => handleAction(() => uninstallExtension(extension.id), extension.id)}
-                        onUpdate={() => handleAction(() => updateExtension(extension.id), extension.id)}
+                        onInstall={() => handleAction(() => installExtension(extension.id), extension, 'install')}
+                        onUninstall={() => handleAction(() => uninstallExtension(extension.id), extension, 'remove')}
+                        onUpdate={() => handleAction(() => installExtension(extension.id), extension, 'update')}
                         onShowDetails={() => showExtensionDetails(extension)}
                       />
                     ))}
@@ -508,7 +487,6 @@ export default function Extensions() {
           })}
         />
 
-        {/* Extension Details Sheet */}
         <ExtensionDetailsSheet
           extension={selectedExtension}
           isOpen={showDetailsSheet}

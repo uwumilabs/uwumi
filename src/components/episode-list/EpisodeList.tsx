@@ -1,33 +1,39 @@
 import { ActivityIndicator, Pressable, StyleSheet, View, Text, TextProps, useWindowDimensions } from 'react-native';
+import { usePureBlackBackground } from '@/hooks/stores/useThemeStore';
 import { FlashListRef } from '@shopify/flash-list';
 import React, { useRef, useState, useCallback, useContext, useMemo, memo, ReactNode } from 'react';
 import { HeaderHeightContext } from 'expo-router/react-navigation';
 import Image from '@/components/Image';
-import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import Animated, { SharedValue, css, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { create } from 'zustand';
+import { useEpisodesIdStore, useEpisodeDisplayStore } from '@/hooks/stores/useEpisodesStore';
 import {
-  useEpisodesIdStore,
-  useWatchProgressStore,
-  useDownloadStore,
-  useCurrentTheme,
-  usePureBlackBackground,
-  useEpisodeDisplayStore,
-  useListJump,
-  useEpisodeList,
-  LIST_SHADOW_SIZE,
+  episodeImage,
+  episodeNumber,
+  episodeSeason,
+  watchParams,
+  type EpisodeContext,
   type EpisodeItem,
-} from '@/hooks';
+} from '@/utils/episodes';
+import { isMovieType } from '@/utils/media';
+import { ThumbnailProgress } from './ThumbnailProgress';
+import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
+import { useDownloadStore } from '@/downloads/useDownloadStore';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { useListJump, LIST_SHADOW_SIZE } from '@/hooks/useListJump';
+import { useEpisodeList } from '@/hooks/useEpisodeList';
 import WavyAnimation from './WavyAnimation';
 import EpisodeActionsSheet from './EpisodeActionsSheet';
 import { EpisodeDisplayMode, MediaType } from '@/constants/types';
-import { IAnimeEpisode, IMovieEpisode, MediaFormat, TvType } from 'react-native-consumet';
-import { formatTime, isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/constants/utils';
+import { MediaFormat, TvType } from 'react-native-consumet';
+import { formatTime } from '@/utils/format';
+import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/utils/tv';
 import Select from '../Select';
-import { useProviders, useProviderStore } from '@/constants/provider';
+import { useProviders, useProviderStore } from '@/hooks/stores/useProviderStore';
 import List from '../List';
 import { HUYStack, HUXStack } from '../ui-primitives';
 import TVFocusWrapper from '../TVFocusWrapper';
@@ -36,7 +42,6 @@ import ListJumpBar from '../ListJumpBar';
 import { ProviderEmptyState } from '../ListEmptyState';
 import { Card, cn, ScrollShadow } from '../heroui';
 import { Button } from '../Button';
-import Progress from '../native/progress/Progress';
 import { IoniconsIcon, MaterialIconsIcon } from '../Icons';
 
 const LoadingState = () => {
@@ -59,57 +64,24 @@ const StyledText = ({ children, ...props }: { children: ReactNode } & TextProps)
   );
 };
 
-interface EpisodeNav {
-  mediaType: MediaType;
-  provider: string;
-  id: string;
-  episodeDataId?: string;
-  type?: string;
-}
-
 const ListPressable = memo(
   ({
     item,
     children,
     nav,
-    swipeable,
     onOpenActions,
   }: {
-    item: IAnimeEpisode | IMovieEpisode;
+    item: EpisodeItem;
     children: React.ReactNode;
-    nav: EpisodeNav;
-    swipeable: boolean;
-    onOpenActions: (item: IAnimeEpisode | IMovieEpisode) => void;
+    nav: EpisodeContext;
+    onOpenActions: (item: EpisodeItem) => void;
   }) => {
     const router = useRouter();
-    const { mediaType, provider, id, episodeDataId, type } = nav;
-
-    const navigateToEpisode = useCallback(() => {
-      const routerParams = {
-        pathname: '/watch/[mediaType]' as const,
-        params: {
-          mediaType,
-          provider,
-          id,
-          mediaId: episodeDataId,
-          episodeId: item?.id,
-          ...(item?.dubId ? { episodeDubId: item.dubId as string } : null),
-          ...(item?.isDubbed ? { isDubbed: item.isDubbed as string } : null),
-          uniqueId: item?.uniqueId as string,
-          poster: typeof item?.image === 'string' ? item.image : (item?.image?.hd ?? ''),
-          title: item?.title,
-          description: item?.description,
-          episodeNumber: (item?.number ?? item?.episode) as string,
-          seasonNumber: item?.season as string,
-          type,
-        },
-      };
-      if (swipeable) {
-        router.push(routerParams);
-      } else {
-        router.replace(routerParams);
-      }
-    }, [router, mediaType, provider, id, episodeDataId, item, type, swipeable]);
+    // Without an id (not on this provider) the watch screen says so
+    const navigateToEpisode = useCallback(
+      () => router.push({ pathname: '/watch/[mediaType]', params: watchParams(item, nav) }),
+      [router, item, nav],
+    );
 
     const handleLongPress = useCallback(() => {
       if (!isTV) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -150,7 +122,7 @@ const EpisodeProgress = memo(({ uniqueId, isCurrent }: { uniqueId?: string; isCu
   return <IoniconsIcon name="eye-outline" color="white" size={15} />;
 });
 
-const ProgressAndAirDate = memo(({ item, isCurrent }: { item: IAnimeEpisode | IMovieEpisode; isCurrent: boolean }) => {
+const ProgressAndAirDate = memo(({ item, isCurrent }: { item: EpisodeItem; isCurrent: boolean }) => {
   const date = item?.releaseDate ? new Date(item.releaseDate) : null;
   const isValidDate = !!date && !Number.isNaN(date.getTime());
   return (
@@ -163,15 +135,8 @@ const ProgressAndAirDate = memo(({ item, isCurrent }: { item: IAnimeEpisode | IM
   );
 });
 
-export const ThumbnailProgress = memo(({ uniqueId }: { uniqueId?: string }) => {
-  const percent = useWatchProgressStore((state) => (uniqueId ? state.progresses[uniqueId]?.progress : undefined));
-  if (percent === undefined) return null;
-  return <Progress className="absolute inset-x-1 bottom-0.5" value={percent || 0} />;
-});
-
 EpisodeProgress.displayName = 'EpisodeProgress';
 ProgressAndAirDate.displayName = 'ProgressAndAirDate';
-ThumbnailProgress.displayName = 'ThumbnailProgress';
 
 const SwipeAction = memo(
   ({
@@ -209,7 +174,6 @@ const SwipeAction = memo(
           animatedStyle,
           { width: 100, justifyContent: 'center', alignItems: 'center', borderRadius: 16, backgroundColor },
         ]}>
-        {/* Show current state icon (fades out) */}
         <Animated.View
           style={[{ ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center' }, firstIconStyle]}>
           {isCompleted ? (
@@ -219,7 +183,6 @@ const SwipeAction = memo(
           )}
         </Animated.View>
 
-        {/* Show new state icon (fades in) */}
         <Animated.View
           style={[{ ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center' }, secondIconStyle]}>
           {isCompleted ? (
@@ -236,7 +199,7 @@ const SwipeAction = memo(
 SwipeAction.displayName = 'SwipeAction';
 
 // A movie is its one episode, so it has no EP number to show
-type EpisodeContentOptions = { isCurrent: boolean; pureBlackBackground: boolean; swipeable: boolean; isMovie: boolean };
+type EpisodeContentOptions = { isCurrent: boolean; pureBlackBackground: boolean; isMovie: boolean };
 
 // Downloads are saved under the episode's uniqueId. Only the status is read, so progress ticks don't re-render rows
 const DownloadBadge = ({ uniqueId, size }: { uniqueId?: string; size: number }) => {
@@ -252,9 +215,8 @@ const EpisodeContent = ({
   displayMode,
   isCurrent,
   pureBlackBackground,
-  swipeable,
   isMovie,
-}: { item: IAnimeEpisode | IMovieEpisode; displayMode: EpisodeDisplayMode } & EpisodeContentOptions) => {
+}: { item: EpisodeItem; displayMode: EpisodeDisplayMode } & EpisodeContentOptions) => {
   if (displayMode === EpisodeDisplayMode.TitleOnly || displayMode === EpisodeDisplayMode.NumberOnly) {
     const titleOnly = displayMode === EpisodeDisplayMode.TitleOnly;
     return (
@@ -262,7 +224,7 @@ const EpisodeContent = ({
         className={cn('flex-1 gap-2 rounded-2xl bg-background p-3 shadow-md', pureBlackBackground && 'bg-black')}>
         <HUXStack className="flex-1 items-center justify-between gap-2">
           <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={titleOnly ? 2 : 1}>
-            {titleOnly || isMovie ? item.title : `EP ${(item.number ?? item.episode ?? '').toString()}`}
+            {titleOnly || isMovie ? item.title : `EP ${episodeNumber(item) ?? ''}`}
           </Text>
           <HUXStack className="flex-row items-center gap-1 ml-auto">
             <DownloadBadge uniqueId={item?.uniqueId} size={18} />
@@ -282,16 +244,13 @@ const EpisodeContent = ({
         isCurrent && 'border-2 border-default',
       )}>
       <View className="relative overflow-hidden rounded-xl">
-        <Image
-          source={typeof item?.image === 'string' ? item.image : (item?.image?.hd ?? '')}
-          style={{ width: 160, height: 107 }}
-        />
+        <Image source={episodeImage(item)} style={{ width: 160, height: 107 }} />
         {!isMovie && (
           <Text className="absolute left-2 bottom-2.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
-            {`EP ${(item.number ?? item.episode ?? '').toString()}`}
+            {`EP ${episodeNumber(item) ?? ''}`}
           </Text>
         )}
-        {swipeable && <ThumbnailProgress uniqueId={item?.uniqueId as string} />}
+        <ThumbnailProgress uniqueId={item?.uniqueId as string} />
       </View>
       <HUYStack className="flex-1 justify-between gap-2 px-2 ">
         <Card.Header className="flex-row">
@@ -324,8 +283,7 @@ const EpisodeContent = ({
 const PULSE_MS = 600;
 const PULSE_TIMES = 3;
 
-const episodeKey = (item: IAnimeEpisode | IMovieEpisode) =>
-  item.id ?? item.uniqueId ?? String(item.number ?? item.episode);
+const episodeKey = (item: EpisodeItem) => item.id ?? item.uniqueId ?? String(episodeNumber(item));
 
 // The row a jump landed on, by list key; `at` remounts the border so the same row can blink again
 const usePulseStore = create<{ key: string | null; at: number }>(() => ({ key: null, at: 0 }));
@@ -336,19 +294,18 @@ const PulseBorder = () => {
 };
 
 interface EpisodeRowProps {
-  item: IAnimeEpisode | IMovieEpisode;
+  item: EpisodeItem;
   displayMode: EpisodeDisplayMode;
-  swipeable: boolean;
   isMovie: boolean;
-  nav: EpisodeNav;
+  nav: EpisodeContext;
   actionColor?: string;
-  onToggleComplete: (item: IAnimeEpisode | IMovieEpisode) => void;
-  onOpenActions: (item: IAnimeEpisode | IMovieEpisode) => void;
+  onToggleComplete: (item: EpisodeItem) => void;
+  onOpenActions: (item: EpisodeItem) => void;
 }
 
 // Each row selects whether it's the current episode, so the list's own re-renders skip the rows
 const EpisodeRow = memo(
-  ({ item, displayMode, swipeable, isMovie, nav, actionColor, onToggleComplete, onOpenActions }: EpisodeRowProps) => {
+  ({ item, displayMode, isMovie, nav, actionColor, onToggleComplete, onOpenActions }: EpisodeRowProps) => {
     const isCurrent = useEpisodesIdStore((state) => !!item?.uniqueId && state.currentUniqueId === item.uniqueId);
     const pulse = usePulseStore((state) => (state.key === episodeKey(item) ? state.at : 0));
     const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
@@ -356,20 +313,19 @@ const EpisodeRow = memo(
 
     const row = (
       <View scrollSnapAlign={TV_SNAP_CENTER}>
-        <ListPressable item={item} nav={nav} swipeable={swipeable} onOpenActions={onOpenActions}>
+        <ListPressable item={item} nav={nav} onOpenActions={onOpenActions}>
           <EpisodeContent
             item={item}
             displayMode={displayMode}
             isCurrent={isCurrent}
             pureBlackBackground={pureBlackBackground}
-            swipeable={swipeable}
             isMovie={isMovie}
           />
         </ListPressable>
         {pulse ? <PulseBorder key={pulse} /> : null}
       </View>
     );
-    if (!swipeable || isTV) return row;
+    if (isTV) return row;
 
     return (
       <ReanimatedSwipeable
@@ -396,10 +352,8 @@ EpisodeRow.displayName = 'EpisodeRow';
 interface EpisodeListProps {
   /** Rendered above the episode controls, inside the list, so it scrolls with the episodes. */
   header?: ReactNode;
-  /** Info screen: rendered after the episode window */
+  /** Rendered after the episode window */
   footer?: ReactNode;
-  /** Jump to the episode being watched once the list loads; otherwise offer a "Continue" chip. */
-  autoScrollToCurrent?: boolean;
 }
 
 // Info screen: episodes scroll inside a window of 3-5 full rows, sized to the screen, so the page around them stays put
@@ -409,8 +363,7 @@ const WINDOW_MAX_ROWS = 5;
 // Room for the controls row and the margins around the window
 const WINDOW_CHROME = 120;
 
-export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: EpisodeListProps) => {
-  const pathname = usePathname();
+const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
   const {
     mediaType,
     type,
@@ -424,17 +377,14 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
     episode?: string;
     season?: string;
   }>();
-  const isMovie = type === MediaFormat.MOVIE || type === TvType.MOVIE;
-  // Swipe actions on the info screen only. Read once: the path turns to /watch/… while the player is open over the
-  // screen, which would rebuild the list behind it (losing its scroll) if it followed along
-  const [swipeable] = useState(() => pathname.includes('/info/'));
+  const isMovie = isMovieType(type);
   const { height: screenHeight } = useWindowDimensions();
   const windowRows = Math.max(
     WINDOW_MIN_ROWS,
     Math.min(WINDOW_MAX_ROWS, Math.floor((screenHeight - WINDOW_CHROME) / EPISODE_ROW_HEIGHT)),
   );
   const currentTheme = useCurrentTheme();
-  const flashListRef = useRef<FlashListRef<IAnimeEpisode | IMovieEpisode>>(null);
+  const flashListRef = useRef<FlashListRef<EpisodeItem>>(null);
   const pageRef = useRef<React.ComponentRef<typeof Animated.ScrollView>>(null);
   const windowTopRef = useRef(0);
   // The info screen's native header floats over the page, so scrolls stop below it
@@ -445,17 +395,15 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
   const providers = useProviders();
 
   const currentUniqueId = useEpisodesIdStore((state) => state.currentUniqueId);
-  const setProgress = useWatchProgressStore((state) => state.setProgress);
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const displayMode = useEpisodeDisplayStore((state) => state.displayMode);
   const setDisplayMode = useEpisodeDisplayStore((state) => state.setDisplayMode);
 
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [selectedEpisode, setSelectedEpisode] = useState<IAnimeEpisode | IMovieEpisode | null>(null);
+  const [selectedEpisode, setSelectedEpisode] = useState<EpisodeItem | null>(null);
 
   const episodeRangeLabel = useCallback(
     (start: number, end: number) => {
-      const label = (index: number) => String(episodes[index].number ?? episodes[index].episode ?? index + 1);
+      const label = (index: number) => String(episodeNumber(episodes[index]) ?? index + 1);
       return `EP ${label(start)}–${label(end)}`;
     },
     [episodes],
@@ -468,11 +416,6 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
     resetScroll,
     jumpBar,
   } = useListJump({ items: episodes, listRef: flashListRef, rangeLabel: episodeRangeLabel });
-
-  // console.log('episodes', episodeData);
-  const currentEpisodeIndex = useCallback(() => {
-    return episodes.findIndex((episode: IAnimeEpisode | IMovieEpisode) => episode.uniqueId === currentUniqueId);
-  }, [episodes, currentUniqueId]);
 
   // Every season's episodes in order, so "Continue" can point past the end of the season on screen
   const shownSeason = movieSeasons ? activeSeason : 0;
@@ -488,7 +431,6 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
   const continueIndex = useWatchProgressStore(
     useCallback(
       ({ progresses }) => {
-        if (autoScrollToCurrent) return -1;
         const uniqueIdAt = (index: number) => continueEntries[index].episode.uniqueId as string;
         let index = continueEntries.findIndex(({ episode }) => episode.uniqueId === currentUniqueId);
         if (index < 0) {
@@ -499,18 +441,18 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
         if (!progresses[uniqueIdAt(index)]?.isCompleted) return index;
         return index < continueEntries.length - 1 ? index + 1 : -1;
       },
-      [autoScrollToCurrent, continueEntries, currentUniqueId],
+      [continueEntries, currentUniqueId],
     ),
   );
   // A shared link's episode, which the chip points at instead of the one being watched
   const sharedIndex = useMemo(() => {
-    if (!sharedEpisode || autoScrollToCurrent) return -1;
+    if (!sharedEpisode) return -1;
     return continueEntries.findIndex(
       ({ episode, season }) =>
-        String(episode.number ?? episode.episode) === sharedEpisode &&
-        (!sharedSeason || String((episode as { season?: number }).season ?? season + 1) === sharedSeason),
+        String(episodeNumber(episode)) === sharedEpisode &&
+        (!sharedSeason || String(episodeSeason(episode) ?? season + 1) === sharedSeason),
     );
-  }, [sharedEpisode, sharedSeason, autoScrollToCurrent, continueEntries]);
+  }, [sharedEpisode, sharedSeason, continueEntries]);
   const targetIndex = sharedIndex >= 0 ? sharedIndex : continueIndex;
   const continueTarget = targetIndex >= 0 ? continueEntries[targetIndex] : undefined;
 
@@ -568,63 +510,45 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
     [mediaType, setProvider],
   );
 
-  const handleToggleComplete = useCallback(
-    (item: IAnimeEpisode | IMovieEpisode) => {
-      if (!item?.uniqueId) return;
+  const handleToggleComplete = useCallback((item: EpisodeItem) => {
+    if (!item?.uniqueId) return;
+    useWatchProgressStore.getState().toggleWatched(item.uniqueId);
+    if (!isTV) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, []);
 
-      const progress = useWatchProgressStore.getState().progresses[item.uniqueId];
-      const isCompleted = progress?.isCompleted ?? false;
-
-      const newProgress = {
-        currentTime: isCompleted ? 0 : (progress?.duration ?? 0),
-        duration: progress?.duration ?? 0,
-        progress: isCompleted ? 0 : 100,
-        isCompleted: !isCompleted,
-      };
-
-      setProgress(item.uniqueId, newProgress);
-
-      if (!isTV) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    },
-    [setProgress],
-  );
-
-  const openActions = useCallback((item: IAnimeEpisode | IMovieEpisode) => {
+  const openActions = useCallback((item: EpisodeItem) => {
     setSelectedEpisode(item);
     setSheetOpen(true);
   }, []);
 
-  const nav = useMemo<EpisodeNav>(
-    () => ({ mediaType, provider: providerToUse, id, episodeDataId: providerMediaId, type: type as string }),
+  const nav = useMemo<EpisodeContext>(
+    () => ({ mediaType, provider: providerToUse, id, mediaId: providerMediaId, type }),
     [mediaType, providerToUse, id, providerMediaId, type],
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: IAnimeEpisode | IMovieEpisode }) => (
+    ({ item }: { item: EpisodeItem }) => (
       <EpisodeRow
         item={item}
         displayMode={displayMode}
-        swipeable={swipeable}
         isMovie={isMovie}
         nav={nav}
-        actionColor={currentTheme?.default}
+        actionColor={currentTheme.default}
         onToggleComplete={handleToggleComplete}
         onOpenActions={openActions}
       />
     ),
-    [displayMode, swipeable, isMovie, nav, currentTheme?.default, handleToggleComplete, openActions],
+    [displayMode, isMovie, nav, currentTheme.default, handleToggleComplete, openActions],
   );
 
   const controls = (
     <HUXStack className="w-full flex-wrap items-center justify-center gap-5 px-4 py-2">
-      {swipeable && (
-        <Select
-          SelectItem={mediaType === MediaType.ANIME ? providers.anime : providers.movie}
-          SelectLabel="Provider"
-          value={providerToUse}
-          onValueChange={handleProviderChange}
-        />
-      )}
+      <Select
+        SelectItem={providers[mediaType]}
+        SelectLabel="Provider"
+        value={providerToUse}
+        onValueChange={handleProviderChange}
+      />
       {movieSeasons && type !== TvType.MOVIE && (
         <Select
           SelectItem={
@@ -643,34 +567,32 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
       {episodeRanges.length > 0 && (
         <Select SelectItem={episodeRanges} SelectLabel="Episodes" value={rangeValue} onValueChange={jumpToRange} />
       )}
-      {swipeable && (
-        <Pressable
-          onPress={() => {
-            setDisplayMode(
-              displayMode === EpisodeDisplayMode.FullMetadata
-                ? EpisodeDisplayMode.TitleOnly
-                : displayMode === EpisodeDisplayMode.TitleOnly
-                  ? EpisodeDisplayMode.NumberOnly
-                  : EpisodeDisplayMode.FullMetadata,
-            );
-            // The new display mode remounts the list at the top
-            resetScroll();
-          }}>
-          {displayMode === EpisodeDisplayMode.FullMetadata ? (
-            <IoniconsIcon name="list" />
-          ) : displayMode === EpisodeDisplayMode.TitleOnly ? (
-            <MaterialIconsIcon name="format-list-numbered" />
-          ) : (
-            <IoniconsIcon name="image-outline" />
-          )}
-        </Pressable>
-      )}
+      <Pressable
+        onPress={() => {
+          setDisplayMode(
+            displayMode === EpisodeDisplayMode.FullMetadata
+              ? EpisodeDisplayMode.TitleOnly
+              : displayMode === EpisodeDisplayMode.TitleOnly
+                ? EpisodeDisplayMode.NumberOnly
+                : EpisodeDisplayMode.FullMetadata,
+          );
+          // The new display mode remounts the list at the top
+          resetScroll();
+        }}>
+        {displayMode === EpisodeDisplayMode.FullMetadata ? (
+          <IoniconsIcon name="list" />
+        ) : displayMode === EpisodeDisplayMode.TitleOnly ? (
+          <MaterialIconsIcon name="format-list-numbered" />
+        ) : (
+          <IoniconsIcon name="image-outline" />
+        )}
+      </Pressable>
       {continueTarget && (
         // TV: the screen opens on it, the action a viewer most likely came for
         <Button variant="secondary" size="sm" onPress={scrollToContinue} hasTVPreferredFocus={isTV}>
           <IoniconsIcon name="play" size={14} color={currentTheme?.foreground} />
           <Button.Label>
-            {`${sharedIndex >= 0 ? 'Shared' : 'Continue'} · ${continueTarget.season === shownSeason ? '' : `S${continueTarget.season + 1} · `}EP ${(continueTarget.episode.number ?? continueTarget.episode.episode ?? '').toString()}`}
+            {`${sharedIndex >= 0 ? 'Shared' : 'Continue'} · ${continueTarget.season === shownSeason ? '' : `S${continueTarget.season + 1} · `}EP ${episodeNumber(continueTarget.episode) ?? ''}`}
           </Button.Label>
         </Button>
       )}
@@ -678,7 +600,7 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
   );
 
   const list = (
-    <List<IAnimeEpisode | IMovieEpisode>
+    <List<EpisodeItem>
       ref={flashListRef}
       {...listProps}
       {...tvFocusScrollProps(0)}
@@ -697,7 +619,7 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
           <LoadingState />
         ) : (
           <ProviderEmptyState
-            providers={mediaType === MediaType.ANIME ? providers.anime : providers.movie}
+            providers={providers[mediaType]}
             provider={providerToUse}
             error={error}
             onRetry={() => refetch()}
@@ -706,34 +628,13 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
           />
         )
       }
-      // ItemSeparatorComponent={() => <View className="h-3" />}
-      onLoad={() => {
-        const index = currentEpisodeIndex();
-        if (!autoScrollToCurrent || index < 0) return;
-        flashListRef?.current?.scrollToIndex({
-          index,
-          animated: true,
-          viewPosition: 1,
-          viewOffset: 200,
-        });
-      }}
       keyExtractor={episodeKey}
       renderItem={renderItem}
     />
   );
 
-  const shadowColor = pureBlackBackground ? '#000000' : currentTheme?.background;
-  const sheet = swipeable && (
-    <EpisodeActionsSheet
-      open={sheetOpen}
-      onOpenChange={setSheetOpen}
-      episode={selectedEpisode}
-      mediaType={mediaType}
-      provider={providerToUse}
-      mediaId={providerMediaId ?? id}
-      showId={id}
-      type={type as string}
-    />
+  const sheet = (
+    <EpisodeActionsSheet open={sheetOpen} onOpenChange={setSheetOpen} episode={selectedEpisode} context={nav} />
   );
 
   // The page scrolls; the episodes scroll inside a window with fades at its edges
@@ -757,7 +658,7 @@ export const EpisodeList = ({ header, footer, autoScrollToCurrent = true }: Epis
               key={displayMode}
               className="flex-1"
               size={LIST_SHADOW_SIZE}
-              color={shadowColor}
+              color={currentTheme.screenBackground}
               LinearGradientComponent={LinearGradient}>
               {list}
             </ScrollShadow>
@@ -791,4 +692,7 @@ const pulseStyles = css.create({
   },
 });
 
-export default memo(EpisodeList);
+export const EpisodeList = memo(EpisodeListView);
+EpisodeList.displayName = 'EpisodeList';
+
+export default EpisodeList;

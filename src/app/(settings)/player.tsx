@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { ScrollView } from 'react-native';
-import { ChoiceDialog, choiceLabel, type ChoiceOption, NativeList, SectionTitle, ThemedView } from '@/components';
-import { SUB_LANGUAGE } from '@/constants/config';
-import { isTV } from '@/constants/utils';
-import { PLAYBACK_RATES, useExternalSubtitleStore, usePlayerSettingsStore } from '@/hooks';
+import { ChoiceDialog, choiceLabel, type ChoiceOption } from '@/components/ChoiceDialog';
+import { List as NativeList } from '@/components/native/list/List';
+import { SectionTitle, ThemedView } from '@/components/ui-primitives';
+import { SUBTITLE_LANGUAGES } from '@/constants/config';
+import { isTV } from '@/utils/tv';
+import { PLAYBACK_RATES, usePlayerSettingsStore } from '@/hooks/stores/usePlayerSettingsStore';
+import { useExternalSubtitleStore } from '@/hooks/stores/useExternalSubtitleStore';
 
 const OFF = 'off';
 
 const LANGUAGE_OPTIONS: ChoiceOption<string>[] = [
   { label: 'Off', value: OFF },
-  ...Object.entries(SUB_LANGUAGE)
-    .filter(([name]) => name !== 'ALL')
-    .map(([name, value]) => ({ label: name, value }))
-    .sort((a, b) => a.label.localeCompare(b.label)),
+  ...SUBTITLE_LANGUAGES.map(({ name, code }) => ({ label: name, value: code })),
 ];
 const WATCHED_OPTIONS = [70, 75, 80, 85, 90, 95, 100].map((value) => ({ label: `${value}%`, value }));
 const HIDE_OPTIONS = [2000, 3000, 4000, 5000, 7000, 10000].map((value) => ({

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import { storage } from './MMKV';
+import { persist } from 'zustand/middleware';
+import { persistStorage } from './MMKV';
 
 export type ReaderBackground = 'theme' | 'black' | 'gray' | 'white';
 /** Mihon's tap zone layouts */
@@ -8,6 +8,8 @@ export type TapZonesLayout = 'l-shaped' | 'kindlish' | 'edge' | 'right-left' | '
 export type InvertTapZones = 'none' | 'horizontal' | 'vertical' | 'both';
 /** Mihon's reading modes */
 export type ReadingMode = 'paged-ltr' | 'paged-rtl' | 'paged-vertical' | 'long-strip' | 'long-strip-gaps';
+
+export const isPagedMode = (mode: ReadingMode) => mode.startsWith('paged');
 
 export interface ReaderSettings {
   readingMode: ReadingMode;
@@ -44,11 +46,7 @@ export const useReaderSettingsStore = create<ReaderSettingsState>()(
     }),
     {
       name: 'readerSettings',
-      storage: createJSONStorage(() => ({
-        setItem: (name, value) => storage.set(name, value),
-        getItem: (name) => storage.getString(name) ?? null,
-        removeItem: (name) => storage.remove(name),
-      })),
+      storage: persistStorage,
     },
   ),
 );

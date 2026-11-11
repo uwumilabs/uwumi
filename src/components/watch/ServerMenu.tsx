@@ -1,8 +1,8 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Menu, Subtitle, Title, useMenuContext, useVideoSelector } from 'react-native-video-toolkit';
-import { IoniconsIcon } from '@/components';
-import type { ServerFailure } from '@/hooks';
+import { IoniconsIcon } from '@/components/Icons';
+import type { ServerFailure } from '@/hooks/useServerRotation';
 import { FAILURE_LABELS } from './ServerStatus';
 
 // The menu header shows a view's id, capitalized

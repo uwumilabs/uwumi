@@ -24,7 +24,7 @@ import {
   toggleable,
   weight,
 } from '@expo/ui/jetpack-compose/modifiers';
-import { useCurrentTheme } from '@/hooks';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { IoniconsIcon, type IoniconProps } from '../../Icons';
 import { SeparatorLine } from '../separator/Separator';
 import { switchColors } from '../switch/Switch.android';
@@ -46,7 +46,6 @@ const HostedIcon = ({ name, size: iconSize, color, label }: HostedIconProps) => 
 
 type TrailingProps = Pick<ListItemProps, 'trailingLoading' | 'trailingTone'> & { text?: string; chevron: boolean };
 
-// The end of the row: a spinner, a value, or a chevron on pressable rows
 const Trailing = ({ text, trailingLoading, trailingTone, chevron }: TrailingProps) => {
   const theme = useCurrentTheme();
   if (trailingLoading) return <CircularProgressIndicator color={theme.muted} modifiers={[size(18, 18)]} />;

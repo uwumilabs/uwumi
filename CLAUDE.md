@@ -49,6 +49,12 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
   - Match the surrounding code.
   - Keep comments minimal: only a short *why* for code that isn't obvious, never on simple props.
   - Don't rename existing components.
+- **Code layout:**
+  - No barrel (`index.ts`) files: import each thing from the file that defines it. They made every UI primitive depend on every store.
+  - Only routes go in `src/app/`. expo-router registers every file there as a screen, so a route's pieces live in `src/components/<feature>/` (`watch/`, `info/`, `episode-list/`).
+  - Downloads are one feature folder, `src/downloads/` (store, FFmpeg arguments and probe, sprites, background service, file paths).
+  - Helpers are split by what they're about: `src/utils/tv.ts`, `format.ts`, `http.ts`, `files.ts` (app folders, file URIs), `share.ts`, `media.ts` (titles, meta providers), `episodes.ts` (episode fields, `/watch` params, uniqueId format), `routes.ts` (`/info` and `/read` hrefs).
+  - Launch work goes in `src/bootstrap.ts`, which the root layout imports once. It must be safe to run twice (Fast Refresh).
 - **UI primitives:**
   - Use heroui-native first (`Button` with `size`/`variant`; RN `ActivityIndicator` for spinners). Use the components in `src/components/native` for native controls.
   - For player panels, use the toolkit's `gestureProps`.
@@ -79,7 +85,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 
 **Metro and Fast Refresh**
 - When you add a new `X.ios.tsx` or `X.android.tsx`, the running Metro doesn't pick it up. `touch` the importing file or restart with `--clear`. Keep the base file platform-neutral.
-- Fast Refresh can keep stale code for zustand store modules (`src/hooks/stores/*`). After editing one, do a full reload (double R, or dev menu → Reload) before testing. A LogBox frame pointing at a comment line means the app is running old code.
+- Fast Refresh can keep stale code for zustand store modules (`src/hooks/stores/*`, `src/downloads/useDownloadStore.ts`). After editing one, do a full reload (double R, or dev menu → Reload) before testing. A LogBox frame pointing at a comment line means the app is running old code.
 
 **UI**
 - No Reanimated layout animations (`entering`, `exiting`, `layout`, `sharedTransitionTag`) on FlashList cells or on views that mount and unmount in bulk. They crash Fabric with `addViewAt IndexOutOfBounds`.
@@ -90,14 +96,17 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - Every inline iOS SwiftUI `Host` in a scrolling screen needs `ignoreSafeArea="container"`.
 - uwumi renders the player's seek bar itself: it passes its own `Slider` (`src/components/native/slider`) to the toolkit through `videoComponents`. Player additions to the seek bar go there, for example `SeekPreview`.
   - Seek previews come from `useSeekPreviewStore`: the provider's `thumbnails.vtt` while streaming, or the sprites saved beside a download.
-- The toolkit's `VideoProvider` is global (in `_layout`), and its `ended` flag stays true until the next source loads. So the watch screen only renders `VideoPlayer.UpNext` once its own source has loaded (`phase === 'playing'`). Otherwise a new episode counts down to the one after it before it plays.
+- The toolkit's `VideoProvider` is global (`src/components/watch/AppVideoProvider.tsx`, in the root layout), and its `ended` flag stays true until the next source loads. So the watch screen only renders `VideoPlayer.UpNext` once its own source has loaded (`phase === 'playing'`). Otherwise a new episode counts down to the one after it before it plays.
   - Saved progress that's completed, or within 10 s of the end, starts the episode from 0. Resuming at the end would end it at once and set off the same chain.
   - `@expo/ui`'s Compose `Slider` takes a plain `value` and a JS `onValueChange` (58.0.27). Its `useNativeState` and `useWorkletCallback` only work with `TextField`, `SyncSwitch`, `LoadingIndicator` and some modifiers.
 - Read zustand stores with selectors, never `useXStore()` whole. In the player, use `useVideoSelector`, not `useVideo`. Rows read small stores rather than taking new props.
-- Don't call `openBrowserAsync` directly. Use `openBrowser()` from `src/constants/utils.ts`, or Android shows a second task in recents.
+- Don't call `openBrowserAsync` directly. Use `openBrowser()` from `src/utils/share.ts`, or Android shows a second task in recents.
+- Pure black is resolved once: use `useCurrentTheme()`'s `screenBackground`, `sheetBackground` and `railBackground` rather than checking `usePureBlackBackground` for a colour.
+- Build `/watch` params with `watchParams()` (`src/utils/episodes.ts`) and `/info` and `/read` hrefs with `src/utils/routes.ts`. Continue watching and downloads save them to open the episode again.
+- Watch history keeps its own rules: `useWatchProgressStore.savePlayback` (incognito, forward only, the watched percent setting) and `toggleWatched`, and Continue watching's `record` skips incognito too. Don't write `progresses` from screens.
 - Worklet runtimes (`runOnRuntimeAsync`) are only for pure, high-frequency work whose input is already off the JS thread. The FFmpeg progress parsing is the only current case.
 
-**Downloads (FFmpeg n6.0, `src/hooks/stores/useDownloadStore.ts`)**
+**Downloads (FFmpeg n6.0, `src/downloads/`)**
 - FFmpeg n6.0 has no `-extension_picky`. Use `-allowed_extensions ALL` for disguised HLS segments, but only when the probe says the input is HLS. For a direct file (VegaMovies' MKVs), FFmpeg rejects HLS options with "Option … not found".
 - `session.getOutput()` is every log line joined together, so decoder errors land inside FFprobe's JSON. Parse only the `Level.AV_LOG_STDERR` entries.
 - `ReturnCode` is an object: use `getValue()` in messages.
@@ -105,8 +114,11 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - Some CDNs (NetflixMirror's) break FFmpeg's reused HLS connections, so only the first (audio) playlist loads. When the probe finds no video, it retries with `-http_persistent 0`.
 - Some servers (megaplay-hd) put a 1×1 PNG in front of each HLS segment's MPEG-TS data. ExoPlayer resyncs past it, so streaming works. FFmpeg 6 reads the segments as a `png` picture with no audio, and has no option to force the segment format. Such downloads fail early with "Try another server" (megaplay-vidstream works).
 - Downloads live in app storage (`UWUMI_DIR/downloads`). There's no migration from the old shared folder.
-- A download is `downloading` from the moment its probe starts. Its `sessionId` (kept in memory, not persisted) only appears once FFmpeg runs, so the UI uses it to tell "Getting ready…" from real progress.
-- `startDownload` records failures on the download instead of throwing, so read the status afterwards. FFmpeg sessions outlive a JS reload; `initialize()` cancels them and fails the records they leave behind.
+- A download is `downloading` from the moment its probe starts. FFmpeg's `sessionId` (in memory only) appears once it runs; `isPreparing()` tells "Getting ready…" from real progress, and `isActive()` is running or queued.
+- `download()` records failures on the download instead of throwing, so read the status it resolves with. FFmpeg sessions outlive a JS reload; `initialize()` cancels them and fails the records they leave behind.
+
+**Backup**
+- `src/utils/backup.ts` lists every value a backup keeps in its `LIBRARY`, `SETTINGS` and `PREFERENCES` tables. A new persisted setting isn't backed up until it has an entry there. Keep the file format (`FORMAT`) readable by older backups.
 
 **Consumet and extensions**
 - When a provider doesn't find the title, the episode has no `id`. The watch screen and the episode actions sheet show "Not on <provider>".

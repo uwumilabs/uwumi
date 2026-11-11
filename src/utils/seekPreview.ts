@@ -1,3 +1,5 @@
+import { File as FsFile } from 'expo-file-system';
+
 /** One seek-bar preview: the tile of a sprite sheet that shows `start`–`end` */
 export interface SeekPreviewCue {
   start: number;
@@ -71,7 +73,13 @@ export const parseThumbnailVtt = (text: string, vttUrl: string): SeekPreviewCue[
     .sort((a, b) => a.start - b.start);
 };
 
-/** The cues as a WebVTT sprite list, with each sheet named by `name` (e.g. a local file name) */
+/** The cues of a sprite list: a provider's (http) or a download's own copy (file://) */
+export const loadThumbnailVtt = async (url: string, headers?: Record<string, string>) =>
+  parseThumbnailVtt(
+    url.startsWith('file:') ? await new FsFile(url).text() : await (await fetch(url, { headers })).text(),
+    url,
+  );
+
 export const toThumbnailVtt = (cues: SeekPreviewCue[], name: (uri: string) => string) =>
   [
     'WEBVTT',
@@ -94,3 +102,7 @@ export const findCue = (cues: SeekPreviewCue[], time: number) => {
   }
   return cues[Math.min(Math.max(high, 0), cues.length - 1)];
 };
+
+/** A provider's seek-preview sprite list (thumbnails.vtt), which comes with the subtitles but isn't one */
+export const isThumbnailTrack = (track: { kind?: string; lang?: string }) =>
+  track.kind === 'thumbnails' || track.lang === 'thumbnails';

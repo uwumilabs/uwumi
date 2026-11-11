@@ -1,34 +1,27 @@
 import React, { useState } from 'react';
+import { clearWatchHistory } from '@/hooks/useHistory';
 import { Platform, ScrollView, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Paths } from 'expo-file-system';
-import {
-  ChoiceDialog,
-  choiceLabel,
-  ConfirmDialog,
-  HUXStack,
-  HUYStack,
-  NativeList,
-  Progress,
-  SectionTitle,
-  ThemedView,
-} from '@/components';
+import { ChoiceDialog, choiceLabel } from '@/components/ChoiceDialog';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { HUXStack, HUYStack, SectionTitle, ThemedView } from '@/components/ui-primitives';
+import { List as NativeList } from '@/components/native/list/List';
+import { Progress } from '@/components/native/progress/Progress';
 import { Dialog, Input, useToast } from '@/components/heroui';
 import { Button } from '@/components/Button';
-import {
-  useContinueWatchingStore,
-  useDownloadStore,
-  usePreferencesStore,
-  useRecentSearchesStore,
-  useWatchProgressStore,
-} from '@/hooks';
-import { MediaType } from '@/constants/types';
-import { formatBytes } from '@/constants/utils';
+import { useDownloadStore } from '@/downloads/useDownloadStore';
+import { usePreferencesStore } from '@/hooks/stores/usePreferencesStore';
+import { useRecentSearchesStore } from '@/hooks/stores/useRecentSearchesStore';
+import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
+import { formatBytes } from '@/utils/format';
 import { cacheSize, clearCache } from '@/utils/cache';
 import {
   type Backup,
+  AUTO_PREFIX,
   backupFileName,
+  KEEP_AUTO_BACKUPS,
   backupFolderLabel,
   cleanBackupName,
   isPickerCancelled,
@@ -47,7 +40,7 @@ const CLEAR: Record<ClearTarget, { title: string; description: string; done: str
     title: 'Clear watch history?',
     description: 'Empties History and Continue watching. Episode progress stays.',
     done: 'Watch history cleared',
-    clear: () => useContinueWatchingStore.getState().clearAll(),
+    clear: clearWatchHistory,
   },
   progress: {
     title: 'Clear watch progress?',
@@ -59,7 +52,7 @@ const CLEAR: Record<ClearTarget, { title: string; description: string; done: str
     title: 'Clear search history?',
     description: 'Removes recent searches for anime, manga and movies.',
     done: 'Search history cleared',
-    clear: () => Object.values(MediaType).forEach(useRecentSearchesStore.getState().clearRecentSearches),
+    clear: () => useRecentSearchesStore.setState({ recent: {} }),
   },
 };
 
@@ -71,8 +64,8 @@ const AUTO_BACKUP_OPTIONS = [
 ];
 
 const AUTO_BACKUP_INFO = [
-  'uwumi makes one when you open it and one is due. It keeps the newest 5 and deletes older automatic ones; backups you create yourself are never deleted.',
-  'They are named uwumi_auto_<date>_<time>.json.',
+  `uwumi makes one when you open it and one is due. It keeps the newest ${KEEP_AUTO_BACKUPS} and deletes older automatic ones; backups you create yourself are never deleted.`,
+  `They are named ${AUTO_PREFIX}<date>_<time>.json.`,
   supportsBackupFolder()
     ? 'They go to the backup location, which stays when uwumi is deleted. After reinstalling, use Restore backup; search "uwumi" in the picker if you can\'t find them.'
     : "They stay in uwumi's own storage, which is deleted with the app: use Create backup and save it to Files to keep one safe.",
@@ -111,7 +104,7 @@ const DataAndStorage = () => {
     staleTime: 0,
     refetchOnMount: 'always',
     queryFn: async () => {
-      const { downloadsSize } = await useDownloadStore.getState().getStorageInfo();
+      const { downloadsSize } = await useDownloadStore.getState().storageInfo();
       const cache = cacheSize();
       return {
         totalSpace: Paths.totalDiskSpace,

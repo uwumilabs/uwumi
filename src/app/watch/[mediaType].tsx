@@ -1,63 +1,67 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Dimensions, View } from 'react-native';
-import { BufferingStrategyType, ISO639_1, TextTrackType, OnLoadData } from 'react-native-video/src';
-import { MediaType, SubtitleTrack, WatchSearchParams } from '@/constants/types';
-import { IAnimeInfo, IEpisodeServer, ISubtitle, TvType } from 'react-native-consumet';
-import { HUXStack, MaterialIconsIcon, ThemedView } from '@/components';
+import { useWindowDimensions, View } from 'react-native';
+import { BufferingStrategyType, ISO639_1, OnLoadData } from 'react-native-video/src';
+import { MediaType, SubtitleTrack } from '@/constants/types';
+import { IAnimeInfo, ISubtitle, TvType } from 'react-native-consumet';
+import { HUXStack, ThemedView } from '@/components/ui-primitives';
+import { MaterialIconsIcon } from '@/components/Icons';
+import { PlayerOverlay, SkipSlot, type UpNext } from '@/components/watch/PlayerOverlay';
+import { EpisodesPanel } from '@/components/watch/EpisodesPanel';
 import {
-  PlayerOverlay,
-  SkipSlot,
-  type UpNext,
-  EpisodesPanel,
   AddSubtitlesItem,
   AddSubtitlesViews,
-  ServerStatusScreen,
-  ServerLoadingOverlay,
-  ServerMenuItem,
-  ServerMenuView,
-  type ServerChip,
-  type ServerPhase,
+  isSubtitleFile,
+  subtitleType,
+  SUBTITLE_FILE_TYPES,
   type SubtitleLanguage,
   type SubtitleSearchResult,
-} from './components';
-import ProviderSelection from './components/ProviderSelection';
+} from '@/components/watch/AddSubtitles';
+import {
+  ServerStatusScreen,
+  ServerLoadingOverlay,
+  type ServerChip,
+  type ServerPhase,
+} from '@/components/watch/ServerStatus';
+import { ServerMenuItem, ServerMenuView } from '@/components/watch/ServerMenu';
+import ProviderSelection from '@/components/watch/ProviderSelection';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useEpisodesIdStore } from '@/hooks/stores/useEpisodesStore';
 import {
-  useEpisodesIdStore,
-  useEpisodeList,
-  useSkipTimes,
+  episodeNumber as numberOf,
   getAdjacentEpisodes,
-  buildEpisodeRouteParams,
-  useWatchProgressStore,
-  useEpisodeServers,
-  useEpisodeSources,
-  NoSourcesError,
-  useServerRotation,
-  useLastServerStore,
-  lastServerKey,
-  type EpisodeTarget,
+  routeParams,
+  watchParams,
+  type EpisodeContext,
+  type EpisodeItem,
+  type WatchParams,
+} from '@/utils/episodes';
+import { infoHref } from '@/utils/routes';
+import { infoTitle } from '@/utils/media';
+import { useEpisodeList } from '@/hooks/useEpisodeList';
+import {
+  useSkipTimes,
+  episodeTarget,
+  sourceRequestHeaders,
   useExternalSubtitles,
   externalSubtitlesQuery,
   canSearchExternalSubtitles,
-  useBackHandler,
-  useMediaInfo,
-  useContinueWatchingStore,
-  useExternalSubtitleStore,
-  usePreferencesStore,
-  usePlayerSettingsStore,
-  useDownloadedFileUri,
-  useDownloadedThumbnailsUri,
-  useSeekPreviewStore,
-  type EpisodeItem,
-} from '@/hooks';
+} from '@/hooks/queries/watchQueries';
+import { isWatchedPercent, useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
+import { useServerPlayback } from '@/hooks/useServerRotation';
+import { useBackHandler } from '@/hooks/useBackHandler';
+import { useMediaInfo } from '@/hooks/queries/infoQueries';
+import { useContinueWatchingStore } from '@/hooks/stores/useContinueWatchingStore';
+import { useExternalSubtitleStore } from '@/hooks/stores/useExternalSubtitleStore';
+import { usePlayerSettingsStore } from '@/hooks/stores/usePlayerSettingsStore';
+import { useDownloadedFileUri, useDownloadedThumbnailsUri } from '@/downloads/useDownloadStore';
+import { useSeekPreviewStore } from '@/hooks/stores/useSeekPreviewStore';
 import { useToast } from '@/components/heroui';
 import * as DocumentPicker from 'expo-document-picker';
-import { useActiveProvider, useProviders, META_PROVIDERS } from '@/constants/provider';
-import { constants } from '@/constants/config';
-import { isThumbnailTrack, isTV } from '@/constants/utils';
+import { useActiveProvider, useProviderName, useProviderSelectionStore } from '@/hooks/stores/useProviderStore';
+import { isThumbnailTrack } from '@/utils/seekPreview';
+import { isTV } from '@/utils/tv';
 import { PerfProfiler, PerfRun } from '@/perf/perfHarness';
-import { useEmbedMode, useProviderSelectionStore } from './components';
 import {
   VideoPlayer,
   DefaultLayout,
@@ -70,24 +74,12 @@ import {
   SkipPrevious,
 } from 'react-native-video-toolkit';
 
-// Providers often leave out a subtitle's type (NetflixMirror sends .srt), and ExoPlayer fails the whole source
-// when a track doesn't parse as the type it's given
-const subtitleType = (uri: string) => {
-  const path = uri.split(/[?#]/)[0].toLowerCase();
-  if (path.endsWith('.srt')) return TextTrackType.SUBRIP;
-  if (path.endsWith('.ttml') || path.endsWith('.dfxp')) return TextTrackType.TTML;
-  return TextTrackType.VTT;
-};
-
-const EMPTY_SERVERS: IEpisodeServer[] = [];
-// A failure after this much playback is a broken stream rather than a bad server, so that server gets one reload
-const MID_PLAYBACK_MS = 10_000;
 // Saved progress this close to the end counts as finished
 const RESTART_TAIL_SECONDS = 10;
 
 const Watch = () => {
   const router = useRouter();
-  const watchParams = useLocalSearchParams() as unknown as WatchSearchParams;
+  const params = useLocalSearchParams() as unknown as WatchParams;
   const {
     mediaType,
     provider,
@@ -100,10 +92,8 @@ const Watch = () => {
     type,
     episodeNumber: routeEpisodeNumber,
     seasonNumber,
-  } = watchParams;
-  // console.log(useLocalSearchParams(), 'useLocalSearchParams');
-  const setProgress = useWatchProgressStore((state) => state.setProgress);
-  const getProgress = useWatchProgressStore((state) => state.getProgress);
+  } = params;
+  const savePlayback = useWatchProgressStore((state) => state.savePlayback);
   const currentProvider = useActiveProvider(mediaType);
   const { data: mediaInfo, isLoading: mediaInfoLoading } = useMediaInfo();
   const recordContinueWatching = useContinueWatchingStore((state) => state.record);
@@ -117,10 +107,6 @@ const Watch = () => {
   const [episodesOpen, setEpisodesOpen] = useState(false);
   const openEpisodes = useCallback(() => setEpisodesOpen(true), []);
   const closeEpisodes = useCallback(() => setEpisodesOpen(false), []);
-
-  const setEpisodeIds = useEpisodesIdStore((state) => state.setEpisodeIds);
-  const currentEpisodeId = useEpisodesIdStore((state) => state.currentEpisodeId);
-  const currentUniqueId = useEpisodesIdStore((state) => state.currentUniqueId);
 
   // The same (cached) episode list the screen's EpisodeList shows
   const { episodes, movieSeasons, setSeason, providerMediaId, isLoading: episodesLoading } = useEpisodeList();
@@ -139,17 +125,13 @@ const Watch = () => {
   const activeMediaId = switchedProvider ? providerMediaId : mediaId;
   // The route's id is empty when the provider didn't find the title; after a switch, the list has to load first
   const missingOnProvider = !activeEpisodeId && !(switchedProvider && episodesLoading);
-  const providers = useProviders();
   const uniqueId = listedEpisode?.uniqueId ?? routeUniqueId;
   // A downloaded episode plays its file, with no servers, so it works offline. If the file won't play, it streams
   const downloadedUri = useDownloadedFileUri(uniqueId);
   const [failedDownload, setFailedDownload] = useState<string | undefined>();
   const localUri = downloadedUri && failedDownload !== uniqueId ? downloadedUri : undefined;
   const episodeNumber = listedEpisode?.number !== undefined ? String(listedEpisode.number) : routeEpisodeNumber;
-  const adjacentEpisodes = useMemo(
-    () => getAdjacentEpisodes(allEpisodes, currentUniqueId || uniqueId),
-    [allEpisodes, currentUniqueId, uniqueId],
-  );
+  const adjacentEpisodes = useMemo(() => getAdjacentEpisodes(allEpisodes, uniqueId), [allEpisodes, uniqueId]);
   const playingSeason =
     movieSeasons?.findIndex((season) => season.episodes?.some((episode) => episode.uniqueId === uniqueId)) ?? -1;
 
@@ -168,35 +150,24 @@ const Watch = () => {
   // AniSkip is off, has answered, or can't be asked without a MAL id; SkipSlot jumps where it has no intro or outro
   const skipForward = mediaType === MediaType.ANIME && (!aniSkip || skipTimesFetched || (!!mediaInfo && !malId));
   const upNext = useMemo<UpNext | undefined>(
-    () =>
-      nextEpisode
-        ? { label: `EP ${nextEpisode.number ?? nextEpisode.episode ?? ''}`.trim(), title: nextEpisode.title }
-        : undefined,
+    () => (nextEpisode ? { label: `EP ${numberOf(nextEpisode) ?? ''}`.trim(), title: nextEpisode.title } : undefined),
     [nextEpisode],
   );
 
-  // Navigation context for building route params
-  const navigationContext = useMemo(
-    () => ({
-      mediaType,
-      provider: currentProvider ?? provider,
-      id,
-      mediaId: providerMediaId ?? mediaId,
-      type: type as string,
-    }),
-    [mediaType, provider, id, mediaId, providerMediaId, type, currentProvider],
+  const episodeContext = useMemo<EpisodeContext>(
+    () => ({ mediaType, provider: currentProvider, id, mediaId: providerMediaId ?? mediaId, type }),
+    [mediaType, id, mediaId, providerMediaId, type, currentProvider],
   );
 
   const openEpisode = useCallback(
     (episode: EpisodeItem | null) => {
-      const routeParams = buildEpisodeRouteParams(episode, navigationContext);
-      if (!routeParams) {
+      if (!episode?.id || !episode.uniqueId) {
         toast.show({ variant: 'danger', label: 'Unable to navigate', description: 'Episode data is invalid' });
         return;
       }
-      router.replace({ pathname: '/watch/[mediaType]', params: routeParams });
+      router.replace({ pathname: '/watch/[mediaType]', params: watchParams(episode, episodeContext) });
     },
-    [navigationContext, router, toast],
+    [episodeContext, router, toast],
   );
 
   const handlePrevEpisode = useCallback(() => {
@@ -230,53 +201,35 @@ const Watch = () => {
 
   useFocusEffect(
     useCallback(() => {
-      if (episodeId && uniqueId) {
-        setEpisodeIds(episodeId, uniqueId);
-      }
+      if (uniqueId) useEpisodesIdStore.getState().setCurrentUniqueId(uniqueId);
       if (playingSeason >= 0) setSeason(playingSeason);
       return () => {
-        setEpisodeIds('', '');
+        // The next episode's screen may have taken over already, as replacing the route focuses it first
+        if (useEpisodesIdStore.getState().currentUniqueId === uniqueId) {
+          useEpisodesIdStore.getState().setCurrentUniqueId(null);
+        }
       };
-    }, [uniqueId, episodeId, setEpisodeIds, playingSeason, setSeason]),
+    }, [uniqueId, playingSeason, setSeason]),
   );
 
-  const [dimensions, setDimensions] = useState({
-    width: Dimensions.get('screen').width,
-    height: Dimensions.get('screen').height,
-  });
+  const { width: windowWidth } = useWindowDimensions();
   const dub = useProviderSelectionStore((state) => state.dub);
-  const isEmbed = useEmbedMode(mediaType, currentProvider);
-  const sourceEpisodeId = activeEpisodeId || (switchedProvider ? '' : (currentEpisodeId as string)) || '';
-  const target = useMemo<EpisodeTarget>(
+  const target = useMemo(
     () =>
-      mediaType === MediaType.ANIME
-        ? { mediaType, provider: currentProvider, episodeId: sourceEpisodeId, dub }
-        : {
-            mediaType,
-            provider: currentProvider,
-            episodeId: sourceEpisodeId,
-            mediaId: activeMediaId ?? '',
-            embed: isEmbed,
-          },
-    [mediaType, currentProvider, sourceEpisodeId, dub, activeMediaId, isEmbed],
+      episodeTarget({
+        mediaType,
+        provider: currentProvider,
+        episodeId: activeEpisodeId ?? '',
+        mediaId: activeMediaId,
+        dub,
+      }),
+    [mediaType, currentProvider, activeEpisodeId, dub, activeMediaId],
   );
-  const rotationKey = useMemo(() => JSON.stringify(target), [target]);
   // A switched provider's list has to load before its episode id is known
   const waitingForList = switchedProvider && episodesLoading;
-  const serversQuery = useEpisodeServers(target, !waitingForList && !localUri);
-  const serverNames = useMemo(
-    () => (serversQuery.data ?? EMPTY_SERVERS).map((server) => server.name),
-    [serversQuery.data],
-  );
-  const providerServerKey = lastServerKey(mediaType, currentProvider);
-  const rememberedServer = useLastServerStore((state) => state.servers[providerServerKey]);
-  const rememberServer = useLastServerStore((state) => state.remember);
-  const rotation = useServerRotation(rotationKey, serversQuery.data ?? EMPTY_SERVERS, rememberedServer);
-  const sourcesQuery = useEpisodeSources(target, rotation.server, rotation.attemptKey);
-  // Recorded while rendering: the query is keyed by the attempt, so this error is the current server's
-  if (sourcesQuery.isError && rotation.attempt && !rotation.failed[rotation.attempt.server]) {
-    rotation.fail(rotation.attempt, sourcesQuery.error instanceof NoSourcesError ? 'no-video' : 'unavailable');
-  }
+  const playback = useServerPlayback(target, !waitingForList && !localUri);
+  const { serversQuery, rotation } = playback;
+  const serverNames = useMemo(() => playback.servers.map((server) => server.name), [playback.servers]);
 
   const subtitleLanguage = useExternalSubtitleStore((state) => state.language);
   const subtitleSearch = useMemo(
@@ -293,7 +246,7 @@ const Watch = () => {
     enabled: wantsExternalSubtitles && !localUri,
   });
 
-  const data = sourcesQuery.data;
+  const data = playback.sources;
   // New text tracks would reload the source, so the player waits for external subtitles, which give up quickly
   const waitingForSubtitles = !localUri && wantsExternalSubtitles && (mediaInfoLoading || externalSubtitlesLoading);
 
@@ -302,13 +255,9 @@ const Watch = () => {
     return true;
   });
 
-  const lastProgressUpdateRef = useRef({ currentTime: 0, seekableDuration: 0 });
+  const playheadRef = useRef(0);
   const recordedEpisodeRef = useRef<string | null>(null);
   const savedBucketRef = useRef('');
-  // Where a reload or the next server picks up, when the failed one had been playing
-  const resumeRef = useRef<{ uniqueId?: string; at: number } | null>(null);
-  const loadedAtRef = useRef(0);
-  const [loadedAttempt, setLoadedAttempt] = useState<string | null>(null);
 
   // Keyed by episode, like loadedLength, so a file added to one episode doesn't carry over to the next
   const [addedSubtitles, setAddedSubtitles] = useState<{ uniqueId?: string; tracks: SubtitleTrack[] }>({
@@ -319,31 +268,10 @@ const Watch = () => {
   const { textTracks: playerTextTracks, setTextTrack } = useSettings();
   const queryClient = useQueryClient();
 
-  // Puts this show at the front of Continue watching; the store keeps an earlier title and image if info hasn't loaded
+  // Puts this show at the front of Continue watching
   const rememberEpisode = useCallback(() => {
-    const info = mediaInfo;
-    const showTitle = info
-      ? typeof info.title === 'string'
-        ? info.title
-        : info.title?.romaji || info.title?.english
-      : undefined;
-    const showImage = info?.image;
-    const params = {
-      ...Object.fromEntries(
-        Object.entries(watchParams).filter(
-          (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1] !== '',
-        ),
-      ),
-      ...(uniqueId && { uniqueId }),
-      ...(episodeNumber && { episodeNumber }),
-      // Resumes on the provider it was switched to
-      ...(switchedProvider &&
-        activeEpisodeId && {
-          provider: currentProvider,
-          episodeId: activeEpisodeId,
-          ...(activeMediaId && { mediaId: activeMediaId }),
-        }),
-    };
+    const showTitle = infoTitle(mediaInfo);
+    const showImage = mediaInfo?.image;
     recordContinueWatching({
       mediaType,
       showId: id,
@@ -355,21 +283,20 @@ const Watch = () => {
         adjacentEpisodes.currentIndex >= 0 && !movieSeasons?.some((season) => season.failed)
           ? adjacentEpisodes.hasNext
           : undefined,
-      watchParams: params,
-      infoParams: {
-        mediaType,
-        id,
-        provider: currentProvider ?? provider,
-        metaProvider: META_PROVIDERS[mediaType],
-        ...(type && { type: type as string }),
-        ...(showTitle && { title: showTitle }),
-        ...(showImage && { image: showImage }),
-      },
+      watchParams: routeParams({
+        ...params,
+        uniqueId,
+        episodeNumber,
+        // Resumes on the provider it was switched to
+        ...(switchedProvider &&
+          activeEpisodeId && { provider: currentProvider, episodeId: activeEpisodeId, mediaId: activeMediaId }),
+      }),
+      infoParams: infoHref({ mediaType, id, type, title: showTitle, image: showImage }).params,
     });
   }, [
     mediaInfo,
     id,
-    watchParams,
+    params,
     recordContinueWatching,
     mediaType,
     uniqueId,
@@ -380,42 +307,25 @@ const Watch = () => {
     adjacentEpisodes,
     movieSeasons,
     currentProvider,
-    provider,
     type,
   ]);
 
   const handleProgress = useCallback(
-    ({ currentTime: newTime, seekableDuration: newDuration }: { currentTime: number; seekableDuration: number }) => {
-      // Only update state if the time has changed by at least 0.5 seconds to prevent excessive re-renders
-      const lastUpdate = lastProgressUpdateRef.current;
-      if (Math.abs(newTime - lastUpdate.currentTime) >= 0.5) {
-        // setCurrentTime(newTime);
-        lastUpdate.currentTime = newTime;
-      }
-      if (Math.abs(newDuration - lastUpdate.seekableDuration) >= 0.5) {
-        // setSeekableDuration(newDuration);
-        lastUpdate.seekableDuration = newDuration;
-      }
-
-      if (usePreferencesStore.getState().incognito) return;
+    ({ currentTime, seekableDuration }: { currentTime: number; seekableDuration: number }) => {
+      playheadRef.current = currentTime;
       // Save every 5 seconds: progress events come every 250 ms, so once per 5 s bucket, not on each event in it
-      const bucket = `${uniqueId}:${Math.floor(newTime / 5)}`;
-      if (uniqueId && newDuration > 0 && savedBucketRef.current !== bucket) {
-        savedBucketRef.current = bucket;
-        const savedProgress = getProgress(uniqueId);
-        const progress = (newTime / newDuration) * 100;
-        if (!savedProgress || newTime > (savedProgress.currentTime ?? 0)) {
-          setProgress(uniqueId, { currentTime: newTime, duration: newDuration, progress });
-        }
-        // Again on finishing, by when the episode list (and so whether there's a next one) has loaded
-        const recordKey = `${uniqueId}:${progress >= constants.PROGRESS_COMPLETION_PERCENTAGE}`;
-        if (recordedEpisodeRef.current !== recordKey) {
-          recordedEpisodeRef.current = recordKey;
-          rememberEpisode();
-        }
+      const bucket = `${uniqueId}:${Math.floor(currentTime / 5)}`;
+      if (!uniqueId || !(seekableDuration > 0) || savedBucketRef.current === bucket) return;
+      savedBucketRef.current = bucket;
+      savePlayback(uniqueId, currentTime, seekableDuration);
+      // Again on finishing, by when the episode list (and so whether there's a next one) has loaded
+      const recordKey = `${uniqueId}:${isWatchedPercent((currentTime / seekableDuration) * 100)}`;
+      if (recordedEpisodeRef.current !== recordKey) {
+        recordedEpisodeRef.current = recordKey;
+        rememberEpisode();
       }
     },
-    [uniqueId, getProgress, setProgress, rememberEpisode],
+    [uniqueId, savePlayback, rememberEpisode],
   );
 
   const videoTracks = useMemo(() => {
@@ -423,13 +333,13 @@ const Watch = () => {
     const tracks: CustomVideoTrack[] = [];
     data.sources.forEach((track, index) => {
       if (track?.url) {
-        const qualityStr = track.quality?.toLowerCase() || '';
-        const match = qualityStr.match(/(\d{3,4})p/);
-        const height = match ? Number(match[1]) : qualityStr === 'auto' || qualityStr === 'default' ? 9999 : 0;
+        const quality = track.quality?.toLowerCase() || '';
+        const auto = quality === 'auto' || quality === 'default';
+        const match = quality.match(/(\d{3,4})p/);
         tracks.push({
           index,
-          height,
-          label: qualityStr === 'auto' || qualityStr === 'default' ? 'Auto' : qualityStr.toUpperCase(),
+          height: match ? Number(match[1]) : auto ? 9999 : 0,
+          label: auto ? 'Auto' : quality.toUpperCase(),
           uri: track.url,
         } as CustomVideoTrack);
       }
@@ -441,35 +351,24 @@ const Watch = () => {
     return sortedTracks;
   }, [data]);
 
-  const source = useMemo(() => {
-    return (
-      localUri ||
-      data?.sources?.[0]?.url ||
-      data?.sources?.find((s) => s.quality === 'auto' || s.quality === 'default')?.url ||
-      data?.sources?.[0]?.url ||
-      ''
-    );
-  }, [localUri, data]);
+  const source =
+    localUri ||
+    data?.sources?.[0]?.url ||
+    data?.sources?.find((s) => s.quality === 'auto' || s.quality === 'default')?.url ||
+    '';
+  const sourceHeaders = useMemo(
+    () => (localUri ? undefined : sourceRequestHeaders(data?.headers)),
+    [localUri, data?.headers],
+  );
 
-  const sourceHeaders = useMemo<Record<string, string> | undefined>(() => {
-    if (localUri) return undefined;
-    const h = data?.headers;
-    if (!h || typeof h !== 'object') return undefined;
-    // Flatten to Record<string, string>, dropping any non-string values
-    return Object.fromEntries(Object.entries(h).filter(([, v]) => typeof v === 'string')) as Record<string, string>;
-  }, [localUri, data?.headers]);
-
-  // Seek-bar previews: the sprites saved with a download, or the provider's while streaming
   const downloadedThumbnails = useDownloadedThumbnailsUri(localUri ? uniqueId : undefined);
   const providerThumbnails = useMemo(() => data?.subtitles?.find((track) => isThumbnailTrack(track))?.url, [data]);
   const setSeekPreviewSource = useSeekPreviewStore((state) => state.setSource);
   useEffect(() => {
     const url = localUri ? downloadedThumbnails : providerThumbnails;
-    setSeekPreviewSource(url ? { url, headers: localUri ? undefined : sourceHeaders } : null);
+    setSeekPreviewSource(url ? { url, headers: sourceHeaders } : null);
     return () => setSeekPreviewSource(null);
   }, [localUri, downloadedThumbnails, providerThumbnails, sourceHeaders, setSeekPreviewSource]);
-
-  // const gestures = Gesture.Exclusive(doubleTapGesture, brightnessVolumeGesture, singleTapGesture);
 
   // The source's own tracks first, so they're picked over external ones in the same language
   const subtitleTracks = useMemo<(SubtitleTrack | ISubtitle)[]>(
@@ -501,7 +400,7 @@ const Watch = () => {
         if (existing) setTextTrack(existing);
         return;
       }
-      pendingAddRef.current = { uniqueId, resumeAt: lastProgressUpdateRef.current.currentTime, title: fresh[0].title };
+      pendingAddRef.current = { uniqueId, resumeAt: playheadRef.current, title: fresh[0].title };
       setAddedSubtitles((previous) => ({
         uniqueId,
         tracks: [...(previous.uniqueId === uniqueId ? previous.tracks : []), ...fresh],
@@ -514,8 +413,12 @@ const Watch = () => {
     const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
     if (result.canceled) return;
     const file = result.assets[0];
-    if (!/\.(srt|vtt|ttml|dfxp)$/i.test(file.name)) {
-      toast.show({ variant: 'danger', label: 'Not a subtitle file', description: 'Pick an .srt, .vtt or .ttml file.' });
+    if (!isSubtitleFile(file.name)) {
+      toast.show({
+        variant: 'danger',
+        label: 'Not a subtitle file',
+        description: `Pick an ${SUBTITLE_FILE_TYPES} file.`,
+      });
       return;
     }
     addSubtitleTracks([{ title: file.name, type: subtitleType(file.name), uri: file.uri }]);
@@ -536,7 +439,7 @@ const Watch = () => {
   );
 
   const phase: ServerPhase | 'loading' | 'playing' = localUri
-    ? loadedAttempt === rotation.attemptKey
+    ? playback.loaded
       ? 'playing'
       : 'loading'
     : missingOnProvider
@@ -547,11 +450,11 @@ const Watch = () => {
           ? 'exhausted'
           : !source || waitingForList || waitingForSubtitles
             ? 'finding'
-            : loadedAttempt === rotation.attemptKey
+            : playback.loaded
               ? 'playing'
               : 'loading';
 
-  const providerName = providers[mediaType]?.find(({ value }) => value === currentProvider)?.name ?? currentProvider;
+  const providerName = useProviderName(mediaType, currentProvider);
   const chips = useMemo<ServerChip[]>(
     () =>
       rotation.order.map((name) => ({
@@ -562,14 +465,8 @@ const Watch = () => {
     [rotation.order, rotation.failed, rotation.attempt?.server],
   );
   const position = rotation.attempt ? rotation.order.indexOf(rotation.attempt.server) + 1 : 0;
-  const { attemptKey, pick } = rotation;
-  const pickServer = useCallback(
-    (name: string) => {
-      if (loadedAttempt === attemptKey) resumeRef.current = { uniqueId, at: lastProgressUpdateRef.current.currentTime };
-      pick(name);
-    },
-    [loadedAttempt, attemptKey, pick, uniqueId],
-  );
+  const { pick } = playback;
+  const pickServer = useCallback((name: string) => pick(name, playheadRef.current), [pick]);
 
   if (phase !== 'loading' && phase !== 'playing') {
     return (
@@ -582,29 +479,18 @@ const Watch = () => {
           onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
           onPick={rotation.pick}
           onRetry={phase === 'unavailable' ? () => serversQuery.refetch() : rotation.retryAll}
-          changeProvider={<ProviderSelection mediaType={mediaType} isDubbed={watchParams.isDubbed} />}
+          changeProvider={<ProviderSelection mediaType={mediaType} isDubbed={params.isDubbed} />}
         />
       </ThemedView>
     );
   }
 
   return (
-    <ThemedView
-      useStatusBar={false}
-      useSafeArea
-      onLayout={(e) => {
-        setDimensions({
-          width: e.nativeEvent.layout.width,
-          height: e.nativeEvent.layout.height,
-        });
-      }}
-      style={{
-        top: 0,
-      }}>
+    <ThemedView useStatusBar={false} useSafeArea>
       <PerfRun />
       <VideoPlayer
         // A fresh native player per attempt: a failed one can't deliver late events to the next
-        key={`${activeEpisodeId || (currentEpisodeId as string) || 'video'}|${rotation.attemptKey}`}
+        key={`${activeEpisodeId || 'video'}|${rotation.attemptKey}`}
         gestureProps={{ onSwipeUp: openEpisodes, onSwipeDown: closeEpisodes, onSingleTap: closeEpisodes }}
         videoProps={{
           resizeMode: 'contain',
@@ -613,7 +499,7 @@ const Watch = () => {
           reportBandwidth: true,
           automaticallyWaitsToMinimizeStalling: true,
           preventsDisplaySleepDuringVideoPlayback: true,
-          allowsEaxternalPlayback: true,
+          allowsExternalPlayback: true,
           mixWithOthers: 'mix',
           bufferingStrategy: BufferingStrategyType.DEPENDING_ON_MEMORY,
           enterPictureInPictureOnLeave: !isTV && isPlaying && autoPip,
@@ -623,33 +509,21 @@ const Watch = () => {
               setFailedDownload(uniqueId);
               return;
             }
-            const attempt = rotation.attempt;
-            if (!attempt) return;
-            const loaded = loadedAttempt === rotation.attemptKey;
-            if (loaded) resumeRef.current = { uniqueId, at: lastProgressUpdateRef.current.currentTime };
-            if (loaded && attempt.reloads === 0 && Date.now() - loadedAtRef.current > MID_PLAYBACK_MS) {
-              rotation.reload(attempt);
-            } else {
-              rotation.fail(attempt, 'playback');
-            }
+            playback.onError(playheadRef.current);
           },
           onLoad: (value: OnLoadData) => {
-            setLoadedAttempt(rotation.attemptKey);
-            loadedAtRef.current = Date.now();
-            if (rotation.attempt) rememberServer(providerServerKey, rotation.attempt.server);
+            const resume = playback.onLoad();
             setLoadedLength({ uniqueId, seconds: Math.round(value.duration) });
             const pending = pendingAddRef.current?.uniqueId === uniqueId ? pendingAddRef.current : null;
             pendingAddRef.current = null;
-            const resume = resumeRef.current?.uniqueId === uniqueId ? resumeRef.current.at : undefined;
-            resumeRef.current = null;
             // A watched episode starts over: resuming at its end would end it at once and roll on to the next
-            const saved = getProgress(uniqueId);
+            const saved = useWatchProgressStore.getState().progresses[uniqueId];
             const savedAt =
               saved && !saved.isCompleted && saved.currentTime < value.duration - RESTART_TAIL_SECONDS
                 ? saved.currentTime
                 : 0;
             const startAt = pending?.resumeAt ?? resume ?? savedAt;
-            lastProgressUpdateRef.current.currentTime = startAt;
+            playheadRef.current = startAt;
             videoRef?.current?.seek(startAt);
             const addedTrack = pending && value.textTracks.find((track) => track.title === pending.title);
             if (addedTrack) setTextTrack(addedTrack);
@@ -671,7 +545,7 @@ const Watch = () => {
                   ('lang' in track ? track.lang : track.language) ||
                   'Untitled',
                 language: (('lang' in track ? track.lang : track.language)?.toLowerCase() as ISO639_1) || 'en',
-                type: 'type' in track && track.type !== 'application/x-media-cues' ? track.type : subtitleType(uri),
+                type: 'type' in track ? track.type : subtitleType(uri),
                 uri,
                 index,
               };
@@ -689,7 +563,7 @@ const Watch = () => {
         }}>
         <DefaultLayout
           title={title}
-          titleProps={{ style: { width: dimensions.width * 0.75 }, numberOfLines: 1 }}
+          titleProps={{ style: { width: windowWidth * 0.75 }, numberOfLines: 1 }}
           subtitle={[
             type !== TvType.MOVIE && `${seasonNumber ? `Season ${seasonNumber} ` : ''}Episode ${episodeNumber}`,
             localUri && 'Downloaded',
@@ -729,7 +603,6 @@ const Watch = () => {
             ),
             beforeProgressBar: (
               <HUXStack>
-                {/* This view is just to take the whole space */}
                 <View className="flex-1 w-full" />
                 <SkipSlot skipTimes={skipTimes} upNext={upNext} onNext={handleNextEpisode} skipForward={skipForward} />
               </HUXStack>
@@ -772,7 +645,12 @@ const Watch = () => {
         )}
       </VideoPlayer>
       <PerfProfiler id="EpisodesPanel">
-        <EpisodesPanel open={episodesOpen} onOpenChange={setEpisodesOpen} onSelect={openEpisode} />
+        <EpisodesPanel
+          currentUniqueId={uniqueId}
+          open={episodesOpen}
+          onOpenChange={setEpisodesOpen}
+          onSelect={openEpisode}
+        />
       </PerfProfiler>
     </ThemedView>
   );

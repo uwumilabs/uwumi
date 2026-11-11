@@ -1,4 +1,4 @@
-// metro.config.js
+const fs = require('fs');
 const path = require('path');
 const { getDefaultConfig } = require('@expo/metro-config');
 const { withUniwindConfig } = require('uniwind/metro');
@@ -14,15 +14,18 @@ baseConfig.resolver.blockList = [
 ];
 const reanimatedConfig = wrapWithReanimatedMetroConfig(baseConfig);
 
+// The themes the CSS in src/themes defines, one `@variant <name>` each (src/scripts/generate-themes.ts reads them too)
+const themesDir = path.join(__dirname, 'src/themes');
+const extraThemes = fs
+  .readdirSync(themesDir)
+  .filter((file) => file.endsWith('.css'))
+  .sort()
+  .flatMap((file) =>
+    [...fs.readFileSync(path.join(themesDir, file), 'utf8').matchAll(/@variant\s+([\w-]+)/g)].map((match) => match[1]),
+  );
+
 module.exports = withUniwindConfig(reanimatedConfig, {
   cssEntryFile: './global.css',
   dtsFile: './src/uniwind-types.d.ts',
-  extraThemes: [
-    'default-light',
-    'default-dark',
-    'cloudflare-light',
-    'cloudflare-dark',
-    'cotton-candy-light',
-    'cotton-candy-dark',
-  ],
+  extraThemes,
 });

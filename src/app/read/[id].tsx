@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { readerHref, type ReaderParams } from '@/utils/routes';
 import {
   ActivityIndicator,
   type GestureResponderEvent,
@@ -14,24 +15,20 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { create } from 'zustand';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { IMangaChapter, IMangaChapterPage } from 'react-native-consumet';
-import { HUXStack, HUYStack, IoniconsIcon, ListEmptyState, ThemedView } from '@/components';
+import { HUXStack, HUYStack, ThemedView } from '@/components/ui-primitives';
+import { IoniconsIcon } from '@/components/Icons';
+import { ListEmptyState } from '@/components/ListEmptyState';
 import { Button } from '@/components/Button';
 import { ReaderPage } from '@/components/reader/ReaderPage';
 import { TapZonesOverlay, tapActionAt } from '@/components/reader/TapZones';
 import { ZoomablePage } from '@/components/ZoomablePage';
-import { isTV } from '@/constants/utils';
-import { getProviders } from '@/constants/provider';
+import { isTV } from '@/utils/tv';
+import { useProviderName } from '@/hooks/stores/useProviderStore';
 import { MediaType } from '@/constants/types';
-import {
-  mangaProgressKey,
-  resumePage,
-  type ReaderBackground,
-  useChapterPages,
-  useCurrentTheme,
-  useMangaChapters,
-  useMangaProgressStore,
-  useReaderSettingsStore,
-} from '@/hooks';
+import { mangaProgressKey, resumePage, useMangaProgressStore } from '@/hooks/stores/useMangaProgressStore';
+import { isPagedMode, type ReaderBackground, useReaderSettingsStore } from '@/hooks/stores/useReaderSettingsStore';
+import { useChapterPages, useMangaChapters } from '@/hooks/queries/mangaQueries';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { adjacentChapters, chapterNumbers, chapterTitle } from '@/utils/manga';
 
 const BACKGROUNDS: Record<Exclude<ReaderBackground, 'theme'>, string> = {
@@ -74,7 +71,6 @@ interface ChapterNavProps {
   onOpen: (chapter: IMangaChapter) => void;
 }
 
-/** Previous and next chapter, in reading order */
 const ChapterNav = ({ previous, next, onOpen }: ChapterNavProps) => {
   const theme = useCurrentTheme();
   if (!previous && !next) return null;
@@ -136,8 +132,6 @@ const Read = () => {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  // `continued`: opened from the previous or next chapter button, so the reader was already open. `title` and `image`
-  // are the manga's, kept with its progress for Continue reading and History
   const {
     id,
     chapter: chapterId,
@@ -145,14 +139,7 @@ const Read = () => {
     continued,
     title: mangaTitle,
     image: mangaImage,
-  } = useLocalSearchParams<{
-    id: string;
-    chapter: string;
-    provider: string;
-    continued?: string;
-    title?: string;
-    image?: string;
-  }>();
+  } = useLocalSearchParams<ReaderParams>();
   const progressKey = mangaProgressKey(id, provider);
   // Where this chapter was left, read once: the page saves as it's read would move it otherwise
   const [startPage] = useState(() => resumePage(useMangaProgressStore.getState().progress[progressKey], chapterId));
@@ -160,7 +147,7 @@ const Read = () => {
   const pages = useChapterPages({ chapterId, provider });
   const markRead = useMangaProgressStore((state) => state.markRead);
   const { current, previous, next } = adjacentChapters(chapters.data ?? [], chapterId);
-  const providerName = getProviders()[MediaType.MANGA].find(({ value }) => value === provider)?.name ?? provider;
+  const providerName = useProviderName(MediaType.MANGA, provider);
   const title = current ? chapterTitle(current) : 'Chapter';
   const readingMode = useReaderSettingsStore((state) => state.readingMode);
   const background = useReaderSettingsStore((state) => state.background);
@@ -170,7 +157,7 @@ const Read = () => {
   const tapZones = useReaderSettingsStore((state) => state.tapZones);
   const invertTapZones = useReaderSettingsStore((state) => state.invertTapZones);
   const showTapZonesOverlay = useReaderSettingsStore((state) => state.showTapZonesOverlay);
-  const paged = readingMode.startsWith('paged');
+  const paged = isPagedMode(readingMode);
   const rtl = readingMode === 'paged-rtl';
   const horizontal = rtl || readingMode === 'paged-ltr';
   const padding = paged ? 0 : Math.round((width * sidePadding) / 100);
@@ -204,10 +191,9 @@ const Read = () => {
 
   const openChapter = useCallback(
     (chapter: IMangaChapter) =>
-      router.replace({
-        pathname: '/read/[id]',
-        params: { id, chapter: chapter.id, provider, continued: '1', title: mangaTitle, image: mangaImage },
-      }),
+      router.replace(
+        readerHref({ id, chapter: chapter.id, provider, continued: '1', title: mangaTitle, image: mangaImage }),
+      ),
     [router, id, provider, mangaTitle, mangaImage],
   );
   const nav = useMemo(

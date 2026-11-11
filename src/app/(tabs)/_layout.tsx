@@ -1,8 +1,9 @@
 import { NativeTabs } from 'expo-router/native-tabs';
 import React from 'react';
-import { useCurrentTheme, usePureBlackBackground } from '@/hooks';
-import { hexToRGB, isTV } from '@/constants/utils';
-import { TVTabs } from '@/components/TVTabs';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { hexToRGB } from '@/utils/format';
+import { isTV } from '@/utils/tv';
+import { TABS, TVTabs } from '@/components/TVTabs';
 
 export const unstable_settings = {
   anchor: 'index',
@@ -10,35 +11,24 @@ export const unstable_settings = {
 
 export default function TabLayout() {
   const currentTheme = useCurrentTheme();
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
 
   if (isTV) return <TVTabs />;
 
   return (
     <NativeTabs
       backBehavior="initialRoute"
-      backgroundColor={pureBlackBackground ? currentTheme?.amoledSurfaceVariant : currentTheme?.segment}
+      backgroundColor={currentTheme.railBackground}
       indicatorColor={currentTheme?.default}
       rippleColor={hexToRGB(currentTheme?.accent, 0.5)}
       labelStyle={{ fontSize: 13, fontWeight: '700', color: currentTheme?.foreground }}
       iconColor={currentTheme?.foreground}
       labelVisibilityMode="labeled">
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Anime</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon src={require('../../../assets/images/anime.png')} />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="manga">
-        <NativeTabs.Trigger.Label>Manga</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon src={require('../../../assets/images/manga.png')} />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="movies">
-        <NativeTabs.Trigger.Label>Movies</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon src={require('../../../assets/images/movies.png')} />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="more">
-        <NativeTabs.Trigger.Label>More</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon src={require('../../../assets/images/more.png')} />
-      </NativeTabs.Trigger>
+      {TABS.map(({ name, label, icon }) => (
+        <NativeTabs.Trigger key={name} name={name}>
+          <NativeTabs.Trigger.Label>{label}</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon src={icon} />
+        </NativeTabs.Trigger>
+      ))}
     </NativeTabs>
   );
 }

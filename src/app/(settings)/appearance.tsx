@@ -1,7 +1,11 @@
 import React, { memo, useCallback, useMemo } from 'react';
-import { useThemeStore, usePureBlackBackground } from '@/hooks';
-import { isTV } from '@/constants/utils';
-import { ThemedView, HUYStack, HUXStack, IoniconsIcon, TVFocusWrapper, Separator, Switch } from '@/components';
+import { themeBase, useThemeStore, usePureBlackBackground } from '@/hooks/stores/useThemeStore';
+import { isTV } from '@/utils/tv';
+import TVFocusWrapper from '@/components/TVFocusWrapper';
+import { ThemedView, HUYStack, HUXStack } from '@/components/ui-primitives';
+import { IoniconsIcon } from '@/components/Icons';
+import { Separator } from '@/components/native/separator/Separator';
+import { Switch } from '@/components/native/switch/Switch';
 import { StyleProp, ViewStyle, View, Text, FlatList } from 'react-native';
 import { themes, ThemeName } from '@/themes/theme';
 
@@ -83,7 +87,7 @@ ThemeSelector.displayName = 'ThemeSelector';
 
 const AccentCard = memo(({ themeName, currentTheme, pureBlackBackground, onPress }: AccentCardProps) => {
   const theme = themes[themeName];
-  const isSelected = currentTheme.startsWith(themeName.replace(/-(light|dark)$/i, ''));
+  const isSelected = currentTheme.startsWith(themeBase(themeName));
   const cardStyle = useMemo<StyleProp<ViewStyle>>(
     () => ({
       height: 150,
@@ -138,14 +142,14 @@ const AccentCard = memo(({ themeName, currentTheme, pureBlackBackground, onPress
           </HUYStack>
         </View>
       </TVFocusWrapper>
-      <Text className="text-accent font-medium text-center capitalize">{themeName.replace(/-(light|dark)$/i, '')}</Text>
+      <Text className="text-accent font-medium text-center capitalize">{themeBase(themeName)}</Text>
     </HUYStack>
   );
 });
 AccentCard.displayName = 'AccentCard';
 
 const AccentSelector = memo(() => {
-  const currentTheme = useThemeStore((state) => state.currentTheme as ThemeName);
+  const currentTheme = useThemeStore((state) => state.themeName);
   const setTheme = useThemeStore((state) => state.setTheme);
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
 
@@ -153,7 +157,7 @@ const AccentSelector = memo(() => {
 
   const baseNames = useMemo(() => {
     const bases = new Set<string>();
-    themeNames.forEach((name) => bases.add(name.replace(/-(light|dark)$/i, '')));
+    themeNames.forEach((name) => bases.add(themeBase(name)));
     return Array.from(bases);
   }, [themeNames]);
 
@@ -200,7 +204,7 @@ const AccentSelector = memo(() => {
 AccentSelector.displayName = 'AccentSelector';
 
 const PureBlackSwitch = memo(() => {
-  const currentTheme = useThemeStore((state) => state.currentTheme as ThemeName);
+  const currentTheme = useThemeStore((state) => state.themeName);
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const setPureBlackBackground = usePureBlackBackground((state) => state.setPureBlackBackground);
 

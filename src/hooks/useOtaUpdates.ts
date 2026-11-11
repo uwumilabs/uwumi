@@ -3,20 +3,30 @@ import { Platform } from 'react-native';
 import * as Application from 'expo-application';
 import { getStoredOtaVersion, OTAUpdateManager } from 'react-native-nitro-ota';
 import { EXTERNAL_LINKS } from '@/constants/config';
+import { useHasActiveDownloads } from '@/downloads/useDownloadStore';
 import { useOtaUpdateStore } from './stores/useOtaUpdateStore';
 
 /**
  * OTA bundles are assets on the binary's own GitHub release (tag v<version>, as release-it creates it), so a
  * JS bundle only reaches the native code it was built against; `src/scripts/publish-ota.sh` uploads them.
  */
-export const otaAssetUrl = (appVersion: string, name: string) =>
+const otaAssetUrl = (appVersion: string, name: string) =>
   `${EXTERNAL_LINKS.GITHUB_REPOSITORY}/releases/download/v${appVersion}/${name}`;
 
 /**
- * The OTA bundle this session is running, or null for the built-in one. Read at startup: once an update
- * downloads, the stored version moves ahead of what's running until the next launch.
+ * The OTA bundle this session is running, or null for the built-in one. Read as the root layout loads this module:
+ * once an update downloads, the stored version moves ahead of what's running until the next launch.
  */
 export const runningOtaVersion = getStoredOtaVersion();
+
+/** A downloaded bundle that applies on the next start, if there is one */
+export const pendingOtaVersion = () => {
+  const stored = getStoredOtaVersion();
+  return stored && stored !== runningOtaVersion ? stored : null;
+};
+
+/** Restarting into an update would stop the downloads running, so it waits for them */
+export const useCanRestartForUpdate = () => !useHasActiveDownloads();
 
 /**
  * OTA updates: once the app has rendered, confirm the running bundle and download any newer one for this

@@ -1,40 +1,25 @@
-/**
- * TVFocusWrapper - A wrapper component that adds D-pad focus support for Android TV.
- *
- * On TV: adds focusable behavior, visual focus ring (animated scale + border),
- * and optional nextFocus directional refs.
- *
- * On phone: renders children as-is with zero overhead.
- */
-
 import React, { memo } from 'react';
 import { Pressable, PressableProps, StyleProp, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { isTV, tvFocusRingStyle } from '@/constants/utils';
-import { useCurrentTheme } from '@/hooks';
+import { isTV, tvFocusRingStyle } from '@/utils/tv';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export interface TVFocusWrapperProps extends PressableProps {
-  /** Visual border color on focus. Defaults to the current theme accent. */
   focusBorderColor?: string;
-  /** Border width when focused. Default: 2 */
   focusBorderWidth?: number;
-  /** Scale multiplier when focused. Default: 1.05 */
   focusScale?: number;
-  /** Corner radius of the content inside the ring; the ring adds its border width so the corners stay concentric. Default: 10 */
+  /** Corner radius of the content inside the ring; the ring adds its border width so the corners stay concentric. */
   focusBorderRadius?: number;
   /** Whether this element should receive initial focus when the screen mounts (TV only). */
   hasTVPreferredFocus?: boolean;
-  /** Custom container style applied to outer wrapper */
+  /** TV only: style around the focus ring, such as room for it to scale into */
   containerStyle?: StyleProp<ViewStyle>;
-  /** Directional focus targets (TV only) */
-  nextFocusUp?: PressableProps['nextFocusUp'];
-  nextFocusDown?: PressableProps['nextFocusDown'];
-  nextFocusLeft?: PressableProps['nextFocusLeft'];
-  nextFocusRight?: PressableProps['nextFocusRight'];
   children?: React.ReactNode;
 }
+
+/** A pressable that D-pad focus can land on, with a focus ring on TV; a plain Pressable on phones */
 
 const TVFocusWrapper: React.FC<TVFocusWrapperProps> = memo(
   ({
@@ -44,12 +29,6 @@ const TVFocusWrapper: React.FC<TVFocusWrapperProps> = memo(
     focusBorderRadius = 10,
     hasTVPreferredFocus,
     containerStyle,
-    nextFocusUp,
-    nextFocusDown,
-    nextFocusLeft,
-    nextFocusRight,
-    onFocus: onFocusProp,
-    onBlur: onBlurProp,
     style,
     children,
     ...pressableProps
@@ -57,7 +36,6 @@ const TVFocusWrapper: React.FC<TVFocusWrapperProps> = memo(
     const currentTheme = useCurrentTheme();
     const borderColor = focusBorderColor ?? currentTheme?.accent;
 
-    // On phone, render a plain View wrapper with no overhead
     if (!isTV) {
       return (
         <Pressable style={style} {...pressableProps}>
@@ -79,12 +57,6 @@ const TVFocusWrapper: React.FC<TVFocusWrapperProps> = memo(
         {...pressableProps}
         focusable={true}
         hasTVPreferredFocus={hasTVPreferredFocus}
-        nextFocusUp={nextFocusUp}
-        nextFocusDown={nextFocusDown}
-        nextFocusLeft={nextFocusLeft}
-        nextFocusRight={nextFocusRight}
-        onFocus={onFocusProp}
-        onBlur={onBlurProp}
         style={[style, focusRing, containerStyle]}>
         {children}
       </AnimatedPressable>

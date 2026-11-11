@@ -26,7 +26,7 @@ import {
   shapes,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
-import { useCurrentTheme } from '@/hooks';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { IoniconsIcon, type IoniconProps } from '../../Icons';
 import { SeparatorLine } from '../separator/Separator';
 import { toggleModifiers } from '../switch/Switch.ios';
@@ -48,7 +48,6 @@ const HostedIcon = ({ name, size, color, label }: HostedIconProps) => (
 
 type TrailingProps = Pick<ListItemProps, 'trailingLoading' | 'trailingTone'> & { text?: string; chevron: boolean };
 
-// The end of the row: a spinner, a value, or a chevron on pressable rows
 const Trailing = ({ text, trailingLoading, trailingTone, chevron }: TrailingProps) => {
   const theme = useCurrentTheme();
   if (trailingLoading) return <ProgressView modifiers={[controlSize('small'), tint(theme.muted)]} />;

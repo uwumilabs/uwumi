@@ -1,8 +1,8 @@
 import React, { forwardRef } from 'react';
 import type { PressableStateCallbackType } from 'react-native';
 import { Button as HeroButton } from './heroui';
-import { isTV, tvFocusRingStyle } from '@/constants/utils';
-import { useCurrentTheme } from '@/hooks';
+import { isTV, tvFocusRingStyle } from '@/utils/tv';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 
 type ButtonProps = React.ComponentProps<typeof HeroButton>;
 
@@ -25,7 +25,6 @@ const TVButton = forwardRef<React.ComponentRef<typeof HeroButton>, ButtonProps>(
 });
 TVButton.displayName = 'Button';
 
-// Phones use heroui's Button as is
 export const Button: typeof HeroButton = isTV
   ? (Object.assign(TVButton, { Label: HeroButton.Label, Background: HeroButton.Background }) as typeof HeroButton)
   : HeroButton;

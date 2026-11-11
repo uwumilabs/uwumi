@@ -1,7 +1,7 @@
 import React from 'react';
 import { HorizontalDivider, Host, VerticalDivider } from '@expo/ui/jetpack-compose';
 import { fillMaxHeight, padding } from '@expo/ui/jetpack-compose/modifiers';
-import { useCurrentTheme } from '@/hooks';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import type { SeparatorLineProps, SeparatorProps } from './Separator';
 
 export const SeparatorLine = ({ orientation = 'horizontal', inset = 0 }: SeparatorLineProps) => {

@@ -1,6 +1,6 @@
-import { HUXStack } from '@/components';
-import { isTV } from '@/constants/utils';
-import { useMediaInfo } from '@/hooks';
+import { HUXStack } from '@/components/ui-primitives';
+import { isTV } from '@/utils/tv';
+import { useMediaInfo } from '@/hooks/queries/infoQueries';
 import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 
@@ -31,21 +31,16 @@ export const AnimatedCountdown = () => {
     s: Math.floor((left / 1000) % 60),
   };
 
-  // Determine which units to show based on time left
   const unitsToShow = Object.entries(timeLeft).filter(([key, value]) => {
-    // Always show days if present
     if (key === 'd' && value > 0) return true;
-    // Always show hours if days are present or hours > 0
     if (key === 'h' && (timeLeft.d > 0 || value > 0)) return true;
-    // Always show minutes if days/hours present or minutes > 0
     if (key === 'm' && (timeLeft.d > 0 || timeLeft.h > 0 || value > 0)) return true;
-    // Only show seconds if less than 1 hour left
     if (key === 's' && timeLeft.d === 0 && timeLeft.h === 0) return true;
     return false;
   });
 
   return (
-    <HUXStack className="gap-2 items-center" props={{ focusable: isTV ? false : undefined }}>
+    <HUXStack className="gap-2 items-center" focusable={isTV ? false : undefined}>
       {unitsToShow.map(([key, value]) => (
         <HUXStack className="items-center gap-1" key={key}>
           <View>

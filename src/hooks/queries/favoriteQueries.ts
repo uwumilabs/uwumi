@@ -2,9 +2,10 @@ import { useMemo } from 'react';
 import { type QueryClient, queryOptions, useQueries, useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { IAnimeResult, IMovieResult } from 'react-native-consumet';
 import { MediaType } from '@/constants/types';
-import { fetchJson } from '@/constants/utils';
-import { useWatchProgressStore } from '../stores';
-import { TMDB_API_KEY } from './infoQueries';
+import { titleOfUniqueId } from '@/utils/episodes';
+import { fetchJson } from '@/utils/http';
+import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
+import { TMDB_API_KEY } from '@/constants/config';
 
 type Favorite = IAnimeResult | IMovieResult;
 
@@ -187,9 +188,13 @@ export const useUnwatchedCounts = (favorites: Favorite[]) => {
     const counts: Record<string, number> = {};
     for (const [uniqueId, progress] of Object.entries(progresses)) {
       if (!progress.isCompleted) continue;
-      const anime = /^(\d+)\$ep=/.exec(uniqueId);
-      const tv = /^(\d+)-tv-s(\d+)-e\d+$/.exec(uniqueId);
-      const key = anime ? `anime:${anime[1]}` : tv && Number(tv[2]) >= 1 ? `tv:${tv[1]}` : undefined;
+      const title = titleOfUniqueId(uniqueId);
+      const key =
+        title?.mediaType === MediaType.ANIME
+          ? `anime:${title.id}`
+          : title?.type === 'tv' && title.season >= 1
+            ? `tv:${title.id}`
+            : undefined;
       if (key) counts[key] = (counts[key] ?? 0) + 1;
     }
     return counts;

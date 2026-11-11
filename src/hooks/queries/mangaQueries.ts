@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { META, type IMangaChapter, type IMangaChapterPage } from 'react-native-consumet';
-import { getMangaProvider } from '@/constants/provider';
+import { getMangaProvider } from '@/hooks/stores/useProviderStore';
 
 /**
  * An AniList manga's chapters on a provider, in reading order (first chapter first). Empty when the provider

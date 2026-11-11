@@ -1,42 +1,29 @@
-/**
- * UI Primitives - Small reusable UI components consolidated into one file
- * This file contains lightweight, frequently-used components that don't warrant separate files
- */
-
 import React, { ReactNode, forwardRef, useContext, useState } from 'react';
 import { View, ViewProps, Text, StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useThemeStore, useCurrentTheme, usePureBlackBackground } from '@/hooks';
-import { StatusBar, StatusBarProps } from 'expo-status-bar';
+import { useThemeStore } from '@/hooks/stores/useThemeStore';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { StatusBar } from 'expo-status-bar';
 import { Link } from 'expo-router';
 import { HeaderShownContext } from 'expo-router/react-navigation';
 import { cn, PressableFeedback, PressableFeedbackProps } from './heroui';
 import { IoniconProps, IoniconsIcon } from './Icons';
 import { SystemBars } from 'react-native-edge-to-edge';
-import { isTV, tvFocusRingStyle } from '@/constants/utils';
-
-/* ============================================
- * IconTitle - Icon with text label
- * ============================================ */
+import { isTV, tvFocusRingStyle } from '@/utils/tv';
 
 interface IconTitleProps {
   iconName: IoniconProps['name'];
   text: any;
-  color?: string;
 }
 
-export const IconTitle = ({ iconName, text, color }: IconTitleProps) => {
+export const IconTitle = ({ iconName, text }: IconTitleProps) => {
   return (
     <HUXStack className="items-center gap-2">
-      <IoniconsIcon name={iconName} color={color} className="text-foreground" size={16} />
+      <IoniconsIcon name={iconName} className="text-foreground" size={16} />
       <Text className="text-14 text-foreground">{text}</Text>
     </HUXStack>
   );
 };
-
-/* ============================================
- * RippleButton - Material ripple effect button
- * ============================================ */
 
 type RippleButtonProps = Omit<PressableFeedbackProps, 'onPress'> & {
   onPress?: () => void;
@@ -83,10 +70,6 @@ export const RippleButton = forwardRef<React.ComponentRef<typeof View>, RippleBu
   },
 );
 
-/* ============================================
- * NoResults - Empty state with random kaomoji
- * ============================================ */
-
 const KAOMOJI = [
   'Σ(ಠ_ಠ)',
   '(´･_･`)',
@@ -123,27 +106,20 @@ export const NoResults = ({ title = 'No results found', hint }: { title?: string
   );
 };
 
-/* ============================================
- * ThemedView - Main view wrapper with theme support
- * ============================================ */
-
 export type ThemedViewProps = {
   children?: React.ReactNode;
   useSafeArea?: boolean;
   useStatusBar?: boolean;
-  statusBarProps?: StatusBarProps;
 } & ViewProps;
 
 export function ThemedView({
   children,
   useSafeArea = false, // because of edge-to-edge we won't be using safe area insets
   useStatusBar = true,
-  statusBarProps,
   style,
   ...props
 }: ThemedViewProps) {
   const isDark = useThemeStore((state) => state.isDark);
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const currentTheme = useCurrentTheme();
   const insets = useSafeAreaInsets();
   // A native stack header already covers the status bar
@@ -155,7 +131,7 @@ export function ThemedView({
         style={[
           {
             paddingTop: useSafeArea || headerShown ? 0 : insets.top,
-            backgroundColor: pureBlackBackground ? '#000' : currentTheme?.background,
+            backgroundColor: currentTheme.screenBackground,
           },
           style,
         ]}
@@ -164,53 +140,23 @@ export function ThemedView({
         {children}
       </View>
 
-      <StatusBar
-        animated
-        hideTransitionAnimation="slide"
-        hidden={!useStatusBar}
-        style={isDark ? 'light' : 'dark'}
-        {...statusBarProps}
-      />
+      <StatusBar animated hideTransitionAnimation="slide" hidden={!useStatusBar} style={isDark ? 'light' : 'dark'} />
       <SystemBars hidden={!useStatusBar} />
     </>
   );
 }
 
-type SimpleStackProps = {
-  children?: ReactNode;
-  props?: ViewProps;
-  className?: string;
-  style?: StyleProp<ViewStyle>;
-};
+type StackProps = ViewProps & { children?: ReactNode; className?: string };
 
-export const HUXStack = ({ children, props, className }: SimpleStackProps) => {
-  return (
-    <View className={cn('flex flex-row', className)} {...props}>
-      {children}
-    </View>
-  );
-};
+export const HUXStack = ({ className, ...props }: StackProps) => (
+  <View className={cn('flex flex-row', className)} {...props} />
+);
 
-export const HUYStack = ({ children, props, className }: SimpleStackProps) => {
-  return (
-    <View className={cn('flex flex-col', className)} {...props}>
-      {children}
-    </View>
-  );
-};
+export const HUYStack = ({ className, ...props }: StackProps) => (
+  <View className={cn('flex flex-col', className)} {...props} />
+);
 
 /** An Aniyomi-style settings section title, above a flat list */
 export const SectionTitle = ({ children }: { children: string }) => (
   <Text className="px-4 pb-1 pt-5 text-sm font-semibold text-accent">{children}</Text>
 );
-
-// Allow importing components individually
-export default {
-  IconTitle,
-  RippleButton,
-  NoResults,
-  ThemedView,
-  HUXStack,
-  HUYStack,
-  SectionTitle,
-};

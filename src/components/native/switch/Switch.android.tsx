@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { Host, Switch as ComposeSwitch } from '@expo/ui/jetpack-compose';
-import { useCurrentTheme } from '@/hooks';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import type { SwitchProps } from './Switch';
 
 /**

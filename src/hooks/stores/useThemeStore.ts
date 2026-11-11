@@ -1,67 +1,48 @@
 import { create } from 'zustand';
-import { storage } from '@/hooks/stores/MMKV';
 import { Uniwind } from 'uniwind';
+import { storage } from '@/hooks/stores/MMKV';
 import { themes, ThemeName } from '@/themes/theme';
 
-// export type ThemeName = Parameters<typeof Uniwind.setTheme>[0];
+const themeNames = Object.keys(themes) as ThemeName[];
+
+/** A theme's family, without its light or dark: `cloudflare-dark` → `cloudflare` */
+export const themeBase = (name: string) => name.replace(/-(light|dark)$/i, '');
 
 interface ThemeState {
   themeName: ThemeName;
-  currentTheme: ThemeName;
-  isLight: boolean;
   isDark: boolean;
   setTheme: (theme: ThemeName) => void;
+  /** The same family's other mode, or the first theme in that mode */
   toggleTheme: () => void;
 }
-
-const themeNames = Object.keys(themes) as ThemeName[];
 
 const getInitialTheme = (): ThemeName => {
   const saved = storage.getString('theme');
   if (saved && themeNames.includes(saved as ThemeName)) return saved as ThemeName;
-  return (themeNames.find((t) => t.endsWith('-dark')) as ThemeName) || themeNames[0];
+  return themeNames.find((t) => t.endsWith('-dark')) ?? themeNames[0];
 };
 
-const computeFlags = (theme: ThemeName) => ({
-  isLight: theme.includes('light'),
-  isDark: theme.includes('dark'),
-});
-
 export const useThemeStore = create<ThemeState>((set, get) => {
-  const initialTheme = getInitialTheme();
-  const flags = computeFlags(initialTheme);
-
-  const setTheme = (newTheme: ThemeName) => {
-    if (!themeNames.includes(newTheme)) return;
-    Uniwind.setTheme(newTheme);
-    storage.set('theme', newTheme);
-    set({ themeName: newTheme, currentTheme: newTheme, ...computeFlags(newTheme) });
+  const setTheme = (theme: ThemeName) => {
+    if (!themeNames.includes(theme)) return;
+    Uniwind.setTheme(theme);
+    storage.set('theme', theme);
+    set({ themeName: theme, isDark: theme.includes('dark') });
   };
-
-  const toggleTheme = () => {
-    const current = get().themeName;
-    const base = current.replace(/-(light|dark)$/i, '');
-    const prefersDark = current.includes('light');
-    const preferred = `${base}-${prefersDark ? 'dark' : 'light'}` as ThemeName;
-
-    if (themeNames.includes(preferred)) {
-      setTheme(preferred);
-      return;
-    }
-
-    const fallback = themeNames.find((t) => (prefersDark ? t.includes('dark') : t.includes('light'))) as
-      | ThemeName
-      | undefined;
-
-    if (fallback) setTheme(fallback);
-  };
-
+  const initial = getInitialTheme();
   return {
-    themeName: initialTheme,
-    currentTheme: initialTheme,
-    ...flags,
+    themeName: initial,
+    isDark: initial.includes('dark'),
     setTheme,
-    toggleTheme,
+    toggleTheme: () => {
+      const current = get().themeName;
+      const toDark = current.includes('light');
+      const preferred = `${themeBase(current)}-${toDark ? 'dark' : 'light'}` as ThemeName;
+      const next = themeNames.includes(preferred)
+        ? preferred
+        : themeNames.find((t) => (toDark ? t.includes('dark') : t.includes('light')));
+      if (next) setTheme(next);
+    },
   };
 });
 
@@ -70,13 +51,8 @@ interface PureBlackState {
   setPureBlackBackground: (value: boolean) => void;
 }
 
-const getInitialPureBlack = (): boolean => {
-  const saved = storage.getString('pureBlack');
-  return saved ? saved === 'true' : false;
-};
-
 export const usePureBlackBackground = create<PureBlackState>((set) => ({
-  pureBlackBackground: getInitialPureBlack(),
+  pureBlackBackground: storage.getString('pureBlack') === 'true',
   setPureBlackBackground: (value: boolean) => {
     storage.set('pureBlack', value.toString());
     set({ pureBlackBackground: value });

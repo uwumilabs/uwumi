@@ -86,7 +86,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
   echo -e "${YELLOW}⚠️  Uncommitted changes will be included in the OTA bundle.${NC}"
 fi
 
-# curl against the GitHub API, authenticated when GITHUB_TOKEN is set. The connect timeout matters on networks
+# The connect timeout matters on networks
 # that drop one of GitHub's CDN addresses: curl gives each address half of it before trying the next.
 github() {
   if [[ -n "${GITHUB_TOKEN:-}" ]]; then

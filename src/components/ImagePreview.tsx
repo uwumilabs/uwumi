@@ -4,8 +4,8 @@ import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
-import { useBackHandler } from '@/hooks';
-import { shareImage } from '@/constants/utils';
+import { useBackHandler } from '@/hooks/useBackHandler';
+import { shareImage } from '@/utils/share';
 import { Button } from './Button';
 import { Portal } from './heroui';
 import { IoniconsIcon } from './Icons';

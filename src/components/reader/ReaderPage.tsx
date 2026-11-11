@@ -3,8 +3,8 @@ import { Pressable, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRecyclingState } from '@shopify/flash-list';
 import type { IMangaChapterPage } from 'react-native-consumet';
-import { useCurrentTheme } from '@/hooks';
-import { isTV } from '@/constants/utils';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { isTV } from '@/utils/tv';
 import { IoniconsIcon } from '../Icons';
 
 // A typical manga page (width / height), until the real one is known

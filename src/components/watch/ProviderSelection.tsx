@@ -2,31 +2,23 @@ import { View, Text, useWindowDimensions } from 'react-native';
 import React, { useState } from 'react';
 import { Card, cn } from '@/components/heroui';
 import { Button } from '@/components/Button';
-import { HUXStack, IoniconsIcon, Dialog } from '@/components';
-import { useProviders, useProviderStore, useActiveProvider } from '@/constants/provider';
+import { HUXStack } from '@/components/ui-primitives';
+import { IoniconsIcon } from '@/components/Icons';
+import { Dialog } from '@/components/native/dialog/Dialog';
+import {
+  useActiveProvider,
+  useProviders,
+  useProviderSelectionStore,
+  useProviderStore,
+} from '@/hooks/stores/useProviderStore';
 import { MediaType } from '@/constants/types';
-import { create } from 'zustand';
-import { usePureBlackBackground } from '@/hooks';
-
-export interface ProviderSelectionState {
-  dub: boolean;
-  isEmbed: boolean;
-  setDub: (dub: boolean) => void;
-  setIsEmbed: (isEmbed: boolean) => void;
-}
+import { usePureBlackBackground } from '@/hooks/stores/useThemeStore';
 
 // Material 3 caps dialogs at 560dp
 const DIALOG_MAX_WIDTH = 560;
 
-export const useProviderSelectionStore = create<ProviderSelectionState>((set) => ({
-  dub: false,
-  isEmbed: true,
-  setDub: (dub: boolean) => set({ dub }),
-  setIsEmbed: (isEmbed: boolean) => set({ isEmbed }),
-}));
-
 /** A provider that only offers embed or direct forces it; otherwise the user's last choice applies. */
-export const useEmbedMode = (mediaType: MediaType, provider: string) => {
+const useEmbedMode = (mediaType: MediaType, provider: string) => {
   const isEmbed = useProviderSelectionStore((state) => state.isEmbed);
   const providers = useProviders();
   const capabilities = providers[mediaType]?.find(({ value }) => value === provider);
@@ -38,12 +30,12 @@ export const useEmbedMode = (mediaType: MediaType, provider: string) => {
 const ProviderSelection = ({ mediaType, isDubbed }: { mediaType: MediaType; isDubbed?: string }) => {
   const [open, setOpen] = useState(false);
   const setProvider = useProviderStore((state) => state.setProvider);
-  const { dub, setDub, setIsEmbed } = useProviderSelectionStore();
+  const dub = useProviderSelectionStore((state) => state.dub);
+  const setDub = useProviderSelectionStore((state) => state.setDub);
+  const setIsEmbed = useProviderSelectionStore((state) => state.setIsEmbed);
   const currentProvider = useActiveProvider(mediaType);
   const isEmbed = useEmbedMode(mediaType, currentProvider);
   const providers = useProviders();
-  // const mediaType = MediaType.ANIME; // for testing
-  // const isDubbed = dub ? 'true' : 'false'; // for testing
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const { width: windowWidth } = useWindowDimensions();
   const selectedName = providers[mediaType]?.find(({ value }) => value === currentProvider)?.name;
@@ -116,7 +108,6 @@ const ProviderSelection = ({ mediaType, isDubbed }: { mediaType: MediaType; isDu
                           const isSelected =
                             currentProvider === value &&
                             ((key === 'embed' && isEmbed) || (key === 'nonEmbed' && !isEmbed));
-                          // console.log('isEmbed:', isEmbed, isSelected);
 
                           if (!isAvailable) return null;
 

@@ -2,22 +2,22 @@ import { useCallback, useMemo } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { MediaFormat, TvType } from 'react-native-consumet';
 import { MediaType } from '@/constants/types';
-import { useActiveProvider } from '@/constants/provider';
-import { useAnimeEpisodes, useMoviesEpisodes } from './queries';
-import { useSeasonStore, type EpisodeItem } from './stores/useEpisodesStore';
+import { useActiveProvider } from '@/hooks/stores/useProviderStore';
+import { useAnimeEpisodes, useMoviesEpisodes } from '@/hooks/queries/infoQueries';
+import { useSeasonStore } from './stores/useEpisodesStore';
+import type { EpisodeItem } from '@/utils/episodes';
 
 /**
  * The current route's episodes (the selected season's, for TV shows). The episode list, the watch screen's
  * previous/next and the info header all read it through the query cache rather than a copied store.
  */
 export function useEpisodeList() {
-  const { mediaType, type, provider, id } = useLocalSearchParams<{
+  const { mediaType, type, id } = useLocalSearchParams<{
     mediaType: MediaType;
     type: MediaFormat | TvType;
-    provider: string;
     id: string;
   }>();
-  const providerToUse = useActiveProvider(mediaType, provider);
+  const providerToUse = useActiveProvider(mediaType);
   const animeResult = useAnimeEpisodes({ id, provider: providerToUse, enabled: mediaType === MediaType.ANIME });
   const movieResult = useMoviesEpisodes({
     id,

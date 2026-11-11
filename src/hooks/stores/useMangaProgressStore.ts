@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import { storage } from './MMKV';
+import { persist } from 'zustand/middleware';
+import { persistStorage } from './MMKV';
 import { usePreferencesStore } from './usePreferencesStore';
 
 /** Where a manga's reading got to on one provider. Chapter ids are the provider's, so each provider has its own. */
@@ -25,13 +25,11 @@ interface MangaProgressState {
   setPage: (key: string, chapterId: string, page: number, pageCount: number) => void;
   hide: (key: string) => void;
   hideAll: () => void;
-  clearAll: () => void;
 }
 
 /** The progress key: the AniList id and the provider, as chapter ids differ between providers */
 export const mangaProgressKey = (anilistId: string, provider: string) => `${anilistId}|${provider}`;
 
-/** The key's parts */
 export const parseMangaProgressKey = (key: string) => {
   const [anilistId, provider] = key.split('|');
   return { anilistId, provider };
@@ -92,15 +90,10 @@ export const useMangaProgressStore = create<MangaProgressState>()(
             Object.entries(state.progress).map(([key, value]) => [key, { ...value, hidden: true }]),
           ),
         })),
-      clearAll: () => set({ progress: {} }),
     }),
     {
       name: 'mangaProgress',
-      storage: createJSONStorage(() => ({
-        setItem: (name, value) => storage.set(name, value),
-        getItem: (name) => storage.getString(name) ?? null,
-        removeItem: (name) => storage.remove(name),
-      })),
+      storage: persistStorage,
     },
   ),
 );

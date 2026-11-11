@@ -7,7 +7,7 @@ const keyframes: CSSAnimationKeyframes = {
   '100%': { transform: [{ scaleY: 1.0 }] },
 };
 
-export const WavyAnimation = () => {
+const WavyAnimationView = () => {
   return (
     <HUXStack className="h-3 gap-0.5">
       {[1, 2, 3, 4, 5].map((i, idx) => (
@@ -32,4 +32,7 @@ export const WavyAnimation = () => {
   );
 };
 
-export default memo(WavyAnimation);
+export const WavyAnimation = memo(WavyAnimationView);
+WavyAnimation.displayName = 'WavyAnimation';
+
+export default WavyAnimation;

@@ -1,139 +1,52 @@
-import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
+import { MediaFeedType, MediaType } from '@/constants/types';
 import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { ISearch, META } from 'react-native-consumet';
-import { TMDB_API_KEY } from './infoQueries';
+import { TMDB_API_KEY } from '@/constants/config';
+
+type Feed = Exclude<MediaFeedType, 'search'>;
+
+/** The home rows a media type has: TMDB has no "popular" feed */
+export const mediaFeeds = (mediaType: MediaType): Feed[] =>
+  mediaType === MediaType.MOVIE ? ['trending'] : ['trending', 'popular'];
+
+export const mediaFeedKey = (mediaType: MediaType, feed: Feed) => ['feed', mediaType, feed];
+
+const nextPage = <T>(lastPage: ISearch<T>, pages: ISearch<T>[]) =>
+  lastPage.hasNextPage ? pages.length + 1 : undefined;
 
 export function useMediaFeed<T, TData = InfiniteData<ISearch<T>, number>>(
   mediaType: MediaType,
-  metaProvider: MetaProvider,
-  mediaFeedType: MediaFeedType,
-  options?: {
-    params?: Record<string, unknown>;
-    enabled?: boolean;
-    select?: (data: InfiniteData<ISearch<T>, number>) => TData;
-  },
+  feed: Feed,
+  options?: { enabled?: boolean; select?: (data: InfiniteData<ISearch<T>, number>) => TData },
 ) {
   return useInfiniteQuery({
-    queryKey: [mediaType, mediaFeedType, metaProvider],
+    queryKey: mediaFeedKey(mediaType, feed),
     queryFn: async ({ pageParam = 1 }) => {
-      let data: ISearch<T> | undefined;
-      // console.log(`${getFetchUrl().apiUrl}/meta/${metaProvider}/${mediaFeedType}?page=${pageParam}`);
-      // const { data } = await axios.get<ISearch<T>>(`${getFetchUrl().apiUrl}/meta/${metaProvider}/${mediaFeedType}`, {
-      //   params: {
-      //     page: pageParam,
-      //     ...options?.params,
-      //   },
-      //   headers: {
-      //     Accept: 'application/json',
-      //     'Content-Type': 'application/json',
-      //   },
-      //   timeout: 5000,
-      // });
-      try {
-        if ((metaProvider === 'anilist' || metaProvider === 'anilist-manga') && mediaFeedType === 'trending') {
-          data = (await new META.Anilist().advancedSearch(
-            undefined,
-            mediaType.toUpperCase(),
-            pageParam,
-            20,
-            undefined,
-            ['TRENDING_DESC'],
-          )) as unknown as ISearch<T>;
-        }
-        if ((metaProvider === 'anilist' || metaProvider === 'anilist-manga') && mediaFeedType === 'popular') {
-          data = (await new META.Anilist().advancedSearch(
-            undefined,
-            mediaType.toUpperCase(),
-            pageParam,
-          )) as unknown as ISearch<T>;
-        }
-        if (metaProvider === 'tmdb' && mediaFeedType === 'trending') {
-          data = (await new META.TMDB(TMDB_API_KEY).fetchTrending('all', 'week', pageParam)) as unknown as ISearch<T>;
-        }
-      } catch (error) {
-        console.error('Error fetching media data:', error);
-        throw error;
+      if (mediaType === MediaType.MOVIE) {
+        return (await new META.TMDB(TMDB_API_KEY).fetchTrending('all', 'week', pageParam)) as unknown as ISearch<T>;
       }
-
-      if (!data) {
-        throw new Error(`Unsupported combination of metaProvider: ${metaProvider} and mediaFeedType: ${mediaFeedType}`);
-      }
-      // console.log('data', data);
-      return data;
+      const anilist = new META.Anilist();
+      const type = mediaType.toUpperCase();
+      return (feed === 'trending'
+        ? await anilist.advancedSearch(undefined, type, pageParam, 20, undefined, ['TRENDING_DESC'])
+        : await anilist.advancedSearch(undefined, type, pageParam)) as unknown as ISearch<T>;
     },
-    getNextPageParam: (lastPage: ISearch<T>, pages) => {
-      if (lastPage.hasNextPage) {
-        return pages.length + 1;
-      }
-      return undefined;
-    },
+    getNextPageParam: nextPage,
     initialPageParam: 1,
     enabled: options?.enabled ?? true,
     select: options?.select,
   });
 }
 
-export function useAnimeAndMangaSearch<T>(mediaType: MediaType, query: string, options?: { enabled?: boolean }) {
+export function useSearch<T>(mediaType: MediaType, query: string, enabled = true) {
   return useInfiniteQuery({
-    queryKey: [mediaType, query],
-    queryFn: async ({ pageParam = 1 }) => {
-      let data: ISearch<T> | undefined;
-      // const url = `${getFetchUrl().apiUrl}/meta/anilist/advanced-search`;
-      // const params = { page: pageParam.toString(), query: query, type: mediaType.toUpperCase() };
-      // console.log(url, params);
-
-      // const { data } = await axios.get<ISearch<T>>(url, {
-      //   params,
-      //   headers: {
-      //     Accept: 'application/json',
-      //     'Content-Type': 'application/json',
-      //   },
-      //   timeout: 5000,
-      // });
-      data = (await new META.Anilist().advancedSearch(
-        query,
-        mediaType.toUpperCase(),
-        pageParam,
-      )) as unknown as ISearch<T>;
-      return data;
-    },
-    enabled: (options?.enabled ?? true) && query.length > 0,
-    getNextPageParam: (lastPage: ISearch<T>, pages) => {
-      if (lastPage.hasNextPage) {
-        return pages.length + 1;
-      }
-      return undefined;
-    },
-    initialPageParam: 1,
-  });
-}
-export function useMovieSearch<T>(mediaType: MediaType, query: string, options?: { enabled?: boolean }) {
-  return useInfiniteQuery({
-    queryKey: [mediaType, query],
-    queryFn: async ({ pageParam = 1 }) => {
-      let data: ISearch<T> | undefined;
-      // const url = `${getFetchUrl().apiUrl}/meta/tmdb/${query}`;
-      // const params = { page: pageParam.toString() };
-      // console.log(url, params);
-
-      // const { data } = await axios.get<ISearch<T>>(url, {
-      //   params,
-      //   headers: {
-      //     Accept: 'application/json',
-      //     'Content-Type': 'application/json',
-      //   },
-      //   timeout: 5000,
-      // });
-      data = (await new META.TMDB(TMDB_API_KEY).search(query, pageParam)) as unknown as ISearch<T>;
-      return data;
-    },
-    enabled: (options?.enabled ?? true) && query.length > 0,
-    getNextPageParam: (lastPage: ISearch<T>, pages) => {
-      if (lastPage.hasNextPage) {
-        return pages.length + 1;
-      }
-      return undefined;
-    },
+    queryKey: ['search', mediaType, query],
+    queryFn: async ({ pageParam = 1 }) =>
+      (mediaType === MediaType.MOVIE
+        ? await new META.TMDB(TMDB_API_KEY).search(query, pageParam)
+        : await new META.Anilist().advancedSearch(query, mediaType.toUpperCase(), pageParam)) as unknown as ISearch<T>,
+    enabled: enabled && query.length > 0,
+    getNextPageParam: nextPage,
     initialPageParam: 1,
   });
 }

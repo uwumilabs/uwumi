@@ -12,7 +12,7 @@ import { useControlsVisibility, usePlayback } from 'react-native-video-toolkit';
  * Release builds have `__DEV__` false, so none of this runs there.
  */
 const PERF_MODE = __DEV__ ? process.env.EXPO_PUBLIC_PERF_RUN : undefined;
-export const PERF_RUN = PERF_MODE === 'screens' || PERF_MODE === 'watch';
+const PERF_RUN = PERF_MODE === 'screens' || PERF_MODE === 'watch';
 const WINDOW_MS = 2000;
 
 type PerfEntry = { commits: number; mounts: number; duration: number };
@@ -41,9 +41,6 @@ function perfReport(label: string) {
   console.log(`[perf] ${label} | ${rows.join(' | ')}`);
 }
 
-/**
- * A `<Profiler>` for uwumi's own screens and components, active only during a perf run.
- */
 export function PerfProfiler({ id, children }: { id: string; children: ReactNode }) {
   if (!PERF_RUN) return <>{children}</>;
   return (
@@ -53,14 +50,12 @@ export function PerfProfiler({ id, children }: { id: string; children: ReactNode
   );
 }
 
-/** A navigator's `screenLayout` that profiles each route under its name, during a perf run. */
 export const perfScreenLayout = PERF_RUN
   ? ({ route, children }: { route: { name: string }; children: ReactNode }) => (
       <PerfProfiler id={route.name}>{children}</PerfProfiler>
     )
   : undefined;
 
-/** Logs and clears the measurements every 2 s while anything rendered, during a `screens` run. */
 export function PerfWindows() {
   useEffect(() => {
     if (PERF_MODE !== 'screens') return;

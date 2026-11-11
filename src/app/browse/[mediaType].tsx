@@ -1,16 +1,16 @@
 import React from 'react';
 import { View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { CardList, ThemedView } from '@/components';
-import { useNativeHeaderOptions } from '@/hooks';
-import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
+import { CardList } from '@/components/CardList';
+import { ThemedView } from '@/components/ui-primitives';
+import { useNativeHeaderOptions } from '@/hooks/useNativeHeaderOptions';
+import { MediaFeedType, MediaType } from '@/constants/types';
 
 const Browse = () => {
   const headerOptions = useNativeHeaderOptions();
-  const { mediaType, feed, metaProvider, title } = useLocalSearchParams<{
+  const { mediaType, feed, title } = useLocalSearchParams<{
     mediaType: MediaType;
     feed: MediaFeedType;
-    metaProvider: MetaProvider;
     title: string;
   }>();
 
@@ -18,7 +18,7 @@ const Browse = () => {
     <ThemedView>
       <Stack.Screen options={{ ...headerOptions, headerShown: true, title }} />
       <View className="flex-1">
-        <CardList mediaFeedType={feed} mediaType={mediaType} metaProvider={metaProvider} />
+        <CardList mediaFeedType={feed} mediaType={mediaType} />
       </View>
     </ThemedView>
   );

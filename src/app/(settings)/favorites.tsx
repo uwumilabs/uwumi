@@ -1,7 +1,11 @@
-import { ThemedView, CardList, HorizontalTabs, NoResults } from '@/components';
+import { ThemedView, NoResults } from '@/components/ui-primitives';
+import { CardList } from '@/components/CardList';
+import { HorizontalTabs } from '@/components/HorizontalTabs';
 import { MediaType } from '@/constants/types';
-import { useDownloadedOnlyFilter, useFavoriteStore, useUnwatchedCounts } from '@/hooks';
-import { infoTitle } from '@/constants/utils';
+import { useDownloadedOnlyFilter } from '@/downloads/useDownloadStore';
+import { useFavoriteStore } from '@/hooks/stores/useFavoriteStore';
+import { useUnwatchedCounts } from '@/hooks/queries/favoriteQueries';
+import { infoTitle } from '@/utils/media';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -27,7 +31,6 @@ const Favorites = () => {
           <CardList
             staticData={ofType(MediaType.ANIME)}
             mediaType={MediaType.ANIME}
-            metaProvider="anilist"
             emptyState={EMPTY_FAVORITES}
             badges={unwatched}
           />
@@ -39,12 +42,7 @@ const Favorites = () => {
       label: 'Manga',
       content: (
         <View className="h-full">
-          <CardList
-            staticData={ofType(MediaType.MANGA)}
-            mediaType={MediaType.MANGA}
-            metaProvider="anilist-manga"
-            emptyState={EMPTY_FAVORITES}
-          />
+          <CardList staticData={ofType(MediaType.MANGA)} mediaType={MediaType.MANGA} emptyState={EMPTY_FAVORITES} />
         </View>
       ),
     },
@@ -56,7 +54,6 @@ const Favorites = () => {
           <CardList
             staticData={ofType(MediaType.MOVIE)}
             mediaType={MediaType.MOVIE}
-            metaProvider="tmdb"
             emptyState={EMPTY_FAVORITES}
             badges={unwatched}
           />
@@ -64,7 +61,11 @@ const Favorites = () => {
       ),
     },
   ];
-  return <ThemedView>{favorites && <HorizontalTabs items={tabItems} initialTab="tab1" />}</ThemedView>;
+  return (
+    <ThemedView>
+      <HorizontalTabs items={tabItems} initialTab="tab1" />
+    </ThemedView>
+  );
 };
 
 export default Favorites;

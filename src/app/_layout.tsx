@@ -1,3 +1,5 @@
+import '../../global.css';
+import '@/bootstrap';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,150 +9,33 @@ import { useCallback, useEffect, useMemo } from 'react';
 import Animated, { Easing, FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/constants/queryClient';
-import { startEpisodeAlerts } from '@/utils/episodeAlerts';
-import { clearCacheOnLaunch } from '@/utils/cache';
-import { runAutoBackupIfDue } from '@/utils/backup';
 import {
   Inter_500Medium as InterMedium,
   Inter_600SemiBold as InterSemiBold,
   Inter_800ExtraBold as InterBold,
 } from '@expo-google-fonts/inter';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import {
-  useCurrentTheme,
-  useOtaUpdates,
-  useEpisodeAlertTaps,
-  usePureBlackBackground,
-  useThemeStore,
-  useUpdateChecker,
-  useSheetColor,
-  useNativeHeaderOptions,
-  useDownloadStore,
-  usePlayerSettingsStore,
-  usePreferencesStore,
-  PLAYBACK_RATES,
-} from '@/hooks';
-import { LogBox, Platform, PermissionsAndroid, Text, View } from 'react-native';
-import { EXTERNAL_LINKS } from '@/constants/config';
-import { Dialog, HeroUINativeProvider } from '@/components/heroui';
-import { Button } from '@/components/Button';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { useOtaUpdates } from '@/hooks/useOtaUpdates';
+import { useEpisodeAlertTaps } from '@/hooks/useEpisodeAlertTaps';
+import { useThemeStore } from '@/hooks/stores/useThemeStore';
+import { useNativeHeaderOptions } from '@/hooks/useNativeHeaderOptions';
+import { usePreferencesStore } from '@/hooks/stores/usePreferencesStore';
+import { PermissionsAndroid, Platform, Text, View } from 'react-native';
+import { HeroUINativeProvider } from '@/components/heroui';
 import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
-import '../../global.css';
-import { useUniwind } from 'uniwind';
-import { BottomSheet, BottomSheetProvider, IoniconsIcon, LinearGradient, OtaUpdateToast, Slider } from '@/components';
-import { themes } from '@/themes/theme';
-import {
-  VideoPortalHost,
-  VideoProvider,
-  defaultTheme,
-  usePlaybackRate,
-  type SheetProps,
-} from 'react-native-video-toolkit';
+import { LinearGradient } from '@/components/LinearGradient';
+import { OtaUpdateToast } from '@/components/OtaUpdateToast';
+import { UpdateDialog } from '@/components/UpdateDialog';
+import { AppVideoProvider, VIDEO_PORTAL_HOST } from '@/components/watch/AppVideoProvider';
+import { VideoPortalHost } from 'react-native-video-toolkit';
 import RNOrientationDirector, { Orientation } from 'react-native-orientation-director';
-import { hexToRGB, isTV, isTVOS, openBrowser } from '@/constants/utils';
+import { hexToRGB } from '@/utils/format';
+import { isTV } from '@/utils/tv';
 import { PerfWindows, perfScreenLayout } from '@/perf/perfHarness';
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-// Forgets finished downloads whose file is gone (it logs failures)
-useDownloadStore
-  .getState()
-  .initialize()
-  .catch(() => {});
 
 export const unstable_settings = {
   anchor: '(tabs)',
-};
-
-// TV keeps the toolkit's defaults: a side-panel menu and a D-pad friendly slider.
-// The player's settings menu opens in the app's native bottom sheet
-const VideoSheet = ({ open, onOpenChange, children, style }: SheetProps) => (
-  <BottomSheet open={open} onOpenChange={onOpenChange}>
-    <View style={[{ width: '100%' }, style]}>{children}</View>
-  </BottomSheet>
-);
-
-const videoComponents = { Sheet: VideoSheet, Slider };
-const VIDEO_PORTAL_HOST = 'video-player';
-
-// Storage Permission Utility using native module
-export const requestPermission = async (): Promise<boolean> => {
-  if (Platform.OS !== 'android') return true;
-
-  try {
-    await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
-    return true;
-  } catch (error) {
-    console.error('❌ Error requesting storage permission:', error);
-    return false;
-  }
-};
-
-interface DownloadDialogProps {
-  currentVersion: string;
-  newVersion: string;
-  updateType: string;
-  showUpdateDialog: boolean;
-  setShowUpdateDialog: (open: boolean) => void;
-}
-
-const DownloadDialog = ({
-  currentVersion,
-  newVersion,
-  updateType,
-  showUpdateDialog,
-  setShowUpdateDialog,
-}: DownloadDialogProps) => {
-  return (
-    <Dialog isOpen={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="bg-black/50" />
-        <Dialog.Content className="rounded-3xl bg-background p-5">
-          <Dialog.Close className="absolute right-3 top-3" />
-
-          <View className="items-center mt-1 mb-3">
-            <IoniconsIcon name="arrow-up-circle-outline" className="text-accent" size={48} />
-          </View>
-
-          <View className="gap-3">
-            <Dialog.Title className="text-center text-sm font-semibold text-foreground">
-              New Version Available
-            </Dialog.Title>
-
-            <View className="flex-row justify-center gap-6">
-              <View className="items-center">
-                <Text className="text-base text-foreground">Current</Text>
-                <Text className="text-base font-semibold text-foreground">{currentVersion}</Text>
-              </View>
-              <View className="w-px bg-border" />
-              <View className="items-center">
-                <Text className="text-base text-foreground">New</Text>
-                <Text className="text-base font-semibold text-foreground">{newVersion}</Text>
-              </View>
-            </View>
-
-            <Dialog.Description className="text-center text-base text-foreground/80">
-              {updateType} is now available.
-            </Dialog.Description>
-
-            <View className="gap-3">
-              <Button
-                variant="primary"
-                onPress={async () => {
-                  await openBrowser('https://github.com/2004durgesh/uwumi/releases/latest');
-                }}
-                className="w-full">
-                Update Now
-              </Button>
-
-              <Dialog.Close size="md" variant="ghost" isIconOnly={false} className="w-full">
-                Not Now
-              </Dialog.Close>
-            </View>
-          </View>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog>
-  );
 };
 
 /**
@@ -160,10 +45,8 @@ const DownloadDialog = ({
  * header is short (TV has no status bar above it).
  */
 const HeaderScrim = () => {
-  const theme = useCurrentTheme();
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+  const color = useCurrentTheme().screenBackground;
   const headerHeight = useHeaderHeight();
-  const color = pureBlackBackground ? '#000000' : theme.background;
   return (
     <LinearGradient
       pointerEvents="none"
@@ -228,17 +111,8 @@ const SETTINGS_SCREENS: Record<string, string> = {
   example: 'Example',
 };
 
-startEpisodeAlerts();
-clearCacheOnLaunch();
-runAutoBackupIfDue();
-
 const AppContent = () => {
   const headerOptions = useNativeHeaderOptions();
-  // The player keeps its speed for the session; it starts at the default speed, and moves to a new default
-  const defaultSpeed = usePlayerSettingsStore((state) => state.defaultSpeed);
-  const { setPlaybackRate } = usePlaybackRate();
-  useEffect(() => setPlaybackRate(defaultSpeed), [defaultSpeed, setPlaybackRate]);
-  const { isUpdateAvailable, updateInfo, setIsUpdateAvailable } = useUpdateChecker(EXTERNAL_LINKS.GITHUB_RELEASES_API);
   const [fontsLoaded, fontError] = useFonts({
     InterMedium,
     InterSemiBold,
@@ -249,33 +123,16 @@ const AppContent = () => {
   useOtaUpdates(loaded);
   useEpisodeAlertTaps();
 
-  const uniwindThemeName = useUniwind();
-  const setTheme = useThemeStore((state) => state.setTheme);
-  const themeName = useThemeStore((state) => state.themeName);
   const isDark = useThemeStore((state) => state.isDark);
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const currentTheme = useCurrentTheme();
-  // console.log(themeName, uniwindThemeName, Object.keys(themes), Object.keys(themes).includes(uniwindThemeName.theme));
-  if (!Object.keys(themes).includes(uniwindThemeName.theme)) {
-    setTheme(themeName ?? 'default-dark');
-  }
-  // Request storage permissions on app startup
   useEffect(() => {
-    const requestPermissions = async () => {
-      const granted = await requestPermission();
-      if (granted) {
-      } else {
-        console.warn('⚠️ Storage permissions denied');
-      }
-    };
-
-    requestPermissions();
-    if (Orientation.landscape && !isTV && !isTVOS) {
-      RNOrientationDirector.lockTo(Orientation.portrait);
+    // Android 13+: downloads show their progress in a notification (plugins/withBackgroundDownloads.js)
+    if (Platform.OS === 'android') {
+      PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS).catch((error) =>
+        console.warn('Notification permission request failed:', error),
+      );
     }
-    if (isTV || isTVOS) {
-      RNOrientationDirector.lockTo(Orientation.landscape);
-    }
+    RNOrientationDirector.lockTo(isTV ? Orientation.landscape : Orientation.portrait);
   }, []);
 
   // Not waiting on the update check: its dialog shows whenever the check answers
@@ -299,7 +156,7 @@ const AppContent = () => {
   // The navigators paint their container with this background; on iOS it shows behind a
   // screen's rounded corners during push transitions, so it must match the app theme.
   const baseNavigationTheme = isDark ? DarkTheme : DefaultTheme;
-  const screenBackground = pureBlackBackground ? '#000' : currentTheme.background;
+  const screenBackground = currentTheme.screenBackground;
   const navigationTheme = {
     ...baseNavigationTheme,
     colors: {
@@ -327,116 +184,66 @@ const AppContent = () => {
             stylingPrinciples: false,
           },
         }}>
-        <BottomSheetProvider>
-          <ThemeProvider value={navigationTheme}>
-            <IncognitoFrame>
-              {(bannerShown) => (
-                // freezeOnBlur: screens under the top one (the tabs under watch, info under watch) stop re-rendering
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    freezeOnBlur: true,
-                    unstable_nativeProps: bannerShown ? HEADER_UNDER_BANNER : undefined,
+        <ThemeProvider value={navigationTheme}>
+          <IncognitoFrame>
+            {(bannerShown) => (
+              // freezeOnBlur: screens under the top one (the tabs under watch, info under watch) stop re-rendering
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  freezeOnBlur: true,
+                  unstable_nativeProps: bannerShown ? HEADER_UNDER_BANNER : undefined,
+                }}
+                screenLayout={screenLayout}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="browse/[mediaType]" />
+                <Stack.Screen name="search/[mediaType]" />
+                <Stack.Screen
+                  name="info/[mediaType]"
+                  options={{
+                    ...headerOptions,
+                    headerShown: true,
+                    headerTransparent: true,
+                    headerStyle: { backgroundColor: 'transparent' },
+                    title: '',
                   }}
-                  screenLayout={screenLayout}>
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="browse/[mediaType]" />
-                  <Stack.Screen name="search/[mediaType]" />
+                />
+                <Stack.Screen name="watch/[mediaType]" />
+                {/* Over the pages, so the reader's menu tap can hide it without moving them */}
+                <Stack.Screen
+                  name="read/[id]"
+                  options={{ ...headerOptions, headerShown: true, headerTransparent: true, title: '' }}
+                />
+                {Object.entries(SETTINGS_SCREENS).map(([name, title]) => (
                   <Stack.Screen
-                    name="info/[mediaType]"
-                    options={{
-                      ...headerOptions,
-                      headerShown: true,
-                      headerTransparent: true,
-                      headerStyle: { backgroundColor: 'transparent' },
-                      title: '',
-                    }}
+                    key={name}
+                    name={`(settings)/${name}`}
+                    options={{ ...headerOptions, headerShown: true, title }}
                   />
-                  <Stack.Screen name="watch/[mediaType]" />
-                  {/* Over the pages, so the reader's menu tap can hide it without moving them */}
-                  <Stack.Screen
-                    name="read/[id]"
-                    options={{ ...headerOptions, headerShown: true, headerTransparent: true, title: '' }}
-                  />
-                  {Object.entries(SETTINGS_SCREENS).map(([name, title]) => (
-                    <Stack.Screen
-                      key={name}
-                      name={`(settings)/${name}`}
-                      options={{ ...headerOptions, headerShown: true, title }}
-                    />
-                  ))}
-                  <Stack.Screen name="+not-found" />
-                </Stack>
-              )}
-            </IncognitoFrame>
-          </ThemeProvider>
-        </BottomSheetProvider>
+                ))}
+                <Stack.Screen name="+not-found" />
+              </Stack>
+            )}
+          </IncognitoFrame>
+        </ThemeProvider>
         <PerfWindows />
         {/* Player sheets (the episodes panel) render here, inside HeroUI's provider so its components work */}
         <VideoPortalHost name={VIDEO_PORTAL_HOST} />
         <OtaUpdateToast />
-        {isUpdateAvailable && (
-          <DownloadDialog
-            currentVersion={updateInfo.currentVersion}
-            newVersion={updateInfo.newVersion}
-            updateType={updateInfo.updateType}
-            showUpdateDialog={isUpdateAvailable}
-            setShowUpdateDialog={setIsUpdateAvailable}
-          />
-        )}
+        <UpdateDialog />
       </HeroUINativeProvider>
     </>
   );
 };
 
 export default function RootLayout() {
-  LogBox.ignoreLogs([
-    'StatusBar backgroundColor is not supported with edge-to-edge enabled',
-    'HeroUI Native Styling Principles',
-  ]);
-  const currentTheme = useCurrentTheme();
-  const sheetColor = useSheetColor();
-  const rotateToLandscape = usePlayerSettingsStore((state) => state.rotateToLandscape);
-  const controlsHideMs = usePlayerSettingsStore((state) => state.controlsHideMs);
-  const pipButton = usePlayerSettingsStore((state) => state.pipButton);
-  const doubleTapSeek = usePlayerSettingsStore((state) => state.doubleTapSeek);
-  const videoConfig = useMemo(
-    () => ({
-      useCustomVideoTracks: true,
-      enableFullscreen: false,
-      enablePictureInPicture: pipButton,
-      enableScreenRotation: rotateToLandscape,
-      autoHideDelay: controlsHideMs,
-      enableDoubleTapGestures: doubleTapSeek,
-      playbackRates: PLAYBACK_RATES,
-    }),
-    [pipButton, rotateToLandscape, controlsHideMs, doubleTapSeek],
-  );
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <QueryClientProvider client={queryClient}>
-          <VideoProvider
-            theme={{
-              colors: {
-                ...defaultTheme.colors,
-                sliderTrackActive: currentTheme.accent,
-                sliderTrackInactive: currentTheme.default,
-                sliderThumb: currentTheme.accent,
-                spinner: currentTheme.accent,
-                menuBackground: sheetColor,
-                menuBorder: currentTheme.border,
-                buttonPrimaryBackground: currentTheme.accent,
-                buttonPrimaryText: currentTheme.accentForeground,
-                buttonSecondaryBorder: currentTheme.border,
-              },
-            }}
-            config={videoConfig}
-            components={videoComponents}
-            portalHost={VIDEO_PORTAL_HOST}>
+          <AppVideoProvider>
             <AppContent />
-          </VideoProvider>
+          </AppVideoProvider>
         </QueryClientProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>

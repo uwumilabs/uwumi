@@ -2,9 +2,12 @@ import React from 'react';
 import { Linking, ScrollView, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { NativeList, Separator, ThemedView } from '@/components';
-import { usePreferencesStore, useRemainingDownloadsCount } from '@/hooks';
-import { isTV } from '@/constants/utils';
+import { List as NativeList } from '@/components/native/list/List';
+import { Separator } from '@/components/native/separator/Separator';
+import { ThemedView } from '@/components/ui-primitives';
+import { usePreferencesStore } from '@/hooks/stores/usePreferencesStore';
+import { useRemainingDownloadsCount } from '@/downloads/useDownloadStore';
+import { isTV } from '@/utils/tv';
 import { ensureAlertPermission } from '@/utils/episodeAlerts';
 import { PerfProfiler } from '@/perf/perfHarness';
 
@@ -83,9 +86,7 @@ const More = () => {
             <NativeList.Item icon="settings-outline" title="Settings" onPress={go('/(settings)/settings')} />
             <NativeList.Item icon="play-circle-outline" title="Player settings" onPress={go('/(settings)/player')} />
             <NativeList.Item icon="information-circle-outline" title="About" onPress={go('/(settings)/about')} />
-            {process.env.NODE_ENV === 'development' && (
-              <NativeList.Item icon="flask-outline" title="Example" onPress={go('/(settings)/example')} />
-            )}
+            {__DEV__ && <NativeList.Item icon="flask-outline" title="Example" onPress={go('/(settings)/example')} />}
           </NativeList>
         </ScrollView>
       </ThemedView>

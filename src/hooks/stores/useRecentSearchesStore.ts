@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
 import { MediaType } from '@/constants/types';
-import { storage } from './MMKV';
+import { persistStorage } from './MMKV';
 
 const MAX_RECENT_SEARCHES = 10;
 
@@ -37,11 +37,7 @@ export const useRecentSearchesStore = create<RecentSearchesState>()(
     }),
     {
       name: 'recent-searches',
-      storage: createJSONStorage(() => ({
-        setItem: (name, value) => storage.set(name, value),
-        getItem: (name) => storage.getString(name) ?? null,
-        removeItem: (name) => storage.remove(name),
-      })),
+      storage: persistStorage,
     },
   ),
 );

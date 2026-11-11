@@ -2,7 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { Host, Toggle } from '@expo/ui/swift-ui';
 import { background, disabled as disabledModifier, labelsHidden, shapes, tint } from '@expo/ui/swift-ui/modifiers';
-import { useCurrentTheme } from '@/hooks';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import type { SwitchProps } from './Switch';
 
 export const toggleModifiers = (theme: ReturnType<typeof useCurrentTheme>) => [

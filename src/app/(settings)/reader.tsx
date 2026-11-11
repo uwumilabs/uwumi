@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { ScrollView } from 'react-native';
-import { ChoiceDialog, choiceLabel, type ChoiceOption, NativeList, SectionTitle, ThemedView } from '@/components';
+import { ChoiceDialog, choiceLabel, type ChoiceOption } from '@/components/ChoiceDialog';
+import { List as NativeList } from '@/components/native/list/List';
+import { SectionTitle, ThemedView } from '@/components/ui-primitives';
 import {
   type InvertTapZones,
   type ReaderBackground,
   type ReadingMode,
   type TapZonesLayout,
   useReaderSettingsStore,
-} from '@/hooks';
+  isPagedMode,
+} from '@/hooks/stores/useReaderSettingsStore';
 
 const READING_MODE_OPTIONS: ChoiceOption<ReadingMode>[] = [
   { label: 'Paged (left to right)', value: 'paged-ltr' },
@@ -98,7 +101,7 @@ const Reader = () => {
         <NativeList variant="flat">
           <NativeList.Item
             title="Side padding"
-            disabled={settings.readingMode.startsWith('paged')}
+            disabled={isPagedMode(settings.readingMode)}
             description={`${settings.sidePadding}%`}
             onPress={() => setOpen('padding')}
           />

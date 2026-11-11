@@ -3,14 +3,21 @@ import { Image, type ImageSourcePropType, Pressable, Text, TVFocusGuideView, Vie
 import { Tabs, TabList, TabSlot, TabTrigger, useTabTrigger } from 'expo-router/ui';
 import { useIsFocused } from 'expo-router';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import { useBackHandler, useCurrentTheme, usePureBlackBackground } from '@/hooks';
-import { hexToRGB } from '@/constants/utils';
+import { useBackHandler } from '@/hooks/useBackHandler';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { hexToRGB } from '@/utils/format';
 import { TVRailContext } from './TVRow';
 
 const COLLAPSED_WIDTH = 88;
 const EXPANDED_WIDTH = 232;
 
-const TABS: { name: string; href: '/' | '/manga' | '/movies' | '/more'; label: string; icon: ImageSourcePropType }[] = [
+/** The home tabs, for the phone tab bar and the TV rail */
+export const TABS: {
+  name: string;
+  href: '/' | '/manga' | '/movies' | '/more';
+  label: string;
+  icon: ImageSourcePropType;
+}[] = [
   { name: 'index', href: '/', label: 'Anime', icon: require('../../assets/images/anime.png') },
   { name: 'manga', href: '/manga', label: 'Manga', icon: require('../../assets/images/manga.png') },
   { name: 'movies', href: '/movies', label: 'Movies', icon: require('../../assets/images/movies.png') },
@@ -95,7 +102,6 @@ const RailBackHandler = ({ railFocused, focusTab }: { railFocused: boolean; focu
  */
 export const TVTabs = () => {
   const theme = useCurrentTheme();
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const [expanded, setExpanded] = useState(false);
   const itemRefs = useRef<Record<string, PressableElement | null>>({});
   const [destination, setDestination] = useState<PressableElement | null>(null);
@@ -124,7 +130,7 @@ export const TVTabs = () => {
               bottom: 0,
               left: 0,
               overflow: 'hidden',
-              backgroundColor: pureBlackBackground ? theme.amoledSurfaceVariant : theme.segment,
+              backgroundColor: theme.railBackground,
             },
             railStyle,
           ]}>

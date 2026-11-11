@@ -5,8 +5,6 @@ export interface ProgressProps {
   /** Animates without a value, for work whose length isn't known yet */
   indeterminate?: boolean;
   className?: string;
-  minTrackColor?: string;
-  maxTrackColor?: string;
 }
 
 export const Progress: React.FC<ProgressProps> = () => null;

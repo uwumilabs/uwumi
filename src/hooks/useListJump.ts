@@ -3,7 +3,7 @@ import type { FlashListRef, ViewToken } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
 import { useAnimatedReaction, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { isTV } from '@/constants/utils';
+import { isTV } from '@/utils/tv';
 
 const RANGE_SIZE = 100;
 const JUMP_BAR_SCREENS = 1.5;

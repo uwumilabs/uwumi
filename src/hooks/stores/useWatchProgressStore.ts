@@ -1,125 +1,74 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import { storage } from '@/hooks/stores/MMKV';
+import { persist } from 'zustand/middleware';
+import { persistStorage } from '@/hooks/stores/MMKV';
 import { usePlayerSettingsStore } from './usePlayerSettingsStore';
+import { usePreferencesStore } from './usePreferencesStore';
 
 interface WatchProgress {
   currentTime: number;
   duration: number;
+  /** Percent of the episode watched */
   progress: number;
   isCompleted?: boolean;
 }
 
 interface WatchProgressState {
   progresses: Record<string, WatchProgress>;
-  setProgress: (uniqueId: string, progress: WatchProgress) => void;
-  getProgress: (uniqueId: string) => WatchProgress | null;
-  markAsCompleted: (uniqueId: string) => void;
-  markAsIncomplete: (uniqueId: string) => void;
-  removeProgress: (uniqueId: string) => void;
+  /**
+   * Where playback got to. Not saved in incognito, nor when it's behind the saved point (a rewatch keeps the
+   * furthest point); it counts as watched from the player setting's percent on
+   */
+  savePlayback: (uniqueId: string, currentTime: number, duration: number) => void;
+  /** Marks the episode watched, or unwatched when it was; returns whether it's now watched */
+  toggleWatched: (uniqueId: string) => boolean;
   clearAll: () => void;
 }
+
+export const isWatchedPercent = (percent: number) => percent >= usePlayerSettingsStore.getState().watchedPercent;
 
 export const useWatchProgressStore = create<WatchProgressState>()(
   persist(
     (set, get) => ({
       progresses: {},
-      setProgress: (uniqueId, progress) => {
-        // console.log('Setting progress:', { uniqueId, progress });
-        const currentProgress = get().progresses[uniqueId];
-
-        // Determine completion status:
-        // 1. If explicitly set in the progress object, use that value
-        // 2. Otherwise, auto-mark as completed once progress reaches the player setting's watched percent
-        // 3. Preserve existing completed status if already marked
-        const isCompleted =
-          progress.isCompleted !== undefined
-            ? progress.isCompleted
-            : progress.progress >= usePlayerSettingsStore.getState().watchedPercent ||
-              currentProgress?.isCompleted ||
-              false;
-
+      savePlayback: (uniqueId, currentTime, duration) => {
+        if (usePreferencesStore.getState().incognito || !(duration > 0)) return;
+        const saved = get().progresses[uniqueId];
+        if (saved && currentTime <= (saved.currentTime ?? 0)) return;
+        const progress = (currentTime / duration) * 100;
         set((state) => ({
           progresses: {
             ...state.progresses,
             [uniqueId]: {
-              ...progress,
-              isCompleted,
+              currentTime,
+              duration,
+              progress,
+              isCompleted: isWatchedPercent(progress) || !!saved?.isCompleted,
             },
           },
         }));
-        // console.log('New state:', get().progresses);
       },
-      getProgress: (uniqueId) => {
-        const progress = get().progresses[uniqueId] || null;
-        // console.log('Getting progress:', { uniqueId, progress });
-        return progress;
-      },
-      markAsCompleted: (uniqueId) => {
-        set((state) => {
-          const existing = state.progresses[uniqueId];
-          if (!existing) {
-            // Create new progress entry if doesn't exist
-            return {
-              progresses: {
-                ...state.progresses,
-                [uniqueId]: {
-                  currentTime: 0,
-                  duration: 0,
-                  progress: 100,
-                  isCompleted: true,
-                },
-              },
-            };
-          }
-          return {
-            progresses: {
-              ...state.progresses,
-              [uniqueId]: {
-                ...existing,
-                isCompleted: true,
-              },
+      toggleWatched: (uniqueId) => {
+        const saved = get().progresses[uniqueId];
+        const watched = !saved?.isCompleted;
+        const duration = saved?.duration ?? 0;
+        set((state) => ({
+          progresses: {
+            ...state.progresses,
+            [uniqueId]: {
+              currentTime: watched ? duration : 0,
+              duration,
+              progress: watched ? 100 : 0,
+              isCompleted: watched,
             },
-          };
-        });
+          },
+        }));
+        return watched;
       },
-      markAsIncomplete: (uniqueId) => {
-        set((state) => {
-          const existing = state.progresses[uniqueId];
-          if (!existing) return state;
-
-          return {
-            progresses: {
-              ...state.progresses,
-              [uniqueId]: {
-                ...existing,
-                currentTime: 0,
-                progress: 0,
-                isCompleted: false,
-              },
-            },
-          };
-        });
-      },
-      removeProgress: (uniqueId) => {
-        //console.log('Removing progress:', uniqueId);
-        set((state) => {
-          const { [uniqueId]: _, ...rest } = state.progresses;
-          return { progresses: rest };
-        });
-      },
-      clearAll: () => {
-        //console.log('Clearing all progress');
-        set({ progresses: {} });
-      },
+      clearAll: () => set({ progresses: {} }),
     }),
     {
       name: 'watchProgress',
-      storage: createJSONStorage(() => ({
-        setItem: (name, value) => storage.set(name, value),
-        getItem: (name) => storage.getString(name) ?? null,
-        removeItem: (name) => storage.remove(name),
-      })),
+      storage: persistStorage,
     },
   ),
 );

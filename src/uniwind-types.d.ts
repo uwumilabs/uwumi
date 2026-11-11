@@ -6,12 +6,12 @@ declare module 'uniwind' {
     themes: readonly [
       'light',
       'dark',
-      'default-light',
-      'default-dark',
       'cloudflare-light',
       'cloudflare-dark',
       'cotton-candy-light',
       'cotton-candy-dark',
+      'default-light',
+      'default-dark',
     ];
   }
 }

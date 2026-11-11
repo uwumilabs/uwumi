@@ -2,27 +2,32 @@ import React, { memo, useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from './LinearGradient';
 import { AnimatedImage } from './Image';
-import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
+import { MediaFeedType, MediaType } from '@/constants/types';
 import { IAnimeResult, IMovieResult, ISearch } from 'react-native-consumet';
 import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
-import { isTV } from '@/constants/utils';
+import { isTV } from '@/utils/tv';
 import { InfiniteData } from '@tanstack/react-query';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { HUXStack, HUYStack, NoResults } from './ui-primitives';
-import { useAnimeAndMangaSearch, useMediaFeed, useMovieSearch } from '@/hooks';
+import { useMediaFeed, useSearch } from '@/hooks/queries/mediaQueries';
 import { useCardGridDimensions } from '@/hooks/useCardGridDimensions';
-import { resolveProvider, useProviderStore } from '@/constants/provider';
+import { infoHref } from '@/utils/routes';
+import { infoTitle } from '@/utils/media';
 import List from './List';
 import { Card, SkeletonGroup } from './heroui';
 import TVFocusWrapper from './TVFocusWrapper';
 
 export type MediaItem = IAnimeResult | IMovieResult;
 
+/** A poster card's height to its width; TV cards are taller */
+export const CARD_ASPECT = isTV ? 3.2 / 2 : 3 / 2;
+export const CARD_ASPECT_CLASS = isTV ? 'aspect-[2/3.2]' : 'aspect-2/3';
+export const CARD_RADIUS = 10;
+
 export interface CardListProps {
   staticData?: MediaItem[] | undefined;
   mediaFeedType?: MediaFeedType;
   mediaType: MediaType;
-  metaProvider: MetaProvider;
   searchQuery?: string;
   onItemPress?: (item: MediaItem) => void;
   /** Shown when the list is empty, instead of the generic "No results found" */
@@ -34,7 +39,6 @@ export interface MediaCardProps {
   item: MediaItem;
   index: number;
   mediaType: MediaType;
-  metaProvider: MetaProvider;
   isSearch?: boolean;
   preferredFocus?: boolean;
   animateEntry?: boolean;
@@ -70,7 +74,7 @@ export const toCardItems = (data: InfiniteData<ISearch<MediaItem>> | MediaItem[]
 };
 
 const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnType<typeof useCardGridDimensions> }) => {
-  const cardHeight = grid.itemWidth * (isTV ? 3.2 / 2 : 3 / 2);
+  const cardHeight = grid.itemWidth * CARD_ASPECT;
   const usableHeight = Math.max(grid.screenHeight - grid.verticalPadding * 2, cardHeight);
   const rows = Math.max(2, Math.ceil(usableHeight / (cardHeight + grid.itemSpacing * 2)));
   const skeletonCount = rows * grid.numColumns;
@@ -85,7 +89,7 @@ const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnTyp
         }}>
         {Array.from({ length: skeletonCount }).map((_, i) => (
           <View key={i} style={{ width: `${100 / grid.numColumns}%`, padding: grid.itemSpacing }}>
-            <View className={isTV ? 'aspect-[2/3.2]' : 'aspect-2/3'}>
+            <View className={CARD_ASPECT_CLASS}>
               <SkeletonGroup.Item className="w-full h-full rounded-lg" />
             </View>
           </View>
@@ -96,37 +100,16 @@ const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnTyp
 };
 
 export const MediaCard: React.FC<MediaCardProps> = memo(
-  ({
-    item,
-    index,
-    mediaType,
-    metaProvider,
-    isSearch,
-    preferredFocus,
-    animateEntry = true,
-    sharedTag,
-    onPress,
-    badge,
-  }) => {
+  ({ item, index, mediaType, isSearch, preferredFocus, animateEntry = true, sharedTag, onPress, badge }) => {
     const router = useRouter();
     const transitionTag = isSearch ? undefined : (sharedTag ?? String(item.id));
 
     const handlePress = useCallback(() => {
       onPress?.(item);
-      router.push({
-        pathname: '/info/[mediaType]',
-        params: {
-          mediaType: mediaType,
-          metaProvider: metaProvider,
-          type: item?.type,
-          provider: resolveProvider(mediaType, useProviderStore.getState().providers[mediaType]),
-          id: item.id,
-          image: item.image,
-          title: typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english,
-          ...(sharedTag && { sharedTag }),
-        },
-      });
-    }, [router, mediaType, metaProvider, item, sharedTag, onPress]);
+      router.push(
+        infoHref({ mediaType, id: item.id, type: item.type, image: item.image, title: infoTitle(item), sharedTag }),
+      );
+    }, [router, mediaType, item, sharedTag, onPress]);
 
     return (
       <TVFocusWrapper
@@ -136,11 +119,11 @@ export const MediaCard: React.FC<MediaCardProps> = memo(
         <AnimatedStyledCard
           entering={animateEntry && !isSearch && index < 12 ? FadeInDown.delay(50 * index).duration(300) : undefined}
           // Height comes from the aspect ratio alone; flex-1 let FlashList's horizontal cells collapse it to 0
-          className={`w-full rounded-[10px] overflow-hidden p-0 ${isTV ? 'aspect-[2/3.2]' : 'aspect-2/3'}`}>
+          className={`w-full rounded-[10px] overflow-hidden p-0 ${CARD_ASPECT_CLASS}`}>
           <Card.Body className="w-full h-full p-0 relative">
             <AnimatedImage
               source={{ uri: item.image }}
-              style={{ borderRadius: 10, zIndex: 0 }}
+              style={{ borderRadius: CARD_RADIUS, zIndex: 0 }}
               width="100%"
               height="100%"
               sharedTransitionTag={transitionTag && `shared-image-${transitionTag}`}
@@ -151,14 +134,14 @@ export const MediaCard: React.FC<MediaCardProps> = memo(
               colors={['rgba(0,0,0,0.8)', 'transparent']}
               start={[0, 1]}
               end={[0, 0.3]}
-              style={{ borderRadius: 10 }}
+              style={{ borderRadius: CARD_RADIUS }}
             />
             <AnimatedStyledCardTitle
               className="absolute bottom-0 left-0 right-0 z-20 py-2 px-2 text-sm font-medium m-0 text-white"
               numberOfLines={2}
               sharedTransitionTag={transitionTag && `shared-title-${transitionTag}`}
               ellipsizeMode="tail">
-              {typeof item.title === 'string' ? item.title : item.title?.romaji || item.title?.english}
+              {infoTitle(item)}
             </AnimatedStyledCardTitle>
             {!!badge && (
               <Text className="absolute left-2 top-2 z-20 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
@@ -174,38 +157,26 @@ export const MediaCard: React.FC<MediaCardProps> = memo(
 
 MediaCard.displayName = 'MediaCard';
 
-export const CardList: React.FC<CardListProps> = ({
+const CardListView: React.FC<CardListProps> = ({
   staticData,
   mediaFeedType,
   mediaType,
-  metaProvider,
   searchQuery = '',
   onItemPress,
   emptyState,
   badges,
 }) => {
   const isSearch = mediaFeedType === 'search';
-  const isMovieSearch = isSearch && mediaType === MediaType.MOVIE;
-  const isAnimeSearch = isSearch && !isMovieSearch;
-  const isFeed = !staticData && !isSearch;
-
-  const movieSearchResult = useMovieSearch<MediaItem>(mediaType, searchQuery, {
-    enabled: !staticData && isMovieSearch,
-  });
-  const animeSearchResult = useAnimeAndMangaSearch<MediaItem>(mediaType, searchQuery, {
-    enabled: !staticData && isAnimeSearch,
-  });
-  const feedResult = useMediaFeed<MediaItem>(mediaType, metaProvider, mediaFeedType!, {
-    enabled: !staticData && isFeed,
+  const searchResult = useSearch<MediaItem>(mediaType, searchQuery, !staticData && isSearch);
+  const feedResult = useMediaFeed<MediaItem>(mediaType, isSearch || !mediaFeedType ? 'trending' : mediaFeedType, {
+    enabled: !staticData && !isSearch,
   });
 
   const activeResult = staticData
     ? { data: undefined, isLoading: false, error: null, refetch: () => {}, fetchNextPage: () => {}, hasNextPage: false }
-    : isMovieSearch
-      ? movieSearchResult
-      : isAnimeSearch
-        ? animeSearchResult
-        : feedResult;
+    : isSearch
+      ? searchResult
+      : feedResult;
 
   const { data: dynamicData, isLoading, error, refetch, fetchNextPage, hasNextPage } = activeResult;
 
@@ -241,7 +212,6 @@ export const CardList: React.FC<CardListProps> = ({
             item={item}
             index={index}
             mediaType={mediaType}
-            metaProvider={metaProvider}
             isSearch={isSearch}
             // Search results must not pull TV focus away from the search input
             preferredFocus={!isSearch && index === 0}
@@ -276,4 +246,7 @@ export const CardList: React.FC<CardListProps> = ({
   );
 };
 
-export default memo(CardList);
+export const CardList = memo(CardListView);
+CardList.displayName = 'CardList';
+
+export default CardList;

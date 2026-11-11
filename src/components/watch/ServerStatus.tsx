@@ -3,8 +3,9 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { cn, useThemeColor } from '@/components/heroui';
 import { Button } from '@/components/Button';
 import { VideoPlayer } from 'react-native-video-toolkit';
-import { HUXStack, HUYStack, IoniconsIcon, MaterialIconsIcon } from '@/components';
-import type { ServerFailure } from '@/hooks';
+import { HUXStack, HUYStack } from '@/components/ui-primitives';
+import { IoniconsIcon, MaterialIconsIcon } from '@/components/Icons';
+import type { ServerFailure } from '@/hooks/useServerRotation';
 
 export type ServerPhase = 'finding' | 'exhausted' | 'unavailable' | 'missing';
 

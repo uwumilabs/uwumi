@@ -3,16 +3,10 @@ import { View } from 'react-native';
 import { cn } from '../../heroui';
 import { Host, LinearProgressIndicator } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth } from '@expo/ui/jetpack-compose/modifiers';
-import { useCurrentTheme } from '@/hooks';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import type { ProgressProps } from './Progress';
 
-export const Progress: React.FC<ProgressProps> = ({
-  value = 0,
-  indeterminate,
-  className,
-  minTrackColor,
-  maxTrackColor,
-}) => {
+export const Progress: React.FC<ProgressProps> = ({ value = 0, indeterminate, className }) => {
   const currentTheme = useCurrentTheme();
   const progress = Math.max(0, Math.min(100, value)) / 100;
 
@@ -21,8 +15,8 @@ export const Progress: React.FC<ProgressProps> = ({
       <Host matchContents={{ vertical: true }} style={{ width: '100%' }}>
         <LinearProgressIndicator
           progress={indeterminate ? null : progress}
-          color={maxTrackColor || currentTheme.accent}
-          trackColor={minTrackColor || currentTheme.default}
+          color={currentTheme.accent}
+          trackColor={currentTheme.default}
           modifiers={[fillMaxWidth()]}
         />
       </Host>

@@ -2,36 +2,28 @@ import React, { memo, useCallback, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
+import TVFocusWrapper from '@/components/TVFocusWrapper';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { HorizontalTabs } from '@/components/HorizontalTabs';
+import { HUXStack, HUYStack, NoResults, RippleButton, ThemedView } from '@/components/ui-primitives';
+import { Image } from '@/components/Image';
+import { IoniconsIcon } from '@/components/Icons';
+import { List } from '@/components/List';
+import { Progress } from '@/components/native/progress/Progress';
 import {
-  ConfirmDialog,
-  HorizontalTabs,
-  HUXStack,
-  HUYStack,
-  Image,
-  IoniconsIcon,
-  List,
-  NoResults,
-  Progress,
-  RippleButton,
-  ThemedView,
-  TVFocusWrapper,
-} from '@/components';
-import {
+  clearWatchHistory,
   continueWatchingEpisodeLabel,
   mangaPageLabel,
   openContinueWatchingEntry,
   openMangaProgress,
   type MangaHistoryEntry,
   useMangaHistory,
-} from '@/components/ContinueWatchingRow';
-import {
-  type ContinueWatchingEntry,
-  useContinueWatchingStore,
-  useCurrentTheme,
-  useDownloadedOnlyFilter,
-  useMangaProgressStore,
-  useWatchProgressStore,
-} from '@/hooks';
+} from '@/hooks/useHistory';
+import { type ContinueWatchingEntry, useContinueWatchingStore } from '@/hooks/stores/useContinueWatchingStore';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { useDownloadedOnlyFilter } from '@/downloads/useDownloadStore';
+import { useMangaProgressStore } from '@/hooks/stores/useMangaProgressStore';
+import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
 import { MediaType } from '@/constants/types';
 
 const THUMB_WIDTH = 112;
@@ -221,8 +213,6 @@ const TABS = [
 
 const History = () => {
   const theme = useCurrentTheme();
-  const clearAll = useContinueWatchingStore((state) => state.clearAll);
-  const hideAllManga = useMangaProgressStore((state) => state.hideAll);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
@@ -244,8 +234,7 @@ const History = () => {
         description="Empties History, Continue watching and Continue reading. Episode progress and read chapters stay."
         confirmText="Clear"
         onConfirm={() => {
-          clearAll();
-          hideAllManga();
+          clearWatchHistory();
           setConfirmOpen(false);
         }}
       />

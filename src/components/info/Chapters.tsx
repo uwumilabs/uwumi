@@ -1,29 +1,22 @@
-import {
-  RippleButton,
-  Select,
-  List,
-  HUXStack,
-  HUYStack,
-  IoniconsIcon,
-  ListJumpBar,
-  ProviderEmptyState,
-} from '@/components';
+import { RippleButton, HUXStack, HUYStack } from '@/components/ui-primitives';
+import { usePureBlackBackground } from '@/hooks/stores/useThemeStore';
+import { readerHref } from '@/utils/routes';
+import { Select } from '@/components/Select';
+import { List } from '@/components/List';
+import { IoniconsIcon } from '@/components/Icons';
+import { ListJumpBar } from '@/components/ListJumpBar';
+import { ProviderEmptyState } from '@/components/ListEmptyState';
 import { Button } from '@/components/Button';
 import LinearGradient from '@/components/LinearGradient';
-import { useProviders, useProviderStore, useActiveProvider } from '@/constants/provider';
+import { useProviders, useProviderStore, useActiveProvider } from '@/hooks/stores/useProviderStore';
 import { MediaType } from '@/constants/types';
-import { infoTitle, isTV } from '@/constants/utils';
-import {
-  LIST_SHADOW_SIZE,
-  mangaProgressKey,
-  useCurrentTheme,
-  useListJump,
-  useMangaChapters,
-  useMangaProgressStore,
-  useMediaInfo,
-  usePureBlackBackground,
-  resumePage,
-} from '@/hooks';
+import { infoTitle } from '@/utils/media';
+import { isTV } from '@/utils/tv';
+import { LIST_SHADOW_SIZE, useListJump } from '@/hooks/useListJump';
+import { mangaProgressKey, useMangaProgressStore, resumePage } from '@/hooks/stores/useMangaProgressStore';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { useMangaChapters } from '@/hooks/queries/mangaQueries';
+import { useMediaInfo } from '@/hooks/queries/infoQueries';
 import { chapterDetails, chapterNumbers, chapterTitle } from '@/utils/manga';
 import type { FlashListRef } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -89,7 +82,6 @@ const Chapters = ({ header }: ChaptersProps) => {
   const { data, isLoading, error, refetch } = useMangaChapters({ id, provider: currentProvider });
   const progress = useMangaProgressStore((state) => state.progress[mangaProgressKey(id, currentProvider)]);
   const currentTheme = useCurrentTheme();
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const router = useRouter();
   const listRef = useRef<FlashListRef<IMangaChapter>>(null);
   // Providers give reading order (first chapter first); newest first only flips what's shown
@@ -120,10 +112,9 @@ const Chapters = ({ header }: ChaptersProps) => {
   const mangaImage = info?.image;
   const openChapter = useCallback(
     (chapter: Pick<IMangaChapter, 'id'>) =>
-      router.push({
-        pathname: '/read/[id]',
-        params: { id, chapter: chapter.id, provider: currentProvider, title: mangaTitle, image: mangaImage },
-      }),
+      router.push(
+        readerHref({ id, chapter: chapter.id, provider: currentProvider, title: mangaTitle, image: mangaImage }),
+      ),
     [router, id, currentProvider, mangaTitle, mangaImage],
   );
   const lastPage = progress ? resumePage(progress, progress.lastChapterId) : 1;
@@ -135,7 +126,7 @@ const Chapters = ({ header }: ChaptersProps) => {
       <ScrollShadow
         className="flex-1"
         size={LIST_SHADOW_SIZE}
-        color={pureBlackBackground ? '#000000' : currentTheme?.background}
+        color={currentTheme.screenBackground}
         LinearGradientComponent={LinearGradient}>
         <List
           ref={listRef}

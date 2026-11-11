@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import { storage } from '@/hooks/stores/MMKV';
+import { persist } from 'zustand/middleware';
+import { persistStorage } from '@/hooks/stores/MMKV';
 
 interface LastServerState {
   /** The last server that played, by `lastServerKey`. Server rotation tries it first. */
@@ -23,11 +23,7 @@ export const useLastServerStore = create<LastServerState>()(
     }),
     {
       name: 'lastServers',
-      storage: createJSONStorage(() => ({
-        setItem: (name, value) => storage.set(name, value),
-        getItem: (name) => storage.getString(name) ?? null,
-        removeItem: (name) => storage.remove(name),
-      })),
+      storage: persistStorage,
     },
   ),
 );

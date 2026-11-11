@@ -1,8 +1,6 @@
-import { Paths } from 'expo-file-system';
+export const TMDB_API_KEY = process.env.EXPO_PUBLIC_TMDB_API_KEY;
 
 export const EXTERNAL_LINKS = {
-  GITHUB_REPOSITORY_API: 'https://api.github.com/repos/uwumilabs/uwumi',
-  GITHUB_RELEASES_API: 'https://api.github.com/repos/uwumilabs/uwumi/releases',
   GITHUB_LATEST_RELEASE_API: 'https://api.github.com/repos/uwumilabs/uwumi/releases/latest',
   GITHUB_REPOSITORY: 'https://github.com/uwumilabs/uwumi',
   GITHUB_LATEST_RELEASE: 'https://github.com/uwumilabs/uwumi/releases/latest',
@@ -13,8 +11,8 @@ export const EXTERNAL_LINKS = {
   SHARE_LINK_BASE: 'https://uwumi.vercel.app',
 } as const;
 
+/** OpenSubtitles' language ids, by name */
 export const SUB_LANGUAGE = {
-  ALL: 'all',
   Abkhazian: 'abk',
   Afrikaans: 'afr',
   Albanian: 'alb',
@@ -124,15 +122,6 @@ export const SUB_LANGUAGE = {
   Welsh: 'wel',
 } as const;
 
-// Plain paths, as FFmpeg takes them and downloads store them; fsFile/fsDirectory in utils turn them back into URIs
-const pathFromUri = (uri: string) => decodeURIComponent(uri.replace(/^file:\/\//, '')).replace(/\/$/, '');
-
-const APP_DIR_NAME = __DEV__ ? 'uwumi-dev' : 'uwumi';
-export const UWUMI_DIR = `${pathFromUri(Paths.document.uri)}/${APP_DIR_NAME}`;
-export const CACHE_DIR = pathFromUri(Paths.cache.uri);
-// In the app's own storage, so files can't be deleted from under the app
-export const DOWNLOADS_DIR = `${UWUMI_DIR}/downloads`;
-
-export const constants = {
-  PROGRESS_COMPLETION_PERCENTAGE: 85,
-} as const;
+export const SUBTITLE_LANGUAGES = Object.entries(SUB_LANGUAGE)
+  .map(([name, code]) => ({ name, code }))
+  .sort((a, b) => a.name.localeCompare(b.name));

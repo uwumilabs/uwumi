@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from './Button';
-import { isTV } from '@/constants/utils';
+import { isTV } from '@/utils/tv';
 import { IoniconsIcon } from './Icons';
 
 interface ListJumpBarProps {

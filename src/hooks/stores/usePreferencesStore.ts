@@ -16,7 +16,6 @@ interface PreferencesState {
   downloadedOnly: boolean;
   /** A notification when a favorite's next episode airs */
   episodeNotifications: boolean;
-  /** Empties the cache folder as the app starts */
   clearCacheOnLaunch: boolean;
   setIncognito: (value: boolean) => void;
   setDownloadedOnly: (value: boolean) => void;

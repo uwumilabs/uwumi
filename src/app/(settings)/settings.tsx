@@ -1,7 +1,8 @@
 import React from 'react';
 import { ScrollView } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
-import { NativeList, ThemedView } from '@/components';
+import { List as NativeList } from '@/components/native/list/List';
+import { ThemedView } from '@/components/ui-primitives';
 
 const Settings = () => {
   const router = useRouter();

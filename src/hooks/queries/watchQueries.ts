@@ -1,19 +1,15 @@
-import { DEFAULT_PROVIDERS } from '@/constants/provider';
-import {
-  IEpisodeServer,
-  ISource,
-  MediaFormat,
-  PolyURL,
-  StreamingServers,
-  SubOrDub,
-  TvType,
-} from 'react-native-consumet';
+import { IEpisodeServer, ISource, PolyURL, StreamingServers, SubOrDub, TvType } from 'react-native-consumet';
 import { queryOptions, useQuery } from '@tanstack/react-query';
-import { fetchJson, HttpError } from '@/constants/utils';
+import { fetchJson, HttpError } from '@/utils/http';
 import { ExternalSubtitleData, MediaType } from '@/constants/types';
 import { TextTrackType } from 'react-native-video/src/types/video';
 import { SubtitleTrack } from '@/constants/types';
-import { getExtensionManagers, loadAnimeProvider, loadMovieProvider, loadServerExtractor } from '../stores';
+import {
+  getExtensionManagers,
+  loadAnimeProvider,
+  loadMovieProvider,
+  loadServerExtractor,
+} from '@/hooks/stores/useExtensionStore';
 
 /**
  * Only embed providers with several servers hand the server URL to a registry extractor.
@@ -30,8 +26,21 @@ export interface EpisodeTarget {
   episodeId: string;
   mediaId?: string;
   dub?: boolean;
-  embed?: boolean;
 }
+
+export const episodeTarget = ({ mediaType, provider, episodeId, mediaId, dub }: EpisodeTarget): EpisodeTarget =>
+  mediaType === MediaType.ANIME
+    ? { mediaType, provider, episodeId, dub: !!dub }
+    : { mediaType, provider, episodeId, mediaId: mediaId ?? '' };
+
+/** A source's request headers, as players and FFmpeg take them: providers sometimes put other values in */
+export const sourceRequestHeaders = (headers: unknown) =>
+  headers && typeof headers === 'object'
+    ? (Object.fromEntries(Object.entries(headers).filter(([, value]) => typeof value === 'string')) as Record<
+        string,
+        string
+      >)
+    : undefined;
 
 /** The server answered but has no playable sources, so rotation moves on to the next one. */
 export class NoSourcesError extends Error {
@@ -103,106 +112,28 @@ export function useEpisodeSources(target: EpisodeTarget, server: IEpisodeServer 
   });
 }
 
-/** Servers plus one server's sources (the first, unless `serverName` is given), for the episode actions sheet. */
 async function fetchSourcesWithServers(
   target: EpisodeTarget,
   serverName: string | undefined,
-): Promise<ISource & { servers: IEpisodeServer[] }> {
+): Promise<Partial<ISource> & { servers: IEpisodeServer[] }> {
   const servers = await fetchEpisodeServers(target);
   const server = servers.find((s) => s.name === serverName) ?? servers[0];
   try {
     return { ...(await fetchServerSources(target, server)), servers };
-  } catch {
-    return { sources: [], subtitles: [], servers } as unknown as ISource & { servers: IEpisodeServer[] };
+  } catch (error) {
+    // The servers still list, so another one can be picked
+    console.warn(`No sources on ${server.name}:`, error);
+    return { sources: [], subtitles: [], servers };
   }
 }
 
-export function useWatchAnimeEpisodes({
-  episodeId,
-  provider = DEFAULT_PROVIDERS.anime,
-  serverName,
-  dub = false,
-  enabled = true,
-}: {
-  episodeId: string;
-  provider: string;
-  serverName?: string;
-  dub: boolean;
-  enabled?: boolean;
-}) {
-  return useQuery<ISource & { servers: IEpisodeServer[] }>({
-    queryKey: ['watch', episodeId, provider, dub, serverName],
-    enabled: enabled && !!episodeId,
-    queryFn: () => fetchSourcesWithServers({ mediaType: MediaType.ANIME, provider, episodeId, dub }, serverName),
+export function useEpisodeSourcesWithServers(target: EpisodeTarget, serverName: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['watch', 'sheet', target, serverName],
+    enabled: enabled && !!target.episodeId,
+    queryFn: () => fetchSourcesWithServers(target, serverName),
   });
 }
-
-export function useWatchMoviesEpisodes({
-  episodeId,
-  mediaId,
-  provider = DEFAULT_PROVIDERS.movie,
-  serverName,
-  embed,
-  enabled = true,
-}: {
-  episodeId: string;
-  mediaId: string;
-  type: string;
-  provider: string;
-  serverName?: string;
-  embed: boolean;
-  enabled?: boolean;
-}) {
-  return useQuery<ISource & { servers: IEpisodeServer[] }>({
-    queryKey: ['watch', episodeId, mediaId, serverName, provider, embed],
-    enabled: enabled && !!episodeId,
-    queryFn: () => fetchSourcesWithServers({ mediaType: MediaType.MOVIE, provider, episodeId, mediaId }, serverName),
-  });
-}
-// export function useMoviesEpisodesServers({
-//   tmdbId,
-//   episodeNumber,
-//   seasonNumber,
-//   type,
-//   provider = DEFAULT_PROVIDERS.movie,
-//   embed,
-// }: {
-//   tmdbId: string;
-//   episodeNumber: string;
-//   seasonNumber: string;
-//   type: string;
-//   provider: string;
-//   embed: boolean;
-// }) {
-//   // console.log(tmdbId, episodeNumber, seasonNumber, type, provider);
-
-//   return useQuery<IEpisodeServer[]>({
-//     queryKey: ['watch', tmdbId, episodeNumber, seasonNumber, provider, embed],
-//     queryFn: async () => {
-//       try {
-//         // console.log(
-//         //   `${getFetchUrl().episodeApiUrl}/movies/tmdb/watch/${tmdbId}?episodeNumber=${episodeNumber}&seasonNumber=${seasonNumber}&type=${type.split(' ')[0].toLowerCase()}&server=${server}&embed=${embed}`,
-//         // );
-//         // const { data } = await axios.get(`${getFetchUrl().episodeApiUrl}/movies/tmdb/watch/${tmdbId}`, {
-//         //   params: {
-//         //     episodeNumber,
-//         //     seasonNumber,
-//         //     type: type.split(' ')[0].toLowerCase(),
-//         //     ...(server && { server }),
-//         //     provider,
-//         //     embed,
-//         //   },
-//         // });
-//         const moviesProviderInitializer = createProviderInstance(MediaType.MOVIE, provider);
-//         const data = await new moviesProviderInitializer.fetchEpisodeServers(episodeId, mediaId);
-//         console.log(data);
-//         return data;
-//       } catch (error) {
-//         throw new Error(`Error fetching movies episode sources: ${error}`);
-//       }
-//     },
-//   });
-// }
 
 // OpenSubtitles returns every upload for the title; the most downloaded few are the likeliest to fit
 const MAX_EXTERNAL_SUBTITLES = 3;
@@ -216,24 +147,17 @@ interface ExternalSubtitlesParams {
   imdbId: string;
   episodeNumber?: string;
   seasonNumber?: string;
-  type: TvType | MediaFormat;
+  type: string;
   language: string | null;
 }
 
-/** Whether OpenSubtitles can be searched for this title: it needs an IMDb id, and a TV episode its numbers. */
 export const canSearchExternalSubtitles = ({
   imdbId,
   episodeNumber,
   seasonNumber,
   type,
 }: Omit<ExternalSubtitlesParams, 'language'>) =>
-  Boolean(
-    imdbId &&
-    imdbId.trim() !== '' &&
-    imdbId !== 'tt' &&
-    imdbId.length > 2 &&
-    (type !== TvType.TVSERIES || (episodeNumber && seasonNumber)),
-  );
+  Boolean(imdbId && (type !== TvType.TVSERIES || (episodeNumber && seasonNumber)));
 
 export const externalSubtitlesQuery = ({
   imdbId,
@@ -270,6 +194,7 @@ export const externalSubtitlesQuery = ({
             index: parseInt(item.IDSubtitleFile),
             language: item.ISO639,
             type: TextTrackType.SUBRIP,
+            // The link without .gz serves the file uncompressed
             uri: item.SubDownloadLink.replace('.gz', ''),
             title: `${item.LanguageName} · OpenSubtitles ${index + 1}`,
           }));

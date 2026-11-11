@@ -1,9 +1,8 @@
 import { Platform, Share } from 'react-native';
 import * as Application from 'expo-application';
 import { Directory, File } from 'expo-file-system';
-import { storage } from '@/hooks/stores/MMKV';
 import { useContinueWatchingStore } from '@/hooks/stores/useContinueWatchingStore';
-import { useExtensionStore } from '@/hooks/stores/useExtensionStore';
+import { installedExtensionIds, useExtensionStore } from '@/hooks/stores/useExtensionStore';
 import { useExternalSubtitleStore } from '@/hooks/stores/useExternalSubtitleStore';
 import { useFavoriteStore } from '@/hooks/stores/useFavoriteStore';
 import { useLastServerStore } from '@/hooks/stores/useLastServerStore';
@@ -14,26 +13,159 @@ import { useReaderSettingsStore, type ReaderSettings } from '@/hooks/stores/useR
 import { useRecentSearchesStore } from '@/hooks/stores/useRecentSearchesStore';
 import { usePureBlackBackground, useThemeStore } from '@/hooks/stores/useThemeStore';
 import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
-import { useProviderStore } from '@/constants/provider';
-import { UWUMI_DIR } from '@/constants/config';
-import { fsDirectory } from '@/constants/utils';
+import { useProviderStore } from '@/hooks/stores/useProviderStore';
+import { UWUMI_DIR, ensureDirectory } from '@/utils/files';
 import { MediaType } from '@/constants/types';
 import type { ThemeName } from '@/themes/theme';
 import { backupFolderModule } from '@/modules/backupFolder';
 
 const FORMAT = 1;
-const AUTO_PREFIX = 'uwumi_auto_';
+export const AUTO_PREFIX = 'uwumi_auto_';
 // Only backups uwumi named itself are pruned, never one the user named alike
 const AUTO_BACKUP_NAME = /^uwumi_auto_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}(-\d{2})?\.json$/;
-const KEEP_AUTO_BACKUPS = 5;
+export const KEEP_AUTO_BACKUPS = 5;
 const DAY_MS = 24 * 60 * 60 * 1000;
 // Far more than any uwumi backup; a bigger pick is some other file, not worth reading into memory
 const MAX_BACKUP_BYTES = 20 * 1024 * 1024;
-// Installed extensions are marked in MMKV by an `ext_<id>` key
-const EXTENSION_KEY = /^ext_(.+)$/;
 
-type Store<T> = { getState: () => T };
-type DataOf<T> = { [K in keyof T as T[K] extends (...args: never[]) => unknown ? never : K]: T[K] };
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+const isBoolean = (value: unknown) => typeof value === 'boolean';
+
+/** The store's data, without its actions */
+const dataOf = <T extends object>(store: { getState: () => T }) =>
+  Object.fromEntries(Object.entries(store.getState()).filter(([, value]) => typeof value !== 'function')) as {
+    [K in keyof T as T[K] extends (...args: never[]) => unknown ? never : K]: T[K];
+  };
+
+/**
+ * One value a backup keeps: read for a backup, checked when one is read back, and written on restore. Library
+ * stores are set directly rather than through their actions, which would rewrite times and skip the writes in
+ * incognito.
+ */
+interface Field<T> {
+  read: () => T;
+  write: (value: T) => void;
+  check: (value: unknown) => boolean;
+}
+const field = <T>(read: () => T, write: (value: T) => void, check: (value: unknown) => boolean): Field<T> => ({
+  read,
+  write,
+  check,
+});
+
+// Restored in this order
+const LIBRARY = {
+  favorites: field(
+    () => useFavoriteStore.getState().favorites,
+    (favorites) => useFavoriteStore.setState({ favorites }),
+    Array.isArray,
+  ),
+  watchProgress: field(
+    () => useWatchProgressStore.getState().progresses,
+    (progresses) => useWatchProgressStore.setState({ progresses }),
+    isObject,
+  ),
+  continueWatching: field(
+    () => useContinueWatchingStore.getState().entries,
+    (entries) => useContinueWatchingStore.setState({ entries }),
+    Array.isArray,
+  ),
+  mangaProgress: field(
+    () => useMangaProgressStore.getState().progress,
+    (progress) => useMangaProgressStore.setState({ progress }),
+    isObject,
+  ),
+  recentSearches: field(
+    () => useRecentSearchesStore.getState().recent,
+    (recent) => useRecentSearchesStore.setState({ recent }),
+    isObject,
+  ),
+  lastServers: field(
+    () => useLastServerStore.getState().servers,
+    (servers) => useLastServerStore.setState({ servers }),
+    isObject,
+  ),
+};
+
+const SETTINGS = {
+  theme: field(
+    () => useThemeStore.getState().themeName,
+    (theme: ThemeName) => useThemeStore.getState().setTheme(theme),
+    (value) => typeof value === 'string',
+  ),
+  pureBlack: field(
+    () => usePureBlackBackground.getState().pureBlackBackground,
+    (value) => usePureBlackBackground.getState().setPureBlackBackground(value),
+    isBoolean,
+  ),
+  player: field<Partial<PlayerSettings>>(
+    () => dataOf(usePlayerSettingsStore),
+    (settings) => usePlayerSettingsStore.getState().update(settings),
+    isObject,
+  ),
+  reader: field<Partial<ReaderSettings>>(
+    () => dataOf(useReaderSettingsStore),
+    (settings) => useReaderSettingsStore.getState().update(settings),
+    isObject,
+  ),
+  subtitleLanguage: field(
+    () => useExternalSubtitleStore.getState().language,
+    (language) => useExternalSubtitleStore.getState().setLanguage(language),
+    (value) => value === null || typeof value === 'string',
+  ),
+  providers: field<Partial<Record<MediaType, string>>>(
+    () => useProviderStore.getState().providers,
+    (providers) => {
+      for (const [mediaType, provider] of Object.entries(providers)) {
+        if (typeof provider === 'string') useProviderStore.getState().setProvider(mediaType as MediaType, provider);
+      }
+    },
+    isObject,
+  ),
+};
+
+// Not the backup folder or the last backup's time: they belong to this device
+const PREFERENCES = {
+  incognito: field(
+    () => usePreferencesStore.getState().incognito,
+    (value) => usePreferencesStore.getState().setIncognito(value),
+    isBoolean,
+  ),
+  episodeNotifications: field(
+    () => usePreferencesStore.getState().episodeNotifications,
+    (value) => usePreferencesStore.getState().setEpisodeNotifications(value),
+    isBoolean,
+  ),
+  clearCacheOnLaunch: field(
+    () => usePreferencesStore.getState().clearCacheOnLaunch,
+    (value) => usePreferencesStore.getState().setClearCacheOnLaunch(value),
+    isBoolean,
+  ),
+  autoBackupDays: field(
+    () => usePreferencesStore.getState().autoBackupDays,
+    (value) => usePreferencesStore.getState().setAutoBackupDays(value),
+    (value) => typeof value === 'number',
+  ),
+};
+
+type Fields = Record<string, Field<any>>;
+type Values<F extends Fields> = { [K in keyof F]?: F[K] extends Field<infer T> ? T : never };
+
+const readAll = <F extends Fields>(fields: F) =>
+  Object.fromEntries(Object.entries(fields).map(([key, { read }]) => [key, read()])) as Values<F>;
+
+/** Only the values that have the right shape; a damaged one is left out rather than restored */
+const checkAll = <F extends Fields>(fields: F, raw: unknown) => {
+  const section = isObject(raw) ? raw : {};
+  return Object.fromEntries(
+    Object.entries(fields).map(([key, { check }]) => [key, check(section[key]) ? section[key] : undefined]),
+  ) as Values<F>;
+};
+
+const writeAll = <F extends Fields>(fields: F, values: Values<F> = {}) => {
+  for (const [key, { write }] of Object.entries(fields)) if (values[key] !== undefined) write(values[key]);
+};
 
 export interface Backup {
   app: 'uwumi';
@@ -41,28 +173,8 @@ export interface Backup {
   createdAt: string;
   appVersion: string | null;
   platform: string;
-  library?: {
-    favorites?: ReturnType<typeof useFavoriteStore.getState>['favorites'];
-    watchProgress?: ReturnType<typeof useWatchProgressStore.getState>['progresses'];
-    continueWatching?: ReturnType<typeof useContinueWatchingStore.getState>['entries'];
-    mangaProgress?: ReturnType<typeof useMangaProgressStore.getState>['progress'];
-    recentSearches?: ReturnType<typeof useRecentSearchesStore.getState>['recent'];
-    lastServers?: ReturnType<typeof useLastServerStore.getState>['servers'];
-  };
-  settings?: {
-    theme?: ThemeName;
-    pureBlack?: boolean;
-    player?: Partial<PlayerSettings>;
-    reader?: Partial<ReaderSettings>;
-    providers?: Partial<Record<MediaType, string>>;
-    subtitleLanguage?: string | null;
-    preferences?: {
-      incognito?: boolean;
-      episodeNotifications?: boolean;
-      clearCacheOnLaunch?: boolean;
-      autoBackupDays?: number;
-    };
-  };
+  library?: Values<typeof LIBRARY>;
+  settings?: Values<typeof SETTINGS> & { preferences?: Values<typeof PREFERENCES> };
   extensions?: string[];
 }
 
@@ -72,61 +184,22 @@ export interface RestoreResult {
   failedExtensions: string[];
 }
 
-/** The store's data, without its actions */
-const dataOf = <T extends object>(store: Store<T>) =>
-  Object.fromEntries(Object.entries(store.getState()).filter(([, value]) => typeof value !== 'function')) as DataOf<T>;
-
-const installedExtensionIds = () =>
-  storage.getAllKeys().flatMap((key) => {
-    const match = EXTENSION_KEY.exec(key);
-    return match ? [match[1]] : [];
-  });
-
 /** The backup's extensions that aren't installed here, which a restore installs */
 export const missingExtensions = (backup: Backup) => {
   const installed = new Set(installedExtensionIds());
   return (backup.extensions ?? []).filter((id) => !installed.has(id));
 };
 
-export const createBackup = (): Backup => {
-  const preferences = usePreferencesStore.getState();
-  return {
-    app: 'uwumi',
-    format: FORMAT,
-    createdAt: new Date().toISOString(),
-    appVersion: Application.nativeApplicationVersion,
-    platform: Platform.OS,
-    library: {
-      favorites: useFavoriteStore.getState().favorites,
-      watchProgress: useWatchProgressStore.getState().progresses,
-      continueWatching: useContinueWatchingStore.getState().entries,
-      mangaProgress: useMangaProgressStore.getState().progress,
-      recentSearches: useRecentSearchesStore.getState().recent,
-      lastServers: useLastServerStore.getState().servers,
-    },
-    settings: {
-      theme: useThemeStore.getState().themeName,
-      pureBlack: usePureBlackBackground.getState().pureBlackBackground,
-      player: dataOf(usePlayerSettingsStore),
-      reader: dataOf(useReaderSettingsStore),
-      providers: useProviderStore.getState().providers,
-      subtitleLanguage: useExternalSubtitleStore.getState().language,
-      preferences: {
-        incognito: preferences.incognito,
-        episodeNotifications: preferences.episodeNotifications,
-        clearCacheOnLaunch: preferences.clearCacheOnLaunch,
-        autoBackupDays: preferences.autoBackupDays,
-      },
-    },
-    extensions: installedExtensionIds(),
-  };
-};
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-/** Only the parts of a section that have the right shape; a damaged part is left out rather than restored */
-const pick = <T>(value: unknown, check: (value: unknown) => boolean) => (check(value) ? (value as T) : undefined);
+export const createBackup = (): Backup => ({
+  app: 'uwumi',
+  format: FORMAT,
+  createdAt: new Date().toISOString(),
+  appVersion: Application.nativeApplicationVersion,
+  platform: Platform.OS,
+  library: readAll(LIBRARY),
+  settings: { ...readAll(SETTINGS), preferences: readAll(PREFERENCES) },
+  extensions: installedExtensionIds(),
+});
 
 /** A backup read from a file, checked; throws a message fit to show when it isn't one uwumi can restore */
 export const parseBackup = (text: string): Backup => {
@@ -141,47 +214,22 @@ export const parseBackup = (text: string): Backup => {
   }
   if (raw.format > FORMAT) throw new Error('This backup was made by a newer uwumi. Update uwumi to restore it');
 
-  const library = isObject(raw.library) ? raw.library : {};
   const settings = isObject(raw.settings) ? raw.settings : {};
-  const preferences = isObject(settings.preferences) ? settings.preferences : {};
-  const isBoolean = (value: unknown) => typeof value === 'boolean';
-
   return {
     app: 'uwumi',
     format: raw.format,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     appVersion: typeof raw.appVersion === 'string' ? raw.appVersion : null,
     platform: typeof raw.platform === 'string' ? raw.platform : '',
-    library: {
-      favorites: pick(library.favorites, Array.isArray),
-      watchProgress: pick(library.watchProgress, isObject),
-      continueWatching: pick(library.continueWatching, Array.isArray),
-      mangaProgress: pick(library.mangaProgress, isObject),
-      recentSearches: pick(library.recentSearches, isObject),
-      lastServers: pick(library.lastServers, isObject),
-    },
-    settings: {
-      theme: pick(settings.theme, (value) => typeof value === 'string'),
-      pureBlack: pick(settings.pureBlack, isBoolean),
-      player: pick(settings.player, isObject),
-      reader: pick(settings.reader, isObject),
-      providers: pick(settings.providers, isObject),
-      subtitleLanguage: pick(settings.subtitleLanguage, (value) => value === null || typeof value === 'string'),
-      preferences: {
-        incognito: pick(preferences.incognito, isBoolean),
-        episodeNotifications: pick(preferences.episodeNotifications, isBoolean),
-        clearCacheOnLaunch: pick(preferences.clearCacheOnLaunch, isBoolean),
-        autoBackupDays: pick(preferences.autoBackupDays, (value) => typeof value === 'number'),
-      },
-    },
-    extensions: pick<string[]>(raw.extensions, Array.isArray)?.filter((id) => typeof id === 'string'),
+    library: checkAll(LIBRARY, raw.library),
+    settings: { ...checkAll(SETTINGS, settings), preferences: checkAll(PREFERENCES, settings.preferences) },
+    extensions: Array.isArray(raw.extensions) ? raw.extensions.filter((id) => typeof id === 'string') : undefined,
   };
 };
 
 /**
  * Replaces the app's library and settings with the backup's. Extensions come first, as a provider choice falls back
- * when its extension is missing; ones installed now and not in the backup stay. Stores are set directly rather than
- * through their actions, which would rewrite times and skip the writes in incognito.
+ * when its extension is missing; ones installed now and not in the backup stay.
  */
 export const restoreBackup = async (
   backup: Backup,
@@ -191,10 +239,7 @@ export const restoreBackup = async (
   const failedExtensions: string[] = [];
   if (missing.length) {
     // Offline, the bundled registry is all there is; what it can't install is reported, and the rest still restores
-    await useExtensionStore
-      .getState()
-      .updateRegistry()
-      .catch(() => undefined);
+    await useExtensionStore.getState().updateRegistry();
     for (const [index, id] of missing.entries()) {
       onProgress?.(index, missing.length);
       const ok = await useExtensionStore
@@ -206,32 +251,13 @@ export const restoreBackup = async (
     onProgress?.(missing.length, missing.length);
   }
 
-  const { library = {}, settings = {} } = backup;
-  if (library.favorites) useFavoriteStore.setState({ favorites: library.favorites });
-  if (library.watchProgress) useWatchProgressStore.setState({ progresses: library.watchProgress });
-  if (library.continueWatching) useContinueWatchingStore.setState({ entries: library.continueWatching });
-  if (library.mangaProgress) useMangaProgressStore.setState({ progress: library.mangaProgress });
-  if (library.recentSearches) useRecentSearchesStore.setState({ recent: library.recentSearches });
-  if (library.lastServers) useLastServerStore.setState({ servers: library.lastServers });
-
-  if (settings.theme) useThemeStore.getState().setTheme(settings.theme);
-  if (settings.pureBlack !== undefined) usePureBlackBackground.getState().setPureBlackBackground(settings.pureBlack);
-  if (settings.player) usePlayerSettingsStore.getState().update(settings.player);
-  if (settings.reader) useReaderSettingsStore.getState().update(settings.reader);
-  if (settings.subtitleLanguage !== undefined)
-    useExternalSubtitleStore.getState().setLanguage(settings.subtitleLanguage);
-  for (const [mediaType, provider] of Object.entries(settings.providers ?? {})) {
-    if (typeof provider === 'string') useProviderStore.getState().setProvider(mediaType as MediaType, provider);
-  }
-  const preferences = usePreferencesStore.getState();
-  const saved = settings.preferences ?? {};
-  if (saved.incognito !== undefined) preferences.setIncognito(saved.incognito);
-  if (saved.episodeNotifications !== undefined) preferences.setEpisodeNotifications(saved.episodeNotifications);
-  if (saved.clearCacheOnLaunch !== undefined) preferences.setClearCacheOnLaunch(saved.clearCacheOnLaunch);
-  if (saved.autoBackupDays !== undefined) preferences.setAutoBackupDays(saved.autoBackupDays);
+  const { preferences, ...settings } = backup.settings ?? {};
+  writeAll(LIBRARY, backup.library);
+  writeAll(SETTINGS, settings);
+  writeAll(PREFERENCES, preferences);
 
   return {
-    favorites: library.favorites?.length ?? 0,
+    favorites: backup.library?.favorites?.length ?? 0,
     extensions: missing.length - failedExtensions.length,
     failedExtensions,
   };
@@ -246,11 +272,7 @@ export const backupFileName = (date: Date, auto = false) =>
   )}-${pad(date.getMinutes())}-${pad(date.getSeconds())}.json`;
 
 /** uwumi's own folder, for iOS and for an Android device with no folder picker (Android TV) */
-const appBackupFolder = () => {
-  const folder = fsDirectory(`${UWUMI_DIR}/backups`);
-  if (!folder.exists) folder.create({ intermediates: true, idempotent: true });
-  return folder;
-};
+const appBackupFolder = () => ensureDirectory(`${UWUMI_DIR}/backups`);
 
 /**
  * Whether backups can go to a folder chosen outside uwumi, which stays when uwumi is deleted: Android, and iOS builds
@@ -309,7 +331,6 @@ const freeName = (folder: Directory, name: string) => {
   }
 };
 
-/** Somewhere backups are written, listed and pruned */
 interface BackupTarget {
   /** Writes the backup; returns the name it got, numbered when the name was taken */
   write: (name: string, json: string) => Promise<string>;
@@ -341,7 +362,6 @@ const bookmarkTarget = (bookmark: string): BackupTarget => ({
   remove: (name) => backupFolderModule!.remove(bookmark, name),
 });
 
-/** The chosen folder, else uwumi's own */
 const backupTarget = (): BackupTarget => {
   const saved = usePreferencesStore.getState().backupFolderUri;
   if (saved && Platform.OS === 'android') return directoryTarget(new Directory(saved));

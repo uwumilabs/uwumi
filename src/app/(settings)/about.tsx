@@ -1,14 +1,19 @@
 import React from 'react';
 import { RefreshControl, ScrollView, Share, Text } from 'react-native';
 import * as Application from 'expo-application';
-import { getStoredOtaVersion, reloadApp } from 'react-native-nitro-ota';
+import { reloadApp } from 'react-native-nitro-ota';
 import { Chip } from '@/components/heroui';
 import { Button } from '@/components/Button';
-import { HUXStack, HUYStack, Image, IoniconProps, IoniconsIcon, NativeList, ThemedView } from '@/components';
-import { useUpdateChecker } from '@/hooks/useUpdateChecker';
-import { runningOtaVersion, useHasActiveDownloads, useOtaUpdateStore } from '@/hooks';
+import { HUXStack, HUYStack, ThemedView } from '@/components/ui-primitives';
+import { Image } from '@/components/Image';
+import { IoniconProps, IoniconsIcon } from '@/components/Icons';
+import { List as NativeList } from '@/components/native/list/List';
+import { APP_VERSION, isPreRelease, useUpdateChecker } from '@/hooks/useUpdateChecker';
+import { pendingOtaVersion, runningOtaVersion, useCanRestartForUpdate } from '@/hooks/useOtaUpdates';
+import { useOtaUpdateStore } from '@/hooks/stores/useOtaUpdateStore';
 import { EXTERNAL_LINKS } from '@/constants/config';
-import { isTV, openBrowser } from '@/constants/utils';
+import { isTV } from '@/utils/tv';
+import { openBrowser } from '@/utils/share';
 
 const COMMUNITY_LINKS: { label: string; description: string; icon: IoniconProps['name']; url: string }[] = [
   {
@@ -40,27 +45,16 @@ const InfoRow = ({ icon, title, value }: { icon: IoniconProps['name']; title: st
 );
 
 const About = () => {
-  const { updateInfo, isUpdateAvailable, isLoading, isError, checkForUpdates } = useUpdateChecker(
-    EXTERNAL_LINKS.GITHUB_LATEST_RELEASE_API,
-  );
-
-  // The installed binary's version; package.json's can differ once an OTA bundle is running
-  const appVersion = Application.nativeApplicationVersion ?? updateInfo.currentVersion;
+  const { updateInfo, hasUpdate, isLoading, isError, checkForUpdates } = useUpdateChecker();
+  const appVersion = APP_VERSION;
   const buildNumber = Application.nativeBuildVersion;
-  const isPreRelease = appVersion.includes('-');
   const otaStatus = useOtaUpdateStore((state) => state.status);
   const otaPercent = useOtaUpdateStore((state) => state.percent);
-  const hasActiveDownloads = useHasActiveDownloads();
+  const canRestart = useCanRestartForUpdate();
   // Re-read on each render (otaStatus re-renders this when a download lands)
-  const downloadedOtaVersion = getStoredOtaVersion();
-  const pendingOtaVersion =
-    downloadedOtaVersion && downloadedOtaVersion !== runningOtaVersion ? downloadedOtaVersion : null;
+  const pendingOta = pendingOtaVersion();
 
-  const updateStatus = isError
-    ? "Couldn't check"
-    : isUpdateAvailable
-      ? `v${updateInfo.newVersion} available`
-      : 'Up to date';
+  const updateStatus = isError ? "Couldn't check" : hasUpdate ? `v${updateInfo.newVersion} available` : 'Up to date';
 
   return (
     <ThemedView>
@@ -80,7 +74,7 @@ const About = () => {
           </HUYStack>
           <HUXStack className="gap-2">
             <Chip size="sm" focusable={isTV ? false : undefined}>{`v${appVersion}`}</Chip>
-            {isPreRelease && (
+            {isPreRelease(appVersion) && (
               <Chip size="sm" color="warning" focusable={isTV ? false : undefined}>
                 Pre-release
               </Chip>
@@ -109,13 +103,13 @@ const About = () => {
             {otaStatus === 'downloading' && (
               <InfoRow icon="cloud-download-outline" title="Downloading update" value={`${otaPercent ?? 0}%`} />
             )}
-            {pendingOtaVersion && otaStatus !== 'downloading' && (
+            {pendingOta && otaStatus !== 'downloading' && (
               <NativeList.Item
                 icon="sparkles-outline"
                 title="Update ready"
-                description={`${pendingOtaVersion} · ${hasActiveDownloads ? 'restart once downloads finish' : 'tap to restart'}`}
+                description={`${pendingOta} · ${canRestart ? 'tap to restart' : 'restart once downloads finish'}`}
                 onPress={() => reloadApp()}
-                disabled={hasActiveDownloads}
+                disabled={!canRestart}
               />
             )}
             <NativeList.Item
@@ -129,7 +123,7 @@ const About = () => {
             />
           </NativeList>
 
-          {isUpdateAvailable && (
+          {hasUpdate && (
             <Button variant="primary" onPress={() => openBrowser(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE)}>
               <IoniconsIcon name="download-outline" size={18} className="text-accent-foreground" />
               <Button.Label>{`Download v${updateInfo.newVersion}`}</Button.Label>

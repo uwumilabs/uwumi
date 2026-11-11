@@ -3,8 +3,10 @@ import { RefreshControl, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { SearchField } from './heroui';
-import { MediaFeedType, MediaType, MetaProvider } from '@/constants/types';
-import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/constants/utils';
+import { MediaType } from '@/constants/types';
+import { mediaFeedKey, mediaFeeds } from '@/hooks/queries/mediaQueries';
+import { mediaTypeLabel } from '@/utils/media';
+import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/utils/tv';
 import MediaCarousel from './MediaCarousel';
 import ContinueWatchingRow, { ContinueReadingRow } from './ContinueWatchingRow';
 import { RippleButton } from './ui-primitives';
@@ -13,32 +15,15 @@ interface MediaBrowserProps {
   mediaType: MediaType;
 }
 
-type FeedRow = { feed: Exclude<MediaFeedType, 'search'>; title: string };
+const FEED_TITLES = { trending: 'Trending', popular: 'Popular' } as const;
 
-export const getMetaProvider = (mediaType: MediaType): MetaProvider =>
-  mediaType === MediaType.ANIME ? 'anilist' : mediaType === MediaType.MANGA ? 'anilist-manga' : 'tmdb';
-
-export const mediaTypeLabel = (mediaType: MediaType) =>
-  mediaType === MediaType.ANIME ? 'Anime' : mediaType === MediaType.MANGA ? 'Manga' : 'Movies & TV';
-
-export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
+const MediaBrowserView: React.FC<MediaBrowserProps> = ({ mediaType }) => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
-  const metaProvider = getMetaProvider(mediaType);
   const label = mediaTypeLabel(mediaType);
 
-  const rows = useMemo<FeedRow[]>(
-    () =>
-      // TMDB has no "popular" feed in useMediaFeed
-      mediaType === MediaType.MOVIE
-        ? [{ feed: 'trending', title: 'Trending' }]
-        : [
-            { feed: 'trending', title: 'Trending' },
-            { feed: 'popular', title: 'Popular' },
-          ],
-    [mediaType],
-  );
+  const rows = useMemo(() => mediaFeeds(mediaType).map((feed) => ({ feed, title: FEED_TITLES[feed] })), [mediaType]);
 
   const openSearch = useCallback(() => {
     router.push({ pathname: '/search/[mediaType]', params: { mediaType } });
@@ -46,11 +31,9 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all(
-      rows.map(({ feed }) => queryClient.refetchQueries({ queryKey: [mediaType, feed, metaProvider] })),
-    );
+    await Promise.all(rows.map(({ feed }) => queryClient.refetchQueries({ queryKey: mediaFeedKey(mediaType, feed) })));
     setRefreshing(false);
-  }, [queryClient, rows, mediaType, metaProvider]);
+  }, [queryClient, rows, mediaType]);
 
   return (
     <ScrollView
@@ -82,7 +65,6 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
           browseTitle={`${title} ${label}`}
           feed={feed}
           mediaType={mediaType}
-          metaProvider={metaProvider}
           isFirstRow={index === 0}
         />
       ))}
@@ -90,4 +72,7 @@ export const MediaBrowser: React.FC<MediaBrowserProps> = ({ mediaType }) => {
   );
 };
 
-export default memo(MediaBrowser);
+export const MediaBrowser = memo(MediaBrowserView);
+MediaBrowser.displayName = 'MediaBrowser';
+
+export default MediaBrowser;

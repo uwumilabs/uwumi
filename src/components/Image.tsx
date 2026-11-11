@@ -10,7 +10,7 @@ type ImageProps = {
 };
 
 export const Image = forwardRef<ExpoImage, ImageProps>((props, ref) => {
-  const { source, style, cachePolicy = 'memory-disk', ...rest } = props;
+  const { source, style, ...rest } = props;
   const imageSource = typeof source === 'string' ? { uri: source } : source;
 
   return (
@@ -28,7 +28,6 @@ export const Image = forwardRef<ExpoImage, ImageProps>((props, ref) => {
 
 Image.displayName = 'Image';
 
-// Create animated version of the forwarded ref component
 export const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 export default Image;

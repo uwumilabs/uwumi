@@ -2,12 +2,14 @@ import { AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
 import { IAnimeResult, IMovieResult } from 'react-native-consumet';
-import { infoTitle, isTV } from '@/constants/utils';
+import { infoTitle } from '@/utils/media';
+import { isTV } from '@/utils/tv';
 import { MediaType } from '@/constants/types';
-import { resolveProvider, useProviderStore } from '@/constants/provider';
+import { infoHref } from '@/utils/routes';
 import { queryClient } from '@/constants/queryClient';
-import { useFavoriteStore, usePreferencesStore } from '@/hooks/stores';
-import { type FavoriteSchedules, fetchFavoriteSchedules, scheduleOf } from '@/hooks/queries';
+import { useFavoriteStore } from '@/hooks/stores/useFavoriteStore';
+import { usePreferencesStore } from '@/hooks/stores/usePreferencesStore';
+import { type FavoriteSchedules, fetchFavoriteSchedules, scheduleOf } from '@/hooks/queries/favoriteQueries';
 
 type Favorite = IAnimeResult | IMovieResult;
 
@@ -41,21 +43,14 @@ const alertsFor = (favorites: Favorite[], schedules: FavoriteSchedules, now: num
   });
 
 /** The info screen a favorite's card opens, so tapping the alert lands on the show */
-const infoHref = (item: Favorite) => {
-  const mediaType = item.mediaType as MediaType;
-  return {
-    pathname: '/info/[mediaType]',
-    params: {
-      mediaType,
-      metaProvider: item.metaProvider,
-      type: item.type,
-      provider: resolveProvider(mediaType, useProviderStore.getState().providers[mediaType]),
-      id: String(item.id),
-      image: item.image,
-      title: infoTitle(item),
-    },
-  };
-};
+const favoriteInfoHref = (item: Favorite) =>
+  infoHref({
+    mediaType: item.mediaType as MediaType,
+    id: String(item.id),
+    type: item.type,
+    image: item.image,
+    title: infoTitle(item),
+  });
 
 // The air time is the identifier's last part
 const alertTime = (identifier: string) => Number(identifier.slice(identifier.lastIndexOf('-') + 1));
@@ -105,7 +100,7 @@ const syncAlerts = async () => {
     if (existing.has(identifier)) continue;
     await Notifications.scheduleNotificationAsync({
       identifier,
-      content: { title, body, data: { href: infoHref(item) } },
+      content: { title, body, data: { href: favoriteInfoHref(item) } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at, channelId: CHANNEL_ID },
     });
   }

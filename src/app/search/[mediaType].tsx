@@ -3,11 +3,16 @@ import { ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { SearchField } from '@/components/heroui';
 import { Button } from '@/components/Button';
-import { CardList, HUXStack, HUYStack, IoniconsIcon, NativeList, ThemedView } from '@/components';
-import { getMetaProvider, mediaTypeLabel } from '@/components/MediaBrowser';
+import { CardList } from '@/components/CardList';
+import { HUXStack, HUYStack, ThemedView } from '@/components/ui-primitives';
+import { IoniconsIcon } from '@/components/Icons';
+import { List as NativeList } from '@/components/native/list/List';
+import { mediaTypeLabel } from '@/utils/media';
 import { MediaType } from '@/constants/types';
-import { isTV } from '@/constants/utils';
-import { useCurrentTheme, useDebouncedValue, useRecentSearchesStore } from '@/hooks';
+import { isTV } from '@/utils/tv';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useRecentSearchesStore } from '@/hooks/stores/useRecentSearchesStore';
 
 const DEBOUNCE_MS = 400;
 const MIN_QUERY_LENGTH = 2;
@@ -16,7 +21,6 @@ const EMPTY: string[] = [];
 const Search = () => {
   const { mediaType } = useLocalSearchParams<{ mediaType: MediaType }>();
   const currentTheme = useCurrentTheme();
-  const metaProvider = getMetaProvider(mediaType);
   const label = mediaTypeLabel(mediaType).toLowerCase();
 
   const [query, setQuery] = useState('');
@@ -76,7 +80,6 @@ const Search = () => {
           <CardList
             mediaFeedType="search"
             mediaType={mediaType}
-            metaProvider={metaProvider}
             searchQuery={liveQuery}
             onItemPress={recordLiveQuery}
           />

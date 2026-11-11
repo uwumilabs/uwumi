@@ -2,7 +2,7 @@ import React, { forwardRef } from 'react';
 import { FlashList, FlashListProps, type FlashListRef } from '@shopify/flash-list';
 import { NoResults } from './ui-primitives';
 import { View } from 'react-native';
-import { isTV } from '@/constants/utils';
+import { isTV } from '@/utils/tv';
 
 export const List = forwardRef(<T,>(props: FlashListProps<T>, ref: React.Ref<FlashListRef<T>>) => {
   const hasData = props.data && props.data.length > 0;

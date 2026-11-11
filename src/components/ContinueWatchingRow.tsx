@@ -1,58 +1,33 @@
 import { useShallow } from 'zustand/react/shallow';
+import {
+  continueWatchingEpisodeLabel,
+  mangaPageLabel,
+  openContinueWatchingEntry,
+  openMangaProgress,
+  useMangaHistory,
+  type MangaHistoryEntry,
+} from '@/hooks/useHistory';
 import React, { memo, useCallback, useMemo } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
-import { TVRow } from './TVRow';
+import { ROW, TVRow, rowCardWidth } from './TVRow';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { TvType } from 'react-native-consumet';
 import { MediaType } from '@/constants/types';
-import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/constants/utils';
-import {
-  ContinueWatchingEntry,
-  type MangaProgress,
-  parseMangaProgressKey,
-  resumePage,
-  useContinueWatchingStore,
-  useDownloadedOnlyFilter,
-  useMangaProgressStore,
-  useWatchProgressStore,
-} from '@/hooks';
+import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/utils/tv';
+import { ContinueWatchingEntry, useContinueWatchingStore } from '@/hooks/stores/useContinueWatchingStore';
+import { resumePage, useMangaProgressStore } from '@/hooks/stores/useMangaProgressStore';
+import { useDownloadedOnlyFilter } from '@/downloads/useDownloadStore';
+import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
 import Image from './Image';
 import List from './List';
 import Progress from './native/progress/Progress';
 import TVFocusWrapper from './TVFocusWrapper';
 import { HUYStack } from './ui-primitives';
 
-const MAX_ITEMS = 10;
-const ROW_PADDING = 12;
-// Room above and below for the TV focus ring's scale, which the horizontal list would clip
-const ROW_VERTICAL_PADDING = isTV ? 10 : 0;
-const ITEM_GAP = 8;
 const CARDS_PER_SCREEN = isTV ? 3.5 : 1.6;
 const THUMBNAIL_ASPECT = 9 / 16;
 const CAPTION_HEIGHT = 44;
-
-// A finished episode opens the show, where "Continue" points at the next one
-export const openContinueWatchingEntry = (
-  router: ReturnType<typeof useRouter>,
-  entry: ContinueWatchingEntry,
-  isCompleted: boolean,
-) =>
-  router.push(
-    isCompleted
-      ? { pathname: '/info/[mediaType]', params: { ...entry.infoParams, mediaType: entry.mediaType } }
-      : { pathname: '/watch/[mediaType]', params: { ...entry.watchParams, mediaType: entry.mediaType } },
-  );
-
-export const continueWatchingEpisodeLabel = ({ watchParams }: ContinueWatchingEntry) =>
-  watchParams.type === TvType.MOVIE
-    ? 'Movie'
-    : [
-        watchParams.seasonNumber && `S${watchParams.seasonNumber}`,
-        watchParams.episodeNumber && `EP ${watchParams.episodeNumber}`,
-      ]
-        .filter(Boolean)
-        .join(' · ');
 
 const ContinueWatchingCard = memo(({ entry, width }: { entry: ContinueWatchingEntry; width: number }) => {
   const router = useRouter();
@@ -147,7 +122,7 @@ export const ContinueWatchingRow = memo(({ mediaType }: { mediaType: MediaType }
   );
   const downloadedOnly = useDownloadedOnlyFilter();
   const { width: screenWidth } = useWindowDimensions();
-  const cardWidth = (screenWidth - ROW_PADDING - ITEM_GAP * Math.floor(CARDS_PER_SCREEN)) / CARDS_PER_SCREEN;
+  const cardWidth = rowCardWidth(screenWidth, CARDS_PER_SCREEN);
 
   // Nothing left to continue after a finished movie or an anime's last episode
   const items = useMemo(() => {
@@ -162,26 +137,26 @@ export const ContinueWatchingRow = memo(({ mediaType }: { mediaType: MediaType }
             (entry.watchParams.type === TvType.MOVIE || entry.hasNextEpisode === false)
           ),
       )
-      .slice(0, MAX_ITEMS);
+      .slice(0, ROW.maxItems);
   }, [entries, mediaType, finishedKey, downloadedOnly]);
 
   if (items.length === 0) return null;
 
   return (
     <View className="gap-2" scrollSnapAlign={TV_SNAP_CENTER}>
-      <Text className="text-foreground text-lg font-semibold" style={{ paddingLeft: ROW_PADDING + 4 }}>
+      <Text className="text-foreground text-lg font-semibold" style={{ paddingLeft: ROW.padding + 4 }}>
         Continue watching
       </Text>
-      <TVRow style={{ height: cardWidth * THUMBNAIL_ASPECT + CAPTION_HEIGHT + ROW_VERTICAL_PADDING * 2 }}>
+      <TVRow style={{ height: cardWidth * THUMBNAIL_ASPECT + CAPTION_HEIGHT + ROW.verticalPadding * 2 }}>
         <List<ContinueWatchingEntry>
           horizontal
           data={items}
           keyExtractor={(entry) => entry.key}
           showsHorizontalScrollIndicator={false}
           scrollsToTop={false}
-          contentContainerStyle={{ paddingHorizontal: ROW_PADDING, paddingVertical: ROW_VERTICAL_PADDING }}
-          {...tvFocusScrollProps(ROW_PADDING)}
-          ItemSeparatorComponent={() => <View style={{ width: ITEM_GAP }} />}
+          contentContainerStyle={{ paddingHorizontal: ROW.padding, paddingVertical: ROW.verticalPadding }}
+          {...tvFocusScrollProps(ROW.padding)}
+          ItemSeparatorComponent={() => <View style={{ width: ROW.gap }} />}
           ListFooterComponent={null}
           renderItem={({ item }) => (
             <View scrollSnapAlign={TV_SNAP_CENTER}>
@@ -198,42 +173,6 @@ ContinueWatchingRow.displayName = 'ContinueWatchingRow';
 // Manga covers are portrait, so more of them fit across
 const MANGA_CARDS_PER_SCREEN = isTV ? 6.5 : 3.2;
 const COVER_ASPECT = 3 / 2;
-
-export type MangaHistoryEntry = { key: string; progress: MangaProgress };
-
-/** Reopens the last chapter read, at the page it was left on */
-export const openMangaProgress = (router: ReturnType<typeof useRouter>, { key, progress }: MangaHistoryEntry) => {
-  const { anilistId, provider } = parseMangaProgressKey(key);
-  router.push({
-    pathname: '/read/[id]',
-    params: {
-      id: anilistId,
-      chapter: progress.lastChapterId,
-      provider,
-      title: progress.title,
-      image: progress.image,
-    },
-  });
-};
-
-/** "Page 5 of 52" while a chapter is part read */
-export const mangaPageLabel = (progress: MangaProgress) => {
-  const page = resumePage(progress, progress.lastChapterId);
-  return page > 1 ? `Page ${page}${progress.pageCount ? ` of ${progress.pageCount}` : ''}` : undefined;
-};
-
-/** Manga read, most recent first; ones read before their title was kept are left out, having nothing to show */
-export const useMangaHistory = () => {
-  const progress = useMangaProgressStore((state) => state.progress);
-  return useMemo(
-    () =>
-      Object.entries(progress)
-        .filter(([, value]) => value.title && !value.hidden)
-        .map(([key, value]) => ({ key, progress: value }))
-        .sort((a, b) => b.progress.updatedAt - a.progress.updatedAt),
-    [progress],
-  );
-};
 
 const ContinueReadingCard = memo(({ entry, width }: { entry: MangaHistoryEntry; width: number }) => {
   const router = useRouter();
@@ -290,27 +229,26 @@ ContinueReadingCard.displayName = 'ContinueReadingCard';
 export const ContinueReadingRow = memo(() => {
   const history = useMangaHistory();
   const { width: screenWidth } = useWindowDimensions();
-  const cardWidth =
-    (screenWidth - ROW_PADDING - ITEM_GAP * Math.floor(MANGA_CARDS_PER_SCREEN)) / MANGA_CARDS_PER_SCREEN;
-  const items = history.slice(0, MAX_ITEMS);
+  const cardWidth = rowCardWidth(screenWidth, MANGA_CARDS_PER_SCREEN);
+  const items = history.slice(0, ROW.maxItems);
 
   if (items.length === 0) return null;
 
   return (
     <View className="gap-2" scrollSnapAlign={TV_SNAP_CENTER}>
-      <Text className="text-foreground text-lg font-semibold" style={{ paddingLeft: ROW_PADDING + 4 }}>
+      <Text className="text-foreground text-lg font-semibold" style={{ paddingLeft: ROW.padding + 4 }}>
         Continue reading
       </Text>
-      <TVRow style={{ height: cardWidth * COVER_ASPECT + CAPTION_HEIGHT + ROW_VERTICAL_PADDING * 2 }}>
+      <TVRow style={{ height: cardWidth * COVER_ASPECT + CAPTION_HEIGHT + ROW.verticalPadding * 2 }}>
         <List<MangaHistoryEntry>
           horizontal
           data={items}
           keyExtractor={(entry) => entry.key}
           showsHorizontalScrollIndicator={false}
           scrollsToTop={false}
-          contentContainerStyle={{ paddingHorizontal: ROW_PADDING, paddingVertical: ROW_VERTICAL_PADDING }}
-          {...tvFocusScrollProps(ROW_PADDING)}
-          ItemSeparatorComponent={() => <View style={{ width: ITEM_GAP }} />}
+          contentContainerStyle={{ paddingHorizontal: ROW.padding, paddingVertical: ROW.verticalPadding }}
+          {...tvFocusScrollProps(ROW.padding)}
+          ItemSeparatorComponent={() => <View style={{ width: ROW.gap }} />}
           ListFooterComponent={null}
           renderItem={({ item }) => (
             <View scrollSnapAlign={TV_SNAP_CENTER}>

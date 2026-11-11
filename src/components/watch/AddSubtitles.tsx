@@ -3,8 +3,9 @@ import { ScrollView, Text, View } from 'react-native';
 import { SearchField } from '@/components/heroui';
 import { Button } from '@/components/Button';
 import { Menu, useMenuContext } from 'react-native-video-toolkit';
-import { IoniconsIcon, type IoniconProps } from '@/components';
-import { SUB_LANGUAGE } from '@/constants/config';
+import { IoniconsIcon, type IoniconProps } from '@/components/Icons';
+import { TextTrackType } from 'react-native-video/src';
+import { SUBTITLE_LANGUAGES } from '@/constants/config';
 
 // The menu header shows a view's id, capitalized
 const ADD_VIEW = 'add subtitles';
@@ -17,10 +18,20 @@ export interface SubtitleLanguage {
 
 export type SubtitleSearchResult = 'added' | 'none' | 'failed';
 
-const LANGUAGES: SubtitleLanguage[] = Object.entries(SUB_LANGUAGE)
-  .filter(([name]) => name !== 'ALL')
-  .map(([name, code]) => ({ name, code }))
-  .sort((a, b) => a.name.localeCompare(b.name));
+const LANGUAGES: SubtitleLanguage[] = SUBTITLE_LANGUAGES;
+
+export const SUBTITLE_FILE_TYPES = '.srt, .vtt or .ttml';
+
+export const isSubtitleFile = (name: string) => /\.(srt|vtt|ttml|dfxp)$/i.test(name);
+
+// Providers often leave out a subtitle's type (NetflixMirror sends .srt), and ExoPlayer fails the whole source
+// when a track doesn't parse as the type it's given
+export const subtitleType = (uri: string) => {
+  const path = uri.split(/[?#]/)[0].toLowerCase();
+  if (path.endsWith('.srt')) return TextTrackType.SUBRIP;
+  if (path.endsWith('.ttml') || path.endsWith('.dfxp')) return TextTrackType.TTML;
+  return TextTrackType.VTT;
+};
 
 const RESULT_LABELS: Record<Exclude<SubtitleSearchResult, 'added'>, string> = {
   none: 'None found',
@@ -72,7 +83,7 @@ const AddChoices = ({ onAddFile }: { onAddFile: () => void }) => {
       <SourceButton
         icon="document-text-outline"
         label="From a file"
-        hint=".srt, .vtt or .ttml"
+        hint={SUBTITLE_FILE_TYPES}
         onPress={() => {
           closeSettings();
           onAddFile();

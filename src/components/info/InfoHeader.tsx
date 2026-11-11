@@ -9,21 +9,21 @@ import Animated from 'react-native-reanimated';
 import { Chip, ScrollShadow } from '@/components/heroui';
 import { Button } from '@/components/Button';
 import { IAnimeInfo, IMovieInfo } from 'react-native-consumet';
-import {
-  AnimatedImage,
-  Image,
-  HUXStack,
-  HUYStack,
-  IconTitle,
-  ImagePreview,
-  IoniconsIcon,
-  MediaCarousel,
-  RippleButton,
-} from '@/components';
-import { useCurrentTheme, useEpisodeList, useExtensionStore, usePureBlackBackground } from '@/hooks';
-import { useActiveProvider } from '@/constants/provider';
-import { MediaType, MetaProvider } from '@/constants/types';
-import { hexToRGB, infoTitle, isTV, normalizeRating, openBrowser, shareMedia } from '@/constants/utils';
+import { AnimatedImage, Image } from '@/components/Image';
+import { HUXStack, HUYStack, IconTitle, RippleButton } from '@/components/ui-primitives';
+import { ImagePreview } from '@/components/ImagePreview';
+import { IoniconsIcon } from '@/components/Icons';
+import { MediaCarousel } from '@/components/MediaCarousel';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { useEpisodeList } from '@/hooks/useEpisodeList';
+import { useExtensionStore } from '@/hooks/stores/useExtensionStore';
+import { usePureBlackBackground } from '@/hooks/stores/useThemeStore';
+import { useActiveProvider } from '@/hooks/stores/useProviderStore';
+import { MediaType } from '@/constants/types';
+import { hexToRGB, normalizeRating } from '@/utils/format';
+import { infoTitle } from '@/utils/media';
+import { isTV } from '@/utils/tv';
+import { openBrowser, shareMedia } from '@/utils/share';
 import type { MediaItem } from '@/components/CardList';
 import { AnimatedCountdown } from './AnimatedCountdown';
 import { useFavoriteToggle } from './useFavoriteToggle';
@@ -57,12 +57,12 @@ interface InfoHeaderProps {
 
 /** The "More like this" row, shown after the header (manga) or after the episode window */
 export const InfoRecommendations = ({ data }: Pick<InfoHeaderProps, 'data'>) => {
-  const { mediaType, metaProvider } = useLocalSearchParams<{ mediaType: MediaType; metaProvider: MetaProvider }>();
+  const { mediaType } = useLocalSearchParams<{ mediaType: MediaType }>();
   const recommendations = data?.recommendations as MediaItem[] | undefined;
   if (!recommendations?.length) return null;
   return (
     <View className="pt-6">
-      <MediaCarousel title="More like this" items={recommendations} mediaType={mediaType} metaProvider={metaProvider} />
+      <MediaCarousel title="More like this" items={recommendations} mediaType={mediaType} />
     </View>
   );
 };
@@ -87,9 +87,8 @@ const useToolbarIcon = (ionicon: React.ComponentProps<typeof Ionicons>['name'], 
  * the same focus highlight as the back button
  */
 export const InfoToolbar = ({ data }: Pick<InfoHeaderProps, 'data'>) => {
-  const { mediaType, metaProvider, id, title, type } = useLocalSearchParams<{
+  const { mediaType, id, title, type } = useLocalSearchParams<{
     mediaType: MediaType;
-    metaProvider: MetaProvider;
     id: string;
     title?: string;
     type?: string;
@@ -106,7 +105,7 @@ export const InfoToolbar = ({ data }: Pick<InfoHeaderProps, 'data'>) => {
         icon={shareIcon}
         hidden={isTV || !shareIcon}
         accessibilityLabel="Share"
-        onPress={() => shareMedia({ mediaType, id, metaProvider, type, title: title || infoTitle(data) })}
+        onPress={() => shareMedia({ mediaType, id, type, title: title || infoTitle(data) })}
       />
       <Stack.Toolbar.Button
         icon={isFavorited ? filledHeartIcon : heartIcon}
@@ -183,7 +182,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
           className="p-2.5 z-20"
           style={[{ paddingTop: headerHeight }, isTV && { flex: 1, justifyContent: 'flex-end' }]}
           focusable={isTV ? false : undefined}>
-          <HUXStack className="gap-2.5 items-center" props={{ focusable: isTV ? false : undefined }}>
+          <HUXStack className="gap-2.5 items-center" focusable={isTV ? false : undefined}>
             {!isTV && (
               <Pressable
                 onPress={() => setPreviewOpen(true)}
@@ -199,7 +198,8 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
             )}
             <HUYStack
               className="gap-2 flex-1"
-              props={{ focusable: isTV ? false : undefined, style: isTV ? { maxWidth: '55%' } : undefined }}>
+              focusable={isTV ? false : undefined}
+              style={isTV ? { maxWidth: '55%' } : undefined}>
               <Animated.Text
                 className="text-foreground text-3xl font-bold"
                 numberOfLines={3}
@@ -207,7 +207,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
                 {shownTitle}
               </Animated.Text>
 
-              <HUXStack className="item-center justify-between" props={{ focusable: isTV ? false : undefined }}>
+              <HUXStack className="item-center justify-between" focusable={isTV ? false : undefined}>
                 {data?.status && <IconTitle iconName="time-outline" text={data?.status} />}
                 {episodes.length > 0 && (
                   <RippleButton
@@ -220,7 +220,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
                   </RippleButton>
                 )}
               </HUXStack>
-              <HUXStack className="justify-between" props={{ focusable: isTV ? false : undefined }}>
+              <HUXStack className="justify-between" focusable={isTV ? false : undefined}>
                 <IconTitle iconName="star-outline" text={normalizeRating(data?.rating)} />
                 {(data?.nextAiringEpisode?.airingTime || data?.nextAiringEpisode?.releaseDate) && <AnimatedCountdown />}
                 <IconTitle iconName="film-outline" text={data?.type} />
@@ -230,12 +230,9 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
         </View>
       </View>
 
-      <HUYStack className="gap-3 px-4 pt-4" props={{ scrollSnapAlign: isTV ? 'start' : undefined }}>
+      <HUYStack className="gap-3 px-4 pt-4" scrollSnapAlign={isTV ? 'start' : undefined}>
         {!!description && (
-          <ScrollShadow
-            LinearGradientComponent={LinearGradient}
-            size={32}
-            color={pureBlackBackground ? '#000000' : currentTheme?.background}>
+          <ScrollShadow LinearGradientComponent={LinearGradient} size={32} color={currentTheme.screenBackground}>
             <ScrollView
               style={{ maxHeight: DESCRIPTION_MAX_HEIGHT }}
               // Android: lets this scroll inside the page by touch
