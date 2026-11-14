@@ -84,6 +84,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - `yarn remove` (and some other dependency changes) skips `postinstall`, which silently reverts `patches/`. Run `npx patch-package`, then check each patch with `patch --dry-run -R -p1 -s -f < patches/<file>`.
 - `react-native-video` is a git fork, so `patch-package` diffs it against npm and produces garbage. Write its patch by hand.
 - Expo modules marked 📦 in the Android build log link prebuilt AARs, so patches to their Kotlin do nothing. Add the module to `expo.autolinking.android.buildFromSource` in `package.json` (`expo-ui` is already there).
+- heroui-native loads its optional peers with `try { require() }`, so an installed optional peer is bundled even when unused. `@gorhom/bottom-sheet` was removed on 2026-11-14 (152 KB of JS); uwumi's sheets are `@expo/ui`. Don't add it back for heroui.
 - RN 0.86+ removed `StyleSheet.absoluteFillObject`. A library that spreads it collapses to 0 size without a warning.
 
 **Android builds**

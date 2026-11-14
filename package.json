@@ -73,7 +73,6 @@
     "@expo-google-fonts/inter": "^0.2.3",
     "@expo/ui": "~58.0.26",
     "@expo/vector-icons": "^15.0.3",
-    "@gorhom/bottom-sheet": "^5",
     "@react-navigation/bottom-tabs": "^7.0.0",
     "@react-navigation/native": "^7.0.0",
     "@shopify/flash-list": "2.3.2",
