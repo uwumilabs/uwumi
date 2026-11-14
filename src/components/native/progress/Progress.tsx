@@ -8,5 +8,3 @@ export interface ProgressProps {
 }
 
 export const Progress: React.FC<ProgressProps> = () => null;
-
-export default Progress;

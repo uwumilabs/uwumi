@@ -23,5 +23,3 @@ export const Progress: React.FC<ProgressProps> = ({ value = 0, indeterminate, cl
     </View>
   );
 };
-
-export default Progress;

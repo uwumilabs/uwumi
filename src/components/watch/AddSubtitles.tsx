@@ -4,7 +4,7 @@ import { SearchField } from '@/components/heroui';
 import { Button } from '@/components/Button';
 import { Menu, useMenuContext } from 'react-native-video-toolkit';
 import { IoniconsIcon, type IoniconProps } from '@/components/Icons';
-import { TextTrackType } from 'react-native-video/src';
+import { SUBTITLE_FILE_TYPES } from '@/utils/subtitles';
 import { SUBTITLE_LANGUAGES } from '@/constants/config';
 
 // The menu header shows a view's id, capitalized
@@ -18,21 +18,6 @@ export interface SubtitleLanguage {
 
 export type SubtitleSearchResult = 'added' | 'none' | 'failed';
 
-const LANGUAGES: SubtitleLanguage[] = SUBTITLE_LANGUAGES;
-
-export const SUBTITLE_FILE_TYPES = '.srt, .vtt or .ttml';
-
-export const isSubtitleFile = (name: string) => /\.(srt|vtt|ttml|dfxp)$/i.test(name);
-
-// Providers often leave out a subtitle's type (NetflixMirror sends .srt), and ExoPlayer fails the whole source
-// when a track doesn't parse as the type it's given
-export const subtitleType = (uri: string) => {
-  const path = uri.split(/[?#]/)[0].toLowerCase();
-  if (path.endsWith('.srt')) return TextTrackType.SUBRIP;
-  if (path.endsWith('.ttml') || path.endsWith('.dfxp')) return TextTrackType.TTML;
-  return TextTrackType.VTT;
-};
-
 const RESULT_LABELS: Record<Exclude<SubtitleSearchResult, 'added'>, string> = {
   none: 'None found',
   failed: 'Couldn’t reach OpenSubtitles',
@@ -45,6 +30,7 @@ export const AddSubtitlesItem = ({ canSearch, onAddFile }: { canSearch: boolean;
   return (
     <View className="px-3 pb-3 pt-1">
       <Button
+        testID="video-settings-add-subtitles"
         variant="secondary"
         onPress={() => {
           if (canSearch) return navigateTo(ADD_VIEW);
@@ -63,13 +49,19 @@ const SourceButton = ({
   label,
   hint,
   onPress,
+  testID,
 }: {
   icon: IoniconProps['name'];
   label: string;
   hint: string;
   onPress: () => void;
+  testID?: string;
 }) => (
-  <Button variant="secondary" onPress={onPress} className="h-auto flex-1 flex-col gap-1.5 rounded-2xl py-5">
+  <Button
+    testID={testID}
+    variant="secondary"
+    onPress={onPress}
+    className="h-auto flex-1 flex-col gap-1.5 rounded-2xl py-5">
     <IoniconsIcon name={icon} size={26} className="text-accent-soft-foreground" />
     <Button.Label>{label}</Button.Label>
     <Text className="text-xs text-foreground/60">{hint}</Text>
@@ -81,6 +73,7 @@ const AddChoices = ({ onAddFile }: { onAddFile: () => void }) => {
   return (
     <View className="flex-row gap-3 p-3">
       <SourceButton
+        testID="video-settings-add-subtitles-file"
         icon="document-text-outline"
         label="From a file"
         hint={SUBTITLE_FILE_TYPES}
@@ -90,6 +83,7 @@ const AddChoices = ({ onAddFile }: { onAddFile: () => void }) => {
         }}
       />
       <SourceButton
+        testID="video-settings-add-subtitles-search"
         icon="globe-outline"
         label="Search OpenSubtitles"
         hint="Any language"
@@ -107,7 +101,7 @@ const LanguageSearch = ({ onSearch }: { onSearch: (language: SubtitleLanguage) =
 
   const languages = useMemo(() => {
     const text = query.trim().toLowerCase();
-    return text ? LANGUAGES.filter(({ name }) => name.toLowerCase().includes(text)) : LANGUAGES;
+    return text ? SUBTITLE_LANGUAGES.filter(({ name }) => name.toLowerCase().includes(text)) : SUBTITLE_LANGUAGES;
   }, [query]);
 
   const search = async (language: SubtitleLanguage) => {
@@ -128,6 +122,7 @@ const LanguageSearch = ({ onSearch }: { onSearch: (language: SubtitleLanguage) =
         <SearchField.Group>
           <SearchField.SearchIcon />
           <SearchField.Input
+            testID="video-settings-add-subtitles-language-input"
             placeholder="Search languages"
             autoCapitalize="none"
             autoCorrect={false}
@@ -139,7 +134,11 @@ const LanguageSearch = ({ onSearch }: { onSearch: (language: SubtitleLanguage) =
       </SearchField>
       <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: '100%' }}>
         {languages.map((language) => (
-          <Menu.Item key={language.code} autoClose={false} onPress={() => search(language)}>
+          <Menu.Item
+            key={language.code}
+            testID="video-settings-add-subtitles-language"
+            autoClose={false}
+            onPress={() => search(language)}>
             {status?.code === language.code ? `${language.name} · ${status.label}` : language.name}
           </Menu.Item>
         ))}

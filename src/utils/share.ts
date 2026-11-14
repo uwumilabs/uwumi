@@ -1,11 +1,10 @@
 import { Platform, Share } from 'react-native';
+import { seasonEpisodeLabel } from './episodes';
 import { openBrowserAsync } from 'expo-web-browser';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { File as FsFile } from 'expo-file-system';
 import { Image as ExpoImage } from 'expo-image';
-import { EXTERNAL_LINKS } from '@/constants/config';
-import type { MediaType } from '@/constants/types';
-import { META_PROVIDERS } from './media';
+import { infoShareLink } from './routes';
 import { CACHE_DIR, ensureDirectory, fileUri } from './files';
 
 // In the app's own task: Android's default opens a second uwumi card in recents
@@ -48,28 +47,9 @@ export const shareImage = async (uri: string, title?: string) => {
   await Share.share({ message: title ? `${title}\n${uri}` : uri });
 };
 
-/** Shares a link to a show's info page, or to one of its episodes: the app opens it, and the dash's page shows it otherwise. */
-export const shareMedia = ({
-  mediaType,
-  id,
-  type,
-  title,
-  episode,
-  season,
-}: {
-  mediaType: MediaType;
-  id: string;
-  type?: string;
-  title?: string;
-  episode?: string | number;
-  season?: string | number;
-}) => {
-  const query = Object.entries({ id, metaProvider: META_PROVIDERS[mediaType], type, title, episode, season })
-    .filter(([, value]) => value !== undefined && value !== null && value !== '')
-    .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
-    .join('&');
-  const label = episode ? `${title ?? ''} · ${season ? `S${season} · ` : ''}EP ${episode}` : title;
-  return Share.share({
-    message: `Watch ${label} on uwumi\n${EXTERNAL_LINKS.SHARE_LINK_BASE}/info/${mediaType}?${query}`,
-  });
+/** Shares a link to a title's info page, or to one of its episodes */
+export const shareMedia = (target: Parameters<typeof infoShareLink>[0]) => {
+  const { title, episode, season } = target;
+  const label = episode ? `${title ?? ''} · ${seasonEpisodeLabel(season, episode)}` : title;
+  return Share.share({ message: `Watch ${label} on uwumi\n${infoShareLink(target)}` });
 };

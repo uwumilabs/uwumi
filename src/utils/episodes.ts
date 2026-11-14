@@ -1,4 +1,4 @@
-import type { IAnimeEpisode, IMovieEpisode } from 'react-native-consumet';
+import type { IAnimeEpisode, IMovieEpisode, MediaFormat, TvType } from 'react-native-consumet';
 import { MediaType } from '@/constants/types';
 
 export type EpisodeItem = IAnimeEpisode | IMovieEpisode;
@@ -7,6 +7,31 @@ export const episodeNumber = (episode: EpisodeItem) => (episode.number ?? episod
 
 export const episodeImage = (episode: EpisodeItem) =>
   typeof episode.image === 'string' ? episode.image : (episode.image?.hd ?? '');
+
+/** "EP 12", or just "EP" when the provider gave no number */
+export const episodeLabel = (number?: string | number) => `EP ${number ?? ''}`.trim();
+
+/** "S2 · EP 12"; just the episode for a show without seasons */
+export const seasonEpisodeLabel = (season: string | number | undefined, number?: string | number) =>
+  season ? `S${season} · ${episodeLabel(number)}` : episodeLabel(number);
+
+/** The episode's title, or "Episode 5" when the provider gave none */
+export const episodeTitle = (episode: EpisodeItem, number: string | number | undefined = episodeNumber(episode)) =>
+  episode.title || (number === undefined ? 'Episode' : `Episode ${number}`);
+
+/** The episode list has the episode, but the provider found no match for it */
+export const notOnProvider = (providerName: string) => ({
+  title: `Not on ${providerName}`,
+  detail: 'This episode isn’t available there. Try another provider.',
+});
+
+/** An episode's number, or its place in the list when the provider gave none */
+export const listEpisodeNumber = (episode: EpisodeItem | undefined, index: number) =>
+  (episode && episodeNumber(episode)) ?? index + 1;
+
+/** A jump-bar range, "EP 1–50" */
+export const episodeRangeLabel = (episodes: EpisodeItem[], start: number, end: number) =>
+  `${episodeLabel(listEpisodeNumber(episodes[start], start))}–${listEpisodeNumber(episodes[end], end)}`;
 
 /** TMDB episodes carry their season; other providers' don't have one */
 export const episodeSeason = (episode: EpisodeItem) => (episode as { season?: number }).season;
@@ -19,49 +44,8 @@ export interface EpisodeContext {
   id: string;
   /** The provider's id for the show, which movie providers fetch episodes with */
   mediaId?: string;
-  type: string;
+  type?: MediaFormat | TvType;
 }
-
-/** All strings, so Continue watching and downloads can save them and open them again */
-export type WatchParams = {
-  mediaType: MediaType;
-  provider: string;
-  id: string;
-  mediaId?: string;
-  /** Empty when the provider didn't find the title */
-  episodeId?: string;
-  isDubbed?: string;
-  uniqueId: string;
-  poster?: string;
-  title?: string;
-  episodeNumber?: string;
-  seasonNumber?: string;
-  type: string;
-};
-
-/** The values that are set, as strings: route params, and what's saved to open a route again */
-export const routeParams = <T extends object>(values: T) =>
-  Object.fromEntries(
-    Object.entries(values).flatMap(([key, value]) =>
-      value === undefined || value === null || value === '' ? [] : [[key, String(value)]],
-    ),
-  ) as { [K in keyof T]: string };
-
-export const watchParams = (episode: EpisodeItem, { mediaType, provider, id, mediaId, type }: EpisodeContext) =>
-  routeParams({
-    mediaType,
-    provider,
-    id,
-    mediaId,
-    episodeId: episode.id,
-    isDubbed: episode.isDubbed || undefined,
-    uniqueId: episode.uniqueId,
-    poster: episodeImage(episode),
-    title: episode.title,
-    episodeNumber: episodeNumber(episode),
-    seasonNumber: episodeSeason(episode),
-    type,
-  }) as unknown as WatchParams;
 
 interface AdjacentEpisodes {
   prevEpisode: EpisodeItem | null;

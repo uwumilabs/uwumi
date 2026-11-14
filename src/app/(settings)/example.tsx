@@ -14,12 +14,16 @@ const deleteAllKeys = () => {
 };
 
 const Example = () => (
-  <ThemedView>
+  <ThemedView testID="example-screen">
     <ScrollView className="space-y-3">
       <HUYStack className="p-4 gap-3">
         <Text className="text-xs font-bold text-accent mt-4">MMKV Storage</Text>
-        <Button onPress={logAllKeys}>Get All MMKV Keys</Button>
-        <Button onPress={deleteAllKeys}>delete All MMKV Keys</Button>
+        <Button testID="example-log-keys" onPress={logAllKeys}>
+          Get All MMKV Keys
+        </Button>
+        <Button testID="example-delete-keys" onPress={deleteAllKeys}>
+          delete All MMKV Keys
+        </Button>
       </HUYStack>
     </ScrollView>
   </ThemedView>

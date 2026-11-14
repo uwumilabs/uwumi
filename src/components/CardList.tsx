@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from './LinearGradient';
 import { AnimatedImage } from './Image';
 import { MediaFeedType, MediaType } from '@/constants/types';
-import { IAnimeResult, IMovieResult, ISearch } from 'react-native-consumet';
+import { ISearch } from 'react-native-consumet';
 import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
 import { isTV } from '@/utils/tv';
 import { InfiniteData } from '@tanstack/react-query';
@@ -11,13 +11,11 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { HUXStack, HUYStack, NoResults } from './ui-primitives';
 import { useMediaFeed, useSearch } from '@/hooks/queries/mediaQueries';
 import { useCardGridDimensions } from '@/hooks/useCardGridDimensions';
-import { infoHref } from '@/utils/routes';
-import { infoTitle } from '@/utils/media';
-import List from './List';
+import { infoHref, sharedTransitionTags } from '@/utils/routes';
+import { infoTitle, type MediaItem } from '@/utils/media';
+import { List } from './List';
 import { Card, SkeletonGroup } from './heroui';
 import TVFocusWrapper from './TVFocusWrapper';
-
-export type MediaItem = IAnimeResult | IMovieResult;
 
 /** A poster card's height to its width; TV cards are taller */
 export const CARD_ASPECT = isTV ? 3.2 / 2 : 3 / 2;
@@ -102,7 +100,7 @@ const CardSkeleton = ({ isLoading, grid }: { isLoading: boolean; grid: ReturnTyp
 export const MediaCard: React.FC<MediaCardProps> = memo(
   ({ item, index, mediaType, isSearch, preferredFocus, animateEntry = true, sharedTag, onPress, badge }) => {
     const router = useRouter();
-    const transitionTag = isSearch ? undefined : (sharedTag ?? String(item.id));
+    const transitionTags = isSearch ? undefined : sharedTransitionTags(item.id, sharedTag);
 
     const handlePress = useCallback(() => {
       onPress?.(item);
@@ -113,6 +111,7 @@ export const MediaCard: React.FC<MediaCardProps> = memo(
 
     return (
       <TVFocusWrapper
+        testID="media-card"
         className={isTV ? 'p-0' : 'p-0 rounded-none'}
         hasTVPreferredFocus={isTV && (preferredFocus ?? index === 0) ? true : undefined}
         onPress={handlePress}>
@@ -126,7 +125,7 @@ export const MediaCard: React.FC<MediaCardProps> = memo(
               style={{ borderRadius: CARD_RADIUS, zIndex: 0 }}
               width="100%"
               height="100%"
-              sharedTransitionTag={transitionTag && `shared-image-${transitionTag}`}
+              sharedTransitionTag={transitionTags?.image}
               className="absolute inset-0"
             />
             <LinearGradient
@@ -139,7 +138,7 @@ export const MediaCard: React.FC<MediaCardProps> = memo(
             <AnimatedStyledCardTitle
               className="absolute bottom-0 left-0 right-0 z-20 py-2 px-2 text-sm font-medium m-0 text-white"
               numberOfLines={2}
-              sharedTransitionTag={transitionTag && `shared-title-${transitionTag}`}
+              sharedTransitionTag={transitionTags?.title}
               ellipsizeMode="tail">
               {infoTitle(item)}
             </AnimatedStyledCardTitle>
@@ -203,6 +202,7 @@ const CardListView: React.FC<CardListProps> = ({
 
   return (
     <List<MediaItem>
+      testID="media-card-grid"
       key={`${grid.screenWidth}-${mediaType}-${mediaFeedType}-${grid.numColumns}`}
       data={filteredItems}
       {...(emptyState && { ListEmptyComponent: emptyState })}
@@ -248,5 +248,3 @@ const CardListView: React.FC<CardListProps> = ({
 
 export const CardList = memo(CardListView);
 CardList.displayName = 'CardList';
-
-export default CardList;

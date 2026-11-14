@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { isTV } from '@/utils/tv';
 
-export interface CardGridDimensions {
+interface CardGridDimensions {
   numColumns: number;
   /** Each grid item's width, its padding included */
   itemWidth: number;

@@ -3,9 +3,9 @@ import { LogBox } from 'react-native';
 import { Uniwind } from 'uniwind';
 import { useThemeStore } from '@/hooks/stores/useThemeStore';
 import { useDownloadStore } from '@/downloads/useDownloadStore';
-import { clearCacheOnLaunch } from '@/utils/cache';
-import { startEpisodeAlerts } from '@/utils/episodeAlerts';
-import { runAutoBackupIfDue } from '@/utils/backup';
+import { clearCacheOnLaunch } from '@/services/cache';
+import { startEpisodeAlerts } from '@/services/episodeAlerts';
+import { runAutoBackupIfDue } from '@/services/backup';
 
 // What the app does as it starts, once per JS load. The root layout imports it after the stylesheet, which the theme
 // needs, and Fast Refresh can run it again, so each part is safe to repeat.

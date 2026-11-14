@@ -29,5 +29,3 @@ export const Image = forwardRef<ExpoImage, ImageProps>((props, ref) => {
 Image.displayName = 'Image';
 
 export const AnimatedImage = Animated.createAnimatedComponent(Image);
-
-export default Image;

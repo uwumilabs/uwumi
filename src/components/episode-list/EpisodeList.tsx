@@ -1,21 +1,23 @@
 import { ActivityIndicator, Pressable, StyleSheet, View, Text, TextProps, useWindowDimensions } from 'react-native';
-import { usePureBlackBackground } from '@/hooks/stores/useThemeStore';
+import { episodeWatchHref, useInfoParams } from '@/utils/routes';
 import { FlashListRef } from '@shopify/flash-list';
 import React, { useRef, useState, useCallback, useContext, useMemo, memo, ReactNode } from 'react';
 import { HeaderHeightContext } from 'expo-router/react-navigation';
-import Image from '@/components/Image';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Image } from '@/components/Image';
+import { useRouter } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import Animated, { SharedValue, css, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '@/utils/haptics';
 import { create } from 'zustand';
-import { useEpisodesIdStore, useEpisodeDisplayStore } from '@/hooks/stores/useEpisodesStore';
+import { useNowPlayingStore, useEpisodeDisplayStore } from '@/hooks/stores/useEpisodesStore';
 import {
   episodeImage,
+  episodeLabel,
   episodeNumber,
+  episodeRangeLabel,
+  seasonEpisodeLabel,
   episodeSeason,
-  watchParams,
   type EpisodeContext,
   type EpisodeItem,
 } from '@/utils/episodes';
@@ -26,26 +28,25 @@ import { useDownloadStore } from '@/downloads/useDownloadStore';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { useListJump, LIST_SHADOW_SIZE } from '@/hooks/useListJump';
 import { useEpisodeList } from '@/hooks/useEpisodeList';
-import WavyAnimation from './WavyAnimation';
+import { WavyAnimation } from './WavyAnimation';
 import EpisodeActionsSheet from './EpisodeActionsSheet';
-import { EpisodeDisplayMode, MediaType } from '@/constants/types';
-import { MediaFormat, TvType } from 'react-native-consumet';
+import { EpisodeDisplayMode } from '@/constants/types';
 import { formatTime } from '@/utils/format';
 import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/utils/tv';
-import Select from '../Select';
+import { Select } from '../Select';
 import { useProviders, useProviderStore } from '@/hooks/stores/useProviderStore';
-import List from '../List';
+import { List } from '../List';
 import { HUYStack, HUXStack } from '../ui-primitives';
 import TVFocusWrapper from '../TVFocusWrapper';
-import LinearGradient from '../LinearGradient';
-import ListJumpBar from '../ListJumpBar';
+import { LinearGradient } from '../LinearGradient';
+import { ListJumpBar } from '../ListJumpBar';
 import { ProviderEmptyState } from '../ListEmptyState';
 import { Card, cn, ScrollShadow } from '../heroui';
 import { Button } from '../Button';
 import { IoniconsIcon, MaterialIconsIcon } from '../Icons';
 
 const LoadingState = () => {
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+  const pureBlackBackground = useCurrentTheme().isPureBlack;
   return (
     <Card className={cn('mx-4 mt-6 bg-background', pureBlackBackground && 'bg-black')}>
       <HUYStack className="items-center gap-3 px-6 py-10">
@@ -78,18 +79,16 @@ const ListPressable = memo(
   }) => {
     const router = useRouter();
     // Without an id (not on this provider) the watch screen says so
-    const navigateToEpisode = useCallback(
-      () => router.push({ pathname: '/watch/[mediaType]', params: watchParams(item, nav) }),
-      [router, item, nav],
-    );
+    const navigateToEpisode = useCallback(() => router.push(episodeWatchHref(item, nav)), [router, item, nav]);
 
     const handleLongPress = useCallback(() => {
-      if (!isTV) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      haptics.medium();
       onOpenActions(item);
     }, [item, onOpenActions]);
 
     return (
       <TVFocusWrapper
+        testID="episode-row"
         onPress={navigateToEpisode}
         onLongPress={handleLongPress}
         focusScale={1}
@@ -224,7 +223,7 @@ const EpisodeContent = ({
         className={cn('flex-1 gap-2 rounded-2xl bg-background p-3 shadow-md', pureBlackBackground && 'bg-black')}>
         <HUXStack className="flex-1 items-center justify-between gap-2">
           <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={titleOnly ? 2 : 1}>
-            {titleOnly || isMovie ? item.title : `EP ${episodeNumber(item) ?? ''}`}
+            {titleOnly || isMovie ? item.title : episodeLabel(episodeNumber(item))}
           </Text>
           <HUXStack className="flex-row items-center gap-1 ml-auto">
             <DownloadBadge uniqueId={item?.uniqueId} size={18} />
@@ -247,7 +246,7 @@ const EpisodeContent = ({
         <Image source={episodeImage(item)} style={{ width: 160, height: 107 }} />
         {!isMovie && (
           <Text className="absolute left-2 bottom-2.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
-            {`EP ${episodeNumber(item) ?? ''}`}
+            {episodeLabel(episodeNumber(item))}
           </Text>
         )}
         <ThumbnailProgress uniqueId={item?.uniqueId as string} />
@@ -306,9 +305,9 @@ interface EpisodeRowProps {
 // Each row selects whether it's the current episode, so the list's own re-renders skip the rows
 const EpisodeRow = memo(
   ({ item, displayMode, isMovie, nav, actionColor, onToggleComplete, onOpenActions }: EpisodeRowProps) => {
-    const isCurrent = useEpisodesIdStore((state) => !!item?.uniqueId && state.currentUniqueId === item.uniqueId);
+    const isCurrent = useNowPlayingStore((state) => !!item?.uniqueId && state.currentUniqueId === item.uniqueId);
     const pulse = usePulseStore((state) => (state.key === episodeKey(item) ? state.at : 0));
-    const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+    const pureBlackBackground = useCurrentTheme().isPureBlack;
     const swipeableRef = useRef<SwipeableMethods | null>(null);
 
     const row = (
@@ -337,8 +336,8 @@ const EpisodeRow = memo(
           onToggleComplete(item);
           swipeableRef.current?.close();
         }}
-        onSwipeableWillOpen={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-        onSwipeableWillClose={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+        onSwipeableWillOpen={haptics.light}
+        onSwipeableWillClose={haptics.light}
         renderRightActions={(_progress, drag) => (
           <SwipeAction drag={drag} uniqueId={item?.uniqueId as string} backgroundColor={actionColor} />
         )}>
@@ -364,19 +363,7 @@ const WINDOW_MAX_ROWS = 5;
 const WINDOW_CHROME = 120;
 
 const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
-  const {
-    mediaType,
-    type,
-    id,
-    episode: sharedEpisode,
-    season: sharedSeason,
-  } = useLocalSearchParams<{
-    mediaType: MediaType;
-    type: MediaFormat | TvType;
-    id: string;
-    episode?: string;
-    season?: string;
-  }>();
+  const { mediaType, type, id, episode: sharedEpisode, season: sharedSeason } = useInfoParams();
   const isMovie = isMovieType(type);
   const { height: screenHeight } = useWindowDimensions();
   const windowRows = Math.max(
@@ -390,24 +377,16 @@ const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
   // The info screen's native header floats over the page, so scrolls stop below it
   const headerHeight = useContext(HeaderHeightContext) ?? 0;
   const setProvider = useProviderStore((state) => state.setProvider);
-  const { episodes, providerMediaId, movieSeasons, activeSeason, setSeason, providerToUse, isLoading, error, refetch } =
-    useEpisodeList();
+  const { episodes, context: nav, movieSeasons, activeSeason, setSeason, isLoading, error, refetch } = useEpisodeList();
   const providers = useProviders();
 
-  const currentUniqueId = useEpisodesIdStore((state) => state.currentUniqueId);
+  const currentUniqueId = useNowPlayingStore((state) => state.currentUniqueId);
   const displayMode = useEpisodeDisplayStore((state) => state.displayMode);
   const setDisplayMode = useEpisodeDisplayStore((state) => state.setDisplayMode);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState<EpisodeItem | null>(null);
 
-  const episodeRangeLabel = useCallback(
-    (start: number, end: number) => {
-      const label = (index: number) => String(episodeNumber(episodes[index]) ?? index + 1);
-      return `EP ${label(start)}–${label(end)}`;
-    },
-    [episodes],
-  );
   const {
     listProps,
     ranges: episodeRanges,
@@ -513,18 +492,13 @@ const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
   const handleToggleComplete = useCallback((item: EpisodeItem) => {
     if (!item?.uniqueId) return;
     useWatchProgressStore.getState().toggleWatched(item.uniqueId);
-    if (!isTV) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    haptics.success();
   }, []);
 
   const openActions = useCallback((item: EpisodeItem) => {
     setSelectedEpisode(item);
     setSheetOpen(true);
   }, []);
-
-  const nav = useMemo<EpisodeContext>(
-    () => ({ mediaType, provider: providerToUse, id, mediaId: providerMediaId, type }),
-    [mediaType, providerToUse, id, providerMediaId, type],
-  );
 
   const renderItem = useCallback(
     ({ item }: { item: EpisodeItem }) => (
@@ -544,13 +518,15 @@ const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
   const controls = (
     <HUXStack className="w-full flex-wrap items-center justify-center gap-5 px-4 py-2">
       <Select
+        testID="episode-provider-select"
         SelectItem={providers[mediaType]}
         SelectLabel="Provider"
-        value={providerToUse}
+        value={nav.provider}
         onValueChange={handleProviderChange}
       />
-      {movieSeasons && type !== TvType.MOVIE && (
+      {movieSeasons && !isMovie && (
         <Select
+          testID="episode-season-select"
           SelectItem={
             movieSeasons?.map((_: any, index: number): { name: string; value: string } => ({
               name: `Season ${index + 1}`,
@@ -565,9 +541,16 @@ const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
         />
       )}
       {episodeRanges.length > 0 && (
-        <Select SelectItem={episodeRanges} SelectLabel="Episodes" value={rangeValue} onValueChange={jumpToRange} />
+        <Select
+          testID="episode-range-select"
+          SelectItem={episodeRanges}
+          SelectLabel="Episodes"
+          value={rangeValue}
+          onValueChange={jumpToRange}
+        />
       )}
       <Pressable
+        testID="episode-display-toggle"
         onPress={() => {
           setDisplayMode(
             displayMode === EpisodeDisplayMode.FullMetadata
@@ -589,10 +572,15 @@ const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
       </Pressable>
       {continueTarget && (
         // TV: the screen opens on it, the action a viewer most likely came for
-        <Button variant="secondary" size="sm" onPress={scrollToContinue} hasTVPreferredFocus={isTV}>
+        <Button
+          testID="episode-continue"
+          variant="secondary"
+          size="sm"
+          onPress={scrollToContinue}
+          hasTVPreferredFocus={isTV}>
           <IoniconsIcon name="play" size={14} color={currentTheme?.foreground} />
           <Button.Label>
-            {`${sharedIndex >= 0 ? 'Shared' : 'Continue'} · ${continueTarget.season === shownSeason ? '' : `S${continueTarget.season + 1} · `}EP ${episodeNumber(continueTarget.episode) ?? ''}`}
+            {`${sharedIndex >= 0 ? 'Shared' : 'Continue'} · ${seasonEpisodeLabel(continueTarget.season === shownSeason ? undefined : continueTarget.season + 1, episodeNumber(continueTarget.episode))}`}
           </Button.Label>
         </Button>
       )}
@@ -601,6 +589,7 @@ const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
 
   const list = (
     <List<EpisodeItem>
+      testID="episode-list"
       ref={flashListRef}
       {...listProps}
       {...tvFocusScrollProps(0)}
@@ -620,7 +609,7 @@ const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
         ) : (
           <ProviderEmptyState
             providers={providers[mediaType]}
-            provider={providerToUse}
+            provider={nav.provider}
             error={error}
             onRetry={() => refetch()}
             onProviderChange={handleProviderChange}
@@ -694,5 +683,3 @@ const pulseStyles = css.create({
 
 export const EpisodeList = memo(EpisodeListView);
 EpisodeList.displayName = 'EpisodeList';
-
-export default EpisodeList;

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { readerHref, type ReaderParams } from '@/utils/routes';
+import { readerHref, useReaderParams } from '@/utils/routes';
 import {
   ActivityIndicator,
   type GestureResponderEvent,
@@ -8,27 +8,27 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { FlashList, type FlashListRef, type ViewToken } from '@shopify/flash-list';
-import { useKeepAwake } from 'expo-keep-awake';
-import { create } from 'zustand';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { IMangaChapter, IMangaChapterPage } from 'react-native-consumet';
-import { HUXStack, HUYStack, ThemedView } from '@/components/ui-primitives';
-import { IoniconsIcon } from '@/components/Icons';
+import { HUYStack, ThemedView } from '@/components/ui-primitives';
 import { ListEmptyState } from '@/components/ListEmptyState';
 import { Button } from '@/components/Button';
+import { ChapterNav } from '@/components/reader/ChapterNav';
+import { KeepAwake } from '@/components/reader/KeepAwake';
+import { PagePill, setPillPage } from '@/components/reader/PagePill';
 import { ReaderPage } from '@/components/reader/ReaderPage';
 import { TapZonesOverlay, tapActionAt } from '@/components/reader/TapZones';
+import { TransitionPage } from '@/components/reader/TransitionPage';
 import { ZoomablePage } from '@/components/ZoomablePage';
 import { isTV } from '@/utils/tv';
 import { useProviderName } from '@/hooks/stores/useProviderStore';
 import { MediaType } from '@/constants/types';
 import { mangaProgressKey, resumePage, useMangaProgressStore } from '@/hooks/stores/useMangaProgressStore';
-import { isPagedMode, type ReaderBackground, useReaderSettingsStore } from '@/hooks/stores/useReaderSettingsStore';
+import { READING_MODES, type ReaderBackground, useReaderSettingsStore } from '@/hooks/stores/useReaderSettingsStore';
 import { useChapterPages, useMangaChapters } from '@/hooks/queries/mangaQueries';
-import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { adjacentChapters, chapterNumbers, chapterTitle } from '@/utils/manga';
 
 const BACKGROUNDS: Record<Exclude<ReaderBackground, 'theme'>, string> = {
@@ -43,85 +43,8 @@ const PAGE_GAP = 16;
 /** The chapter's pages, between where it starts and ends (the chapter buttons, or Mihon's transition pages) */
 type ReaderItem = { kind: 'start' } | { kind: 'page'; page: IMangaChapterPage; number: number } | { kind: 'end' };
 
-// The page on screen, per chapter, so only the pill re-renders as the strip scrolls
-const usePageStore = create<{ chapterId: string; page: number }>(() => ({ chapterId: '', page: 0 }));
-
 // An item covering at least half the screen counts as on screen, so the topmost one is the page being read
 const VIEWABILITY = { viewAreaCoveragePercentThreshold: 50 };
-
-const KeepAwake = () => {
-  useKeepAwake();
-  return null;
-};
-
-const PagePill = ({ chapterId, total }: { chapterId: string; total: number }) => {
-  const insets = useSafeAreaInsets();
-  const page = usePageStore((state) => (state.chapterId === chapterId ? state.page : 0));
-  if (!page) return null;
-  return (
-    <View pointerEvents="none" className="absolute inset-x-0 items-center" style={{ bottom: insets.bottom + 12 }}>
-      <Text className="rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-white">{`${page} / ${total}`}</Text>
-    </View>
-  );
-};
-
-interface ChapterNavProps {
-  previous?: IMangaChapter;
-  next?: IMangaChapter;
-  onOpen: (chapter: IMangaChapter) => void;
-}
-
-const ChapterNav = ({ previous, next, onOpen }: ChapterNavProps) => {
-  const theme = useCurrentTheme();
-  if (!previous && !next) return null;
-  return (
-    <HUXStack className="justify-between gap-3 px-4 py-3">
-      <Button variant="secondary" size="sm" isDisabled={!previous} onPress={() => previous && onOpen(previous)}>
-        <IoniconsIcon name="chevron-back" size={16} color={theme.foreground} />
-        <Button.Label>Previous chapter</Button.Label>
-      </Button>
-      <Button variant="secondary" size="sm" isDisabled={!next} onPress={() => next && onOpen(next)}>
-        <Button.Label>Next chapter</Button.Label>
-        <IoniconsIcon name="chevron-forward" size={16} color={theme.foreground} />
-      </Button>
-    </HUXStack>
-  );
-};
-
-interface TransitionPageProps {
-  kind: 'start' | 'end';
-  current?: IMangaChapter;
-  target?: IMangaChapter;
-  onOpen: (chapter: IMangaChapter) => void;
-  width: number;
-  height: number;
-}
-
-/** Mihon's chapter transition, a page of its own in the paged modes: the chapter before this one, or after it */
-const TransitionPage = ({ kind, current, target, onOpen, width, height }: TransitionPageProps) => {
-  const start = kind === 'start';
-  return (
-    <View style={{ width, height }} className="items-center justify-center px-8">
-      <HUYStack className="w-full max-w-md gap-4 rounded-3xl bg-surface p-6">
-        <HUYStack className="gap-1">
-          <Text className="text-sm text-foreground/60">{start ? 'Current' : 'Finished'}</Text>
-          <Text className="text-lg font-semibold text-foreground">{current ? chapterTitle(current) : 'Chapter'}</Text>
-        </HUYStack>
-        <HUYStack className="gap-1">
-          <Text className="text-sm text-foreground/60">
-            {target ? (start ? 'Previous' : 'Next') : start ? "There's no previous chapter" : "There's no next chapter"}
-          </Text>
-          {target && <Text className="text-lg font-semibold text-foreground">{chapterTitle(target)}</Text>}
-        </HUYStack>
-        {target && (
-          <Button size="sm" onPress={() => onOpen(target)}>
-            <Button.Label>{start ? 'Previous chapter' : 'Next chapter'}</Button.Label>
-          </Button>
-        )}
-      </HUYStack>
-    </View>
-  );
-};
 
 /**
  * A chapter's pages, in the reading mode from the reader settings. `id` is the AniList manga; `chapter` and
@@ -132,14 +55,7 @@ const Read = () => {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const {
-    id,
-    chapter: chapterId,
-    provider,
-    continued,
-    title: mangaTitle,
-    image: mangaImage,
-  } = useLocalSearchParams<ReaderParams>();
+  const { id, chapter: chapterId, provider, continued, title: mangaTitle, image: mangaImage } = useReaderParams();
   const progressKey = mangaProgressKey(id, provider);
   // Where this chapter was left, read once: the page saves as it's read would move it otherwise
   const [startPage] = useState(() => resumePage(useMangaProgressStore.getState().progress[progressKey], chapterId));
@@ -148,7 +64,7 @@ const Read = () => {
   const markRead = useMangaProgressStore((state) => state.markRead);
   const { current, previous, next } = adjacentChapters(chapters.data ?? [], chapterId);
   const providerName = useProviderName(MediaType.MANGA, provider);
-  const title = current ? chapterTitle(current) : 'Chapter';
+  const title = chapterTitle(current);
   const readingMode = useReaderSettingsStore((state) => state.readingMode);
   const background = useReaderSettingsStore((state) => state.background);
   const keepScreenOn = useReaderSettingsStore((state) => state.keepScreenOn);
@@ -157,9 +73,7 @@ const Read = () => {
   const tapZones = useReaderSettingsStore((state) => state.tapZones);
   const invertTapZones = useReaderSettingsStore((state) => state.invertTapZones);
   const showTapZonesOverlay = useReaderSettingsStore((state) => state.showTapZonesOverlay);
-  const paged = isPagedMode(readingMode);
-  const rtl = readingMode === 'paged-rtl';
-  const horizontal = rtl || readingMode === 'paged-ltr';
+  const { paged, horizontal, rtl, gaps } = READING_MODES[readingMode];
   const padding = paged ? 0 : Math.round((width * sidePadding) / 100);
   const pageWidth = width - padding * 2;
   const listRef = useRef<FlashListRef<ReaderItem>>(null);
@@ -185,9 +99,9 @@ const Read = () => {
   const loaded = !!pages.data?.length;
   useEffect(() => {
     if (loaded && current) {
-      markRead(progressKey, { id: current.id, title: chapterTitle(current) }, { title: mangaTitle, image: mangaImage });
+      markRead(progressKey, { id: current.id, title }, { title: mangaTitle, image: mangaImage });
     }
-  }, [loaded, current, progressKey, mangaTitle, mangaImage, markRead]);
+  }, [loaded, current, title, progressKey, mangaTitle, mangaImage, markRead]);
 
   const openChapter = useCallback(
     (chapter: IMangaChapter) =>
@@ -305,7 +219,7 @@ const Read = () => {
       if (!numbers.length) return;
       // In the long strip the last page can be shorter than the screen and never be the topmost
       const page = !paged && numbers.includes(pageCount) ? pageCount : Math.min(...numbers);
-      usePageStore.setState({ chapterId, page });
+      setPillPage(chapterId, page);
       useMangaProgressStore.getState().setPage(progressKey, chapterId, page, pageCount);
     },
     [paged, pageCount, chapterId, progressKey],
@@ -330,7 +244,7 @@ const Read = () => {
           }
           detail={pages.error?.message}>
           {!!pages.error && (
-            <Button size="sm" onPress={() => pages.refetch()}>
+            <Button testID="reader-retry" size="sm" onPress={() => pages.refetch()}>
               <Button.Label>Retry</Button.Label>
             </Button>
           )}
@@ -352,6 +266,7 @@ const Read = () => {
         }>
         {(!paged || viewport) && (
           <FlashList
+            testID="reader-pages"
             ref={listRef}
             // A new chapter, or mode, starts at its first page
             key={`${chapterId}-${readingMode}`}
@@ -367,9 +282,7 @@ const Read = () => {
             scrollEnabled={!zoomed}
             // Paged modes open on a page rather than the chapter's start; the strip opens at its top unless resuming
             initialScrollIndex={startIndex}
-            ItemSeparatorComponent={
-              readingMode === 'long-strip-gaps' ? () => <View style={{ height: PAGE_GAP }} /> : undefined
-            }
+            ItemSeparatorComponent={gaps ? () => <View style={{ height: PAGE_GAP }} /> : undefined}
             contentContainerStyle={paged ? undefined : { paddingBottom: insets.bottom + 16 }}
             showsVerticalScrollIndicator={false}
             showsHorizontalScrollIndicator={false}
@@ -387,7 +300,7 @@ const Read = () => {
 
   return (
     // The list keeps the header's room itself, so hiding the menu (and the system bars, as Mihon does) moves nothing
-    <ThemedView style={{ paddingTop: 0 }} useStatusBar={menuVisible}>
+    <ThemedView testID="reader-screen" style={{ paddingTop: 0 }} useStatusBar={menuVisible}>
       <Stack.Screen
         options={{ title, headerBackTitle: chapterNumbers(current) || undefined, headerShown: menuVisible }}
       />

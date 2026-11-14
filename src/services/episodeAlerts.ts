@@ -1,8 +1,10 @@
-import { AppState, Platform } from 'react-native';
+import { useEffect } from 'react';
+import { AppState, Linking, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ensureNotificationPermission } from './notifications';
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
-import { IAnimeResult, IMovieResult } from 'react-native-consumet';
-import { infoTitle } from '@/utils/media';
+import { infoTitle, type MediaItem } from '@/utils/media';
 import { isTV } from '@/utils/tv';
 import { MediaType } from '@/constants/types';
 import { infoHref } from '@/utils/routes';
@@ -10,8 +12,6 @@ import { queryClient } from '@/constants/queryClient';
 import { useFavoriteStore } from '@/hooks/stores/useFavoriteStore';
 import { usePreferencesStore } from '@/hooks/stores/usePreferencesStore';
 import { type FavoriteSchedules, fetchFavoriteSchedules, scheduleOf } from '@/hooks/queries/favoriteQueries';
-
-type Favorite = IAnimeResult | IMovieResult;
 
 const CHANNEL_ID = 'new-episodes';
 const ID_PREFIX = 'episode-';
@@ -22,11 +22,11 @@ interface EpisodeAlert {
   identifier: string;
   title: string;
   body: string;
-  item: Favorite;
+  item: MediaItem;
   at: number;
 }
 
-const alertsFor = (favorites: Favorite[], schedules: FavoriteSchedules, now: number) =>
+const alertsFor = (favorites: MediaItem[], schedules: FavoriteSchedules, now: number) =>
   favorites.flatMap((item): EpisodeAlert[] => {
     const next = scheduleOf(item, schedules)?.next;
     if (!next || next.at <= now || next.at > now + LOOKAHEAD_MS) return [];
@@ -42,15 +42,18 @@ const alertsFor = (favorites: Favorite[], schedules: FavoriteSchedules, now: num
     ];
   });
 
-/** The info screen a favorite's card opens, so tapping the alert lands on the show */
-const favoriteInfoHref = (item: Favorite) =>
-  infoHref({
+/** What an alert carries: the info screen a favorite's card opens, so tapping it lands on the show */
+type AlertData = { href: ReturnType<typeof infoHref> };
+
+const alertData = (item: MediaItem): AlertData => ({
+  href: infoHref({
     mediaType: item.mediaType as MediaType,
     id: String(item.id),
     type: item.type,
     image: item.image,
     title: infoTitle(item),
-  });
+  }),
+});
 
 // The air time is the identifier's last part
 const alertTime = (identifier: string) => Number(identifier.slice(identifier.lastIndexOf('-') + 1));
@@ -62,14 +65,6 @@ const scheduledAlertIds = async () =>
 
 const cancelAlerts = async (identifiers: string[]) =>
   Promise.all(identifiers.map((identifier) => Notifications.cancelScheduledNotificationAsync(identifier)));
-
-/** Notification permission, asking only while the system still shows the prompt ("blocked" once it won't) */
-export const ensureAlertPermission = async (): Promise<'granted' | 'denied' | 'blocked'> => {
-  const current = await Notifications.getPermissionsAsync();
-  if (current.granted) return 'granted';
-  if (!current.canAskAgain) return 'blocked';
-  return (await Notifications.requestPermissionsAsync()).granted ? 'granted' : 'denied';
-};
 
 /** Cancels the alerts no longer wanted and schedules the missing ones, so repeated syncs don't duplicate */
 const syncAlerts = async () => {
@@ -88,7 +83,7 @@ const syncAlerts = async () => {
   const now = Date.now();
   const alerts = alertsFor(favorites, schedules, now);
   // On by default, so the first alert worth sending is when we ask; a refusal turns the switch off to match
-  if (alerts.length && (await ensureAlertPermission()) !== 'granted') {
+  if (alerts.length && (await ensureNotificationPermission()) !== 'granted') {
     return usePreferencesStore.getState().setEpisodeNotifications(false);
   }
   const wanted = new Set(alerts.map(({ identifier }) => identifier));
@@ -100,7 +95,7 @@ const syncAlerts = async () => {
     if (existing.has(identifier)) continue;
     await Notifications.scheduleNotificationAsync({
       identifier,
-      content: { title, body, data: { href: favoriteInfoHref(item) } },
+      content: { title, body, data: alertData(item) },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at, channelId: CHANNEL_ID },
     });
   }
@@ -144,4 +139,29 @@ export const startEpisodeAlerts = () => {
     if (status === 'active') syncIfEnabled();
   });
   syncIfEnabled();
+};
+
+/** The "New episode notifications" switch: turning it on asks for the permission, or opens settings once it's blocked */
+export const setEpisodeAlerts = async (on: boolean) => {
+  if (!on) return usePreferencesStore.getState().setEpisodeNotifications(false);
+  const permission = await ensureNotificationPermission();
+  if (permission === 'granted') usePreferencesStore.getState().setEpisodeNotifications(true);
+  // Android stops showing the prompt after two refusals; only system settings can grant it then
+  else if (permission === 'blocked') void Linking.openSettings();
+};
+
+// The last response outlives a remount of the layout, which would open the show a second time
+let handledResponse: string | undefined;
+
+/** Opens the show a tapped alert is for, including when the tap launched the app; needs the mounted router */
+export const useEpisodeAlertTaps = () => {
+  const router = useRouter();
+  const response = Notifications.useLastNotificationResponse();
+  useEffect(() => {
+    const href = (response?.notification.request.content.data as Partial<AlertData> | undefined)?.href;
+    const key = response ? `${response.notification.request.identifier}:${response.notification.date}` : undefined;
+    if (!href || key === handledResponse) return;
+    handledResponse = key;
+    router.push(href);
+  }, [response, router]);
 };

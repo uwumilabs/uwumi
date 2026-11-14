@@ -1,61 +1,19 @@
 import { useMemo } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { FFmpegKit, ReturnCode, type Log } from 'react-native-ffmpeg-kit';
-import type { TextTracks } from 'react-native-video/src';
-import type { ISource } from 'react-native-consumet';
 import { persistStorage } from '@/hooks/stores/MMKV';
 import { usePreferencesStore } from '@/hooks/stores/usePreferencesStore';
-import type { MediaType } from '@/constants/types';
-import { DOWNLOADS_DIR, UWUMI_DIR, fileUri, fsDirectory, fsFile } from '@/utils/files';
-import { episodeNumber, watchParams, type EpisodeContext, type EpisodeItem } from '@/utils/episodes';
-import { isThumbnailTrack } from '@/utils/seekPreview';
-import { sourceRequestHeaders } from '@/hooks/queries/watchQueries';
-import { downloadArgs, failureReason, parseProgressLog, probeStream, type DownloadProgress } from './ffmpeg';
+import { DOWNLOADS_DIR, fileUri, fsDirectory, fsFile } from '@/utils/files';
+import { episodeNumber, episodeTitle, type EpisodeContext, type EpisodeItem } from '@/utils/episodes';
+import { episodeWatchHref } from '@/utils/routes';
+import type { PlayableSource } from '@/hooks/queries/watchQueries';
+import { downloadArgs, failureReason, parseProgressLog, probeStream } from './ffmpeg';
+import { isActive, type DownloadProgress, type EpisodeDownload } from './model';
 import { deleteOutputFile, ensureDownloadsFolder, outputPathFor, relativeOutputFile, resolveOutputFile } from './files';
 import { saveThumbnails } from './thumbnails';
 import { showDownloadInNotification, startDownloadService, stopDownloadService } from './service';
-
-export type DownloadStatus = 'pending' | 'downloading' | 'completed' | 'failed' | 'cancelled';
-
-export interface EpisodeDownload {
-  id: string;
-  url: string;
-  headers?: Record<string, string>;
-  name: string;
-  showName?: string;
-  /** The info screen's id and media type, for "Downloaded only"; missing on downloads made before them */
-  showId?: string;
-  mediaType?: MediaType;
-  /** The /watch route's params, to play it from Downloads; missing on downloads made before them */
-  watchParams?: Record<string, string>;
-  episode: number;
-  season?: number;
-  /** The episode's, which the download is saved under */
-  uniqueId?: string;
-  episodeId?: string;
-  externalSubtitles?: TextTracks;
-  /** The provider's seek-preview sprite list, copied beside the file once it's downloaded */
-  thumbnailsVtt?: string;
-  /** The saved sprite list, relative to the downloads folder like `outputFile` */
-  thumbnailsFile?: string;
-  status: DownloadStatus;
-  progress?: DownloadProgress;
-  outputFile?: string;
-  fileSize?: number;
-  /** The FFmpeg session, once it runs: kept in memory only */
-  sessionId?: number;
-  error?: string;
-  createdAt: number;
-  completedAt?: number;
-}
-
-/** Running or queued: restarting the app would stop it */
-export const isActive = (status?: DownloadStatus) => status === 'downloading' || status === 'pending';
-
-/** Started, but FFmpeg isn't running yet: the stream is still being probed */
-export const isPreparing = (download?: Pick<EpisodeDownload, 'status' | 'sessionId'>) =>
-  download?.status === 'downloading' && !download.sessionId;
 
 /** One quality of an episode, as the episode actions sheet offers it */
 export interface DownloadRequest {
@@ -64,33 +22,31 @@ export interface DownloadRequest {
   showName?: string;
   season?: number;
   url: string;
-  source?: Pick<ISource, 'headers' | 'subtitles'>;
+  source?: PlayableSource;
 }
 
 const newDownload = ({ episode, context, showName, season, url, source }: DownloadRequest) => {
   const number = Number(episodeNumber(episode) ?? 1);
-  const subtitles = (source?.subtitles ?? []).filter((sub) => !isThumbnailTrack(sub));
   return {
     url,
-    headers: sourceRequestHeaders(source?.headers),
-    name: episode.title || `Episode ${number}`,
+    headers: source?.headers,
+    name: episodeTitle(episode, number),
     showName,
     showId: context.id,
     mediaType: context.mediaType,
-    watchParams: watchParams(episode, context),
+    watchParams: episodeWatchHref(episode, context).params,
     season,
     episode: number,
     uniqueId: episode.uniqueId,
     episodeId: episode.id,
-    externalSubtitles: subtitles.length
-      ? (subtitles.map((sub) => ({
-          title: sub.lang || 'Unknown',
-          language: sub.lang || 'en',
-          type: 'application/x-subrip',
-          uri: sub.url,
-        })) as TextTracks)
+    externalSubtitles: source?.subtitles.length
+      ? source.subtitles.map(({ title, language, uri }) => ({
+          title: title || 'Unknown',
+          language: language || 'en',
+          uri,
+        }))
       : undefined,
-    thumbnailsVtt: source?.subtitles?.find((sub) => isThumbnailTrack(sub))?.url,
+    thumbnailsVtt: source?.thumbnails,
   } satisfies Omit<EpisodeDownload, 'id' | 'status' | 'createdAt'>;
 };
 
@@ -108,7 +64,6 @@ interface DownloadState {
   removeDownload: (downloadId: string) => Promise<void>;
   clearCompleted: () => Promise<void>;
   clearAll: () => Promise<void>;
-  storageInfo: () => { downloadsSize: number; totalDownloads: number };
 }
 
 const NO_PROGRESS: DownloadProgress = {
@@ -254,7 +209,6 @@ export const useDownloadStore = create<DownloadState>()(
         initialize: () => {
           initializing ??= (async () => {
             try {
-              ensureDownloadsFolder(UWUMI_DIR);
               ensureDownloadsFolder(DOWNLOADS_DIR);
 
               // FFmpeg sessions outlive a JS reload (an OTA applied in-process, or dev), but their callbacks don't, and
@@ -349,19 +303,6 @@ export const useDownloadStore = create<DownloadState>()(
           set({ downloads: {} });
           await stopDownloadService();
         },
-
-        storageInfo: () => {
-          const downloads = Object.values(get().downloads).filter((d) => d.status === 'completed');
-          // What's on disk, so leftovers count too; from the records if the folder can't be read
-          let downloadsSize = 0;
-          try {
-            downloadsSize = fsDirectory(DOWNLOADS_DIR).size ?? 0;
-          } catch (error) {
-            console.error('❌ Failed to calculate storage size:', error);
-            downloadsSize = downloads.reduce((sum, d) => sum + (d.fileSize || 0), 0);
-          }
-          return { downloadsSize, totalDownloads: downloads.length };
-        },
       };
     },
     {
@@ -425,4 +366,26 @@ export const useDownloadedOnlyFilter = () => {
     return (id: string, title?: string) =>
       downloaded.has(`id:${id}`) || (!!title && downloaded.has(`title:${title.toLowerCase()}`));
   }, [enabled, keys]);
+};
+
+/** What the downloads folder takes on disk, leftovers included; measured on each visit and when a download finishes */
+export const useDownloadsSize = () => {
+  const isInitialized = useDownloadStore((state) => state.isInitialized);
+  const completedKey = useDownloadStore((state) =>
+    Object.values(state.downloads)
+      .filter(({ status }) => status === 'completed')
+      .map(({ id }) => id)
+      .sort()
+      .join(','),
+  );
+  const { data } = useQuery({
+    queryKey: ['downloads', 'size', completedKey],
+    queryFn: () => fsDirectory(DOWNLOADS_DIR).size ?? 0,
+    enabled: isInitialized,
+    // Cancelled downloads' leftovers and sprites written after completing change it without a new key
+    staleTime: 0,
+    refetchOnMount: 'always',
+    placeholderData: keepPreviousData,
+  });
+  return data;
 };

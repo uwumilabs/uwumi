@@ -3,8 +3,15 @@ import { BottomSheet } from '../BottomSheet';
 import type { DialogProps } from './Dialog';
 
 // No universal dialog exists and SwiftUI's Alert can't host custom content, so iOS presents a sheet.
-export const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children, contentContainerProps }) => (
+export const Dialog: React.FC<DialogProps> = ({
+  open,
+  onOpenChange,
+  children,
+  contentContainerProps,
+  testID = 'native-dialog',
+}) => (
   <BottomSheet
+    testID={testID}
     open={open}
     onOpenChange={onOpenChange}
     scrollable={false}
@@ -15,5 +22,3 @@ export const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children, co
     {children}
   </BottomSheet>
 );
-
-export default Dialog;

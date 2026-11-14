@@ -9,5 +9,3 @@ export const LazyTab = ({ children }: { children: ReactNode }) => {
 
   return opened ? <>{children}</> : null;
 };
-
-export default LazyTab;

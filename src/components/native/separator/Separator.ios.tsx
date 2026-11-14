@@ -27,5 +27,3 @@ export const Separator = ({ orientation = 'horizontal', inset }: SeparatorProps)
     <SeparatorLine orientation={orientation} inset={inset} />
   </Host>
 );
-
-export default Separator;

@@ -1,7 +1,14 @@
 import React from 'react';
 import { View } from 'react-native';
 import { Host, Toggle } from '@expo/ui/swift-ui';
-import { background, disabled as disabledModifier, labelsHidden, shapes, tint } from '@expo/ui/swift-ui/modifiers';
+import {
+  accessibilityIdentifier,
+  background,
+  disabled as disabledModifier,
+  labelsHidden,
+  shapes,
+  tint,
+} from '@expo/ui/swift-ui/modifiers';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import type { SwitchProps } from './Switch';
 
@@ -11,7 +18,7 @@ export const toggleModifiers = (theme: ReturnType<typeof useCurrentTheme>) => [
   background(theme.default, shapes.capsule()),
 ];
 
-export const Switch: React.FC<SwitchProps> = ({ value, onValueChange, disabled }) => {
+export const Switch: React.FC<SwitchProps> = ({ value, onValueChange, disabled, testID }) => {
   const theme = useCurrentTheme();
   return (
     <View pointerEvents={onValueChange ? 'auto' : 'none'}>
@@ -19,11 +26,13 @@ export const Switch: React.FC<SwitchProps> = ({ value, onValueChange, disabled }
         <Toggle
           isOn={value}
           onIsOnChange={onValueChange}
-          modifiers={[...toggleModifiers(theme), disabledModifier(!!disabled)]}
+          modifiers={[
+            ...toggleModifiers(theme),
+            disabledModifier(!!disabled),
+            ...(testID ? [accessibilityIdentifier(testID)] : []),
+          ]}
         />
       </Host>
     </View>
   );
 };
-
-export default Switch;

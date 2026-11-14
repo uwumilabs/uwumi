@@ -1,4 +1,3 @@
-import { MediaFormat, TvType } from 'react-native-consumet';
 import { TextTrackType } from 'react-native-video/src';
 
 export enum MediaType {
@@ -9,51 +8,6 @@ export enum MediaType {
 
 export type MediaFeedType = 'trending' | 'popular' | 'search';
 export type MetaProvider = 'anilist' | 'anilist-manga' | 'tmdb';
-
-export interface Character {
-  id: number;
-  image?: string;
-  name: {
-    native?: string;
-    userPreferred?: string;
-  };
-  role?: string;
-  voiceActors: {
-    id?: number;
-    language?: string;
-    name: {
-      first?: string;
-      full?: string;
-      last?: string;
-      native?: string;
-    };
-    image?: string;
-  };
-}
-
-export interface Details {
-  characters?: Character[];
-  studios: string[];
-  subOrDub: 'sub' | 'dub';
-  trailer: {
-    id: string;
-    site?: string;
-    thumbnail?: string;
-  };
-  countryOfOrigin?: string;
-  description: string;
-  duration: number;
-  endDate?: {
-    year: number;
-    month: number;
-    day: number;
-  };
-  startDate?: {
-    year: number;
-    month: number;
-    day: number;
-  };
-}
 
 export enum EpisodeDisplayMode {
   FullMetadata = 'full',
@@ -129,45 +83,8 @@ export interface ExternalSubtitleData {
 }
 
 export interface SubtitleTrack {
-  index?: number;
   title?: string;
   language?: string;
   type: TextTrackType;
-  selected?: boolean;
   uri: string;
-}
-
-export interface VideoTrack {
-  width?: number;
-  height?: number;
-  codecs?: string;
-  index: number;
-  bitrate?: number;
-}
-
-export interface AudioTrack {
-  index: number;
-  title?: string;
-  language?: string;
-  bitrate?: number;
-  type?: string;
-  selected?: boolean;
-}
-
-export interface WatchSearchParams {
-  mediaType: MediaType;
-  provider: string;
-  id: string;
-  mediaId: string;
-  episodeId: string;
-  episodeDubId: string;
-  uniqueId: string;
-  isDubbed: string;
-  poster: string;
-  title: string;
-  description: string;
-  episodeNumber: string;
-  seasonNumber: string;
-  mappings: string;
-  type: MediaFormat | TvType;
 }

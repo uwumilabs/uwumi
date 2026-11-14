@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react';
-import { themeBase, useThemeStore, usePureBlackBackground } from '@/hooks/stores/useThemeStore';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { isDarkTheme, themeBase, useThemeStore, usePureBlackBackground } from '@/hooks/stores/useThemeStore';
 import { isTV } from '@/utils/tv';
 import TVFocusWrapper from '@/components/TVFocusWrapper';
 import { ThemedView, HUYStack, HUXStack } from '@/components/ui-primitives';
@@ -13,6 +14,7 @@ interface ThemeButtonProps {
   isSelected: boolean;
   label: string;
   onPress: () => void;
+  testID: string;
 }
 
 interface AccentCardProps {
@@ -41,9 +43,10 @@ const Circle = memo(
 );
 Circle.displayName = 'Circle';
 
-const ThemeButton = memo(({ isSelected, label, onPress }: ThemeButtonProps) => {
+const ThemeButton = memo(({ isSelected, label, onPress, testID }: ThemeButtonProps) => {
   return (
     <TVFocusWrapper
+      testID={testID}
       style={{ flex: 1 }}
       className={isSelected ? 'bg-default' : 'transparent'}
       onPress={onPress}
@@ -56,16 +59,12 @@ const ThemeButton = memo(({ isSelected, label, onPress }: ThemeButtonProps) => {
 ThemeButton.displayName = 'ThemeButton';
 
 const ThemeSelector = memo(() => {
-  const isDark = useThemeStore((state) => state.isDark);
+  const isDark = useThemeStore((state) => isDarkTheme(state.themeName));
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
-  const setPureBlackBackground = usePureBlackBackground((state) => state.setPureBlackBackground);
 
   const handleLightPress = useCallback(() => {
-    if (isDark) {
-      toggleTheme();
-    }
-    setPureBlackBackground(false);
-  }, [isDark, toggleTheme, setPureBlackBackground]);
+    if (isDark) toggleTheme();
+  }, [isDark, toggleTheme]);
 
   const handleDarkPress = useCallback(() => {
     if (!isDark) {
@@ -76,9 +75,9 @@ const ThemeSelector = memo(() => {
   return (
     <View className="items-center justify-center">
       <HUXStack className="w-1/2 border-2 overflow-hidden rounded-4xl border-muted">
-        <ThemeButton isSelected={!isDark} label="Light" onPress={handleLightPress} />
+        <ThemeButton testID="appearance-theme-light" isSelected={!isDark} label="Light" onPress={handleLightPress} />
         <Separator orientation="vertical" />
-        <ThemeButton isSelected={isDark} label="Dark" onPress={handleDarkPress} />
+        <ThemeButton testID="appearance-theme-dark" isSelected={isDark} label="Dark" onPress={handleDarkPress} />
       </HUXStack>
     </View>
   );
@@ -102,7 +101,7 @@ const AccentCard = memo(({ themeName, currentTheme, pureBlackBackground, onPress
   );
 
   return (
-    <HUYStack key={themeName}>
+    <HUYStack key={themeName} testID="appearance-accent">
       <TVFocusWrapper
         onPress={onPress}
         focusBorderColor={theme?.accent}
@@ -151,7 +150,7 @@ AccentCard.displayName = 'AccentCard';
 const AccentSelector = memo(() => {
   const currentTheme = useThemeStore((state) => state.themeName);
   const setTheme = useThemeStore((state) => state.setTheme);
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+  const pureBlackBackground = useCurrentTheme().isPureBlack;
 
   const themeNames = useMemo(() => Object.keys(themes) as ThemeName[], []);
 
@@ -167,7 +166,7 @@ const AccentSelector = memo(() => {
     ({ item: baseName }: { item: string }) => {
       const light = `${baseName}-light` as ThemeName;
       const dark = `${baseName}-dark` as ThemeName;
-      const preferred = currentTheme.includes('dark') ? dark : light;
+      const preferred = isDarkTheme(currentTheme) ? dark : light;
       const fallback = themeNames.find((t) => t.startsWith(baseName)) as ThemeName;
       const target = themeNames.includes(preferred) ? preferred : fallback;
 
@@ -208,16 +207,24 @@ const PureBlackSwitch = memo(() => {
   const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const setPureBlackBackground = usePureBlackBackground((state) => state.setPureBlackBackground);
 
-  if (!currentTheme.includes('dark')) return null;
+  if (!isDarkTheme(currentTheme)) return null;
   const toggle = () => setPureBlackBackground(!pureBlackBackground);
 
   // On TV the whole row toggles, so the D-pad lands on the row rather than the small switch; on phones the switch
   // takes the tap itself
   return (
-    <TVFocusWrapper onPress={isTV ? toggle : undefined} focusScale={1} containerStyle={{ marginHorizontal: 8 }}>
+    <TVFocusWrapper
+      testID="appearance-pure-black"
+      onPress={isTV ? toggle : undefined}
+      focusScale={1}
+      containerStyle={{ marginHorizontal: 8 }}>
       <HUXStack className="items-center p-10 justify-between gap-3">
         <Text className="text-accent font-semibold">Pure black dark background</Text>
-        <Switch value={pureBlackBackground} onValueChange={isTV ? undefined : setPureBlackBackground} />
+        <Switch
+          testID="appearance-pure-black-switch"
+          value={pureBlackBackground}
+          onValueChange={isTV ? undefined : setPureBlackBackground}
+        />
       </HUXStack>
     </TVFocusWrapper>
   );
@@ -226,7 +233,7 @@ PureBlackSwitch.displayName = 'PureBlackSwitch';
 
 const Appearance = () => {
   return (
-    <ThemedView>
+    <ThemedView testID="appearance-screen">
       <ThemeSelector />
       <AccentSelector />
       <PureBlackSwitch />

@@ -24,6 +24,19 @@ interface WatchProgressState {
   clearAll: () => void;
 }
 
+// Saved progress this close to the end counts as finished
+const RESTART_TAIL_SECONDS = 10;
+
+/**
+ * Where to start an episode: where it was left, or the start once it's watched or nearly over, as resuming at its
+ * end would end it at once and roll on to the next. `duration` is the loaded video's, else the saved one
+ */
+export const resumeAt = (uniqueId: string, duration?: number) => {
+  const saved = useWatchProgressStore.getState().progresses[uniqueId];
+  const length = duration ?? saved?.duration ?? 0;
+  return saved && !saved.isCompleted && saved.currentTime < length - RESTART_TAIL_SECONDS ? saved.currentTime : 0;
+};
+
 export const isWatchedPercent = (percent: number) => percent >= usePlayerSettingsStore.getState().watchedPercent;
 
 export const useWatchProgressStore = create<WatchProgressState>()(

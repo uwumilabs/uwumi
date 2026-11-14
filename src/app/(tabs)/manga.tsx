@@ -1,20 +1,7 @@
-import { ThemedView } from '@/components/ui-primitives';
-import { MediaBrowser } from '@/components/MediaBrowser';
-import { LazyTab } from '@/components/LazyTab';
-import { MediaType } from '@/constants/types';
-import { PerfProfiler } from '@/perf/perfHarness';
 import React from 'react';
+import { MediaTabScreen } from '@/components/MediaBrowser';
+import { MediaType } from '@/constants/types';
 
-const manga = () => {
-  return (
-    <PerfProfiler id="manga tab">
-      <ThemedView>
-        <LazyTab>
-          <MediaBrowser mediaType={MediaType.MANGA} />
-        </LazyTab>
-      </ThemedView>
-    </PerfProfiler>
-  );
-};
+const Manga = () => <MediaTabScreen name="manga" mediaType={MediaType.MANGA} />;
 
-export default manga;
+export default Manga;

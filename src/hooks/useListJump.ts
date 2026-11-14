@@ -1,9 +1,8 @@
 import { RefObject, useCallback, useMemo, useState } from 'react';
 import type { FlashListRef, ViewToken } from '@shopify/flash-list';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '@/utils/haptics';
 import { useAnimatedReaction, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { isTV } from '@/utils/tv';
 
 const RANGE_SIZE = 100;
 const JUMP_BAR_SCREENS = 1.5;
@@ -12,7 +11,7 @@ export const LIST_SHADOW_SIZE = 48;
 // range label back to the previous range
 const VIEWABILITY_CONFIG = { itemVisiblePercentThreshold: 50 };
 
-export interface ListRange {
+interface ListRange {
   name: string;
   value: string;
 }
@@ -21,7 +20,7 @@ interface UseListJumpOptions<T> {
   items: T[];
   listRef: RefObject<FlashListRef<T> | null>;
   /** Label for the range spanning these indices, e.g. "EP 1–100" */
-  rangeLabel: (startIndex: number, endIndex: number) => string;
+  rangeLabel: (items: T[], startIndex: number, endIndex: number) => string;
 }
 
 /**
@@ -39,7 +38,7 @@ export function useListJump<T>({ items, listRef, rangeLabel }: UseListJumpOption
     const result: ListRange[] = [];
     for (let start = 0; start < items.length; start += RANGE_SIZE) {
       const end = Math.min(start + RANGE_SIZE, items.length) - 1;
-      result.push({ name: rangeLabel(start, end), value: String(start) });
+      result.push({ name: rangeLabel(items, start, end), value: String(start) });
     }
     return result;
   }, [items, rangeLabel]);
@@ -75,7 +74,7 @@ export function useListJump<T>({ items, listRef, rangeLabel }: UseListJumpOption
   const scrollToTop = useCallback(() => {
     const list = listRef.current;
     if (!list) return;
-    if (!isTV) Haptics.selectionAsync();
+    haptics.selection();
     // Jump to two screens from the top first, as FlashList's scrollToIndex does, so the animation doesn't fly
     // past thousands of rows it can't render in time
     const glideDistance = viewportHeight.get() * 2;

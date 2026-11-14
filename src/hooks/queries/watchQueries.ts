@@ -1,9 +1,9 @@
 import { IEpisodeServer, ISource, PolyURL, StreamingServers, SubOrDub, TvType } from 'react-native-consumet';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { fetchJson, HttpError } from '@/utils/http';
-import { ExternalSubtitleData, MediaType } from '@/constants/types';
+import { ExternalSubtitleData, MediaType, type SubtitleTrack } from '@/constants/types';
 import { TextTrackType } from 'react-native-video/src/types/video';
-import { SubtitleTrack } from '@/constants/types';
+import { isThumbnailTrack, subtitleType } from '@/utils/subtitles';
 import {
   getExtensionManagers,
   loadAnimeProvider,
@@ -33,15 +33,6 @@ export const episodeTarget = ({ mediaType, provider, episodeId, mediaId, dub }: 
     ? { mediaType, provider, episodeId, dub: !!dub }
     : { mediaType, provider, episodeId, mediaId: mediaId ?? '' };
 
-/** A source's request headers, as players and FFmpeg take them: providers sometimes put other values in */
-export const sourceRequestHeaders = (headers: unknown) =>
-  headers && typeof headers === 'object'
-    ? (Object.fromEntries(Object.entries(headers).filter(([, value]) => typeof value === 'string')) as Record<
-        string,
-        string
-      >)
-    : undefined;
-
 /** The server answered but has no playable sources, so rotation moves on to the next one. */
 export class NoSourcesError extends Error {
   constructor(serverName: string) {
@@ -59,7 +50,32 @@ async function fetchEpisodeServers({ mediaType, provider, episodeId, mediaId, du
   return servers as IEpisodeServer[];
 }
 
-async function fetchServerSources(target: EpisodeTarget, server: IEpisodeServer): Promise<ISource> {
+/** A server's sources as the player, the episode sheet and downloads take them, whatever the provider sent */
+export interface PlayableSource {
+  sources: ISource['sources'];
+  subtitles: SubtitleTrack[];
+  /** The provider's seek-preview sprite list, which it sends among the subtitles */
+  thumbnails?: string;
+  /** Request headers; providers sometimes put other values in */
+  headers?: Record<string, string>;
+}
+
+const playable = ({ sources, subtitles = [], headers }: ISource): PlayableSource => ({
+  sources,
+  subtitles: subtitles
+    .filter((sub) => !isThumbnailTrack(sub))
+    .map((sub) => ({ title: sub.lang, language: sub.lang, type: subtitleType(sub.url), uri: sub.url })),
+  thumbnails: subtitles.find((sub) => isThumbnailTrack(sub))?.url,
+  headers:
+    headers && typeof headers === 'object'
+      ? (Object.fromEntries(Object.entries(headers).filter(([, value]) => typeof value === 'string')) as Record<
+          string,
+          string
+        >)
+      : undefined,
+});
+
+async function fetchServerSources(target: EpisodeTarget, server: IEpisodeServer): Promise<PlayableSource> {
   const { mediaType, provider, episodeId, mediaId, dub } = target;
   const fromProvider = async () =>
     (mediaType === MediaType.ANIME
@@ -84,7 +100,7 @@ async function fetchServerSources(target: EpisodeTarget, server: IEpisodeServer)
     data = await fromProvider();
   }
   if (!data?.sources?.some((source) => source.url)) throw new NoSourcesError(server.name);
-  return data;
+  return playable(data);
 }
 
 export function useEpisodeServers(target: EpisodeTarget, enabled = true) {
@@ -96,11 +112,11 @@ export function useEpisodeServers(target: EpisodeTarget, enabled = true) {
 }
 
 /**
- * One server's sources. `attempt` changes per try, so every try fetches fresh links (they're often signed and
- * expire) and a failed try never comes back from the cache.
+ * One server's sources. The player's rotation gives each try its own `attempt`, so every try fetches fresh links
+ * (they're often signed and expire) and a failed try never comes back from the cache.
  */
 export function useEpisodeSources(target: EpisodeTarget, server: IEpisodeServer | undefined, attempt: string) {
-  return useQuery<ISource>({
+  return useQuery<PlayableSource>({
     queryKey: ['watch', 'sources', target, server?.name, attempt],
     queryFn: () => fetchServerSources(target, server!),
     enabled: !!server && !!target.episodeId,
@@ -109,29 +125,6 @@ export function useEpisodeSources(target: EpisodeTarget, server: IEpisodeServer 
     staleTime: Infinity,
     gcTime: 30 * 1000,
     refetchOnReconnect: false,
-  });
-}
-
-async function fetchSourcesWithServers(
-  target: EpisodeTarget,
-  serverName: string | undefined,
-): Promise<Partial<ISource> & { servers: IEpisodeServer[] }> {
-  const servers = await fetchEpisodeServers(target);
-  const server = servers.find((s) => s.name === serverName) ?? servers[0];
-  try {
-    return { ...(await fetchServerSources(target, server)), servers };
-  } catch (error) {
-    // The servers still list, so another one can be picked
-    console.warn(`No sources on ${server.name}:`, error);
-    return { sources: [], subtitles: [], servers };
-  }
-}
-
-export function useEpisodeSourcesWithServers(target: EpisodeTarget, serverName: string | undefined, enabled: boolean) {
-  return useQuery({
-    queryKey: ['watch', 'sheet', target, serverName],
-    enabled: enabled && !!target.episodeId,
-    queryFn: () => fetchSourcesWithServers(target, serverName),
   });
 }
 
@@ -147,7 +140,7 @@ interface ExternalSubtitlesParams {
   imdbId: string;
   episodeNumber?: string;
   seasonNumber?: string;
-  type: string;
+  type?: string;
   language: string | null;
 }
 
@@ -191,7 +184,6 @@ export const externalSubtitlesQuery = ({
           )
           .slice(0, MAX_EXTERNAL_SUBTITLES)
           .map((item, index) => ({
-            index: parseInt(item.IDSubtitleFile),
             language: item.ISO639,
             type: TextTrackType.SUBRIP,
             // The link without .gz serves the file uncompressed

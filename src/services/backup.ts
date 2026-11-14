@@ -2,7 +2,7 @@ import { Platform, Share } from 'react-native';
 import * as Application from 'expo-application';
 import { Directory, File } from 'expo-file-system';
 import { useContinueWatchingStore } from '@/hooks/stores/useContinueWatchingStore';
-import { installedExtensionIds, useExtensionStore } from '@/hooks/stores/useExtensionStore';
+import { useExtensionStore } from '@/hooks/stores/useExtensionStore';
 import { useExternalSubtitleStore } from '@/hooks/stores/useExternalSubtitleStore';
 import { useFavoriteStore } from '@/hooks/stores/useFavoriteStore';
 import { useLastServerStore } from '@/hooks/stores/useLastServerStore';
@@ -125,7 +125,7 @@ const SETTINGS = {
   ),
 };
 
-// Not the backup folder or the last backup's time: they belong to this device
+// Not "Downloaded only", the backup folder or the last backup's time: they're about this device
 const PREFERENCES = {
   incognito: field(
     () => usePreferencesStore.getState().incognito,
@@ -178,7 +178,7 @@ export interface Backup {
   extensions?: string[];
 }
 
-export interface RestoreResult {
+interface RestoreResult {
   favorites: number;
   extensions: number;
   failedExtensions: string[];
@@ -186,8 +186,8 @@ export interface RestoreResult {
 
 /** The backup's extensions that aren't installed here, which a restore installs */
 export const missingExtensions = (backup: Backup) => {
-  const installed = new Set(installedExtensionIds());
-  return (backup.extensions ?? []).filter((id) => !installed.has(id));
+  const { installed } = useExtensionStore.getState();
+  return (backup.extensions ?? []).filter((id) => !installed[id]);
 };
 
 export const createBackup = (): Backup => ({
@@ -198,11 +198,11 @@ export const createBackup = (): Backup => ({
   platform: Platform.OS,
   library: readAll(LIBRARY),
   settings: { ...readAll(SETTINGS), preferences: readAll(PREFERENCES) },
-  extensions: installedExtensionIds(),
+  extensions: Object.keys(useExtensionStore.getState().installed),
 });
 
 /** A backup read from a file, checked; throws a message fit to show when it isn't one uwumi can restore */
-export const parseBackup = (text: string): Backup => {
+const parseBackup = (text: string): Backup => {
   let raw: unknown;
   try {
     raw = JSON.parse(text);
@@ -242,11 +242,7 @@ export const restoreBackup = async (
     await useExtensionStore.getState().updateRegistry();
     for (const [index, id] of missing.entries()) {
       onProgress?.(index, missing.length);
-      const ok = await useExtensionStore
-        .getState()
-        .installExtension(id)
-        .catch(() => false);
-      if (!ok) failedExtensions.push(id);
+      if (!(await useExtensionStore.getState().installExtension(id))) failedExtensions.push(id);
     }
     onProgress?.(missing.length, missing.length);
   }
@@ -308,10 +304,12 @@ export const backupFolderLabel = (saved: string | null) => {
 };
 
 /** Automatic backups on but no folder chosen (as after a reinstall and restore), where one can be */
-export const needsBackupFolder = () => {
-  const { autoBackupDays, backupFolderUri } = usePreferencesStore.getState();
-  return supportsBackupFolder() && autoBackupDays > 0 && !backupFolderUri;
-};
+export const needsBackupFolder = (
+  {
+    autoBackupDays,
+    backupFolderUri,
+  }: { autoBackupDays: number; backupFolderUri: string | null } = usePreferencesStore.getState(),
+) => supportsBackupFolder() && autoBackupDays > 0 && !backupFolderUri;
 
 /** A name the user typed, as a file name: characters file systems refuse dropped, `.json` added */
 export const cleanBackupName = (name: string) => {

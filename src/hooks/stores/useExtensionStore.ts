@@ -34,8 +34,6 @@ const EXTRACTOR_PREFIX = 'extr_';
 // No absolute path is stored: iOS moves the app container on reinstall, so paths are rebuilt with getFilePath.
 interface CachedItem {
   version: string;
-  downloadedAt: string;
-  fileSize?: number;
 }
 
 /** The whole signed registry (kept whole so its `schemaVersion` survives), or the one bundled with the library. */
@@ -49,19 +47,16 @@ type CodeEntry = { version: string; main: string; sha256?: string };
 
 interface ExtensionStoreState {
   registry: RegistryMetadata;
-  /** Bumped when an extension is installed or removed, so provider lists recompute */
-  installedVersion: number;
+  /** Installed version by extension id, also for extensions the current registry no longer lists */
+  installed: Record<string, string>;
   isLoading: boolean;
   error: string | null;
   /** Downloads the signed registry; a failure keeps the current one and sets `error` */
   updateRegistry: () => Promise<void>;
-  /** Installs (or updates) the extension and its extractors; false when it couldn't be */
+  /** Installs (or updates) the extension and its extractors; false when it couldn't be. Never throws */
   installExtension: (extensionId: string, force?: boolean) => Promise<boolean>;
-  uninstallExtension: (extensionId: string) => Promise<boolean>;
-  isExtensionInstalled: (extensionId: string) => boolean;
-  getInstalledExtensions: () => ExtensionManifest[];
+  uninstallExtension: (extensionId: string) => void;
   getExtensionInfo: (extensionId: string) => ExtensionManifest | null;
-  checkForUpdates: () => Promise<{ extensions: string[]; extractors: string[] }>;
 }
 
 const loadJSONFromStorage = <T>(key: string): T | null => {
@@ -74,13 +69,11 @@ const loadJSONFromStorage = <T>(key: string): T | null => {
   }
 };
 
-const saveJSONToStorage = (key: string, data: any): boolean => {
+const saveJSONToStorage = (key: string, data: unknown) => {
   try {
     storage.set(key, JSON.stringify(data));
-    return true;
   } catch (error) {
     console.error(`❌ Failed to save JSON for key ${key}:`, error);
-    return false;
   }
 };
 
@@ -109,19 +102,6 @@ const registryErrorMessage = (error: unknown): string => {
   return `Couldn't download the registry. Keeping the current one. ${error instanceof Error ? error.message : ''}`.trim();
 };
 
-const downloadFile = async (url: string, destination: string): Promise<boolean> => {
-  try {
-    ensureDirectory(destination.substring(0, destination.lastIndexOf('/')));
-
-    // Rejects on a non-2xx response
-    await FsFile.downloadFileAsync(url, fsFile(destination), { idempotent: true });
-    return true;
-  } catch (error) {
-    console.error(`❌ Failed to download file from ${url}:`, error);
-    return false;
-  }
-};
-
 // Extractor names are matched case-insensitively ('MegaCloud', 'megacloud')
 const normalizeId = (type: CodeType, id: string) => (type === 'extractor' ? id.toLowerCase() : id);
 
@@ -130,16 +110,7 @@ const getFilePath = (type: CodeType, id: string, version: string): string => {
   return `${base}/${normalizeId(type, id)}_v${version}.js`;
 };
 
-const getFileSize = async (path: string): Promise<number | undefined> => {
-  try {
-    const file = fsFile(path);
-    return file.exists ? file.size : undefined;
-  } catch {
-    return undefined;
-  }
-};
-
-const deleteFile = async (path: string): Promise<void> => {
+const deleteFile = (path: string) => {
   try {
     const file = fsFile(path);
     if (file.exists) file.delete();
@@ -165,7 +136,7 @@ const installCode = (type: CodeType, id: string, entry: CodeEntry, force = false
   return pending;
 };
 
-/** Downloads an entry's code and keeps it only if it matches the entry's sha256. */
+/** Downloads an entry's code and keeps it only if it matches the entry's sha256; false when it couldn't. */
 const downloadCode = async (type: CodeType, id: string, entry: CodeEntry, force: boolean): Promise<boolean> => {
   const cacheKey = getCacheKey(type, id);
   const cached = loadJSONFromStorage<CachedItem>(cacheKey);
@@ -174,26 +145,21 @@ const downloadCode = async (type: CodeType, id: string, entry: CodeEntry, force:
   const filePath = getFilePath(type, id, entry.version);
   // The current file stays in place until the new one has passed its check
   const downloadPath = `${filePath}.download`;
-  if (!(await downloadFile(entry.main, downloadPath))) {
-    await deleteFile(downloadPath);
-    return false;
-  }
   try {
+    ensureDirectory(filePath.substring(0, filePath.lastIndexOf('/')));
+    // Rejects on a non-2xx response
+    await FsFile.downloadFileAsync(entry.main, fsFile(downloadPath), { idempotent: true });
     verifyExtensionCode(await fsFile(downloadPath).text(), { id, sha256: entry.sha256 });
+    deleteFile(filePath);
+    fsFile(downloadPath).moveSync(fsFile(filePath), { overwrite: true });
   } catch (error) {
-    console.error(`❌ ${id} ${entry.version} failed its integrity check:`, error);
-    await deleteFile(downloadPath);
+    console.error(`❌ Couldn't install ${id} ${entry.version}:`, error);
+    deleteFile(downloadPath);
     return false;
   }
-  await deleteFile(filePath);
-  fsFile(downloadPath).moveSync(fsFile(filePath), { overwrite: true });
 
-  if (cached && cached.version !== entry.version) await deleteFile(getFilePath(type, id, cached.version));
-  const cache: CachedItem = {
-    version: entry.version,
-    downloadedAt: new Date().toISOString(),
-    fileSize: await getFileSize(filePath),
-  };
+  if (cached && cached.version !== entry.version) deleteFile(getFilePath(type, id, cached.version));
+  const cache: CachedItem = { version: entry.version };
   saveJSONToStorage(cacheKey, cache);
   return true;
 };
@@ -208,24 +174,27 @@ const readCode = async (type: CodeType, id: string): Promise<string | null> => {
   }
 };
 
-const uninstallCode = async (type: CodeType, id: string) => {
+const uninstallCode = (type: CodeType, id: string) => {
   const key = getCacheKey(type, id);
   const cached = loadJSONFromStorage<CachedItem>(key);
-  if (cached) await deleteFile(getFilePath(type, id, cached.version));
+  if (cached) deleteFile(getFilePath(type, id, cached.version));
   storage.remove(key);
-  return true;
 };
 
 const findExtractor = (registry: RegistryMetadata, name: string) =>
   registry.extractors.find((e) => e.name.toLowerCase() === name.toLowerCase());
 
-/** The extensions installed here, by id: also ones the current registry no longer lists */
-export const installedExtensionIds = () =>
-  storage.getAllKeys().flatMap((key) => (key.startsWith(EXTENSION_PREFIX) ? [key.slice(EXTENSION_PREFIX.length)] : []));
+const loadInstalled = (): Record<string, string> =>
+  Object.fromEntries(
+    storage.getAllKeys().flatMap((key) => {
+      const version = key.startsWith(EXTENSION_PREFIX) && loadJSONFromStorage<CachedItem>(key)?.version;
+      return version ? [[key.slice(EXTENSION_PREFIX.length), version]] : [];
+    }),
+  );
 
 export const useExtensionStore = create<ExtensionStoreState>((set, get) => ({
   registry: loadInitialRegistry(),
-  installedVersion: 0,
+  installed: loadInstalled(),
   isLoading: false,
   error: null,
 
@@ -251,42 +220,32 @@ export const useExtensionStore = create<ExtensionStoreState>((set, get) => ({
     if (!extension || !isCompatibleEntry(extension)) return false;
 
     for (const extractor of extension.extractors ?? []) await installExtractor(extractor);
-    const installed = await installCode('extension', extensionId, extension, force);
-    if (installed) set((state) => ({ installedVersion: state.installedVersion + 1 }));
-    return installed;
+    if (!(await installCode('extension', extensionId, extension, force))) return false;
+    if (get().installed[extensionId] !== extension.version) {
+      set((state) => ({ installed: { ...state.installed, [extensionId]: extension.version } }));
+    }
+    return true;
   },
 
-  uninstallExtension: async (id) => {
-    const removed = await uninstallCode('extension', id);
-    set((state) => ({ installedVersion: state.installedVersion + 1 }));
-    return removed;
+  uninstallExtension: (id) => {
+    uninstallCode('extension', id);
+    const installed = { ...get().installed };
+    delete installed[id];
+    set({ installed });
   },
-
-  // A key check, not a read and parse: provider lists run this for every extension
-  isExtensionInstalled: (id) => storage.contains(getCacheKey('extension', id)),
-
-  getInstalledExtensions: () => get().registry.extensions.filter((e) => get().isExtensionInstalled(e.id)),
 
   getExtensionInfo: (id) => get().registry.extensions.find((e) => e.id === id) || null,
-
-  checkForUpdates: async () => {
-    const { registry } = get();
-    const extUpdates: string[] = [];
-    const extrUpdates: string[] = [];
-
-    for (const ext of registry.extensions) {
-      const cached = loadJSONFromStorage<CachedItem>(getCacheKey('extension', ext.id));
-      if (cached && cached.version !== ext.version && isCompatibleEntry(ext)) extUpdates.push(ext.id);
-    }
-
-    for (const extr of registry.extractors) {
-      const cached = loadJSONFromStorage<CachedItem>(getCacheKey('extractor', extr.name));
-      if (cached && cached.version !== extr.version && isCompatibleEntry(extr)) extrUpdates.push(extr.name);
-    }
-
-    return { extensions: extUpdates, extractors: extrUpdates };
-  },
 }));
+
+/** The registry's extensions that are installed */
+export const installedExtensions = ({ registry, installed }: Pick<ExtensionStoreState, 'registry' | 'installed'>) =>
+  registry.extensions.filter((extension) => !!installed[extension.id]);
+
+/** Whether the registry has another version of an installed extension, and this app can run it */
+export const updateAvailable = (extension: ExtensionManifest, installed: ExtensionStoreState['installed']) => {
+  const version = installed[extension.id];
+  return !!version && version !== extension.version && isCompatibleEntry(extension);
+};
 
 const installExtractor = async (name: string, force = false) => {
   const extractor = findExtractor(useExtensionStore.getState().registry, name);

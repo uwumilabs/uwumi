@@ -29,6 +29,7 @@ export const ReaderPage = memo(
     if (error) {
       return (
         <Pressable
+          testID="reader-page-retry"
           onPress={() => {
             setError(null);
             setAttempt((count) => count + 1);
@@ -54,7 +55,7 @@ export const ReaderPage = memo(
 
     return (
       // TV: each page takes focus, so the D-pad scrolls through the chapter page by page
-      <View style={{ width, height }} focusable={isTV}>
+      <View testID="reader-page" style={{ width, height }} focusable={isTV}>
         <Image
           key={attempt}
           source={{ uri: page.img, headers: page.headerForImage }}
@@ -76,5 +77,3 @@ export const ReaderPage = memo(
   },
 );
 ReaderPage.displayName = 'ReaderPage';
-
-export default ReaderPage;

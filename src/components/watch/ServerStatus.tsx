@@ -1,4 +1,5 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
+import { notOnProvider } from '@/utils/episodes';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { cn, useThemeColor } from '@/components/heroui';
 import { Button } from '@/components/Button';
@@ -15,11 +16,15 @@ export interface ServerChip {
   reason?: ServerFailure;
 }
 
-export const FAILURE_LABELS: Record<ServerFailure, string> = {
+const FAILURE_LABELS: Record<ServerFailure, string> = {
   'no-video': 'no video',
   unavailable: 'error',
   playback: 'didn’t play',
 };
+
+/** A server's name, and why it failed if it did, as the chips and the settings menu list it */
+export const serverLabel = (name: string, failure?: ServerFailure) =>
+  failure ? `${name} · ${FAILURE_LABELS[failure]}` : name;
 
 const NOTICE_MS = 2500;
 
@@ -28,6 +33,7 @@ const Chip = ({ chip, onPress }: { chip: ServerChip; onPress: () => void }) => {
   const current = chip.state === 'current';
   return (
     <Button
+      testID="server-chip"
       size="sm"
       variant={current ? 'primary' : 'tertiary'}
       onPress={current ? undefined : onPress}
@@ -41,7 +47,7 @@ const Chip = ({ chip, onPress }: { chip: ServerChip; onPress: () => void }) => {
           className="text-foreground"
         />
       )}
-      <Button.Label>{chip.reason ? `${chip.name} · ${FAILURE_LABELS[chip.reason]}` : chip.name}</Button.Label>
+      <Button.Label>{serverLabel(chip.name, chip.reason)}</Button.Label>
     </Button>
   );
 };
@@ -74,19 +80,19 @@ export const ServerStatusScreen = ({
     finding: chips.length ? 'Finding a working server…' : 'Getting servers…',
     exhausted: 'No server worked for this episode',
     unavailable: `Couldn’t get servers from ${providerName}`,
-    missing: `Not on ${providerName}`,
+    missing: notOnProvider(providerName).title,
   }[phase];
   const detail = {
     finding: current >= 0 ? `Server ${current + 1} of ${chips.length} · tap one to try it` : undefined,
     exhausted: 'Try them again, or another provider.',
     unavailable: 'Try again, or another provider.',
-    missing: 'This episode isn’t available there. Try another provider.',
+    missing: notOnProvider(providerName).detail,
   }[phase];
 
   return (
-    <View className="flex-1 bg-black">
+    <View testID="server-status" className="flex-1 bg-black">
       <HUXStack className="items-center gap-2 p-4">
-        <Pressable onPress={onBack} hitSlop={12} accessibilityLabel="Back">
+        <Pressable testID="server-status-back" onPress={onBack} hitSlop={12} accessibilityLabel="Back">
           <MaterialIconsIcon name="arrow-back" size={26} color="white" />
         </Pressable>
         {title ? (
@@ -109,7 +115,7 @@ export const ServerStatusScreen = ({
         {phase !== 'finding' && (
           <HUXStack className="items-center gap-3 pt-2">
             {onRetry && phase !== 'missing' && (
-              <Button variant="primary" onPress={onRetry}>
+              <Button testID="server-status-retry" variant="primary" onPress={onRetry}>
                 <Button.Label>Try again</Button.Label>
               </Button>
             )}
@@ -144,7 +150,7 @@ export const ServerLoadingOverlay = ({
 
   return (
     <VideoPlayer.Overlay pointerEvents="none" style={styles.corner}>
-      <HUXStack className="items-center gap-2 rounded-full bg-black/70 px-3 py-1.5">
+      <HUXStack testID="server-loading" className="items-center gap-2 rounded-full bg-black/70 px-3 py-1.5">
         {loading ? (
           <ActivityIndicator size="small" color="white" />
         ) : (

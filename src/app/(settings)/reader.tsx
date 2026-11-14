@@ -1,24 +1,23 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ScrollView } from 'react-native';
-import { ChoiceDialog, choiceLabel, type ChoiceOption } from '@/components/ChoiceDialog';
+import type { ChoiceOption } from '@/components/ChoiceDialog';
+import { ChoiceRow, ChoiceRowHost } from '@/components/ChoiceRow';
 import { List as NativeList } from '@/components/native/list/List';
 import { SectionTitle, ThemedView } from '@/components/ui-primitives';
+import { isTV } from '@/utils/tv';
 import {
   type InvertTapZones,
   type ReaderBackground,
   type ReadingMode,
   type TapZonesLayout,
+  READING_MODES,
   useReaderSettingsStore,
-  isPagedMode,
 } from '@/hooks/stores/useReaderSettingsStore';
 
-const READING_MODE_OPTIONS: ChoiceOption<ReadingMode>[] = [
-  { label: 'Paged (left to right)', value: 'paged-ltr' },
-  { label: 'Paged (right to left)', value: 'paged-rtl' },
-  { label: 'Paged (vertical)', value: 'paged-vertical' },
-  { label: 'Long strip', value: 'long-strip' },
-  { label: 'Long strip with gaps', value: 'long-strip-gaps' },
-];
+const READING_MODE_OPTIONS = Object.entries(READING_MODES).map(([value, { label }]) => ({
+  label,
+  value: value as ReadingMode,
+}));
 const BACKGROUND_OPTIONS: ChoiceOption<ReaderBackground>[] = [
   { label: 'App theme', value: 'theme' },
   { label: 'Black', value: 'black' },
@@ -41,113 +40,99 @@ const INVERT_OPTIONS: ChoiceOption<InvertTapZones>[] = [
 ];
 
 const Reader = () => {
-  const settings = useReaderSettingsStore();
-  const update = settings.update;
-  const [open, setOpen] = useState<'readingMode' | 'background' | 'padding' | 'tapZones' | 'invert' | null>(null);
+  const readingMode = useReaderSettingsStore((state) => state.readingMode);
+  const background = useReaderSettingsStore((state) => state.background);
+  const keepScreenOn = useReaderSettingsStore((state) => state.keepScreenOn);
+  const showPageNumber = useReaderSettingsStore((state) => state.showPageNumber);
+  const sidePadding = useReaderSettingsStore((state) => state.sidePadding);
+  const tapZones = useReaderSettingsStore((state) => state.tapZones);
+  const invertTapZones = useReaderSettingsStore((state) => state.invertTapZones);
+  const showTapZonesOverlay = useReaderSettingsStore((state) => state.showTapZonesOverlay);
+  const update = useReaderSettingsStore((state) => state.update);
 
   return (
-    <ThemedView>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <SectionTitle>General</SectionTitle>
-        <NativeList variant="flat">
-          <NativeList.Item
-            title="Default reading mode"
-            description={choiceLabel(READING_MODE_OPTIONS, settings.readingMode)}
-            onPress={() => setOpen('readingMode')}
-          />
-        </NativeList>
+    <ThemedView testID="reader-settings-screen">
+      <ChoiceRowHost>
+        <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+          <SectionTitle>General</SectionTitle>
+          <NativeList variant="flat">
+            <ChoiceRow
+              testID="reader-settings-row-reading-mode"
+              title="Default reading mode"
+              options={READING_MODE_OPTIONS}
+              value={readingMode}
+              onChange={(value) => update({ readingMode: value })}
+            />
+          </NativeList>
 
-        <SectionTitle>Display</SectionTitle>
-        <NativeList variant="flat">
-          <NativeList.Item
-            title="Background color"
-            description={choiceLabel(BACKGROUND_OPTIONS, settings.background)}
-            onPress={() => setOpen('background')}
-          />
-          <NativeList.Item
-            title="Keep screen on"
-            toggle={{ value: settings.keepScreenOn, onValueChange: (keepScreenOn) => update({ keepScreenOn }) }}
-          />
-          <NativeList.Item
-            title="Show page number"
-            toggle={{ value: settings.showPageNumber, onValueChange: (showPageNumber) => update({ showPageNumber }) }}
-          />
-        </NativeList>
+          <SectionTitle>Display</SectionTitle>
+          <NativeList variant="flat">
+            <ChoiceRow
+              testID="reader-settings-row-background"
+              title="Background color"
+              options={BACKGROUND_OPTIONS}
+              value={background}
+              onChange={(value) => update({ background: value })}
+            />
+            <NativeList.Item
+              testID="reader-settings-row-keep-screen-on"
+              title="Keep screen on"
+              toggle={{ value: keepScreenOn, onValueChange: (value) => update({ keepScreenOn: value }) }}
+            />
+            <NativeList.Item
+              testID="reader-settings-row-page-number"
+              title="Show page number"
+              toggle={{ value: showPageNumber, onValueChange: (value) => update({ showPageNumber: value }) }}
+            />
+          </NativeList>
 
-        <SectionTitle>Tap zones</SectionTitle>
-        <NativeList variant="flat">
-          <NativeList.Item
-            title="Tap zones"
-            description={choiceLabel(TAP_ZONE_OPTIONS, settings.tapZones)}
-            onPress={() => setOpen('tapZones')}
-          />
-          <NativeList.Item
-            title="Invert tap zones"
-            description={choiceLabel(INVERT_OPTIONS, settings.invertTapZones)}
-            disabled={settings.tapZones === 'disabled'}
-            onPress={() => setOpen('invert')}
-          />
-          <NativeList.Item
-            title="Show tap zones overlay"
-            description="Briefly show when the reader opens"
-            toggle={{
-              value: settings.showTapZonesOverlay,
-              onValueChange: (showTapZonesOverlay) => update({ showTapZonesOverlay }),
-            }}
-          />
-        </NativeList>
+          {/* TV pages take the D-pad's focus and have no tap zones */}
+          {!isTV && (
+            <>
+              <SectionTitle>Tap zones</SectionTitle>
+              <NativeList variant="flat">
+                <ChoiceRow
+                  testID="reader-settings-row-tap-zones"
+                  title="Tap zones"
+                  options={TAP_ZONE_OPTIONS}
+                  value={tapZones}
+                  onChange={(value) => update({ tapZones: value })}
+                />
+                <ChoiceRow
+                  testID="reader-settings-row-invert-tap-zones"
+                  title="Invert tap zones"
+                  options={INVERT_OPTIONS}
+                  value={invertTapZones}
+                  onChange={(value) => update({ invertTapZones: value })}
+                  disabled={tapZones === 'disabled'}
+                />
+                <NativeList.Item
+                  testID="reader-settings-row-tap-zones-overlay"
+                  title="Show tap zones overlay"
+                  description="Briefly show when the reader opens"
+                  toggle={{
+                    value: showTapZonesOverlay,
+                    onValueChange: (value) => update({ showTapZonesOverlay: value }),
+                  }}
+                />
+              </NativeList>
+            </>
+          )}
 
-        <SectionTitle>Long strip</SectionTitle>
-        <NativeList variant="flat">
-          <NativeList.Item
-            title="Side padding"
-            disabled={isPagedMode(settings.readingMode)}
-            description={`${settings.sidePadding}%`}
-            onPress={() => setOpen('padding')}
-          />
-        </NativeList>
-      </ScrollView>
-
-      <ChoiceDialog
-        open={open === 'readingMode'}
-        onOpenChange={(isOpen) => !isOpen && setOpen(null)}
-        title="Default reading mode"
-        options={READING_MODE_OPTIONS}
-        value={settings.readingMode}
-        onChange={(readingMode) => update({ readingMode })}
-      />
-      <ChoiceDialog
-        open={open === 'background'}
-        onOpenChange={(isOpen) => !isOpen && setOpen(null)}
-        title="Background color"
-        options={BACKGROUND_OPTIONS}
-        value={settings.background}
-        onChange={(background) => update({ background })}
-      />
-      <ChoiceDialog
-        open={open === 'tapZones'}
-        onOpenChange={(isOpen) => !isOpen && setOpen(null)}
-        title="Tap zones"
-        options={TAP_ZONE_OPTIONS}
-        value={settings.tapZones}
-        onChange={(tapZones) => update({ tapZones })}
-      />
-      <ChoiceDialog
-        open={open === 'invert'}
-        onOpenChange={(isOpen) => !isOpen && setOpen(null)}
-        title="Invert tap zones"
-        options={INVERT_OPTIONS}
-        value={settings.invertTapZones}
-        onChange={(invertTapZones) => update({ invertTapZones })}
-      />
-      <ChoiceDialog
-        open={open === 'padding'}
-        onOpenChange={(isOpen) => !isOpen && setOpen(null)}
-        title="Side padding"
-        options={PADDING_OPTIONS}
-        value={settings.sidePadding}
-        onChange={(sidePadding) => update({ sidePadding })}
-      />
+          <SectionTitle>Long strip</SectionTitle>
+          <NativeList variant="flat">
+            <ChoiceRow
+              testID="reader-settings-row-side-padding"
+              title="Side padding"
+              options={PADDING_OPTIONS}
+              value={sidePadding}
+              onChange={(value) => update({ sidePadding: value })}
+              description={`${sidePadding}%`}
+              disabled={READING_MODES[readingMode].paged}
+            />
+          </NativeList>
+        </ScrollView>
+      </ChoiceRowHost>
     </ThemedView>
   );
 };

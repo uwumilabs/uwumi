@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MEDIA_TABS } from '@/utils/media';
 import { ScrollView, Text } from 'react-native';
 import { HorizontalTabs } from '@/components/HorizontalTabs';
 import { HUXStack, HUYStack, ThemedView } from '@/components/ui-primitives';
@@ -131,7 +132,7 @@ const StatSection = ({ title, stats, large }: Section & { large?: boolean }) => 
       <Text className="px-2 text-base font-semibold text-foreground">{title}</Text>
       <HUXStack className="rounded-3xl bg-surface px-2 py-5">
         {stats.map(({ label, value, icon }) => (
-          <HUYStack key={label} className="flex-1 items-center gap-1">
+          <HUYStack key={label} testID="statistics-stat" className="flex-1 items-center gap-1">
             <Text className={`${large ? 'text-3xl' : 'text-xl'} font-bold text-foreground`} numberOfLines={1}>
               {value}
             </Text>
@@ -155,15 +156,17 @@ const TabContent = ({ sections }: { sections: Section[] }) => (
 );
 
 const Statistics = () => {
-  const [tabs] = useState(() => [
-    { key: 'anime', label: 'Anime', content: <TabContent sections={watchSections(MediaType.ANIME)} /> },
-    { key: 'manga', label: 'Manga', content: <TabContent sections={mangaSections()} /> },
-    { key: 'movies', label: 'Movies', content: <TabContent sections={watchSections(MediaType.MOVIE)} /> },
-  ]);
+  const [tabs] = useState(() =>
+    MEDIA_TABS.map(({ mediaType, label }) => ({
+      key: mediaType,
+      label,
+      content: <TabContent sections={mediaType === MediaType.MANGA ? mangaSections() : watchSections(mediaType)} />,
+    })),
+  );
 
   return (
-    <ThemedView>
-      <HorizontalTabs items={tabs} initialTab="anime" />
+    <ThemedView testID="statistics-screen">
+      <HorizontalTabs items={tabs} />
     </ThemedView>
   );
 };

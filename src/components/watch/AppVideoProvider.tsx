@@ -4,7 +4,7 @@ import { VideoProvider, defaultTheme, usePlaybackRate, type SheetProps } from 'r
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { PLAYBACK_RATES, usePlayerSettingsStore } from '@/hooks/stores/usePlayerSettingsStore';
 import { BottomSheet } from '@/components/native/BottomSheet';
-import { Slider } from '@/components/native/slider/Slider';
+import { Slider } from './slider/Slider';
 
 export const VIDEO_PORTAL_HOST = 'video-player';
 

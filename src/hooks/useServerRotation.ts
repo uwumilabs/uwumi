@@ -7,7 +7,7 @@ import { lastServerKey, useLastServerStore } from '@/hooks/stores/useLastServerS
 export type ServerFailure = 'unavailable' | 'no-video' | 'playback';
 
 /** One try of one server. Results from any other try are ignored, so a late error can't skip the next server. */
-export interface ServerAttempt {
+interface ServerAttempt {
   key: string;
   tries: number;
   server: string;

@@ -1,14 +1,20 @@
 export const TMDB_API_KEY = process.env.EXPO_PUBLIC_TMDB_API_KEY;
 
+const GITHUB_REPO = 'uwumilabs/uwumi';
+const GITHUB_REPOSITORY = `https://github.com/${GITHUB_REPO}`;
+// The dash; app.json's Android intent filter repeats its host
+export const DASH_HOST = 'uwumi.vercel.app';
+const DASH_URL = `https://${DASH_HOST}`;
+
 export const EXTERNAL_LINKS = {
-  GITHUB_LATEST_RELEASE_API: 'https://api.github.com/repos/uwumilabs/uwumi/releases/latest',
-  GITHUB_REPOSITORY: 'https://github.com/uwumilabs/uwumi',
-  GITHUB_LATEST_RELEASE: 'https://github.com/uwumilabs/uwumi/releases/latest',
-  GITHUB_NEW_ISSUE: 'https://github.com/uwumilabs/uwumi/issues/new',
+  GITHUB_LATEST_RELEASE_API: `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
+  GITHUB_REPOSITORY,
+  GITHUB_LATEST_RELEASE: `${GITHUB_REPOSITORY}/releases/latest`,
+  GITHUB_NEW_ISSUE: `${GITHUB_REPOSITORY}/issues/new`,
   DISCORD_SERVER: 'https://discord.gg/n7xVPxbG4R',
-  PROJECT_WEBSITE: 'https://uwumi.vercel.app/',
+  PROJECT_WEBSITE: DASH_URL,
   // Shared links open here: in the app where Android verified it (dash/public/.well-known), else on the dash's page
-  SHARE_LINK_BASE: 'https://uwumi.vercel.app',
+  SHARE_LINK_BASE: DASH_URL,
 } as const;
 
 /** OpenSubtitles' language ids, by name */

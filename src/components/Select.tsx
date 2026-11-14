@@ -19,12 +19,14 @@ const SelectView = ({
   value,
   onValueChange,
   size,
+  testID,
 }: {
   SelectItem: SelectOption[];
   SelectLabel: string;
   value: string;
   onValueChange: (value: string) => void;
   size?: 'sm' | 'md' | 'lg';
+  testID?: string;
 }) => {
   const selectedOption = useMemo(() => SelectItem.find((item) => item.value === value), [SelectItem, value]);
   const currentTheme = useCurrentTheme();
@@ -49,6 +51,7 @@ const SelectView = ({
   return (
     <View>
       <Button
+        testID={testID}
         variant="primary"
         size={size}
         onPress={() => setIsOpen(true)}
@@ -70,6 +73,7 @@ const SelectView = ({
             return (
               <RippleButton
                 key={item.value}
+                testID={testID && `${testID}-option`}
                 onPress={() => handleValueChange(item)}
                 hasTVPreferredFocus={isSelected}
                 focusScale={1}>
@@ -88,5 +92,3 @@ const SelectView = ({
 
 export const Select = memo(SelectView);
 Select.displayName = 'Select';
-
-export default Select;

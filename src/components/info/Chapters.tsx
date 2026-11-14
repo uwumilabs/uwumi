@@ -1,25 +1,22 @@
 import { RippleButton, HUXStack, HUYStack } from '@/components/ui-primitives';
-import { usePureBlackBackground } from '@/hooks/stores/useThemeStore';
-import { readerHref } from '@/utils/routes';
+import { readerHref, useShowParams } from '@/utils/routes';
 import { Select } from '@/components/Select';
 import { List } from '@/components/List';
 import { IoniconsIcon } from '@/components/Icons';
 import { ListJumpBar } from '@/components/ListJumpBar';
 import { ProviderEmptyState } from '@/components/ListEmptyState';
 import { Button } from '@/components/Button';
-import LinearGradient from '@/components/LinearGradient';
+import { LinearGradient } from '@/components/LinearGradient';
 import { useProviders, useProviderStore, useActiveProvider } from '@/hooks/stores/useProviderStore';
-import { MediaType } from '@/constants/types';
-import { infoTitle } from '@/utils/media';
 import { isTV } from '@/utils/tv';
 import { LIST_SHADOW_SIZE, useListJump } from '@/hooks/useListJump';
 import { mangaProgressKey, useMangaProgressStore, resumePage } from '@/hooks/stores/useMangaProgressStore';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { useMangaChapters } from '@/hooks/queries/mangaQueries';
-import { useMediaInfo } from '@/hooks/queries/infoQueries';
+import { useShownTitle } from '@/hooks/queries/infoQueries';
 import { chapterDetails, chapterNumbers, chapterTitle } from '@/utils/manga';
 import type { FlashListRef } from '@shopify/flash-list';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { cn, ScrollShadow } from '@/components/heroui';
 import React, { memo, ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Text } from 'react-native';
@@ -42,12 +39,12 @@ const ChapterRow = memo(
     page?: number;
     onOpen: (chapter: IMangaChapter) => void;
   }) => {
-    const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+    const pureBlackBackground = useCurrentTheme().isPureBlack;
     const numbers = chapterNumbers(chapter);
     const details = [chapterDetails(chapter), page && `Page ${page}`].filter(Boolean).join(' · ');
     const title = chapterTitle(chapter);
     return (
-      <RippleButton onPress={() => onOpen(chapter)}>
+      <RippleButton testID="chapter-row" onPress={() => onOpen(chapter)}>
         {/* Read chapters fade back, as in Aniyomi */}
         <HUYStack className={cn('gap-1 px-4 py-3', pureBlackBackground && 'bg-black', read && 'opacity-50')}>
           <HUXStack className="items-center justify-between gap-3">
@@ -71,11 +68,12 @@ const ChapterRow = memo(
 );
 ChapterRow.displayName = 'ChapterRow';
 
+const chapterRangeLabel = (chapters: IMangaChapter[], start: number, end: number) => {
+  const label = (index: number) => String(chapters[index].chapterNumber ?? index + 1);
+  return `CH ${label(start)}–${label(end)}`;
+};
 const Chapters = ({ header }: ChaptersProps) => {
-  const { mediaType, id } = useLocalSearchParams<{
-    mediaType: MediaType;
-    id: string;
-  }>();
+  const { mediaType, id } = useShowParams();
   const setProvider = useProviderStore((state) => state.setProvider);
   const currentProvider = useActiveProvider(mediaType);
   const providers = useProviders();
@@ -92,13 +90,6 @@ const Chapters = ({ header }: ChaptersProps) => {
   }, [data, newestFirst]);
   const read = useMemo(() => new Set(progress?.read), [progress?.read]);
 
-  const chapterRangeLabel = useCallback(
-    (start: number, end: number) => {
-      const label = (index: number) => String(chapters[index].chapterNumber ?? index + 1);
-      return `CH ${label(start)}–${label(end)}`;
-    },
-    [chapters],
-  );
   const { listProps, ranges, rangeValue, jumpToRange, jumpBar } = useListJump({
     items: chapters,
     listRef,
@@ -107,9 +98,7 @@ const Chapters = ({ header }: ChaptersProps) => {
 
   const handleProviderChange = useCallback((value: string) => setProvider(mediaType, value), [mediaType, setProvider]);
   // The manga's title and cover go along, for Continue reading and History
-  const { data: info } = useMediaInfo();
-  const mangaTitle = infoTitle(info);
-  const mangaImage = info?.image;
+  const { title: mangaTitle, image: mangaImage } = useShownTitle();
   const openChapter = useCallback(
     (chapter: Pick<IMangaChapter, 'id'>) =>
       router.push(
@@ -129,6 +118,7 @@ const Chapters = ({ header }: ChaptersProps) => {
         color={currentTheme.screenBackground}
         LinearGradientComponent={LinearGradient}>
         <List
+          testID="chapter-list"
           ref={listRef}
           {...listProps}
           data={isLoading ? [] : chapters}
@@ -156,16 +146,24 @@ const Chapters = ({ header }: ChaptersProps) => {
               {header}
               <HUXStack className="flex-wrap px-4 p-2 gap-1.5 items-center justify-center">
                 <Select
+                  testID="chapter-provider-select"
                   SelectItem={providers.manga}
                   SelectLabel="Provider"
                   value={currentProvider}
                   onValueChange={handleProviderChange}
                 />
                 {ranges.length > 0 && (
-                  <Select SelectItem={ranges} SelectLabel="Chapters" value={rangeValue} onValueChange={jumpToRange} />
+                  <Select
+                    testID="chapter-range-select"
+                    SelectItem={ranges}
+                    SelectLabel="Chapters"
+                    value={rangeValue}
+                    onValueChange={jumpToRange}
+                  />
                 )}
                 {chapters.length > 1 && (
                   <RippleButton
+                    testID="chapter-order-toggle"
                     accessibilityLabel={newestFirst ? 'Show first chapter first' : 'Show newest chapter first'}
                     onPress={() => setNewestFirst((value) => !value)}>
                     <IoniconsIcon
@@ -177,6 +175,7 @@ const Chapters = ({ header }: ChaptersProps) => {
                 )}
                 {continueChapter && (
                   <Button
+                    testID="chapter-continue"
                     variant="secondary"
                     size="sm"
                     onPress={() => openChapter({ id: progress.lastChapterId })}

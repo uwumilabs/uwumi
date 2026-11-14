@@ -7,7 +7,7 @@ interface NowPlayingState {
   setCurrentUniqueId: (uniqueId: string | null) => void;
 }
 
-export const useEpisodesIdStore = create<NowPlayingState>((set) => ({
+export const useNowPlayingStore = create<NowPlayingState>((set) => ({
   currentUniqueId: null,
   setCurrentUniqueId: (currentUniqueId) => set({ currentUniqueId }),
 }));

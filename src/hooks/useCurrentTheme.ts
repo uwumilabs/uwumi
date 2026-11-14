@@ -1,22 +1,28 @@
 import { useMemo } from 'react';
 import { themes } from '@/themes/theme';
-import { usePureBlackBackground, useThemeStore } from './stores/useThemeStore';
+import { isDarkTheme, usePureBlackBackground, useThemeStore } from './stores/useThemeStore';
 
 const AMOLED_SURFACE = '#0c0c0c';
 
-/** The theme's colours, and the ones pure black changes: screens go black, sheets and the TV rail near black */
+/**
+ * The theme's colours, and what pure black changes in dark themes: screens go black, sheets and the TV rail near
+ * black. `isPureBlack` is for className sites (`bg-black`).
+ */
 export const useCurrentTheme = () => {
   const themeName = useThemeStore((state) => state.themeName);
-  const isDark = useThemeStore((state) => state.isDark);
   const pureBlack = usePureBlackBackground((state) => state.pureBlackBackground);
 
   return useMemo(() => {
     const theme = themes[themeName];
+    const isDark = isDarkTheme(themeName);
+    const isPureBlack = pureBlack && isDark;
     return {
       ...theme,
-      screenBackground: pureBlack ? '#000000' : theme.background,
-      sheetBackground: isDark && pureBlack ? AMOLED_SURFACE : theme.background,
-      railBackground: pureBlack ? AMOLED_SURFACE : theme.segment,
+      isDark,
+      isPureBlack,
+      screenBackground: isPureBlack ? '#000000' : theme.background,
+      sheetBackground: isPureBlack ? AMOLED_SURFACE : theme.background,
+      railBackground: isPureBlack ? AMOLED_SURFACE : theme.segment,
     };
-  }, [themeName, isDark, pureBlack]);
+  }, [themeName, pureBlack]);
 };

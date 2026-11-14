@@ -6,10 +6,29 @@ export type ReaderBackground = 'theme' | 'black' | 'gray' | 'white';
 /** Mihon's tap zone layouts */
 export type TapZonesLayout = 'l-shaped' | 'kindlish' | 'edge' | 'right-left' | 'disabled';
 export type InvertTapZones = 'none' | 'horizontal' | 'vertical' | 'both';
-/** Mihon's reading modes */
+/** Mihon's reading modes; saved by id, so don't rename them */
 export type ReadingMode = 'paged-ltr' | 'paged-rtl' | 'paged-vertical' | 'long-strip' | 'long-strip-gaps';
 
-export const isPagedMode = (mode: ReadingMode) => mode.startsWith('paged');
+interface ReadingModeTraits {
+  label: string;
+  /** A page per screen, snapping, with zoomable pages and transition pages between chapters; otherwise a strip */
+  paged: boolean;
+  /** Pages run sideways */
+  horizontal: boolean;
+  /** The chapter runs leftwards, and the right-and-left tap zones swap */
+  rtl: boolean;
+  /** Space between the strip's pages */
+  gaps: boolean;
+}
+
+/** What each reading mode is called and how the reader lays it out, in the settings' order */
+export const READING_MODES: Record<ReadingMode, ReadingModeTraits> = {
+  'paged-ltr': { label: 'Paged (left to right)', paged: true, horizontal: true, rtl: false, gaps: false },
+  'paged-rtl': { label: 'Paged (right to left)', paged: true, horizontal: true, rtl: true, gaps: false },
+  'paged-vertical': { label: 'Paged (vertical)', paged: true, horizontal: false, rtl: false, gaps: false },
+  'long-strip': { label: 'Long strip', paged: false, horizontal: false, rtl: false, gaps: false },
+  'long-strip-gaps': { label: 'Long strip with gaps', paged: false, horizontal: false, rtl: false, gaps: true },
+};
 
 export interface ReaderSettings {
   readingMode: ReadingMode;
@@ -42,7 +61,9 @@ export const useReaderSettingsStore = create<ReaderSettingsState>()(
       tapZones: 'l-shaped',
       invertTapZones: 'none',
       showTapZonesOverlay: true,
-      update: (settings) => set(settings),
+      // A backup can carry a mode this version doesn't have; the reader needs one it knows
+      update: ({ readingMode, ...settings }) =>
+        set(readingMode && readingMode in READING_MODES ? { ...settings, readingMode } : settings),
     }),
     {
       name: 'readerSettings',

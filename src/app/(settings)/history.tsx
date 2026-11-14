@@ -1,7 +1,7 @@
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useMemo, useState } from 'react';
+import { MEDIA_TABS } from '@/utils/media';
 import { Text, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { useShallow } from 'zustand/react/shallow';
+import { Stack } from 'expo-router';
 import TVFocusWrapper from '@/components/TVFocusWrapper';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { HorizontalTabs } from '@/components/HorizontalTabs';
@@ -17,18 +17,16 @@ import {
   openContinueWatchingEntry,
   openMangaProgress,
   type MangaHistoryEntry,
+  useEntryProgress,
   useMangaHistory,
+  useWatchHistory,
 } from '@/hooks/useHistory';
 import { type ContinueWatchingEntry, useContinueWatchingStore } from '@/hooks/stores/useContinueWatchingStore';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
-import { useDownloadedOnlyFilter } from '@/downloads/useDownloadStore';
 import { useMangaProgressStore } from '@/hooks/stores/useMangaProgressStore';
-import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
 import { MediaType } from '@/constants/types';
 
-const THUMB_WIDTH = 112;
-
-type Row = { type: 'day'; key: string; label: string } | { type: 'entry'; key: string; entry: ContinueWatchingEntry };
+type Row<T> = { type: 'day'; key: string; label: string } | { type: 'entry'; key: string; entry: T };
 
 const timeFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
 const dateFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -40,35 +38,80 @@ const dayLabel = (time: number) => {
   return daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : dateFormat.format(day);
 };
 
-const HistoryRow = memo(({ entry }: { entry: ContinueWatchingEntry }) => {
-  const router = useRouter();
+/** Most recent first, as the stores keep them, with a header where the day changes */
+const groupByDay = <T extends { key: string }>(entries: T[], timeOf: (entry: T) => number) => {
+  const rows: Row<T>[] = [];
+  let lastDay = '';
+  for (const entry of entries) {
+    const day = dayLabel(timeOf(entry));
+    if (day !== lastDay) {
+      rows.push({ type: 'day', key: `day-${day}`, label: day });
+      lastDay = day;
+    }
+    rows.push({ type: 'entry', key: entry.key, entry });
+  }
+  return rows;
+};
+
+const DayList = <T,>({
+  rows,
+  empty,
+  renderEntry,
+}: {
+  rows: Row<T>[];
+  empty: React.ReactElement;
+  renderEntry: (entry: T) => React.ReactElement;
+}) => (
+  <View className="h-full">
+    <List<Row<T>>
+      testID="history-list"
+      data={rows}
+      keyExtractor={(row) => row.key}
+      getItemType={(row) => row.type}
+      ListEmptyComponent={empty}
+      renderItem={({ item }) =>
+        item.type === 'day' ? (
+          <Text className="px-4 pb-1 pt-4 text-sm font-semibold text-foreground/60">{item.label}</Text>
+        ) : (
+          renderEntry(item.entry)
+        )
+      }
+    />
+  </View>
+);
+
+const HistoryRow = ({
+  title,
+  caption,
+  image,
+  imageStyle,
+  percent,
+  onPress,
+  onRemove,
+}: {
+  title?: string;
+  caption: string;
+  image?: string;
+  imageStyle: { width: number; aspectRatio: number };
+  /** Shows a progress bar when set */
+  percent?: number;
+  onPress: () => void;
+  onRemove: () => void;
+}) => {
   const theme = useCurrentTheme();
-  const remove = useContinueWatchingStore((state) => state.remove);
-  const { isCompleted, percent } = useWatchProgressStore(
-    useShallow((state) => {
-      const progress = state.progresses[entry.uniqueId];
-      return { isCompleted: !!progress?.isCompleted, percent: Math.round(progress?.progress ?? 0) };
-    }),
-  );
-
-  const open = useCallback(() => openContinueWatchingEntry(router, entry, isCompleted), [router, entry, isCompleted]);
-  const removeEntry = useCallback(() => remove(entry.key), [remove, entry.key]);
-
-  const title = entry.showTitle || entry.watchParams.title;
-  const caption = [continueWatchingEpisodeLabel(entry), timeFormat.format(entry.updatedAt)].filter(Boolean).join(' · ');
-
   return (
     <HUXStack className="items-center gap-2 px-4 py-2">
       <TVFocusWrapper
-        onPress={open}
+        testID="history-row"
+        onPress={onPress}
         style={{ flex: 1 }}
         focusScale={1}
         focusBorderRadius={12}
         accessibilityLabel={title}>
         <HUXStack className="items-center gap-3">
-          <View className="overflow-hidden rounded-lg bg-default" style={{ width: THUMB_WIDTH, aspectRatio: 16 / 9 }}>
-            <Image source={entry.watchParams.poster || entry.showImage} style={{ width: '100%', height: '100%' }} />
-            {percent > 0 && !isCompleted && <Progress className="absolute inset-x-1.5 bottom-1.5" value={percent} />}
+          <View className="overflow-hidden rounded-lg bg-default" style={imageStyle}>
+            <Image source={image} style={{ width: '100%', height: '100%' }} />
+            {percent !== undefined && <Progress className="absolute inset-x-1.5 bottom-1.5" value={percent} />}
           </View>
           <HUYStack className="flex-1 gap-0.5">
             <Text className="text-base font-medium text-foreground" numberOfLines={2}>
@@ -80,154 +123,102 @@ const HistoryRow = memo(({ entry }: { entry: ContinueWatchingEntry }) => {
           </HUYStack>
         </HUXStack>
       </TVFocusWrapper>
-      <RippleButton onPress={removeEntry} accessibilityLabel="Remove from history">
+      <RippleButton testID="history-row-remove" onPress={onRemove} accessibilityLabel="Remove from history">
         <IoniconsIcon name="trash-outline" size={22} color={theme.foreground} />
       </RippleButton>
     </HUXStack>
-  );
-});
-HistoryRow.displayName = 'HistoryRow';
-
-const HistoryList = ({ mediaType }: { mediaType: MediaType }) => {
-  const entries = useContinueWatchingStore((state) => state.entries);
-  const downloadedOnly = useDownloadedOnlyFilter();
-
-  // Most recent first, as the store keeps them, with a header where the day changes
-  const rows = useMemo(() => {
-    const result: Row[] = [];
-    let lastDay = '';
-    for (const entry of entries) {
-      if (entry.mediaType !== mediaType) continue;
-      if (downloadedOnly && !downloadedOnly(entry.showId, entry.showTitle)) continue;
-      const day = dayLabel(entry.updatedAt);
-      if (day !== lastDay) {
-        result.push({ type: 'day', key: `day-${day}`, label: day });
-        lastDay = day;
-      }
-      result.push({ type: 'entry', key: entry.key, entry });
-    }
-    return result;
-  }, [entries, mediaType, downloadedOnly]);
-
-  return (
-    <View className="h-full">
-      <List<Row>
-        data={rows}
-        keyExtractor={(row) => row.key}
-        getItemType={(row) => row.type}
-        ListEmptyComponent={<NoResults title="Nothing watched recently" hint="Episodes you watch show up here" />}
-        renderItem={({ item }) =>
-          item.type === 'day' ? (
-            <Text className="px-4 pb-1 pt-4 text-sm font-semibold text-foreground/60">{item.label}</Text>
-          ) : (
-            <HistoryRow entry={item.entry} />
-          )
-        }
-      />
-    </View>
   );
 };
 
+const EPISODE_THUMB = { width: 112, aspectRatio: 16 / 9 };
+const MANGA_COVER = { width: 56, aspectRatio: 2 / 3 };
+
+const EpisodeHistoryRow = memo(({ entry }: { entry: ContinueWatchingEntry }) => {
+  const remove = useContinueWatchingStore((state) => state.remove);
+  const { isCompleted, percent } = useEntryProgress(entry.uniqueId);
+  return (
+    <HistoryRow
+      title={entry.showTitle || entry.watchParams.title}
+      caption={[continueWatchingEpisodeLabel(entry), timeFormat.format(entry.updatedAt)].filter(Boolean).join(' · ')}
+      image={entry.watchParams.poster || entry.showImage}
+      imageStyle={EPISODE_THUMB}
+      percent={percent}
+      onPress={() => openContinueWatchingEntry(entry, isCompleted)}
+      onRemove={() => remove(entry.key)}
+    />
+  );
+});
+EpisodeHistoryRow.displayName = 'EpisodeHistoryRow';
+
 const MangaHistoryRow = memo(({ entry }: { entry: MangaHistoryEntry }) => {
-  const router = useRouter();
-  const theme = useCurrentTheme();
   const hide = useMangaProgressStore((state) => state.hide);
   const { progress } = entry;
-  const open = useCallback(() => openMangaProgress(router, entry), [router, entry]);
-  const caption = [progress.lastChapterTitle, mangaPageLabel(progress), timeFormat.format(progress.updatedAt)]
-    .filter(Boolean)
-    .join(' · ');
-
   return (
-    <HUXStack className="items-center gap-2 px-4 py-2">
-      <TVFocusWrapper
-        onPress={open}
-        style={{ flex: 1 }}
-        focusScale={1}
-        focusBorderRadius={12}
-        accessibilityLabel={progress.title}>
-        <HUXStack className="items-center gap-3">
-          <View className="overflow-hidden rounded-lg bg-default" style={{ width: 56, aspectRatio: 2 / 3 }}>
-            <Image source={progress.image} style={{ width: '100%', height: '100%' }} />
-          </View>
-          <HUYStack className="flex-1 gap-0.5">
-            <Text className="text-base font-medium text-foreground" numberOfLines={2}>
-              {progress.title}
-            </Text>
-            <Text className="text-sm text-foreground/60" numberOfLines={1}>
-              {caption}
-            </Text>
-          </HUYStack>
-        </HUXStack>
-      </TVFocusWrapper>
-      <RippleButton onPress={() => hide(entry.key)} accessibilityLabel="Remove from history">
-        <IoniconsIcon name="trash-outline" size={22} color={theme.foreground} />
-      </RippleButton>
-    </HUXStack>
+    <HistoryRow
+      title={progress.title}
+      caption={[progress.lastChapterTitle, mangaPageLabel(progress), timeFormat.format(progress.updatedAt)]
+        .filter(Boolean)
+        .join(' · ')}
+      image={progress.image}
+      imageStyle={MANGA_COVER}
+      onPress={() => openMangaProgress(entry)}
+      onRemove={() => hide(entry.key)}
+    />
   );
 });
 MangaHistoryRow.displayName = 'MangaHistoryRow';
 
-type MangaRow = { type: 'day'; key: string; label: string } | { type: 'entry'; key: string; entry: MangaHistoryEntry };
-
-const MangaHistoryList = () => {
-  const history = useMangaHistory();
-  const rows = useMemo(() => {
-    const result: MangaRow[] = [];
-    let lastDay = '';
-    for (const entry of history) {
-      const day = dayLabel(entry.progress.updatedAt);
-      if (day !== lastDay) {
-        result.push({ type: 'day', key: `day-${day}`, label: day });
-        lastDay = day;
-      }
-      result.push({ type: 'entry', key: entry.key, entry });
-    }
-    return result;
-  }, [history]);
-
+const HistoryList = ({ mediaType }: { mediaType: MediaType }) => {
+  const history = useWatchHistory(mediaType);
+  const rows = useMemo(() => groupByDay(history, (entry) => entry.updatedAt), [history]);
   return (
-    <View className="h-full">
-      <List<MangaRow>
-        data={rows}
-        keyExtractor={(row) => row.key}
-        getItemType={(row) => row.type}
-        ListEmptyComponent={<NoResults title="Nothing read recently" hint="Chapters you read show up here" />}
-        renderItem={({ item }) =>
-          item.type === 'day' ? (
-            <Text className="px-4 pb-1 pt-4 text-sm font-semibold text-foreground/60">{item.label}</Text>
-          ) : (
-            <MangaHistoryRow entry={item.entry} />
-          )
-        }
-      />
-    </View>
+    <DayList
+      rows={rows}
+      empty={<NoResults title="Nothing watched recently" hint="Episodes you watch show up here" />}
+      renderEntry={(entry) => <EpisodeHistoryRow entry={entry} />}
+    />
   );
 };
 
-const TABS = [
-  { key: 'anime', label: 'Anime', content: <HistoryList mediaType={MediaType.ANIME} /> },
-  { key: 'manga', label: 'Manga', content: <MangaHistoryList /> },
-  { key: 'movies', label: 'Movies', content: <HistoryList mediaType={MediaType.MOVIE} /> },
-];
+const MangaHistoryList = () => {
+  const history = useMangaHistory();
+  const rows = useMemo(() => groupByDay(history, (entry) => entry.progress.updatedAt), [history]);
+  return (
+    <DayList
+      rows={rows}
+      empty={<NoResults title="Nothing read recently" hint="Chapters you read show up here" />}
+      renderEntry={(entry) => <MangaHistoryRow entry={entry} />}
+    />
+  );
+};
+
+const TABS = MEDIA_TABS.map(({ mediaType, label }) => ({
+  key: mediaType,
+  label,
+  content: mediaType === MediaType.MANGA ? <MangaHistoryList /> : <HistoryList mediaType={mediaType} />,
+}));
 
 const History = () => {
   const theme = useCurrentTheme();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
-    <ThemedView>
+    <ThemedView testID="history-screen">
       <Stack.Screen
         options={{
           headerRight: () => (
-            <RippleButton onPress={() => setConfirmOpen(true)} accessibilityLabel="Clear history">
+            <RippleButton
+              testID="history-clear"
+              onPress={() => setConfirmOpen(true)}
+              accessibilityLabel="Clear history">
               <IoniconsIcon name="trash-bin-outline" size={22} color={theme.foreground} />
             </RippleButton>
           ),
         }}
       />
-      <HorizontalTabs items={TABS} initialTab="anime" />
+      <HorizontalTabs items={TABS} />
       <ConfirmDialog
+        testID="history-clear-dialog"
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Clear history?"

@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TVFocusGuideView, useWindowDimensions, View } from 'react-native';
 import type { FlashListRef } from '@shopify/flash-list';
-import { useLocalSearchParams } from 'expo-router';
+import { useWatchParams } from '@/utils/routes';
 import { cn } from '@/components/heroui';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -9,9 +9,15 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { useControlsVisibility } from 'react-native-video-toolkit';
 import ProviderSelection from './ProviderSelection';
 import { isTV } from '@/utils/tv';
-import type { MediaType } from '@/constants/types';
 import { useEpisodeList } from '@/hooks/useEpisodeList';
-import { episodeImage, episodeNumber, type EpisodeItem } from '@/utils/episodes';
+import {
+  episodeImage,
+  episodeLabel,
+  episodeRangeLabel,
+  episodeTitle,
+  listEpisodeNumber,
+  type EpisodeItem,
+} from '@/utils/episodes';
 import { useListJump } from '@/hooks/useListJump';
 import TVFocusWrapper from '@/components/TVFocusWrapper';
 import { HUXStack } from '@/components/ui-primitives';
@@ -37,8 +43,6 @@ const CLOSE_DISTANCE_RATIO = 0.3;
 const CLOSE_VELOCITY = 800;
 const tvPanelWidth = (width: number) => Math.min(560, Math.max(360, width * 0.42));
 
-const numberLabel = (episode: EpisodeItem, index: number) => String(episodeNumber(episode) ?? index + 1);
-
 const EpisodeCard = memo(
   ({
     episode,
@@ -54,6 +58,7 @@ const EpisodeCard = memo(
     const image = episodeImage(episode);
     return (
       <TVFocusWrapper
+        testID="episodes-panel-item"
         onPress={() => onPress(episode)}
         focusScale={1.03}
         focusBorderRadius={12}
@@ -64,7 +69,7 @@ const EpisodeCard = memo(
           <Image source={image} style={{ width: '100%', height: '100%' }} />
           {isCurrent && <View className="absolute inset-0 bg-black/50" />}
           <Text className="absolute left-2 top-2 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
-            {`EP ${numberLabel(episode, index)}`}
+            {episodeLabel(listEpisodeNumber(episode, index))}
           </Text>
           {isCurrent ? (
             <View className="absolute bottom-2 right-2">
@@ -100,9 +105,10 @@ const EpisodeRow = memo(
     onFocus: () => void;
   }) => {
     const image = episodeImage(episode);
-    const number = numberLabel(episode, index);
+    const number = listEpisodeNumber(episode, index);
     return (
       <TVFocusWrapper
+        testID="episodes-panel-item"
         onPress={() => onPress(episode)}
         onFocus={onFocus}
         hasTVPreferredFocus={preferFocus}
@@ -116,9 +122,9 @@ const EpisodeRow = memo(
           {!isCurrent && <ThumbnailProgress uniqueId={episode.uniqueId as string} />}
         </View>
         <View className="flex-1 gap-1 pr-2">
-          <Text className="text-xs font-black text-accent">{`EP ${number}`}</Text>
+          <Text className="text-xs font-black text-accent">{episodeLabel(number)}</Text>
           <Text className="text-sm font-semibold text-white" numberOfLines={2}>
-            {episode.title || `Episode ${number}`}
+            {episodeTitle(episode, number)}
           </Text>
           {isCurrent && (
             <HUXStack className="items-center gap-2">
@@ -143,7 +149,7 @@ const EpisodesStrip = memo(
     onSelect: (episode: EpisodeItem) => void;
     onFocusInside: () => void;
   }) => {
-    const { mediaType, isDubbed } = useLocalSearchParams<{ mediaType: MediaType; isDubbed?: string }>();
+    const { mediaType, isDubbed } = useWatchParams();
     const { episodes } = useEpisodeList();
     const listRef = useRef<FlashListRef<EpisodeItem>>(null);
     // TV: the row the remote lands on as the panel opens. Cleared once focus is in, so a recycled row
@@ -154,19 +160,26 @@ const EpisodesStrip = memo(
       onFocusInside();
     }, [onFocusInside]);
 
-    const rangeLabel = useCallback(
-      (start: number, end: number) => `EP ${numberLabel(episodes[start], start)}–${numberLabel(episodes[end], end)}`,
-      [episodes],
-    );
     // Only the range parts: the scroll tracking is for vertical, Reanimated-wrapped lists
-    const { listProps, ranges, rangeValue, jumpToRange } = useListJump({ items: episodes, listRef, rangeLabel });
+    const { listProps, ranges, rangeValue, jumpToRange } = useListJump({
+      items: episodes,
+      listRef,
+      rangeLabel: episodeRangeLabel,
+    });
     const currentIndex = episodes.findIndex((episode) => episode.uniqueId === currentUniqueId);
 
     const pickers = (
       <>
         <ProviderSelection mediaType={mediaType} isDubbed={isDubbed} />
         {ranges.length > 0 && (
-          <Select size="sm" SelectItem={ranges} SelectLabel="Episodes" value={rangeValue} onValueChange={jumpToRange} />
+          <Select
+            testID="episodes-panel-range-select"
+            size="sm"
+            SelectItem={ranges}
+            SelectLabel="Episodes"
+            value={rangeValue}
+            onValueChange={jumpToRange}
+          />
         )}
       </>
     );
@@ -304,6 +317,7 @@ export const EpisodesPanel = ({ currentUniqueId, open, onOpenChange, onSelect }:
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.scrim, scrimStyle]} />
       <GestureDetector gesture={dragToClose}>
         <Animated.View
+          testID="episodes-panel"
           pointerEvents={open ? 'auto' : 'none'}
           onLayout={(event) => {
             size.set(isTV ? event.nativeEvent.layout.width + TV_PANEL_EDGE : event.nativeEvent.layout.height);
@@ -357,5 +371,3 @@ const styles = StyleSheet.create({
   tvList: { flex: 1 },
   tvListContent: { paddingHorizontal: 14, paddingTop: 4, paddingBottom: 24 },
 });
-
-export default EpisodesPanel;

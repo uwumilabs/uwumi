@@ -52,5 +52,3 @@ export const AnimatedCountdown = () => {
     </HUXStack>
   );
 };
-
-export default AnimatedCountdown;

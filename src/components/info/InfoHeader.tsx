@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { sharedTransitionTags, useInfoParams } from '@/utils/routes';
+import { useMediaInfo, useShownTitle } from '@/hooks/queries/infoQueries';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useHeaderHeight } from 'expo-router/react-navigation';
@@ -8,7 +10,6 @@ import { LinearGradient } from '@/components/LinearGradient';
 import Animated from 'react-native-reanimated';
 import { Chip, ScrollShadow } from '@/components/heroui';
 import { Button } from '@/components/Button';
-import { IAnimeInfo, IMovieInfo } from 'react-native-consumet';
 import { AnimatedImage, Image } from '@/components/Image';
 import { HUXStack, HUYStack, IconTitle, RippleButton } from '@/components/ui-primitives';
 import { ImagePreview } from '@/components/ImagePreview';
@@ -17,14 +18,11 @@ import { MediaCarousel } from '@/components/MediaCarousel';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { useEpisodeList } from '@/hooks/useEpisodeList';
 import { useExtensionStore } from '@/hooks/stores/useExtensionStore';
-import { usePureBlackBackground } from '@/hooks/stores/useThemeStore';
 import { useActiveProvider } from '@/hooks/stores/useProviderStore';
-import { MediaType } from '@/constants/types';
 import { hexToRGB, normalizeRating } from '@/utils/format';
-import { infoTitle } from '@/utils/media';
 import { isTV } from '@/utils/tv';
 import { openBrowser, shareMedia } from '@/utils/share';
-import type { MediaItem } from '@/components/CardList';
+import type { MediaItem } from '@/utils/media';
 import { AnimatedCountdown } from './AnimatedCountdown';
 import { useFavoriteToggle } from './useFavoriteToggle';
 
@@ -50,14 +48,14 @@ const toPlainText = (description: unknown): string => {
 };
 
 interface InfoHeaderProps {
-  data: IAnimeInfo | IMovieInfo | undefined;
   /** "More like this" at the end; anime and movies show it after their episode window instead */
   withRecommendations?: boolean;
 }
 
 /** The "More like this" row, shown after the header (manga) or after the episode window */
-export const InfoRecommendations = ({ data }: Pick<InfoHeaderProps, 'data'>) => {
-  const { mediaType } = useLocalSearchParams<{ mediaType: MediaType }>();
+export const InfoRecommendations = () => {
+  const { data } = useMediaInfo();
+  const { mediaType } = useInfoParams();
   const recommendations = data?.recommendations as MediaItem[] | undefined;
   if (!recommendations?.length) return null;
   return (
@@ -86,13 +84,9 @@ const useToolbarIcon = (ionicon: React.ComponentProps<typeof Ionicons>['name'], 
  * Share and favorite as native header buttons, beside the native back button: the D-pad reaches them on TV, with
  * the same focus highlight as the back button
  */
-export const InfoToolbar = ({ data }: Pick<InfoHeaderProps, 'data'>) => {
-  const { mediaType, id, title, type } = useLocalSearchParams<{
-    mediaType: MediaType;
-    id: string;
-    title?: string;
-    type?: string;
-  }>();
+export const InfoToolbar = () => {
+  const { mediaType, id, type } = useInfoParams();
+  const { title } = useShownTitle();
   const currentTheme = useCurrentTheme();
   const { isFavorited, toggleFavorite } = useFavoriteToggle();
   const shareIcon = useToolbarIcon('share-social-outline', 'square.and.arrow.up');
@@ -105,7 +99,7 @@ export const InfoToolbar = ({ data }: Pick<InfoHeaderProps, 'data'>) => {
         icon={shareIcon}
         hidden={isTV || !shareIcon}
         accessibilityLabel="Share"
-        onPress={() => shareMedia({ mediaType, id, type, title: title || infoTitle(data) })}
+        onPress={() => shareMedia({ mediaType, id, type, title })}
       />
       <Stack.Toolbar.Button
         icon={isFavorited ? filledHeartIcon : heartIcon}
@@ -118,22 +112,15 @@ export const InfoToolbar = ({ data }: Pick<InfoHeaderProps, 'data'>) => {
   );
 };
 
-export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendations = true }) => {
-  const { mediaType, id, image, title, sharedTag } = useLocalSearchParams<{
-    mediaType: MediaType;
-    id: string;
-    image: string;
-    title?: string;
-    sharedTag?: string;
-  }>();
-  // A shared link may come without the title and poster the cards pass along
-  const shownTitle = title || infoTitle(data);
-  const poster = image || data?.image;
-  const transitionTag = sharedTag ?? id;
+export const InfoHeader = ({ withRecommendations = true }: InfoHeaderProps) => {
+  const { data } = useMediaInfo();
+  const { mediaType, id, sharedTag } = useInfoParams();
+  const { title: shownTitle, image: poster } = useShownTitle();
+  const transitionTags = sharedTransitionTags(id, sharedTag);
   // The header floats over the artwork, so the details start below it
   const headerHeight = useHeaderHeight();
   const currentTheme = useCurrentTheme();
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
+  const pureBlackBackground = currentTheme.isPureBlack;
   const currentProvider = useActiveProvider(mediaType);
   const { episodes } = useEpisodeList();
 
@@ -185,12 +172,13 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
           <HUXStack className="gap-2.5 items-center" focusable={isTV ? false : undefined}>
             {!isTV && (
               <Pressable
+                testID="info-cover"
                 onPress={() => setPreviewOpen(true)}
                 disabled={!poster}
                 accessibilityRole="imagebutton"
                 accessibilityLabel="View cover">
                 <AnimatedImage
-                  sharedTransitionTag={`shared-image-${transitionTag}`}
+                  sharedTransitionTag={transitionTags.image}
                   source={{ uri: poster }}
                   style={{ width: 115, height: 163 }}
                 />
@@ -203,7 +191,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
               <Animated.Text
                 className="text-foreground text-3xl font-bold"
                 numberOfLines={3}
-                sharedTransitionTag={`shared-title-${transitionTag}`}>
+                sharedTransitionTag={transitionTags.title}>
                 {shownTitle}
               </Animated.Text>
 
@@ -211,6 +199,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
                 {data?.status && <IconTitle iconName="time-outline" text={data?.status} />}
                 {episodes.length > 0 && (
                   <RippleButton
+                    testID="info-webview"
                     onPress={() =>
                       openBrowser(
                         episodes[0].url! || useExtensionStore.getState().getExtensionInfo(currentProvider)?.baseUrl!,
@@ -234,6 +223,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
         {!!description && (
           <ScrollShadow LinearGradientComponent={LinearGradient} size={32} color={currentTheme.screenBackground}>
             <ScrollView
+              testID="info-description"
               style={{ maxHeight: DESCRIPTION_MAX_HEIGHT }}
               // Android: lets this scroll inside the page by touch
               nestedScrollEnabled
@@ -259,6 +249,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
 
         {!!trailerId && (
           <Button
+            testID="info-trailer"
             variant="secondary"
             size="sm"
             className="self-start"
@@ -269,10 +260,8 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ data, withRecommendation
         )}
       </HUYStack>
 
-      {withRecommendations && <InfoRecommendations data={data} />}
+      {withRecommendations && <InfoRecommendations />}
       <View className="h-4" />
     </View>
   );
 };
-
-export default InfoHeader;

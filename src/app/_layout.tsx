@@ -1,5 +1,6 @@
 import '../../global.css';
 import '@/bootstrap';
+import { SETTINGS_SCREENS } from '@/utils/routes';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,11 +18,11 @@ import {
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { useOtaUpdates } from '@/hooks/useOtaUpdates';
-import { useEpisodeAlertTaps } from '@/hooks/useEpisodeAlertTaps';
-import { useThemeStore } from '@/hooks/stores/useThemeStore';
+import { useEpisodeAlertTaps } from '@/services/episodeAlerts';
 import { useNativeHeaderOptions } from '@/hooks/useNativeHeaderOptions';
 import { usePreferencesStore } from '@/hooks/stores/usePreferencesStore';
-import { PermissionsAndroid, Platform, Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
+import { ensureNotificationPermission } from '@/services/notifications';
 import { HeroUINativeProvider } from '@/components/heroui';
 import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
 import { LinearGradient } from '@/components/LinearGradient';
@@ -95,22 +96,6 @@ const screenLayout = ({ route, children }: { route: { name: string }; children: 
   );
 };
 
-// In the root stack rather than a nested one, so iOS gives the first of them a native back button too
-const SETTINGS_SCREENS: Record<string, string> = {
-  settings: 'Settings',
-  about: 'About',
-  appearance: 'Appearance',
-  player: 'Player',
-  reader: 'Reader',
-  favorites: 'Favorites',
-  downloads: 'Downloads',
-  extensions: 'Extensions',
-  history: 'History',
-  statistics: 'Statistics',
-  data: 'Data and storage',
-  example: 'Example',
-};
-
 const AppContent = () => {
   const headerOptions = useNativeHeaderOptions();
   const [fontsLoaded, fontError] = useFonts({
@@ -123,14 +108,12 @@ const AppContent = () => {
   useOtaUpdates(loaded);
   useEpisodeAlertTaps();
 
-  const isDark = useThemeStore((state) => state.isDark);
   const currentTheme = useCurrentTheme();
+  const { isDark } = currentTheme;
   useEffect(() => {
     // Android 13+: downloads show their progress in a notification (plugins/withBackgroundDownloads.js)
     if (Platform.OS === 'android') {
-      PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS).catch((error) =>
-        console.warn('Notification permission request failed:', error),
-      );
+      ensureNotificationPermission().catch((error) => console.warn('Notification permission request failed:', error));
     }
     RNOrientationDirector.lockTo(isTV ? Orientation.landscape : Orientation.portrait);
   }, []);
@@ -214,7 +197,8 @@ const AppContent = () => {
                   name="read/[id]"
                   options={{ ...headerOptions, headerShown: true, headerTransparent: true, title: '' }}
                 />
-                {Object.entries(SETTINGS_SCREENS).map(([name, title]) => (
+                {/* In the root stack rather than a nested one, so iOS gives the first of them a native back button too */}
+                {Object.entries(SETTINGS_SCREENS).map(([name, { title }]) => (
                   <Stack.Screen
                     key={name}
                     name={`(settings)/${name}`}

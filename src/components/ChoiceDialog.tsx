@@ -29,7 +29,7 @@ export const ChoiceDialog = <T,>({ open, onOpenChange, title, options, value, on
     <Dialog isOpen={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="bg-black/50" />
-        <Dialog.Content className="rounded-3xl bg-background px-2 py-4">
+        <Dialog.Content className="rounded-3xl bg-background px-2 py-4" testID="choice-dialog">
           <Dialog.Title className="px-4 pb-2 text-lg font-semibold text-foreground">{title}</Dialog.Title>
           <ScrollView style={{ maxHeight: height * 0.6 }}>
             {options.map((option) => {
@@ -41,6 +41,7 @@ export const ChoiceDialog = <T,>({ open, onOpenChange, title, options, value, on
               return (
                 <TVFocusWrapper
                   key={String(option.value)}
+                  testID="choice-option"
                   hasTVPreferredFocus={selected}
                   focusScale={1}
                   focusBorderRadius={12}
@@ -66,5 +67,3 @@ export const ChoiceDialog = <T,>({ open, onOpenChange, title, options, value, on
     </Dialog>
   );
 };
-
-export default ChoiceDialog;

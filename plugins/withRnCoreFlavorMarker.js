@@ -18,21 +18,17 @@ const MARKER_SNIPPET = `    [
       File.write(marker, \`nm "#{binary}" 2>/dev/null\`.include?(debug_symbol) ? 'Debug' : 'Release')
     end`;
 
-const addMarkerStep = (podfile) =>
-  mergeContents({
-    tag: 'uwumi-rncore-flavor-marker',
-    src: podfile,
-    newSrc: MARKER_SNIPPET,
-    anchor: /post_install do \|installer\|/,
-    offset: 1,
-    comment: '#',
-  }).contents;
-
 const withRnCoreFlavorMarker = (config) =>
   withPodfile(config, (config) => {
-    config.modResults.contents = addMarkerStep(config.modResults.contents);
+    config.modResults.contents = mergeContents({
+      tag: 'uwumi-rncore-flavor-marker',
+      src: config.modResults.contents,
+      newSrc: MARKER_SNIPPET,
+      anchor: /post_install do \|installer\|/,
+      offset: 1,
+      comment: '#',
+    }).contents;
     return config;
   });
 
 module.exports = withRnCoreFlavorMarker;
-module.exports.addMarkerStep = addMarkerStep;

@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
-import type { useRouter } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
+import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
+import { router } from 'expo-router';
 import { useContinueWatchingStore, type ContinueWatchingEntry } from '@/hooks/stores/useContinueWatchingStore';
 import {
   parseMangaProgressKey,
@@ -8,7 +10,10 @@ import {
   type MangaProgress,
 } from '@/hooks/stores/useMangaProgressStore';
 import { isMovieType } from '@/utils/media';
-import { readerHref } from '@/utils/routes';
+import { MediaType } from '@/constants/types';
+import { useDownloadedOnlyFilter } from '@/downloads/useDownloadStore';
+import { seasonEpisodeLabel } from '@/utils/episodes';
+import { infoHref, readerHref, watchHref } from '@/utils/routes';
 
 /** Empties History and Continue watching/reading; episode progress and read chapters stay */
 export const clearWatchHistory = () => {
@@ -17,31 +22,56 @@ export const clearWatchHistory = () => {
 };
 
 // A finished episode opens the show, where "Continue" points at the next one
-export const openContinueWatchingEntry = (
-  router: ReturnType<typeof useRouter>,
-  entry: ContinueWatchingEntry,
-  isCompleted: boolean,
-) =>
+export const openContinueWatchingEntry = (entry: ContinueWatchingEntry, isCompleted: boolean) =>
   router.push(
     isCompleted
-      ? { pathname: '/info/[mediaType]', params: { ...entry.infoParams, mediaType: entry.mediaType } }
-      : { pathname: '/watch/[mediaType]', params: { ...entry.watchParams, mediaType: entry.mediaType } },
+      ? infoHref({ ...entry.infoParams, mediaType: entry.mediaType })
+      : watchHref({ ...entry.watchParams, mediaType: entry.mediaType }),
+  );
+
+/** One media type's watch history, most recent first, as "Downloaded only" allows */
+export const useWatchHistory = (mediaType: MediaType) => {
+  const entries = useContinueWatchingStore((state) => state.entries);
+  const downloadedOnly = useDownloadedOnlyFilter();
+  return useMemo(
+    () =>
+      entries.filter(
+        (entry) => entry.mediaType === mediaType && (!downloadedOnly || downloadedOnly(entry.showId, entry.showTitle)),
+      ),
+    [entries, mediaType, downloadedOnly],
+  );
+};
+
+/** An episode's progress as history shows it, rounded, so the saves every 5 s while watching rarely re-render */
+export const useEntryProgress = (uniqueId: string) =>
+  useWatchProgressStore(
+    useShallow((state) => {
+      const progress = state.progresses[uniqueId];
+      const isCompleted = !!progress?.isCompleted;
+      const percent = Math.round(progress?.progress ?? 0);
+      return {
+        isCompleted,
+        /** Unset when there's no bar to show */
+        percent: percent > 0 && !isCompleted ? percent : undefined,
+        minutesLeft:
+          progress?.duration && !isCompleted
+            ? Math.max(1, Math.round((progress.duration - progress.currentTime) / 60))
+            : null,
+      };
+    }),
   );
 
 export const continueWatchingEpisodeLabel = ({ watchParams }: ContinueWatchingEntry) =>
   isMovieType(watchParams.type)
     ? 'Movie'
-    : [
-        watchParams.seasonNumber && `S${watchParams.seasonNumber}`,
-        watchParams.episodeNumber && `EP ${watchParams.episodeNumber}`,
-      ]
-        .filter(Boolean)
-        .join(' · ');
+    : watchParams.episodeNumber
+      ? seasonEpisodeLabel(watchParams.seasonNumber, watchParams.episodeNumber)
+      : watchParams.seasonNumber && `S${watchParams.seasonNumber}`;
 
 export type MangaHistoryEntry = { key: string; progress: MangaProgress };
 
 /** Reopens the last chapter read, at the page it was left on */
-export const openMangaProgress = (router: ReturnType<typeof useRouter>, { key, progress }: MangaHistoryEntry) => {
+export const openMangaProgress = ({ key, progress }: MangaHistoryEntry) => {
   const { anilistId, provider } = parseMangaProgressKey(key);
   router.push(
     readerHref({

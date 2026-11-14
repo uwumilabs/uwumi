@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { persistStorage } from '@/hooks/stores/MMKV';
 import { MediaType } from '@/constants/types';
+import type { InfoParams, WatchParams } from '@/utils/routes';
 import { usePreferencesStore } from './usePreferencesStore';
 
 // The home row shows the first 10 per media type; History shows them all
@@ -15,8 +16,8 @@ export interface ContinueWatchingEntry {
   showImage?: string;
   uniqueId: string;
   hasNextEpisode?: boolean;
-  watchParams: Record<string, string>;
-  infoParams: Record<string, string>;
+  watchParams: WatchParams;
+  infoParams: InfoParams;
   updatedAt: number;
 }
 
@@ -30,7 +31,7 @@ interface ContinueWatchingState {
   clearAll: () => void;
 }
 
-export const continueWatchingKey = (mediaType: MediaType, showId: string) => `${mediaType}-${showId}`;
+const continueWatchingKey = (mediaType: MediaType, showId: string) => `${mediaType}-${showId}`;
 
 export const useContinueWatchingStore = create<ContinueWatchingState>()(
   persist(

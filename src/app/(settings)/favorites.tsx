@@ -5,7 +5,7 @@ import { MediaType } from '@/constants/types';
 import { useDownloadedOnlyFilter } from '@/downloads/useDownloadStore';
 import { useFavoriteStore } from '@/hooks/stores/useFavoriteStore';
 import { useUnwatchedCounts } from '@/hooks/queries/favoriteQueries';
-import { infoTitle } from '@/utils/media';
+import { infoTitle, MEDIA_TABS } from '@/utils/media';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -22,48 +22,23 @@ const Favorites = () => {
         item.mediaType === mediaType &&
         (mediaType === MediaType.MANGA || !downloadedOnly || downloadedOnly(String(item.id), infoTitle(item))),
     );
-  const tabItems = [
-    {
-      key: 'tab1',
-      label: 'Anime',
-      content: (
-        <View className="h-full">
-          <CardList
-            staticData={ofType(MediaType.ANIME)}
-            mediaType={MediaType.ANIME}
-            emptyState={EMPTY_FAVORITES}
-            badges={unwatched}
-          />
-        </View>
-      ),
-    },
-    {
-      key: 'tab2',
-      label: 'Manga',
-      content: (
-        <View className="h-full">
-          <CardList staticData={ofType(MediaType.MANGA)} mediaType={MediaType.MANGA} emptyState={EMPTY_FAVORITES} />
-        </View>
-      ),
-    },
-    {
-      key: 'tab3',
-      label: 'Movie',
-      content: (
-        <View className="h-full">
-          <CardList
-            staticData={ofType(MediaType.MOVIE)}
-            mediaType={MediaType.MOVIE}
-            emptyState={EMPTY_FAVORITES}
-            badges={unwatched}
-          />
-        </View>
-      ),
-    },
-  ];
+  const tabItems = MEDIA_TABS.map(({ mediaType, label }) => ({
+    key: mediaType,
+    label,
+    content: (
+      <View testID="favorites-list" className="h-full">
+        <CardList
+          staticData={ofType(mediaType)}
+          mediaType={mediaType}
+          emptyState={EMPTY_FAVORITES}
+          badges={unwatched}
+        />
+      </View>
+    ),
+  }));
   return (
-    <ThemedView>
-      <HorizontalTabs items={tabItems} initialTab="tab1" />
+    <ThemedView testID="favorites-screen">
+      <HorizontalTabs items={tabItems} />
     </ThemedView>
   );
 };

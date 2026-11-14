@@ -15,7 +15,7 @@ const OtaUpdateToastContent = (props: ToastComponentProps) => {
   const canRestart = useCanRestartForUpdate();
 
   return (
-    <Toast {...props}>
+    <Toast {...props} testID="ota-toast">
       <HUXStack className="items-center justify-between gap-3">
         <HUYStack className="flex-1 gap-0.5">
           <Toast.Title>{isReady ? 'Update ready' : 'Downloading update'}</Toast.Title>
@@ -29,7 +29,11 @@ const OtaUpdateToastContent = (props: ToastComponentProps) => {
                 : 'Applies next launch, or restart from About once downloads finish'}
           </Toast.Description>
         </HUYStack>
-        {isReady && canRestart && <Toast.Action onPress={() => reloadApp()}>Restart</Toast.Action>}
+        {isReady && canRestart && (
+          <Toast.Action testID="ota-toast-restart" onPress={() => reloadApp()}>
+            Restart
+          </Toast.Action>
+        )}
       </HUXStack>
       {!isReady && <Progress className="mt-3" value={percent ?? 0} />}
     </Toast>

@@ -30,7 +30,7 @@ export const ListJumpBar = ({ visible, onTop, bottom }: ListJumpBarProps) => {
     <Animated.View
       pointerEvents={visible ? 'box-none' : 'none'}
       style={[styles.bar, { bottom: bottom ?? insets.bottom + 16 }, animatedStyle]}>
-      <Button isIconOnly size="sm" onPress={onTop} accessibilityLabel="Back to top">
+      <Button testID="list-jump-top" isIconOnly size="sm" onPress={onTop} accessibilityLabel="Back to top">
         <IoniconsIcon name="arrow-up" size={18} className="text-accent-foreground" />
       </Button>
     </Animated.View>
@@ -40,5 +40,3 @@ export const ListJumpBar = ({ visible, onTop, bottom }: ListJumpBarProps) => {
 const styles = StyleSheet.create({
   bar: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
 });
-
-export default ListJumpBar;

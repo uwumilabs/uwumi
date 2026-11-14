@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Menu, Subtitle, Title, useMenuContext, useVideoSelector } from 'react-native-video-toolkit';
 import { IoniconsIcon } from '@/components/Icons';
 import type { ServerFailure } from '@/hooks/useServerRotation';
-import { FAILURE_LABELS } from './ServerStatus';
+import { serverLabel } from './ServerStatus';
 
 // The menu header shows a view's id, capitalized
 const SERVERS_VIEW = 'servers';
@@ -14,7 +14,7 @@ export const ServerMenuItem = ({ current }: { current?: string }) => {
   const size = useVideoSelector((state) => state.theme.iconSizes.sm);
 
   return (
-    <Menu.Item navigateTo={SERVERS_VIEW}>
+    <Menu.Item testID="video-settings-server" navigateTo={SERVERS_VIEW}>
       <View style={[styles.row, styles.spread]}>
         <View style={[styles.row, styles.label]}>
           <IoniconsIcon name="server-outline" size={size} color={color} />
@@ -45,6 +45,7 @@ export const ServerMenuView = ({
         {servers.map((name) => (
           <Menu.CheckboxItem
             key={name}
+            testID="video-settings-server-option"
             checked={name === current}
             onCheckedChange={() => {
               if (name === current) return;
@@ -52,7 +53,7 @@ export const ServerMenuView = ({
               closeSettings();
               onPick(name);
             }}>
-            {failed[name] ? `${name} · ${FAILURE_LABELS[failed[name]]}` : name}
+            {serverLabel(name, failed[name])}
           </Menu.CheckboxItem>
         ))}
       </ScrollView>

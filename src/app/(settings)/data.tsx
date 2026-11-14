@@ -1,28 +1,31 @@
 import React, { useState } from 'react';
+import { SETTINGS_SCREENS } from '@/utils/routes';
 import { clearWatchHistory } from '@/hooks/useHistory';
 import { Platform, ScrollView, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Paths } from 'expo-file-system';
-import { ChoiceDialog, choiceLabel } from '@/components/ChoiceDialog';
+import { choiceLabel } from '@/components/ChoiceDialog';
+import { ChoiceRow, ChoiceRowHost } from '@/components/ChoiceRow';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { HUXStack, HUYStack, SectionTitle, ThemedView } from '@/components/ui-primitives';
 import { List as NativeList } from '@/components/native/list/List';
 import { Progress } from '@/components/native/progress/Progress';
 import { Dialog, Input, useToast } from '@/components/heroui';
 import { Button } from '@/components/Button';
-import { useDownloadStore } from '@/downloads/useDownloadStore';
+import { useDownloadsSize } from '@/downloads/useDownloadStore';
 import { usePreferencesStore } from '@/hooks/stores/usePreferencesStore';
 import { useRecentSearchesStore } from '@/hooks/stores/useRecentSearchesStore';
 import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
 import { formatBytes } from '@/utils/format';
-import { cacheSize, clearCache } from '@/utils/cache';
+import { cacheSize, clearCache } from '@/services/cache';
 import {
   type Backup,
   AUTO_PREFIX,
   backupFileName,
   KEEP_AUTO_BACKUPS,
   backupFolderLabel,
+  needsBackupFolder,
   cleanBackupName,
   isPickerCancelled,
   missingExtensions,
@@ -31,7 +34,7 @@ import {
   restoreBackup,
   saveBackup,
   supportsBackupFolder,
-} from '@/utils/backup';
+} from '@/services/backup';
 
 type ClearTarget = 'history' | 'progress' | 'searches';
 
@@ -88,29 +91,19 @@ const DataAndStorage = () => {
   // What the restore is doing, while it runs
   const [restoring, setRestoring] = useState<string | null>(null);
   const [pendingRestore, setPendingRestore] = useState<Backup | null>(null);
-  const [autoBackupOpen, setAutoBackupOpen] = useState(false);
 
-  // Re-measures when a download finishes, as the Downloads screen does
-  const completedKey = useDownloadStore((state) =>
-    Object.values(state.downloads)
-      .filter(({ status }) => status === 'completed')
-      .map(({ id }) => id)
-      .sort()
-      .join(','),
-  );
+  const downloadsSize = useDownloadsSize();
   const { data: storage, refetch } = useQuery({
-    queryKey: ['storage', 'overview', completedKey],
+    queryKey: ['storage', 'overview'],
     // Playback fills the video cache behind React Query's back, so each visit measures again
     staleTime: 0,
     refetchOnMount: 'always',
-    queryFn: async () => {
-      const { downloadsSize } = await useDownloadStore.getState().storageInfo();
+    queryFn: () => {
       const cache = cacheSize();
       return {
         totalSpace: Paths.totalDiskSpace,
         freeSpace: Paths.availableDiskSpace,
         appSize: (Paths.document.size ?? 0) + cache,
-        downloadsSize,
         cacheSize: cache,
       };
     },
@@ -203,84 +196,108 @@ const DataAndStorage = () => {
   const restoreExtensions = pendingRestore ? missingExtensions(pendingRestore).length : 0;
 
   return (
-    <ThemedView>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <SectionTitle>Backup and restore</SectionTitle>
-        <NativeList variant="flat">
-          <NativeList.Item
-            title="Create backup"
-            description="Favorites, progress, history, settings and extensions"
-            trailingLoading={backingUp}
-            onPress={backingUp ? undefined : openCreateBackup}
-          />
-          <NativeList.Item
-            title="Restore backup"
-            description={restoring ?? 'Replaces your library and settings'}
-            trailingLoading={!!restoring}
-            onPress={restoring ? undefined : chooseBackup}
-          />
-          {supportsBackupFolder() && (
+    <ThemedView testID="data-screen">
+      <ChoiceRowHost>
+        <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+          <SectionTitle>Backup and restore</SectionTitle>
+          <NativeList variant="flat">
             <NativeList.Item
-              title="Backup location"
-              description={backupFolderLabel(backupFolderUri) ?? 'Not set'}
-              onPress={chooseFolder}
+              testID="data-row-create-backup"
+              title="Create backup"
+              description="Favorites, progress, history, settings and extensions"
+              trailingLoading={backingUp}
+              onPress={backingUp ? undefined : openCreateBackup}
             />
-          )}
-          <NativeList.Item
-            title="Automatic backups"
-            description={[
-              choiceLabel(AUTO_BACKUP_OPTIONS, autoBackupDays),
-              supportsBackupFolder() && autoBackupDays > 0 && !backupFolderUri
-                ? 'Choose a backup location'
-                : lastAutoBackupAt > 0 && `Last: ${dateTimeFormat.format(lastAutoBackupAt)}`,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-            onPress={() => setAutoBackupOpen(true)}
-            info={{ title: 'Automatic backups', text: AUTO_BACKUP_INFO }}
-          />
-        </NativeList>
-        <Text className="px-4 pt-1 text-sm text-foreground/60">Keep copies of your backups somewhere else too.</Text>
+            <NativeList.Item
+              testID="data-row-restore-backup"
+              title="Restore backup"
+              description={restoring ?? 'Replaces your library and settings'}
+              trailingLoading={!!restoring}
+              onPress={restoring ? undefined : chooseBackup}
+            />
+            {supportsBackupFolder() && (
+              <NativeList.Item
+                testID="data-row-backup-location"
+                title="Backup location"
+                description={backupFolderLabel(backupFolderUri) ?? 'Not set'}
+                onPress={chooseFolder}
+              />
+            )}
+            <ChoiceRow
+              testID="data-row-auto-backup"
+              title="Automatic backups"
+              options={AUTO_BACKUP_OPTIONS}
+              value={autoBackupDays}
+              onChange={setAutoBackupDays}
+              description={[
+                choiceLabel(AUTO_BACKUP_OPTIONS, autoBackupDays),
+                needsBackupFolder({ autoBackupDays, backupFolderUri })
+                  ? 'Choose a backup location'
+                  : lastAutoBackupAt > 0 && `Last: ${dateTimeFormat.format(lastAutoBackupAt)}`,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+              info={{ title: 'Automatic backups', text: AUTO_BACKUP_INFO }}
+            />
+          </NativeList>
+          <Text className="px-4 pt-1 text-sm text-foreground/60">Keep copies of your backups somewhere else too.</Text>
 
-        <SectionTitle>Storage usage</SectionTitle>
-        <HUYStack className="gap-2.5 px-4 py-2">
-          <Text className="text-base font-medium text-foreground">Internal storage</Text>
-          <Progress value={storage ? (storage.appSize / storage.totalSpace) * 100 : 0} />
-          <Text className="text-sm text-foreground/60">
-            {storage
-              ? `uwumi: ${formatBytes(storage.appSize)} · Available: ${formatBytes(storage.freeSpace)} / Total: ${formatBytes(storage.totalSpace)}`
-              : 'Checking…'}
-          </Text>
-        </HUYStack>
-        <NativeList variant="flat">
-          <NativeList.Item
-            icon="download-outline"
-            title="Downloads"
-            trailing={storage ? formatBytes(storage.downloadsSize) : undefined}
-            trailingLoading={!storage}
-            onPress={() => router.push('/(settings)/downloads')}
-          />
-          <NativeList.Item
-            title="Clear cache"
-            description={storage ? `Used: ${formatBytes(storage.cacheSize)}` : 'Checking…'}
-            trailingLoading={clearing}
-            onPress={clearing ? undefined : clear}
-          />
-          <NativeList.Item
-            title="Clear cache on app launch"
-            toggle={{ value: clearOnLaunch, onValueChange: setClearOnLaunch }}
-          />
-        </NativeList>
+          <SectionTitle>Storage usage</SectionTitle>
+          <HUYStack className="gap-2.5 px-4 py-2">
+            <Text className="text-base font-medium text-foreground">Internal storage</Text>
+            <Progress value={storage ? (storage.appSize / storage.totalSpace) * 100 : 0} />
+            <Text className="text-sm text-foreground/60">
+              {storage
+                ? `uwumi: ${formatBytes(storage.appSize)} · Available: ${formatBytes(storage.freeSpace)} / Total: ${formatBytes(storage.totalSpace)}`
+                : 'Checking…'}
+            </Text>
+          </HUYStack>
+          <NativeList variant="flat">
+            <NativeList.Item
+              testID="data-row-downloads"
+              icon="download-outline"
+              title="Downloads"
+              trailing={downloadsSize === undefined ? undefined : formatBytes(downloadsSize)}
+              trailingLoading={downloadsSize === undefined}
+              onPress={() => router.push(SETTINGS_SCREENS.downloads.href)}
+            />
+            <NativeList.Item
+              testID="data-row-clear-cache"
+              title="Clear cache"
+              description={storage ? `Used: ${formatBytes(storage.cacheSize)}` : 'Checking…'}
+              trailingLoading={clearing}
+              onPress={clearing ? undefined : clear}
+            />
+            <NativeList.Item
+              testID="data-row-clear-cache-on-launch"
+              title="Clear cache on app launch"
+              toggle={{ value: clearOnLaunch, onValueChange: setClearOnLaunch }}
+            />
+          </NativeList>
 
-        <SectionTitle>History</SectionTitle>
-        <NativeList variant="flat">
-          <NativeList.Item title="Clear watch history" onPress={() => setConfirm('history')} />
-          <NativeList.Item title="Clear watch progress" onPress={() => setConfirm('progress')} />
-          <NativeList.Item title="Clear search history" onPress={() => setConfirm('searches')} />
-        </NativeList>
-      </ScrollView>
+          <SectionTitle>History</SectionTitle>
+          <NativeList variant="flat">
+            <NativeList.Item
+              testID="data-row-clear-history"
+              title="Clear watch history"
+              onPress={() => setConfirm('history')}
+            />
+            <NativeList.Item
+              testID="data-row-clear-progress"
+              title="Clear watch progress"
+              onPress={() => setConfirm('progress')}
+            />
+            <NativeList.Item
+              testID="data-row-clear-searches"
+              title="Clear search history"
+              onPress={() => setConfirm('searches')}
+            />
+          </NativeList>
+        </ScrollView>
+      </ChoiceRowHost>
 
       <ConfirmDialog
+        testID="data-clear-dialog"
         open={!!pending}
         onOpenChange={(open) => !open && setConfirm(null)}
         title={pending?.title ?? ''}
@@ -296,10 +313,11 @@ const DataAndStorage = () => {
       <Dialog isOpen={backupName !== null} onOpenChange={(open) => !open && setBackupName(null)}>
         <Dialog.Portal>
           <Dialog.Overlay className="bg-black/50" />
-          <Dialog.Content className="rounded-3xl bg-background p-4">
+          <Dialog.Content className="rounded-3xl bg-background p-4" testID="data-backup-name-dialog">
             <HUYStack className="gap-3">
               <Dialog.Title className="text-lg font-semibold text-foreground">Create backup</Dialog.Title>
               <Input
+                testID="data-backup-name-input"
                 value={backupName ?? ''}
                 onChangeText={setBackupName}
                 placeholder="Backup name"
@@ -312,10 +330,17 @@ const DataAndStorage = () => {
               />
               <Text className="text-sm text-foreground/60">Saved as a .json file</Text>
               <HUXStack className="flex-row justify-end gap-3">
-                <Button variant="ghost" className="min-w-25" onPress={() => setBackupName(null)}>
+                <Button
+                  testID="data-backup-name-dialog-cancel"
+                  variant="ghost"
+                  className="min-w-25"
+                  onPress={() => setBackupName(null)}>
                   Cancel
                 </Button>
-                <Button className="min-w-25" onPress={() => backupName !== null && createBackup(backupName)}>
+                <Button
+                  testID="data-backup-name-dialog-confirm"
+                  className="min-w-25"
+                  onPress={() => backupName !== null && createBackup(backupName)}>
                   Create
                 </Button>
               </HUXStack>
@@ -324,6 +349,7 @@ const DataAndStorage = () => {
         </Dialog.Portal>
       </Dialog>
       <ConfirmDialog
+        testID="data-restore-dialog"
         open={!!pendingRestore}
         onOpenChange={(open) => !open && setPendingRestore(null)}
         title="Restore this backup?"
@@ -334,14 +360,6 @@ const DataAndStorage = () => {
         }.`}
         confirmText="Restore"
         onConfirm={() => pendingRestore && restore(pendingRestore)}
-      />
-      <ChoiceDialog
-        open={autoBackupOpen}
-        onOpenChange={setAutoBackupOpen}
-        title="Automatic backups"
-        options={AUTO_BACKUP_OPTIONS}
-        value={autoBackupDays}
-        onChange={setAutoBackupDays}
       />
     </ThemedView>
   );

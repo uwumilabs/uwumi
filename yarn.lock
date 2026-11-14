@@ -11027,10 +11027,10 @@ react-native-svg@15.16.0:
     css-select "^5.1.0"
     css-tree "^1.1.3"
 
-react-native-video-toolkit@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/react-native-video-toolkit/-/react-native-video-toolkit-1.0.0.tgz#df6de811ef0817a1c8011ae84e5c43f4d6448eaf"
-  integrity sha512-aLC4VwcmGCq/3V5hh0zHhxJIBR2MakWHAMIx7+uOupxgqJlZtJIKMq5kCabQ5N7a0ZpUEd+T7YjkxeFV/tW7fg==
+react-native-video-toolkit@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/react-native-video-toolkit/-/react-native-video-toolkit-1.1.0.tgz#76f3ea289cb5b5427d6da355774269400d7b331b"
+  integrity sha512-i0ny3RxDHeigZxXBFrrOetNj+1L73nz/uYoxgupGN65en2NzcCC9HwERsfPSmgH32k8Fu3S5YFdzgzCOaCtcJA==
   dependencies:
     "@rn-primitives/dialog" "^1.4.0"
     "@rn-primitives/portal" "^1.4.0"

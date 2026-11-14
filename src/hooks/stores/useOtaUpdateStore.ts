@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type OtaUpdateStatus = 'idle' | 'downloading' | 'ready';
+type OtaUpdateStatus = 'idle' | 'downloading' | 'ready';
 
 interface OtaUpdateState {
   status: OtaUpdateStatus;

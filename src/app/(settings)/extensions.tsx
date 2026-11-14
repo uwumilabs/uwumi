@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
-import { isCompatibleEntry, type ProviderType } from 'react-native-consumet';
-import { useExtensionStore } from '@/hooks/stores/useExtensionStore';
+import { isCompatibleEntry, type ExtensionManifest, type ProviderType } from 'react-native-consumet';
+import { installedExtensions, updateAvailable, useExtensionStore } from '@/hooks/stores/useExtensionStore';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { isTV } from '@/utils/tv';
 import { Avatar, Card, Chip, useToast } from '@/components/heroui';
@@ -11,13 +10,43 @@ import TVFocusWrapper from '@/components/TVFocusWrapper';
 import { Image } from '@/components/Image';
 import { BottomSheet } from '@/components/native/BottomSheet';
 import { HUXStack, HUYStack, RippleButton } from '@/components/ui-primitives';
-import { IoniconsIcon } from '@/components/Icons';
+import { IoniconsIcon, type IoniconsIconProps } from '@/components/Icons';
 import { Separator } from '@/components/native/separator/Separator';
 import { HorizontalTabs } from '@/components/HorizontalTabs';
 import { Switch } from '@/components/native/switch/Switch';
 
+function ActionButton({
+  testID,
+  icon,
+  label,
+  isLoading,
+  isDisabled,
+  onPress,
+}: {
+  testID: string;
+  icon: IoniconsIconProps['name'];
+  label: string;
+  isLoading: boolean;
+  isDisabled?: boolean;
+  onPress: () => void;
+}) {
+  const currentTheme = useCurrentTheme();
+  return (
+    <Button testID={testID} className="flex-1" onPress={onPress} isDisabled={isLoading || isDisabled}>
+      <HUXStack className="items-center justify-center gap-2">
+        {isLoading ? (
+          <ActivityIndicator size="small" color={currentTheme?.default} />
+        ) : (
+          <IoniconsIcon name={icon} size={14} color={currentTheme?.default} />
+        )}
+        <Button.Label>{label}</Button.Label>
+      </HUXStack>
+    </Button>
+  );
+}
+
 interface ExtensionCardProps {
-  extension: any;
+  extension: ExtensionManifest;
   isInstalled: boolean;
   isLoading: boolean;
   onInstall: () => void;
@@ -51,6 +80,7 @@ function ExtensionCard({
 
   return (
     <Card
+      testID="extension-row"
       className="rounded-3xl p-4"
       style={{
         borderWidth: isInstalled ? 2 : 1,
@@ -60,7 +90,7 @@ function ExtensionCard({
         <HUYStack className="gap-3">
           <HUXStack className="justify-between items-start">
             <HUXStack className="gap-3 items-center flex-1">
-              <Avatar size="md" variant="soft" color="default" alt={`${extension?.name ?? 'Extension'} logo`}>
+              <Avatar size="md" variant="soft" color="default" alt={`${extension.name} logo`}>
                 {!!extension.logo && (
                   <Avatar.Image source={{ uri: extension.logo }} asChild>
                     <Image style={{ width: '100%', height: '100%' }} contentFit="cover" />
@@ -90,7 +120,7 @@ function ExtensionCard({
                 <HUXStack className="items-center gap-2 flex-wrap">
                   <Text className="text-xs font-semibold text-foreground/80">v{extension.version}</Text>
 
-                  {extension.category && (
+                  {!!extension.category && (
                     <Chip size="sm" color="default">
                       <Chip.Label>{extension.category.toUpperCase()}</Chip.Label>
                     </Chip>
@@ -115,48 +145,39 @@ function ExtensionCard({
               </HUYStack>
             </HUXStack>
 
-            <RippleButton onPress={onShowDetails} className="p-2">
+            <RippleButton testID="extension-row-details" onPress={onShowDetails} className="p-2">
               <IoniconsIcon name="information-circle-outline" size={18} color={currentTheme?.accent} />
             </RippleButton>
           </HUXStack>
 
           <HUXStack className="gap-2 items-center justify-between flex-wrap">
             <HUXStack className="gap-2 flex-1">
-              {hasUpdate && isInstalled && (
-                <Button className="flex-1" onPress={onUpdate} isDisabled={isLoading || !isCompatible}>
-                  <HUXStack className="items-center justify-center gap-2">
-                    {isLoading ? (
-                      <ActivityIndicator size="small" color={currentTheme?.default} />
-                    ) : (
-                      <IoniconsIcon name="refresh-outline" size={14} color={currentTheme?.default} />
-                    )}
-                    <Button.Label>Update</Button.Label>
-                  </HUXStack>
-                </Button>
+              {hasUpdate && (
+                <ActionButton
+                  testID="extension-row-update"
+                  icon="refresh-outline"
+                  label="Update"
+                  isLoading={isLoading}
+                  onPress={onUpdate}
+                />
               )}
-
               {isInstalled ? (
-                <Button className="flex-1" onPress={onUninstall} isDisabled={isLoading}>
-                  <HUXStack className="items-center justify-center gap-2">
-                    {isLoading ? (
-                      <ActivityIndicator size="small" color={currentTheme?.default} />
-                    ) : (
-                      <IoniconsIcon name="trash-outline" size={14} color={currentTheme?.default} />
-                    )}
-                    <Button.Label>Uninstall</Button.Label>
-                  </HUXStack>
-                </Button>
+                <ActionButton
+                  testID="extension-row-uninstall"
+                  icon="trash-outline"
+                  label="Uninstall"
+                  isLoading={isLoading}
+                  onPress={onUninstall}
+                />
               ) : (
-                <Button className="flex-1" onPress={onInstall} isDisabled={isLoading || !isCompatible}>
-                  <HUXStack className="items-center justify-center gap-2">
-                    {isLoading ? (
-                      <ActivityIndicator size="small" color={currentTheme?.default} />
-                    ) : (
-                      <IoniconsIcon name="download-outline" size={14} color={currentTheme?.default} />
-                    )}
-                    <Button.Label>Install</Button.Label>
-                  </HUXStack>
-                </Button>
+                <ActionButton
+                  testID="extension-row-install"
+                  icon="download-outline"
+                  label="Install"
+                  isLoading={isLoading}
+                  isDisabled={!isCompatible}
+                  onPress={onInstall}
+                />
               )}
             </HUXStack>
           </HUXStack>
@@ -171,20 +192,15 @@ function ExtensionDetailsSheet({
   isOpen,
   onClose,
 }: {
-  extension: any;
+  extension: ExtensionManifest | null;
   isOpen: boolean;
   onClose: () => void;
 }) {
   const theme = useCurrentTheme();
-  const sourceLabel = useMemo(() => {
-    if (!extension?.baseUrl) return '';
-    return extension.baseUrl.replace('https://', '').replace('http://', '');
-  }, [extension.baseUrl]);
-
-  const statusColor: 'success' | 'warning' | 'danger' | 'default' =
-    extension?.status === 'stable' ? 'success' : extension?.status === 'beta' ? 'warning' : 'danger';
-
   if (!extension) return null;
+
+  const sourceLabel = extension.baseUrl?.replace('https://', '').replace('http://', '') ?? '';
+  const statusColor = extension.status === 'stable' ? 'success' : extension.status === 'beta' ? 'warning' : 'danger';
 
   return (
     <BottomSheet
@@ -194,9 +210,9 @@ function ExtensionDetailsSheet({
       }}
       snapPoints={['80%']}
       scrollable>
-      <View className="p-4 gap-4">
+      <View testID="extensions-details" className="p-4 gap-4">
         <HUXStack className="items-center gap-3">
-          <Avatar size="lg" variant="soft" color="default" alt={`${extension?.name ?? 'Extension'} logo`}>
+          <Avatar size="lg" variant="soft" color="default" alt={`${extension.name} logo`}>
             {!!extension.logo && (
               <Avatar.Image source={{ uri: extension.logo }} asChild>
                 <Image style={{ width: '100%', height: '100%' }} contentFit="cover" />
@@ -249,7 +265,7 @@ function ExtensionDetailsSheet({
           <HUXStack className="justify-between items-center">
             <Text className="text-sm text-foreground/70">Status</Text>
             <Chip size="sm" variant="secondary" color={statusColor}>
-              <Chip.Label>{(extension.status?.toUpperCase() || 'UNKNOWN') as string}</Chip.Label>
+              <Chip.Label>{extension.status?.toUpperCase() || 'UNKNOWN'}</Chip.Label>
             </Chip>
           </HUXStack>
 
@@ -292,7 +308,7 @@ function ExtensionDetailsSheet({
               <HUXStack className="justify-between items-start">
                 <Text className="text-sm text-foreground/70">Extractors</Text>
                 <HUYStack className="items-end gap-2">
-                  {extension.extractors.map((extractor: string) => (
+                  {extension.extractors.map((extractor) => (
                     <Chip key={extractor} size="sm" variant="secondary" color="default">
                       <Chip.Label>{extractor}</Chip.Label>
                     </Chip>
@@ -321,178 +337,151 @@ const CATEGORY_TABS: { key: ProviderType; label: string }[] = [
 
 export default function Extensions() {
   const registry = useExtensionStore((state) => state.registry);
+  const installed = useExtensionStore((state) => state.installed);
   const isLoading = useExtensionStore((state) => state.isLoading);
   const error = useExtensionStore((state) => state.error);
-  // Installed is read from storage, so the badges re-render on installs and removals through this
-  useExtensionStore((state) => state.installedVersion);
-  const { updateRegistry, installExtension, uninstallExtension, isExtensionInstalled, checkForUpdates } =
-    useExtensionStore.getState();
+  const { updateRegistry, installExtension, uninstallExtension } = useExtensionStore.getState();
   const { toast } = useToast();
+  const currentTheme = useCurrentTheme();
 
-  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
-  const [selectedExtension, setSelectedExtension] = useState<any>(null);
+  const [installing, setInstalling] = useState<Record<string, boolean>>({});
+  const [selectedExtension, setSelectedExtension] = useState<ExtensionManifest | null>(null);
   const [showDetailsSheet, setShowDetailsSheet] = useState(false);
   const [showInstalledOnly, setShowInstalledOnly] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Installing or updating changes the cached versions this compares against, so actions refetch it
-  const registryVersions = useMemo(
-    () => registry?.extensions.map(({ id, version }) => `${id}@${version}`).join(','),
-    [registry],
-  );
-  const { data: availableUpdates = [], refetch: fetchUpdates } = useQuery({
-    queryKey: ['extensions', 'updates', registryVersions],
-    queryFn: async () => (await checkForUpdates()).extensions,
-    enabled: !!registry,
-  });
-
-  const onRefresh = async () => {
-    setIsRefreshing(true);
-    await updateRegistry();
-    await fetchUpdates();
-    setIsRefreshing(false);
-  };
-
-  const handleAction = async (
-    action: () => Promise<boolean>,
-    extension: { id: string; name: string },
-    verb: string,
-  ) => {
-    setLoadingStates((prev) => ({ ...prev, [extension.id]: true }));
-    try {
-      if (!(await action())) toast.show({ variant: 'danger', label: `Couldn't ${verb} ${extension.name}` });
-      await fetchUpdates();
-    } catch (error) {
-      console.error(`Couldn't ${verb} ${extension.id}:`, error);
-      toast.show({ variant: 'danger', label: `Couldn't ${verb} ${extension.name}`, description: String(error) });
-    } finally {
-      setLoadingStates((prev) => ({ ...prev, [extension.id]: false }));
+  const install = async (extension: ExtensionManifest, verb: 'install' | 'update') => {
+    setInstalling((prev) => ({ ...prev, [extension.id]: true }));
+    if (!(await installExtension(extension.id))) {
+      toast.show({ variant: 'danger', label: `Couldn't ${verb} ${extension.name}` });
     }
+    setInstalling((prev) => ({ ...prev, [extension.id]: false }));
   };
 
-  const showExtensionDetails = (extension: any) => {
+  const showExtensionDetails = (extension: ExtensionManifest) => {
     setSelectedExtension(extension);
     setShowDetailsSheet(true);
   };
 
-  const filteredExtensions =
-    registry?.extensions.filter((ext) => (showInstalledOnly ? isExtensionInstalled(ext.id) : true)) || [];
+  const installedCount = installedExtensions({ registry, installed }).length;
+  const filteredExtensions = showInstalledOnly ? installedExtensions({ registry, installed }) : registry.extensions;
+  const updatesCount = registry.extensions.filter((ext) => updateAvailable(ext, installed)).length;
 
-  const currentTheme = useCurrentTheme();
-
-  if (isLoading) {
+  // A refresh with a list on screen shows in the list's RefreshControl instead
+  if (isLoading && filteredExtensions.length === 0) {
     return (
-      <>
-        <HUYStack className="flex-1 items-center justify-center gap-3">
-          <ActivityIndicator size="large" />
-          <Text className="text-foreground/70">Loading extensions...</Text>
-        </HUYStack>
-      </>
+      <HUYStack testID="extensions-screen" className="flex-1 items-center justify-center gap-3">
+        <ActivityIndicator testID="extensions-loading" size="large" />
+        <Text className="text-foreground/70">Loading extensions...</Text>
+      </HUYStack>
     );
   }
 
-  const installedCount = filteredExtensions.filter((ext) => isExtensionInstalled(ext.id)).length;
-  const updatesCount = availableUpdates.length;
-  if (filteredExtensions.length === 0) {
+  // Not for an empty "Installed only" list: the switch to turn it off is in the header
+  if (registry.extensions.length === 0) {
     return (
-      <>
-        <HUYStack className="flex-1 items-center justify-center gap-3 p-4">
-          <IoniconsIcon name="extension-puzzle-outline" size={48} color={currentTheme.foreground} />
-          <Text className="text-xl font-semibold text-foreground">No extensions found</Text>
-          <Text className="text-foreground/70 text-center">
-            {showInstalledOnly
-              ? "You haven't installed any extensions yet"
-              : 'Check your internet connection and try updating the registry'}
-          </Text>
-          <Button onPress={onRefresh} variant="primary">
-            <HUXStack className="items-center gap-2">
-              <IoniconsIcon name="refresh-outline" size={16} />
-              <Text className="text-foreground font-semibold">Refresh</Text>
-            </HUXStack>
-          </Button>
-        </HUYStack>
-      </>
+      <HUYStack testID="extensions-screen" className="flex-1 items-center justify-center gap-3 p-4">
+        <IoniconsIcon name="extension-puzzle-outline" size={48} color={currentTheme.foreground} />
+        <Text testID="extensions-empty" className="text-xl font-semibold text-foreground">
+          No extensions found
+        </Text>
+        <Text className="text-foreground/70 text-center">
+          {showInstalledOnly
+            ? "You haven't installed any extensions yet"
+            : 'Check your internet connection and try updating the registry'}
+        </Text>
+        <Button testID="extensions-refresh" onPress={updateRegistry} variant="primary">
+          <HUXStack className="items-center gap-2">
+            <IoniconsIcon name="refresh-outline" size={16} />
+            <Text className="text-foreground font-semibold">Refresh</Text>
+          </HUXStack>
+        </Button>
+      </HUYStack>
     );
   }
 
   return (
-    <>
-      <HUYStack className="flex-1">
-        <HUXStack
-          className="px-4 py-3 items-center justify-between border-b"
-          style={{ borderColor: currentTheme.separator }}>
-          <HUYStack>
-            <Text className="text-foreground/70 text-xs">
-              {installedCount} installed • {filteredExtensions.length} available
-              {updatesCount > 0 && ` • ${updatesCount} update${updatesCount !== 1 ? 's' : ''}`}
-            </Text>
-          </HUYStack>
+    <HUYStack testID="extensions-screen" className="flex-1">
+      <HUXStack
+        className="px-4 py-3 items-center justify-between border-b"
+        style={{ borderColor: currentTheme.separator }}>
+        <HUYStack>
+          <Text className="text-foreground/70 text-xs">
+            {installedCount} installed • {filteredExtensions.length} available
+            {updatesCount > 0 && ` • ${updatesCount} update${updatesCount !== 1 ? 's' : ''}`}
+          </Text>
+        </HUYStack>
 
-          {/* On TV the whole toggle is one focus target; on phones the switch takes the tap itself */}
-          <TVFocusWrapper onPress={isTV ? () => setShowInstalledOnly(!showInstalledOnly) : undefined} focusScale={1}>
-            <HUXStack className="items-center gap-2 px-2 py-1">
-              <Switch value={showInstalledOnly} onValueChange={isTV ? undefined : setShowInstalledOnly} />
-              <Text className="text-foreground/70 text-xs">Installed only</Text>
-            </HUXStack>
-          </TVFocusWrapper>
-        </HUXStack>
-
-        {/* A failed refresh keeps the current registry, so the list stays usable */}
-        {error && (
-          <HUXStack className="px-4 py-2 items-center gap-2">
-            <IoniconsIcon name="alert-circle-outline" size={14} color={currentTheme.warning} />
-            <Text className="flex-1 text-xs text-foreground/70">{error}</Text>
+        {/* On TV the whole toggle is one focus target; on phones the switch takes the tap itself */}
+        <TVFocusWrapper
+          testID="extensions-installed-only"
+          onPress={isTV ? () => setShowInstalledOnly(!showInstalledOnly) : undefined}
+          focusScale={1}>
+          <HUXStack className="items-center gap-2 px-2 py-1">
+            <Switch
+              testID="extensions-installed-only-switch"
+              value={showInstalledOnly}
+              onValueChange={isTV ? undefined : setShowInstalledOnly}
+            />
+            <Text className="text-foreground/70 text-xs">Installed only</Text>
           </HUXStack>
-        )}
+        </TVFocusWrapper>
+      </HUXStack>
 
-        <HorizontalTabs
-          initialTab="anime"
-          items={CATEGORY_TABS.map(({ key, label }) => {
-            const extensions = filteredExtensions.filter((extension) => extension.category === key);
-            return {
-              key,
-              label,
-              content: (
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  refreshControl={
-                    isTV ? undefined : <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-                  }>
-                  <HUYStack className="gap-3 p-4 pb-8">
-                    {extensions.length === 0 && (
-                      <Text className="text-foreground/70 text-center pt-8">
-                        {showInstalledOnly
-                          ? `No ${label.toLowerCase()} extensions installed`
-                          : `No ${label.toLowerCase()} extensions available`}
-                      </Text>
-                    )}
-                    {extensions.map((extension) => (
-                      <ExtensionCard
-                        key={extension.id}
-                        extension={extension}
-                        isInstalled={isExtensionInstalled(extension.id)}
-                        isLoading={loadingStates[extension.id] || false}
-                        hasUpdate={availableUpdates.includes(extension.id)}
-                        isCompatible={isCompatibleEntry(extension)}
-                        onInstall={() => handleAction(() => installExtension(extension.id), extension, 'install')}
-                        onUninstall={() => handleAction(() => uninstallExtension(extension.id), extension, 'remove')}
-                        onUpdate={() => handleAction(() => installExtension(extension.id), extension, 'update')}
-                        onShowDetails={() => showExtensionDetails(extension)}
-                      />
-                    ))}
-                  </HUYStack>
-                </ScrollView>
-              ),
-            };
-          })}
-        />
+      {/* A failed refresh keeps the current registry, so the list stays usable */}
+      {error && (
+        <HUXStack testID="extensions-error" className="px-4 py-2 items-center gap-2">
+          <IoniconsIcon name="alert-circle-outline" size={14} color={currentTheme.warning} />
+          <Text className="flex-1 text-xs text-foreground/70">{error}</Text>
+        </HUXStack>
+      )}
 
-        <ExtensionDetailsSheet
-          extension={selectedExtension}
-          isOpen={showDetailsSheet}
-          onClose={() => setShowDetailsSheet(false)}
-        />
-      </HUYStack>
-    </>
+      <HorizontalTabs
+        items={CATEGORY_TABS.map(({ key, label }) => {
+          const extensions = filteredExtensions.filter((extension) => extension.category === key);
+          return {
+            key,
+            label,
+            content: (
+              <ScrollView
+                testID="extensions-list"
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                  isTV ? undefined : <RefreshControl refreshing={isLoading} onRefresh={updateRegistry} />
+                }>
+                <HUYStack className="gap-3 p-4 pb-8">
+                  {extensions.length === 0 && (
+                    <Text testID="extensions-tab-empty" className="text-foreground/70 text-center pt-8">
+                      {showInstalledOnly
+                        ? `No ${label.toLowerCase()} extensions installed`
+                        : `No ${label.toLowerCase()} extensions available`}
+                    </Text>
+                  )}
+                  {extensions.map((extension) => (
+                    <ExtensionCard
+                      key={extension.id}
+                      extension={extension}
+                      isInstalled={!!installed[extension.id]}
+                      isLoading={!!installing[extension.id]}
+                      hasUpdate={updateAvailable(extension, installed)}
+                      isCompatible={isCompatibleEntry(extension)}
+                      onInstall={() => install(extension, 'install')}
+                      onUninstall={() => uninstallExtension(extension.id)}
+                      onUpdate={() => install(extension, 'update')}
+                      onShowDetails={() => showExtensionDetails(extension)}
+                    />
+                  ))}
+                </HUYStack>
+              </ScrollView>
+            ),
+          };
+        })}
+      />
+
+      <ExtensionDetailsSheet
+        extension={selectedExtension}
+        isOpen={showDetailsSheet}
+        onClose={() => setShowDetailsSheet(false)}
+      />
+    </HUYStack>
   );
 }

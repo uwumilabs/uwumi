@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
-import { MANGA, META } from 'react-native-consumet';
+import { MANGA, META, type ExtensionManifest } from 'react-native-consumet';
 import { storage } from '@/hooks/stores/MMKV';
 import { MediaType } from '@/constants/types';
-import { useExtensionStore } from '@/hooks/stores/useExtensionStore';
+import { installedExtensions, useExtensionStore } from '@/hooks/stores/useExtensionStore';
 
 // What META.Anilist.Manga takes (the package doesn't export the MangaParser type itself)
 type MangaParser = NonNullable<ConstructorParameters<typeof META.Anilist.Manga>[0]>;
@@ -13,8 +13,6 @@ export interface Provider {
   value: string;
   subbed?: boolean;
   dubbed?: boolean;
-  embed?: boolean;
-  nonEmbed?: boolean;
 }
 
 type ProviderGroups = Record<MediaType, Provider[]>;
@@ -29,25 +27,23 @@ const MANGA_PROVIDERS: { name: string; value: string; create: () => MangaParser 
   { name: 'Flame Comics', value: 'flamescans', create: () => new MANGA.FlameScans() },
 ];
 
-export const getProviders = (): ProviderGroups => {
-  const installed = useExtensionStore.getState().getInstalledExtensions();
-  return {
-    [MediaType.ANIME]: installed
-      .filter((ext) => ext.category === 'anime')
-      .map((ext) => ({ name: ext.name, value: ext.id, subbed: ext.subbed, dubbed: ext.dubbed })),
-    [MediaType.MANGA]: MANGA_PROVIDERS.map(({ name, value }) => ({ name, value })),
-    [MediaType.MOVIE]: installed
-      .filter((ext) => ext.category === 'movies')
-      .map((ext) => ({ name: ext.name, value: ext.id, embed: ext.isSourceEmbed, nonEmbed: ext.isSourceDirect })),
-  };
-};
+const groupProviders = (installed: ExtensionManifest[]): ProviderGroups => ({
+  [MediaType.ANIME]: installed
+    .filter((ext) => ext.category === 'anime')
+    .map((ext) => ({ name: ext.name, value: ext.id, subbed: ext.subbed, dubbed: ext.dubbed })),
+  [MediaType.MANGA]: MANGA_PROVIDERS.map(({ name, value }) => ({ name, value })),
+  [MediaType.MOVIE]: installed
+    .filter((ext) => ext.category === 'movies')
+    .map((ext) => ({ name: ext.name, value: ext.id })),
+});
 
-/** getProviders, again whenever an extension is installed or removed */
+export const getProviders = (): ProviderGroups => groupProviders(installedExtensions(useExtensionStore.getState()));
+
+/** getProviders, again whenever the registry or the installed extensions change */
 export const useProviders = (): ProviderGroups => {
   const registry = useExtensionStore((state) => state.registry);
-  const installedVersion = useExtensionStore((state) => state.installedVersion);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- getProviders reads both from the store
-  return useMemo(() => getProviders(), [registry, installedVersion]);
+  const installed = useExtensionStore((state) => state.installed);
+  return useMemo(() => groupProviders(installedExtensions({ registry, installed })), [registry, installed]);
 };
 
 const DEFAULT_PROVIDERS: Record<MediaType, string> = {
@@ -102,9 +98,6 @@ export const useProviderStore = create<ProviderState>((set) => ({
 }));
 
 /** The provider to fetch with: the user's choice if it's still installed, else the first installed one. */
-export const activeProvider = (mediaType: MediaType) =>
-  pickProvider(getProviders()[mediaType] ?? [], mediaType, useProviderStore.getState().providers[mediaType]);
-
 export const useActiveProvider = (mediaType: MediaType): string => {
   const stored = useProviderStore((state) => state.providers[mediaType]);
   const providers = useProviders();
@@ -117,15 +110,10 @@ export const useProviderName = (mediaType: MediaType, provider: string) =>
 interface ProviderSelectionState {
   /** Anime: play the dub. For the session, like the player's own choices */
   dub: boolean;
-  /** Movies: which of a provider's kinds the choice was made under, for providers that are both */
-  isEmbed: boolean;
   setDub: (dub: boolean) => void;
-  setIsEmbed: (isEmbed: boolean) => void;
 }
 
 export const useProviderSelectionStore = create<ProviderSelectionState>((set) => ({
   dub: false,
-  isEmbed: true,
   setDub: (dub) => set({ dub }),
-  setIsEmbed: (isEmbed) => set({ isEmbed }),
 }));

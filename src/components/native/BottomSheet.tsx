@@ -19,6 +19,8 @@ export type BottomSheetProps = {
 
   /** Props for the content's wrapper: the ScrollView, or a View when not scrollable */
   contentContainerProps?: ViewProps;
+
+  testID?: string;
 };
 
 function toSnapPoint(point: string | number): SnapPoint {
@@ -35,6 +37,7 @@ export const BottomSheet = ({
   children,
   scrollable = true,
   contentContainerProps,
+  testID = 'bottom-sheet',
 }: BottomSheetProps) => {
   const theme = useCurrentTheme();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -60,7 +63,7 @@ export const BottomSheet = ({
       {/* matchContents lets content-sized sheets (no snapPoints) measure the RN content. */}
       <RNHostView matchContents>
         <LayoutAnimationConfig skipExiting>
-          <View style={{ width: sheetWidth }}>
+          <View testID={testID} style={{ width: sheetWidth }}>
             {scrollable ? (
               <ScrollView
                 // TV: the sheet opens half-expanded and can't be dragged up, so content past half the screen

@@ -11,7 +11,7 @@ import { List as NativeList } from '@/components/native/list/List';
 import { APP_VERSION, isPreRelease, useUpdateChecker } from '@/hooks/useUpdateChecker';
 import { pendingOtaVersion, runningOtaVersion, useCanRestartForUpdate } from '@/hooks/useOtaUpdates';
 import { useOtaUpdateStore } from '@/hooks/stores/useOtaUpdateStore';
-import { EXTERNAL_LINKS } from '@/constants/config';
+import { EXTERNAL_LINKS, DASH_HOST } from '@/constants/config';
 import { isTV } from '@/utils/tv';
 import { openBrowser } from '@/utils/share';
 
@@ -30,7 +30,7 @@ const COMMUNITY_LINKS: { label: string; description: string; icon: IoniconProps[
   },
   {
     label: 'Website',
-    description: 'uwumi.vercel.app',
+    description: DASH_HOST,
     icon: 'globe-outline',
     url: EXTERNAL_LINKS.PROJECT_WEBSITE,
   },
@@ -40,13 +40,8 @@ const SectionTitle = ({ children }: { children: string }) => (
   <Text className="px-1 text-xs font-semibold uppercase tracking-wider text-foreground/60">{children}</Text>
 );
 
-const InfoRow = ({ icon, title, value }: { icon: IoniconProps['name']; title: string; value: string }) => (
-  <NativeList.Item icon={icon} title={title} trailing={value} />
-);
-
 const About = () => {
   const { updateInfo, hasUpdate, isLoading, isError, checkForUpdates } = useUpdateChecker();
-  const appVersion = APP_VERSION;
   const buildNumber = Application.nativeBuildVersion;
   const otaStatus = useOtaUpdateStore((state) => state.status);
   const otaPercent = useOtaUpdateStore((state) => state.percent);
@@ -57,7 +52,7 @@ const About = () => {
   const updateStatus = isError ? "Couldn't check" : hasUpdate ? `v${updateInfo.newVersion} available` : 'Up to date';
 
   return (
-    <ThemedView>
+    <ThemedView testID="about-screen">
       <ScrollView
         contentContainerClassName="gap-6 px-4 pb-24 pt-4"
         showsVerticalScrollIndicator={false}
@@ -73,8 +68,8 @@ const About = () => {
             <Text className="text-sm text-foreground/60">Anime, manga and movies in one place</Text>
           </HUYStack>
           <HUXStack className="gap-2">
-            <Chip size="sm" focusable={isTV ? false : undefined}>{`v${appVersion}`}</Chip>
-            {isPreRelease(appVersion) && (
+            <Chip size="sm" focusable={isTV ? false : undefined}>{`v${APP_VERSION}`}</Chip>
+            {isPreRelease(APP_VERSION) && (
               <Chip size="sm" color="warning" focusable={isTV ? false : undefined}>
                 Pre-release
               </Chip>
@@ -90,21 +85,29 @@ const About = () => {
         <HUYStack className="gap-2">
           <SectionTitle>App</SectionTitle>
           <NativeList>
-            <InfoRow
+            <NativeList.Item
+              testID="about-row-version"
               icon="phone-portrait-outline"
               title="Version"
-              value={buildNumber ? `${appVersion} (${buildNumber})` : appVersion}
+              trailing={buildNumber ? `${APP_VERSION} (${buildNumber})` : APP_VERSION}
             />
-            <InfoRow
+            <NativeList.Item
+              testID="about-row-js-bundle"
               icon="layers-outline"
               title="JS bundle"
-              value={__DEV__ ? 'Metro' : (runningOtaVersion ?? 'Built-in')}
+              trailing={__DEV__ ? 'Metro' : (runningOtaVersion ?? 'Built-in')}
             />
             {otaStatus === 'downloading' && (
-              <InfoRow icon="cloud-download-outline" title="Downloading update" value={`${otaPercent ?? 0}%`} />
+              <NativeList.Item
+                testID="about-row-update-downloading"
+                icon="cloud-download-outline"
+                title="Downloading update"
+                trailing={`${otaPercent ?? 0}%`}
+              />
             )}
             {pendingOta && otaStatus !== 'downloading' && (
               <NativeList.Item
+                testID="about-row-update-ready"
                 icon="sparkles-outline"
                 title="Update ready"
                 description={`${pendingOta} · ${canRestart ? 'tap to restart' : 'restart once downloads finish'}`}
@@ -113,6 +116,7 @@ const About = () => {
               />
             )}
             <NativeList.Item
+              testID="about-row-check-updates"
               icon="refresh-outline"
               title="Check for updates"
               trailing={updateStatus}
@@ -124,7 +128,10 @@ const About = () => {
           </NativeList>
 
           {hasUpdate && (
-            <Button variant="primary" onPress={() => openBrowser(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE)}>
+            <Button
+              testID="about-download-update"
+              variant="primary"
+              onPress={() => openBrowser(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE)}>
               <IoniconsIcon name="download-outline" size={18} className="text-accent-foreground" />
               <Button.Label>{`Download v${updateInfo.newVersion}`}</Button.Label>
             </Button>
@@ -137,6 +144,7 @@ const About = () => {
             {COMMUNITY_LINKS.map(({ label, description, icon, url }) => (
               <NativeList.Item
                 key={label}
+                testID="about-row-community"
                 icon={icon}
                 title={label}
                 description={description}
@@ -150,12 +158,14 @@ const About = () => {
           <SectionTitle>Support</SectionTitle>
           <NativeList>
             <NativeList.Item
+              testID="about-row-report-bug"
               icon="bug-outline"
               title="Report a bug"
-              description={`Include v${appVersion} in the report`}
+              description={`Include v${APP_VERSION} in the report`}
               onPress={() => openBrowser(EXTERNAL_LINKS.GITHUB_NEW_ISSUE)}
             />
             <NativeList.Item
+              testID="about-row-share"
               icon="share-social-outline"
               title="Share uwumi"
               description="Send the download link to a friend"

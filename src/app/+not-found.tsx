@@ -4,7 +4,7 @@ import { ThemedView } from '@/components/ui-primitives';
 
 export default function NotFoundScreen() {
   return (
-    <ThemedView>
+    <ThemedView testID="not-found-screen">
       <Text>This screen doesn't exist.</Text>
     </ThemedView>
   );

@@ -1,5 +1,4 @@
 import React, { useRef } from 'react';
-import { View } from 'react-native';
 import {
   Card,
   CircularProgressIndicator,
@@ -23,42 +22,32 @@ import {
   size,
   toggleable,
   weight,
+  testID as testTag,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
-import { IoniconsIcon, type IoniconProps } from '../../Icons';
-import { SeparatorLine } from '../separator/Separator';
 import { switchColors } from '../switch/Switch.android';
-import { FlatListContext, listItems, type ListItemProps, type ListProps } from './shared';
+import {
+  createHostedIcon,
+  createTrailing,
+  FlatListContext,
+  listItems,
+  RADIUS,
+  withDividers,
+  type ListItemProps,
+  type ListProps,
+} from './shared';
 
-// heroui ListGroup's look: a rounded surface card, dividers inset 16 from the edges
-const RADIUS = 24;
-const INSET = 16;
+const HostedIcon = createHostedIcon(RNHostView);
 
-type HostedIconProps = { name: IoniconProps['name']; size: number; color: string; label?: string };
-
-const HostedIcon = ({ name, size: iconSize, color, label }: HostedIconProps) => (
-  <RNHostView matchContents>
-    <View accessibilityLabel={label}>
-      <IoniconsIcon name={name} size={iconSize} color={color} />
-    </View>
-  </RNHostView>
-);
-
-type TrailingProps = Pick<ListItemProps, 'trailingLoading' | 'trailingTone'> & { text?: string; chevron: boolean };
-
-const Trailing = ({ text, trailingLoading, trailingTone, chevron }: TrailingProps) => {
-  const theme = useCurrentTheme();
-  if (trailingLoading) return <CircularProgressIndicator color={theme.muted} modifiers={[size(18, 18)]} />;
-  if (text) {
-    return (
-      <Text color={trailingTone === 'danger' ? theme.danger : theme.muted} style={{ fontSize: 14 }}>
-        {text}
-      </Text>
-    );
-  }
-  if (chevron) return <HostedIcon name="chevron-forward" size={16} color={theme.muted} />;
-  return null;
-};
+const Trailing = createTrailing({
+  spinner: (color) => <CircularProgressIndicator color={color} modifiers={[size(18, 18)]} />,
+  text: (text, color) => (
+    <Text color={color} style={{ fontSize: 14 }}>
+      {text}
+    </Text>
+  ),
+  chevron: (color) => <HostedIcon name="chevron-forward" size={16} color={color} />,
+});
 
 // Compose's own clickable handles taps and D-pad focus, with Material's focus highlight
 const Item = ({
@@ -73,6 +62,7 @@ const Item = ({
   action,
   info,
   toggle,
+  testID,
 }: ListItemProps) => {
   const theme = useCurrentTheme();
   const flat = React.useContext(FlatListContext);
@@ -89,7 +79,7 @@ const Item = ({
   const item = (
     <ComposeListItem
       colors={{ containerColor: 'transparent' }}
-      modifiers={[action || info ? weight(1) : fillMaxWidth(), ...press]}>
+      modifiers={[action || info ? weight(1) : fillMaxWidth(), ...press, ...(testID ? [testTag(testID)] : [])]}>
       <ComposeListItem.HeadlineContent>
         <Text color={theme.foreground} style={{ fontSize: 16, fontWeight: '500' }}>
           {title}
@@ -125,7 +115,7 @@ const Item = ({
     <Row verticalAlignment="center" modifiers={[fillMaxWidth(), padding(0, 0, 8, 0)]}>
       {item}
       {action ? (
-        <IconButton onClick={action.onPress}>
+        <IconButton onClick={action.onPress} modifiers={testID ? [testTag(`${testID}-action`)] : undefined}>
           <HostedIcon name={action.icon} size={18} color={theme.foreground} label={action.label} />
         </IconButton>
       ) : info ? (
@@ -181,19 +171,10 @@ const ListRoot = ({ children, variant = 'card' }: ListProps) => {
   return (
     <Host matchContents={{ vertical: true }} style={{ width: '100%' }}>
       <Card colors={{ containerColor: theme.surface }} modifiers={[fillMaxWidth(), clip(Shapes.RoundedCorner(RADIUS))]}>
-        <Column modifiers={[fillMaxWidth()]}>
-          {items.map((item, index) => (
-            <React.Fragment key={item.key ?? index}>
-              {index > 0 && <SeparatorLine inset={INSET} />}
-              {item}
-            </React.Fragment>
-          ))}
-        </Column>
+        <Column modifiers={[fillMaxWidth()]}>{withDividers(items)}</Column>
       </Card>
     </Host>
   );
 };
 
 export const List = Object.assign(ListRoot, { Item });
-
-export default List;

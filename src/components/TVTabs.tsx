@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Image, type ImageSourcePropType, Pressable, Text, TVFocusGuideView, View } from 'react-native';
+import { TABS } from './homeTabs';
 import { Tabs, TabList, TabSlot, TabTrigger, useTabTrigger } from 'expo-router/ui';
 import { useIsFocused } from 'expo-router';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -11,19 +12,10 @@ import { TVRailContext } from './TVRow';
 const COLLAPSED_WIDTH = 88;
 const EXPANDED_WIDTH = 232;
 
-/** The home tabs, for the phone tab bar and the TV rail */
-export const TABS: {
-  name: string;
-  href: '/' | '/manga' | '/movies' | '/more';
-  label: string;
-  icon: ImageSourcePropType;
-}[] = [
-  { name: 'index', href: '/', label: 'Anime', icon: require('../../assets/images/anime.png') },
-  { name: 'manga', href: '/manga', label: 'Manga', icon: require('../../assets/images/manga.png') },
-  { name: 'movies', href: '/movies', label: 'Movies', icon: require('../../assets/images/movies.png') },
-  { name: 'more', href: '/more', label: 'More', icon: require('../../assets/images/more.png') },
-];
 const HOME_TAB = TABS[0].name;
+
+const currentTab = (getTrigger: ReturnType<typeof useTabTrigger>['getTrigger']) =>
+  TABS.find(({ name }) => getTrigger(name)?.isFocused)?.name ?? HOME_TAB;
 
 // react-native-tvos adds requestTVFocus to views; its types don't list it
 type FocusableView = { requestTVFocus?: () => void };
@@ -31,6 +23,7 @@ type PressableElement = React.ComponentRef<typeof Pressable>;
 
 interface RailItemProps {
   label: string;
+  testID: string;
   icon: ImageSourcePropType;
   expanded: boolean;
   itemRef: (view: PressableElement | null) => void;
@@ -39,12 +32,13 @@ interface RailItemProps {
   onPress?: () => void;
 }
 
-const RailItem = ({ label, icon, expanded, itemRef, isFocused: selected, onPress }: RailItemProps) => {
+const RailItem = ({ label, testID, icon, expanded, itemRef, isFocused: selected, onPress }: RailItemProps) => {
   const theme = useCurrentTheme();
   const [focused, setFocused] = useState(false);
   return (
     <Pressable
       ref={itemRef}
+      testID={testID}
       onPress={onPress}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
@@ -81,7 +75,7 @@ const RailBackHandler = ({ railFocused, focusTab }: { railFocused: boolean; focu
   const screenFocused = useIsFocused();
   const { switchTab, getTrigger } = useTabTrigger({ name: HOME_TAB });
   useBackHandler(screenFocused, () => {
-    const current = TABS.find(({ name }) => getTrigger(name)?.isFocused)?.name ?? HOME_TAB;
+    const current = currentTab(getTrigger);
     if (!railFocused) {
       focusTab(current);
       return true;
@@ -139,10 +133,11 @@ export const TVTabs = () => {
             onFocusEnter={() => setExpanded(true)}
             onFocusLeave={() => setExpanded(false)}
             style={{ flex: 1, justifyContent: 'center', gap: 8, paddingHorizontal: 12 }}>
-            {TABS.map(({ name, label, icon }) => (
+            {TABS.map(({ name, label, icon, testID }) => (
               <TabTrigger key={name} name={name} asChild>
                 <RailItem
                   label={label}
+                  testID={testID}
                   icon={icon}
                   expanded={expanded}
                   itemRef={(view) => {
@@ -166,9 +161,7 @@ export const TVTabs = () => {
 /** Reports the current tab, for the rail's focus guide to point at, so Left from anywhere lands on it */
 const RailDestination = ({ onCurrent }: { onCurrent: (name: string) => void }) => {
   const { getTrigger } = useTabTrigger({ name: HOME_TAB });
-  const current = TABS.find(({ name }) => getTrigger(name)?.isFocused)?.name ?? HOME_TAB;
+  const current = currentTab(getTrigger);
   useEffect(() => onCurrent(current), [current, onCurrent]);
   return null;
 };
-
-export default TVTabs;

@@ -14,7 +14,7 @@ export const chapterTitle = (chapter?: IMangaChapter) =>
   chapter?.title?.trim() || (chapter?.chapterNumber !== undefined ? `Chapter ${chapter.chapterNumber}` : 'Chapter');
 
 /** An ISO date as "Oct 3, 2024"; anything else the site gave, as it is */
-export const releaseDateLabel = (value?: string) => {
+const releaseDateLabel = (value?: string) => {
   if (!value) return '';
   const time = /^\d{4}-\d{2}-\d{2}/.test(value) ? Date.parse(value) : NaN;
   return Number.isNaN(time) ? value : dateFormat.format(time);

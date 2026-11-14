@@ -1,19 +1,22 @@
 import BackgroundService from 'react-native-background-actions';
+import { DOWNLOADS_LINK } from '@/utils/routes';
 import { formatBytes } from '@/utils/format';
-import type { DownloadProgress } from './ffmpeg';
+import { downloadBytesPerSecond, isPreparing, type EpisodeDownload } from './model';
 
-/** Bytes downloaded per second: the stream's byte rate times how much faster than real time FFmpeg runs */
-export const downloadBytesPerSecond = ({ speed, bitrate }: Pick<DownloadProgress, 'speed' | 'bitrate'>) =>
-  speed > 0 && bitrate > 0 ? (bitrate / 8) * speed : 0;
-
-let running = false;
+// The library counts as running only once its native start resolves, so downloads starting together share one start
+let starting: Promise<void> | undefined;
 
 /**
  * Android's foreground service, with its notification, so downloads go on in the background. It runs while
  * `isActive` holds, checked every 2 seconds.
  */
 export const startDownloadService = async (isActive: () => boolean) => {
-  if (running) return;
+  if (BackgroundService.isRunning()) return;
+  starting ??= start(isActive).finally(() => (starting = undefined));
+  return starting;
+};
+
+const start = async (isActive: () => boolean) => {
   try {
     await BackgroundService.start(
       async () => {
@@ -26,37 +29,30 @@ export const startDownloadService = async (isActive: () => boolean) => {
         // plugins/withBackgroundDownloads.js adds this drawable
         taskIcon: { name: 'notification_icon', type: 'drawable' },
         color: '#000',
-        linkingURI: 'uwumi://(settings)/downloads',
+        linkingURI: DOWNLOADS_LINK,
         parameters: {},
         foregroundServiceType: ['dataSync'],
       },
     );
-    running = true;
   } catch (error) {
     console.error('❌ Failed to start background service:', error);
   }
 };
 
 export const stopDownloadService = async () => {
-  if (!running) return;
+  if (!BackgroundService.isRunning()) return;
   try {
     await BackgroundService.stop();
-    running = false;
   } catch (error) {
     console.error('❌ Failed to stop background service:', error);
   }
 };
 
-export const showDownloadInNotification = async (download: {
-  name: string;
-  season?: number;
-  episode: number;
-  progress?: DownloadProgress;
-  sessionId?: number;
-}) => {
-  if (!running) return;
-  // No FFmpeg session yet while the stream is being probed
-  const progress = download.sessionId ? download.progress : undefined;
+export const showDownloadInNotification = async (
+  download: Pick<EpisodeDownload, 'name' | 'season' | 'episode' | 'progress' | 'status' | 'sessionId'>,
+) => {
+  if (!BackgroundService.isRunning()) return;
+  const progress = isPreparing(download) ? undefined : download.progress;
   try {
     await BackgroundService.updateNotification({
       taskTitle: `${download.name}${download.season ? ` Season ${download.season}` : ''} - Episode ${download.episode}`,

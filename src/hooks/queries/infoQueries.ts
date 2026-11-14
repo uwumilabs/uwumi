@@ -1,6 +1,7 @@
 import { useActiveProvider } from '@/hooks/stores/useProviderStore';
+import { useInfoParams, useShowParams } from '@/utils/routes';
+import { infoTitle } from '@/utils/media';
 import { TMDB_API_KEY } from '@/constants/config';
-import { useLocalSearchParams } from 'expo-router';
 import { MediaType } from '@/constants/types';
 import { useQuery } from '@tanstack/react-query';
 import { IAnimeInfo, IMovieInfo, MediaFormat, META, TvType, IMetaAnimeEpisode } from 'react-native-consumet';
@@ -16,21 +17,24 @@ const fetchTmdbInfo = async (id: string, type: MediaFormat | TvType, provider: s
  * cache, so the watch screen has it even when resumed from home.
  */
 export function useMediaInfo() {
-  const { mediaType, id, type } = useLocalSearchParams<{
-    mediaType: MediaType;
-    id: string;
-    type: MediaFormat | TvType;
-  }>();
+  const { mediaType, id, type } = useShowParams();
   const provider = useActiveProvider(mediaType);
   const isMovie = mediaType === MediaType.MOVIE;
   return useQuery<IAnimeInfo | IMovieInfo>({
     // AniList info is the same whichever provider plays it
-    queryKey: isMovie ? tmdbInfoKey(id, type, provider) : [mediaType, 'info', id],
+    queryKey: isMovie ? tmdbInfoKey(id, type!, provider) : [mediaType, 'info', id],
     queryFn: async () =>
       isMovie
-        ? fetchTmdbInfo(id, type, provider)
+        ? fetchTmdbInfo(id, type!, provider)
         : ((await new META.Anilist().fetchAnilistInfoById(id)) as unknown as IAnimeInfo),
   });
+}
+
+/** The title and poster the info screen shows: the card's until the info loads, as a shared link may carry neither */
+export function useShownTitle() {
+  const { title, image } = useInfoParams();
+  const { data } = useMediaInfo();
+  return { title: title || infoTitle(data), image: image || data?.image };
 }
 
 export function useAnimeEpisodes({
@@ -45,14 +49,7 @@ export function useAnimeEpisodes({
   return useQuery<IMetaAnimeEpisode[]>({
     queryKey: ['anime', 'episodes', id, provider],
     enabled: enabled && !!id,
-    queryFn: async () => {
-      try {
-        const animeProvider = await loadAnimeProvider(provider);
-        return await new META.Anilist(animeProvider).fetchEpisodesListById(id);
-      } catch (error) {
-        throw new Error(`Error fetching episodes: ${error}`);
-      }
-    },
+    queryFn: async () => new META.Anilist(await loadAnimeProvider(provider)).fetchEpisodesListById(id),
   });
 }
 

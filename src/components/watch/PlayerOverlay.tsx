@@ -56,7 +56,7 @@ export const SkipSlot = ({ skipTimes, upNext, onNext, skipForward }: SkipProps &
   const action = useSkipAction(skipTimes, upNext, onNext, skipForward);
   if (!action) return null;
   return (
-    <BaseButton onTap={action.onPress}>
+    <BaseButton testID="watch-skip" onTap={action.onPress}>
       <Button variant="primary">{action.label}</Button>
     </BaseButton>
   );
@@ -69,7 +69,7 @@ export const PlayerOverlay = ({ skipTimes, upNext, onNext }: SkipProps) => {
   return (
     <VideoPlayer.Overlay visible={!!action && !controlsVisible} style={styles.floating}>
       {action && (
-        <BaseButton onTap={action.onPress}>
+        <BaseButton testID="watch-skip-overlay" onTap={action.onPress}>
           <Button variant="primary">{action.label}</Button>
         </BaseButton>
       )}
@@ -80,5 +80,3 @@ export const PlayerOverlay = ({ skipTimes, upNext, onNext }: SkipProps) => {
 const styles = StyleSheet.create({
   floating: { alignItems: 'flex-end', justifyContent: 'flex-end', padding: 16 },
 });
-
-export default PlayerOverlay;

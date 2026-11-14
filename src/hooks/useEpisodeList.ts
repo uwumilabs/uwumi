@@ -1,22 +1,17 @@
 import { useCallback, useMemo } from 'react';
-import { useLocalSearchParams } from 'expo-router';
-import { MediaFormat, TvType } from 'react-native-consumet';
+import { useShowParams } from '@/utils/routes';
 import { MediaType } from '@/constants/types';
 import { useActiveProvider } from '@/hooks/stores/useProviderStore';
 import { useAnimeEpisodes, useMoviesEpisodes } from '@/hooks/queries/infoQueries';
 import { useSeasonStore } from './stores/useEpisodesStore';
-import type { EpisodeItem } from '@/utils/episodes';
+import type { EpisodeContext, EpisodeItem } from '@/utils/episodes';
 
 /**
  * The current route's episodes (the selected season's, for TV shows). The episode list, the watch screen's
  * previous/next and the info header all read it through the query cache rather than a copied store.
  */
 export function useEpisodeList() {
-  const { mediaType, type, id } = useLocalSearchParams<{
-    mediaType: MediaType;
-    type: MediaFormat | TvType;
-    id: string;
-  }>();
+  const { mediaType, type, id } = useShowParams();
   const providerToUse = useActiveProvider(mediaType);
   const animeResult = useAnimeEpisodes({ id, provider: providerToUse, enabled: mediaType === MediaType.ANIME });
   const movieResult = useMoviesEpisodes({
@@ -44,14 +39,19 @@ export function useEpisodeList() {
   const seasonError =
     !error && movieSeasons?.[activeSeason]?.failed ? new Error(`TMDB couldn't load season ${activeSeason + 1}`) : null;
 
+  // The movie provider's id for the title, for its server and source calls; unset when it has no match
+  const providerMediaId = movieInfo?.providerId;
+  const context = useMemo<EpisodeContext>(
+    () => ({ mediaType, provider: providerToUse, id, mediaId: providerMediaId, type }),
+    [mediaType, providerToUse, id, providerMediaId, type],
+  );
+
   return {
     episodes,
-    // The movie provider's id for the title, for its server and source calls; unset when it has no match
-    providerMediaId: movieInfo?.providerId,
+    context,
     movieSeasons,
     activeSeason,
     setSeason,
-    providerToUse,
     isLoading,
     error: error ?? seasonError,
     refetch,

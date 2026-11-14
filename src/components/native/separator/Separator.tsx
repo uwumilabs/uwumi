@@ -13,5 +13,3 @@ export type SeparatorProps = SeparatorLineProps;
 export const SeparatorLine: React.FC<SeparatorLineProps> = () => null;
 /** The line in its own native host, for React Native layouts */
 export const Separator: React.FC<SeparatorProps> = () => null;
-
-export default Separator;

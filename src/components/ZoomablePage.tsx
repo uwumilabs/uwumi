@@ -168,5 +168,3 @@ export const ZoomablePage = ({
     </GestureDetector>
   );
 };
-
-export default ZoomablePage;

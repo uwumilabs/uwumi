@@ -2,17 +2,21 @@ import React, { memo, useCallback, useMemo, useState } from 'react';
 import { Separator } from '@/components/native/separator/Separator';
 import { ActivityIndicator, Linking, Platform, ScrollView, Text, View } from 'react-native';
 import type { IEpisodeServer } from 'react-native-consumet';
-import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
-import { episodeTarget, useEpisodeSourcesWithServers } from '@/hooks/queries/watchQueries';
+import { resumeAt, useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
+import { episodeTarget, useEpisodeServers, useEpisodeSources } from '@/hooks/queries/watchQueries';
 import { useLastServerStore, lastServerKey } from '@/hooks/stores/useLastServerStore';
 import { useDownloadStore, useDownloadedFileUri } from '@/downloads/useDownloadStore';
-import { episodeNumber, episodeSeason, type EpisodeContext, type EpisodeItem } from '@/utils/episodes';
-import { useMediaInfo } from '@/hooks/queries/infoQueries';
-import { infoTitle } from '@/utils/media';
-import { isThumbnailTrack } from '@/utils/seekPreview';
+import {
+  episodeNumber,
+  episodeSeason,
+  episodeTitle,
+  notOnProvider,
+  type EpisodeContext,
+  type EpisodeItem,
+} from '@/utils/episodes';
+import { useMediaInfo, useShownTitle } from '@/hooks/queries/infoQueries';
 import { isTV } from '@/utils/tv';
 import { openVideoInOtherApp, shareMedia } from '@/utils/share';
-import { useLocalSearchParams } from 'expo-router';
 import { useProviderName, useProviderSelectionStore } from '@/hooks/stores/useProviderStore';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { HUXStack, HUYStack, RippleButton } from '../ui-primitives';
@@ -29,6 +33,7 @@ interface EpisodeActionsSheetProps {
 }
 
 interface SheetButtonProps {
+  testID: string;
   onPress: () => void;
   icon?: React.ReactNode;
   label: string;
@@ -37,10 +42,11 @@ interface SheetButtonProps {
 }
 
 const StyledSheetButton: React.FC<SheetButtonProps> = memo(
-  ({ onPress, icon, label, rightIcon, hasTVPreferredFocus }) => {
+  ({ testID, onPress, icon, label, rightIcon, hasTVPreferredFocus }) => {
     return (
       <HUXStack className="items-center justify-between gap-3">
         <RippleButton
+          testID={testID}
           className="flex-1 p-3.5 rounded-lg bg-default"
           onPress={onPress}
           hasTVPreferredFocus={hasTVPreferredFocus}
@@ -58,7 +64,10 @@ const StyledSheetButton: React.FC<SheetButtonProps> = memo(
 
 StyledSheetButton.displayName = 'StyledSheetButton';
 
+const NO_SERVERS: IEpisodeServer[] = [];
+
 // On TV the sheet's own scroll view follows focus; a second one nested inside would hide focused rows below its fold
+
 const SheetList = ({ children }: { children: React.ReactNode }) =>
   isTV ? <View>{children}</View> : <ScrollView style={{ maxHeight: 400 }}>{children}</ScrollView>;
 
@@ -101,8 +110,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
   const removeDownload = useDownloadStore((state) => state.removeDownload);
   const downloadedUri = useDownloadedFileUri(episode?.uniqueId);
   const { data: mediaInfo } = useMediaInfo();
-  // The info screen's title, as its header shows it
-  const showTitle = useLocalSearchParams<{ title?: string }>().title || infoTitle(mediaInfo);
+  const { title: showTitle } = useShownTitle();
   const dub = useProviderSelectionStore((state) => state.dub);
   const { toast } = useToast();
 
@@ -115,11 +123,11 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
     () => episodeTarget({ mediaType, provider, episodeId: episode?.id ?? '', mediaId: context.mediaId, dub }),
     [mediaType, provider, episode?.id, context.mediaId, dub],
   );
-  const { data, isLoading, error } = useEpisodeSourcesWithServers(
-    target,
-    selectedServer?.name ?? rememberedServer,
-    shouldFetchSources,
-  );
+  const serversQuery = useEpisodeServers(target, shouldFetchSources);
+  const servers = serversQuery.data ?? NO_SERVERS;
+  const server = selectedServer ?? servers.find(({ name }) => name === rememberedServer) ?? servers[0];
+  const sourcesQuery = useEpisodeSources(target, shouldFetchSources ? server : undefined, 'sheet');
+  const data = sourcesQuery.data;
   // Reset the menu when the sheet closes. Done while rendering rather than in an effect, so the closed sheet
   // never paints a frame of the old menu state.
   const [wasOpen, setWasOpen] = useState(open);
@@ -136,11 +144,9 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
   // covers loading and errors) unless there's a single server or one was chosen.
   const step: 'menu' | 'servers' | 'quality' = !shouldFetchSources
     ? 'menu'
-    : selectedServer
+    : selectedServer || servers.length === 1
       ? 'quality'
-      : !data || (data.servers?.length ?? 0) > 1
-        ? 'servers'
-        : 'quality';
+      : 'servers';
   const showServerSelection = step === 'servers';
   const showQualitySelection = step === 'quality';
 
@@ -157,24 +163,21 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
   };
 
   // The server is part of the sources query key, so this fetches that server's sources
-  const handleServerSelect = useCallback((server: IEpisodeServer) => setSelectedServer(server), []);
 
   const handleOpenWithQuality = useCallback(
     async (videoUrl: string) => {
-      const subtitles = (data?.subtitles || []).filter((sub) => !isThumbnailTrack(sub));
+      const subtitles = data?.subtitles ?? [];
       const hasSubtitles = subtitles.length > 0;
-      const progress = episode?.uniqueId ? useWatchProgressStore.getState().progresses[episode.uniqueId] : undefined;
-      const episodeTitle = episode?.title || `Episode ${episode ? episodeNumber(episode) : ''}`;
       const extras: Record<string, any> = {
-        title: episodeTitle,
-        position: progress ? Math.floor(progress.currentTime * 1000) : 0,
+        title: episode ? episodeTitle(episode) : 'Episode',
+        position: episode?.uniqueId ? Math.floor(resumeAt(episode.uniqueId) * 1000) : 0,
         return_result: true,
         filename: episode?.title?.toLowerCase().replace(/\s/g, ' ') || episodeTitle,
       };
 
       if (hasSubtitles) {
-        const subtitleUrls = subtitles.map((sub) => sub.url).filter(Boolean);
-        const subtitleNames = subtitles.map((sub) => sub.lang || 'Unknown').filter(Boolean);
+        const subtitleUrls = subtitles.map((sub) => sub.uri);
+        const subtitleNames = subtitles.map((sub) => sub.language || 'Unknown');
 
         if (subtitleUrls.length > 0) {
           extras['subs'] = subtitleUrls;
@@ -246,8 +249,8 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
     async (videoUrl: string) => {
       if (!episode) return;
       const number = episodeNumber(episode) ?? 1;
-      const episodeName = episode.title || `Episode ${number}`;
-      const description = showTitle ? `${showTitle} - ${episodeName}` : `${episodeName} - Episode ${number}`;
+      const episodeName = episodeTitle(episode, number);
+      const description = showTitle ? `${showTitle} - ${episodeName}` : episodeName;
       const season = episodeSeason(episode) ?? (mediaInfo as { season?: number } | undefined)?.season;
 
       // Probing the stream can take half a minute, so close the sheet and say so instead of sitting on it
@@ -279,17 +282,15 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
   const progress = episodeProgress ?? null;
   const isCompleted = progress?.isCompleted ?? false;
 
-  const videoSources = data?.sources || [];
-  const availableServers = data?.servers || [];
+  const videoSources = data?.sources ?? [];
 
   const headerTitle = useMemo(() => {
     if (showServerSelection) return 'Select Server';
     if (showQualitySelection) {
-      const serverName = selectedServer?.name || rememberedServer;
-      return serverName ? `Select Quality - ${serverName}` : 'Select Quality';
+      return server ? `Select Quality - ${server.name}` : 'Select Quality';
     }
     return episode?.title;
-  }, [episode?.title, rememberedServer, selectedServer?.name, showQualitySelection, showServerSelection]);
+  }, [episode?.title, server, showQualitySelection, showServerSelection]);
 
   const snapPoints = useMemo(
     () => (showQualitySelection || showServerSelection ? ['70%'] : ['40%']),
@@ -306,7 +307,9 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
             <Text className="text-lg font-bold text-accent w-4/5" numberOfLines={1}>
               {headerTitle}
             </Text>
-            <RippleButton onPress={() => (shouldShowBack ? handleBackToMainMenu() : onOpenChange(false))}>
+            <RippleButton
+              testID={shouldShowBack ? 'episode-actions-back' : 'episode-actions-close'}
+              onPress={() => (shouldShowBack ? handleBackToMainMenu() : onOpenChange(false))}>
               {shouldShowBack ? (
                 <IoniconsIcon name="chevron-back" size={24} className="text-foreground" />
               ) : (
@@ -320,6 +323,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
           {!showQualitySelection && !showServerSelection && (
             <HUYStack className="gap-1 mt-2">
               <StyledSheetButton
+                testID="episode-action-toggle-watched"
                 hasTVPreferredFocus
                 onPress={handleMarkComplete}
                 icon={<IoniconsIcon name="checkmark" size={20} />}
@@ -327,16 +331,19 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
               />
 
               <StyledSheetButton
+                testID="episode-action-external-player"
                 onPress={downloadedUri ? openDownload : () => handleShowQualityOptions('external-player')}
                 icon={<IoniconsIcon name="play" size={20} />}
                 label={downloadedUri ? 'Open download in another app' : 'Open in External Player'}
               />
               <StyledSheetButton
+                testID="episode-action-download"
                 onPress={downloadedUri ? deleteDownload : () => handleShowQualityOptions('download')}
                 icon={<IoniconsIcon name={downloadedUri ? 'trash-outline' : 'download-outline'} size={20} />}
                 label={downloadedUri ? 'Delete download' : 'Download'}
               />
               <StyledSheetButton
+                testID="episode-action-share"
                 onPress={() => {
                   onOpenChange(false);
                   shareMedia({
@@ -359,24 +366,25 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
               <HUYStack className="gap-1 mt-2">
                 {!episode.id ? (
                   <ListState
-                    title={`Not on ${providerName}`}
-                    subtitle="This episode isn’t available there. Try another provider."
+                    title={notOnProvider(providerName).title}
+                    subtitle={notOnProvider(providerName).detail}
                     severity="error"
                   />
-                ) : isLoading ? (
+                ) : serversQuery.isLoading ? (
                   <ListState loading title="Loading servers..." />
-                ) : error ? (
+                ) : serversQuery.error ? (
                   <ListState title="Failed to load servers" subtitle="Please try again" severity="error" />
-                ) : availableServers.length === 0 ? (
+                ) : servers.length === 0 ? (
                   <ListState title="No servers available" subtitle="Please try again later" severity="error" />
                 ) : (
-                  availableServers.map((server, index) => (
+                  servers.map((option, index) => (
                     <StyledSheetButton
-                      key={server.name}
+                      testID="episode-action-server"
+                      key={option.name}
                       hasTVPreferredFocus={index === 0}
-                      onPress={() => handleServerSelect(server)}
+                      onPress={() => setSelectedServer(option)}
                       icon={<IoniconsIcon name="server-outline" size={20} />}
-                      label={server.name}
+                      label={option.name}
                     />
                   ))
                 )}
@@ -387,9 +395,9 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
           {showQualitySelection && (
             <SheetList>
               <HUYStack className="gap-1 mt-2">
-                {isLoading ? (
+                {sourcesQuery.isLoading || !server ? (
                   <ListState loading title="Loading video sources..." />
-                ) : error ? (
+                ) : sourcesQuery.error ? (
                   <ListState
                     title="Failed to load video sources"
                     subtitle="Please try again or try different server"
@@ -408,6 +416,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
 
                     return (
                       <StyledSheetButton
+                        testID="episode-action-quality"
                         key={`${index}-${url}`}
                         hasTVPreferredFocus={index === 0}
                         onPress={() =>

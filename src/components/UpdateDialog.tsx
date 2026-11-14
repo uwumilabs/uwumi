@@ -14,7 +14,7 @@ export const UpdateDialog = () => {
     <Dialog isOpen onOpenChange={(open) => !open && dismiss()}>
       <Dialog.Portal>
         <Dialog.Overlay className="bg-black/50" />
-        <Dialog.Content className="rounded-3xl bg-background p-5">
+        <Dialog.Content className="rounded-3xl bg-background p-5" testID="update-dialog">
           <Dialog.Close className="absolute right-3 top-3" />
 
           <View className="items-center mt-1 mb-3">
@@ -44,12 +44,18 @@ export const UpdateDialog = () => {
 
             <View className="gap-3">
               <Button
+                testID="update-dialog-update"
                 variant="primary"
                 onPress={() => openBrowser(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE)}
                 className="w-full">
                 Update Now
               </Button>
-              <Dialog.Close size="md" variant="ghost" isIconOnly={false} className="w-full">
+              <Dialog.Close
+                testID="update-dialog-dismiss"
+                size="md"
+                variant="ghost"
+                isIconOnly={false}
+                className="w-full">
                 Not Now
               </Dialog.Close>
             </View>

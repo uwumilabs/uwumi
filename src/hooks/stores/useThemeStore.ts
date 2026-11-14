@@ -8,9 +8,10 @@ const themeNames = Object.keys(themes) as ThemeName[];
 /** A theme's family, without its light or dark: `cloudflare-dark` → `cloudflare` */
 export const themeBase = (name: string) => name.replace(/-(light|dark)$/i, '');
 
+export const isDarkTheme = (name: string) => name.endsWith('-dark');
+
 interface ThemeState {
   themeName: ThemeName;
-  isDark: boolean;
   setTheme: (theme: ThemeName) => void;
   /** The same family's other mode, or the first theme in that mode */
   toggleTheme: () => void;
@@ -19,7 +20,7 @@ interface ThemeState {
 const getInitialTheme = (): ThemeName => {
   const saved = storage.getString('theme');
   if (saved && themeNames.includes(saved as ThemeName)) return saved as ThemeName;
-  return themeNames.find((t) => t.endsWith('-dark')) ?? themeNames[0];
+  return themeNames.find(isDarkTheme) ?? themeNames[0];
 };
 
 export const useThemeStore = create<ThemeState>((set, get) => {
@@ -27,20 +28,16 @@ export const useThemeStore = create<ThemeState>((set, get) => {
     if (!themeNames.includes(theme)) return;
     Uniwind.setTheme(theme);
     storage.set('theme', theme);
-    set({ themeName: theme, isDark: theme.includes('dark') });
+    set({ themeName: theme });
   };
-  const initial = getInitialTheme();
   return {
-    themeName: initial,
-    isDark: initial.includes('dark'),
+    themeName: getInitialTheme(),
     setTheme,
     toggleTheme: () => {
       const current = get().themeName;
-      const toDark = current.includes('light');
+      const toDark = !isDarkTheme(current);
       const preferred = `${themeBase(current)}-${toDark ? 'dark' : 'light'}` as ThemeName;
-      const next = themeNames.includes(preferred)
-        ? preferred
-        : themeNames.find((t) => (toDark ? t.includes('dark') : t.includes('light')));
+      const next = themeNames.includes(preferred) ? preferred : themeNames.find((t) => isDarkTheme(t) === toDark);
       if (next) setTheme(next);
     },
   };

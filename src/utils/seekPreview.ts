@@ -41,7 +41,7 @@ const resolveUrl = (path: string, base: string) => {
  * A WebVTT sprite list ("00:00:05.000 --> 00:00:10.000" then "sprite_0.webp#xywh=160,0,160,90") as cues. A sheet's
  * size isn't in the file, so it's the extent of its tiles.
  */
-export const parseThumbnailVtt = (text: string, vttUrl: string): SeekPreviewCue[] => {
+const parseThumbnailVtt = (text: string, vttUrl: string): SeekPreviewCue[] => {
   const cues: Omit<SeekPreviewCue, 'sheetWidth' | 'sheetHeight'>[] = [];
   for (const block of text.replace(/\r/g, '').split(/\n{2,}/)) {
     const lines = block.split('\n');
@@ -102,7 +102,3 @@ export const findCue = (cues: SeekPreviewCue[], time: number) => {
   }
   return cues[Math.min(Math.max(high, 0), cues.length - 1)];
 };
-
-/** A provider's seek-preview sprite list (thumbnails.vtt), which comes with the subtitles but isn't one */
-export const isThumbnailTrack = (track: { kind?: string; lang?: string }) =>
-  track.kind === 'thumbnails' || track.lang === 'thumbnails';

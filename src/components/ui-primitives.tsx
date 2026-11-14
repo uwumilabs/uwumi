@@ -1,7 +1,7 @@
 import React, { ReactNode, forwardRef, useContext, useState } from 'react';
+import { SETTINGS_SCREENS } from '@/utils/routes';
 import { View, ViewProps, Text, StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useThemeStore } from '@/hooks/stores/useThemeStore';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { StatusBar } from 'expo-status-bar';
 import { Link } from 'expo-router';
@@ -69,6 +69,7 @@ export const RippleButton = forwardRef<React.ComponentRef<typeof View>, RippleBu
     );
   },
 );
+RippleButton.displayName = 'RippleButton';
 
 const KAOMOJI = [
   'Σ(ಠ_ಠ)',
@@ -89,7 +90,7 @@ export const NoResults = ({ title = 'No results found', hint }: { title?: string
   const [randomKaomoji] = useState(() => KAOMOJI[Math.floor(Math.random() * KAOMOJI.length)]);
 
   return (
-    <HUYStack className="p-2 pt-4 items-center justify-center gap-2">
+    <HUYStack testID="no-results" className="p-2 pt-4 items-center justify-center gap-2">
       <Text className="text-5xl font-medium text-center text-foreground">{randomKaomoji}</Text>
       <Text className="text-xl text-accent">{title}</Text>
       {hint ? (
@@ -97,7 +98,7 @@ export const NoResults = ({ title = 'No results found', hint }: { title?: string
       ) : (
         <Text className="text-xs text-foreground text-center">
           Haven't installed extensions yet? Install them from{' '}
-          <Link href="/(settings)/extensions">
+          <Link href={SETTINGS_SCREENS.extensions.href}>
             <Text className="text-xs text-accent underline">here</Text>
           </Link>
         </Text>
@@ -119,7 +120,6 @@ export function ThemedView({
   style,
   ...props
 }: ThemedViewProps) {
-  const isDark = useThemeStore((state) => state.isDark);
   const currentTheme = useCurrentTheme();
   const insets = useSafeAreaInsets();
   // A native stack header already covers the status bar
@@ -140,7 +140,12 @@ export function ThemedView({
         {children}
       </View>
 
-      <StatusBar animated hideTransitionAnimation="slide" hidden={!useStatusBar} style={isDark ? 'light' : 'dark'} />
+      <StatusBar
+        animated
+        hideTransitionAnimation="slide"
+        hidden={!useStatusBar}
+        style={currentTheme.isDark ? 'light' : 'dark'}
+      />
       <SystemBars hidden={!useStatusBar} />
     </>
   );

@@ -1,9 +1,11 @@
 import { File as FsFile } from 'expo-file-system';
 import { FFmpegKit, ReturnCode } from 'react-native-ffmpeg-kit';
-import type { VideoTrack } from 'react-native-video/src';
 import { fsFile } from '@/utils/files';
 import { loadThumbnailVtt, toThumbnailVtt, type SeekPreviewCue } from '@/utils/seekPreview';
 import { ensureDownloadsFolder, resolveOutputFile, thumbnailsDir } from './files';
+import type { StreamInfo } from './ffmpeg';
+
+type Video = StreamInfo['videoTracks'][number];
 
 /** The provider's sprite sheets, downloaded into `dir`; the cues then name the local copies */
 const copyProviderSprites = async (vttUrl: string, headers: Record<string, string> | undefined, dir: string) => {
@@ -27,7 +29,7 @@ const SPRITES_PER_SHEET = 100;
  * Sprite sheets cut from the downloaded file, for sources that send none. Only keyframes are decoded, so it's quick,
  * and each tile is the keyframe nearest its time.
  */
-const cutSprites = async (file: string, dir: string, duration: number, video?: VideoTrack) => {
+const cutSprites = async (file: string, dir: string, duration: number, video?: Video) => {
   const interval = duration > 3600 ? 10 : 5;
   const height = video?.width && video.height ? Math.round((SPRITE_WIDTH * video.height) / video.width / 2) * 2 : 90;
   const session = await FFmpegKit.executeWithArguments([
@@ -72,7 +74,7 @@ const cutSprites = async (file: string, dir: string, duration: number, video?: V
 export const saveThumbnails = async (
   download: { outputFile: string; thumbnailsVtt?: string; headers?: Record<string, string> },
   duration: number,
-  video?: VideoTrack,
+  video?: Video,
 ) => {
   const relativeDir = thumbnailsDir(download.outputFile);
   const dir = resolveOutputFile(relativeDir);

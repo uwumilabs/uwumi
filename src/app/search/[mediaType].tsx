@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useSearchRouteParams } from '@/utils/routes';
 import { SearchField } from '@/components/heroui';
 import { Button } from '@/components/Button';
 import { CardList } from '@/components/CardList';
@@ -8,7 +8,6 @@ import { HUXStack, HUYStack, ThemedView } from '@/components/ui-primitives';
 import { IoniconsIcon } from '@/components/Icons';
 import { List as NativeList } from '@/components/native/list/List';
 import { mediaTypeLabel } from '@/utils/media';
-import { MediaType } from '@/constants/types';
 import { isTV } from '@/utils/tv';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -19,7 +18,7 @@ const MIN_QUERY_LENGTH = 2;
 const EMPTY: string[] = [];
 
 const Search = () => {
-  const { mediaType } = useLocalSearchParams<{ mediaType: MediaType }>();
+  const { mediaType } = useSearchRouteParams();
   const currentTheme = useCurrentTheme();
   const label = mediaTypeLabel(mediaType).toLowerCase();
 
@@ -57,12 +56,13 @@ const Search = () => {
   );
 
   return (
-    <ThemedView>
+    <ThemedView testID="search-screen">
       <HUXStack className="items-center gap-1 px-2 py-2">
         <SearchField value={query} onChange={handleChange} className="flex-1">
           <SearchField.Group>
             <SearchField.SearchIcon />
             <SearchField.Input
+              testID="search-input"
               autoFocus
               hasTVPreferredFocus={isTV}
               placeholder={`Search ${label}`}
@@ -70,13 +70,13 @@ const Search = () => {
               autoCorrect={false}
               onSubmitEditing={() => runSearch(query)}
             />
-            <SearchField.ClearButton />
+            <SearchField.ClearButton testID="search-clear" />
           </SearchField.Group>
         </SearchField>
       </HUXStack>
 
       {liveQuery ? (
-        <View className="flex-1">
+        <View testID="search-list" className="flex-1">
           <CardList
             mediaFeedType="search"
             mediaType={mediaType}
@@ -93,7 +93,11 @@ const Search = () => {
             <>
               <HUXStack className="items-center justify-between">
                 <Text className="text-foreground text-base font-semibold">Recent searches</Text>
-                <Button variant="ghost" size="sm" onPress={() => clearRecentSearches(mediaType)}>
+                <Button
+                  testID="search-clear-recent"
+                  variant="ghost"
+                  size="sm"
+                  onPress={() => clearRecentSearches(mediaType)}>
                   <Button.Label>Clear all</Button.Label>
                 </Button>
               </HUXStack>
@@ -101,6 +105,7 @@ const Search = () => {
                 {recent.map((item) => (
                   <NativeList.Item
                     key={item}
+                    testID="recent-search"
                     icon="time-outline"
                     title={item}
                     onPress={() => runSearch(item)}
@@ -114,7 +119,7 @@ const Search = () => {
               </NativeList>
             </>
           ) : (
-            <HUYStack className="items-center gap-2 pt-24">
+            <HUYStack testID="search-hint" className="items-center gap-2 pt-24">
               <IoniconsIcon name="search" size={40} color={currentTheme?.muted} />
               <Text className="text-muted text-base text-center">Search {label} by title</Text>
             </HUYStack>

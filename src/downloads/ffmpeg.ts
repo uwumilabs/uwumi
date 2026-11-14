@@ -1,26 +1,15 @@
 import { FFprobeKit, Level, type Log, ReturnCode, type FFmpegSession } from 'react-native-ffmpeg-kit';
-import type { AudioTrack, TextTrack, TextTracks, VideoTrack } from 'react-native-video/src';
 import { runOnRuntimeAsync } from 'react-native-worklets';
 import { SUB_LANGUAGE } from '@/constants/config';
 import { downloadRuntime } from './runtime';
+import type { ExternalSubtitle } from './model';
 
+/** What FFprobe found in a stream, as much as the download needs */
 export interface StreamInfo {
   duration: number;
   isHls: boolean;
-  videoTracks: VideoTrack[];
-  audioTracks: AudioTrack[];
-  textTracks: TextTrack[];
-}
-
-export interface DownloadProgress {
-  percentage: number;
-  currentTime: number;
-  totalDuration: number;
-  /** FFmpeg's speed: seconds of video handled per second (9.6 = 9.6×), not a byte rate */
-  speed: number;
-  /** The stream's bits per second */
-  bitrate: number;
-  size: number;
+  videoTracks: { codecs?: string; width?: number; height?: number }[];
+  textTracks: { language?: string }[];
 }
 
 const IMAGE_CODECS = new Set(['png', 'mjpeg', 'gif', 'webp', 'bmp']);
@@ -71,38 +60,13 @@ const probe = async (url: string, headers: Record<string, string> | undefined, p
     .join('');
   const info = JSON.parse(output);
 
-  const videoTracks: VideoTrack[] = [];
-  const audioTracks: AudioTrack[] = [];
-  const textTracks: TextTrack[] = [];
-  info.streams?.forEach((stream: any, index: number) => {
-    switch (stream.codec_type) {
-      case 'video':
-        videoTracks.push({
-          index,
-          width: stream.width,
-          height: stream.height,
-          codecs: stream.codec_name,
-          tracksId: index.toString(),
-          bitrate: parseInt(stream.bit_rate) || 0,
-        });
-        break;
-      case 'audio':
-        audioTracks.push({
-          index,
-          title: stream.tags?.title || '',
-          language: stream.tags?.language || 'und',
-          type: stream.codec_name,
-          bitrate: parseInt(stream.bit_rate) || 0,
-        });
-        break;
-      case 'subtitle':
-        textTracks.push({
-          index,
-          title: stream.tags?.title || '',
-          language: stream.tags?.language || 'und',
-          type: 'text/vtt',
-        });
-        break;
+  const videoTracks: StreamInfo['videoTracks'] = [];
+  const textTracks: StreamInfo['textTracks'] = [];
+  info.streams?.forEach((stream: any) => {
+    if (stream.codec_type === 'video') {
+      videoTracks.push({ codecs: stream.codec_name, width: stream.width, height: stream.height });
+    } else if (stream.codec_type === 'subtitle') {
+      textTracks.push({ language: stream.tags?.language || 'und' });
     }
   });
 
@@ -112,7 +76,6 @@ const probe = async (url: string, headers: Record<string, string> | undefined, p
       .split(',')
       .includes('hls'),
     videoTracks,
-    audioTracks,
     textTracks,
   } satisfies StreamInfo;
 };
@@ -150,7 +113,7 @@ export const downloadArgs = ({
 }: {
   url: string;
   headers?: Record<string, string>;
-  externalSubtitles?: TextTracks;
+  externalSubtitles?: ExternalSubtitle[];
   stream: StreamInfo;
   persistent: boolean;
   outputFile: string;

@@ -45,7 +45,11 @@ const PreviewContent = ({ uri, onClose, title }: Omit<ImagePreviewProps, 'visibl
   const backdrop = useAnimatedStyle(() => ({ opacity: 1 - swipeProgress.get() }));
 
   return (
-    <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(150)} style={StyleSheet.absoluteFill}>
+    <Animated.View
+      testID="image-preview"
+      entering={FadeIn.duration(180)}
+      exiting={FadeOut.duration(150)}
+      style={StyleSheet.absoluteFill}>
       <StatusBar style="light" />
       <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdrop]} />
       <ZoomablePage width={width} height={height} onTap={onClose} onSwipeDown={onClose} swipeProgress={swipeProgress}>
@@ -53,10 +57,15 @@ const PreviewContent = ({ uri, onClose, title }: Omit<ImagePreviewProps, 'visibl
       </ZoomablePage>
       <View pointerEvents="box-none" style={[styles.bar, { top: insets.top + 8 }]}>
         <HUXStack className="justify-between px-3">
-          <Button isIconOnly variant="ghost" onPress={onClose} accessibilityLabel="Close">
+          <Button testID="image-preview-close" isIconOnly variant="ghost" onPress={onClose} accessibilityLabel="Close">
             <IoniconsIcon name="close" size={26} color="white" />
           </Button>
-          <Button isIconOnly variant="ghost" onPress={() => shareImage(uri, title)} accessibilityLabel="Share">
+          <Button
+            testID="image-preview-share"
+            isIconOnly
+            variant="ghost"
+            onPress={() => shareImage(uri, title)}
+            accessibilityLabel="Share">
             <IoniconsIcon name="share-social-outline" size={24} color="white" />
           </Button>
         </HUXStack>
@@ -70,5 +79,3 @@ const styles = StyleSheet.create({
   backdrop: { backgroundColor: 'black' },
   bar: { position: 'absolute', left: 0, right: 0 },
 });
-
-export default ImagePreview;

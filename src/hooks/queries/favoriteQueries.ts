@@ -1,15 +1,13 @@
 import { useMemo } from 'react';
+import type { MediaItem } from '@/utils/media';
 import { type QueryClient, queryOptions, useQueries, useQuery, type UseQueryResult } from '@tanstack/react-query';
-import { IAnimeResult, IMovieResult } from 'react-native-consumet';
 import { MediaType } from '@/constants/types';
 import { titleOfUniqueId } from '@/utils/episodes';
 import { fetchJson } from '@/utils/http';
 import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
 import { TMDB_API_KEY } from '@/constants/config';
 
-type Favorite = IAnimeResult | IMovieResult;
-
-export interface NextEpisode {
+interface NextEpisode {
   episode: number;
   season?: number;
   /** When it airs, in ms */
@@ -17,7 +15,7 @@ export interface NextEpisode {
 }
 
 /** A favorite's episodes aired so far, and the next one if it's scheduled */
-export interface ShowSchedule {
+interface ShowSchedule {
   aired: number;
   next?: NextEpisode;
 }
@@ -96,15 +94,15 @@ const fetchTvSchedule = async (id: string): Promise<ShowSchedule & { id: string 
   };
 };
 
-const isTvShow = (item: Favorite) => item.mediaType === MediaType.MOVIE && /^tv/i.test(String(item.type ?? ''));
+const isTvShow = (item: MediaItem) => item.mediaType === MediaType.MOVIE && /^tv/i.test(String(item.type ?? ''));
 
 /** Which schedule a favorite has: anime by AniList id, TV shows by TMDB id; movies and manga have none */
-export const favoriteKind = (item: Favorite) =>
+const favoriteKind = (item: MediaItem) =>
   item.mediaType === MediaType.ANIME ? 'anime' : isTvShow(item) ? 'tv' : undefined;
 
-const animeIdsOf = (favorites: Favorite[]) =>
+const animeIdsOf = (favorites: MediaItem[]) =>
   [...new Set(favorites.filter((item) => item.mediaType === MediaType.ANIME).map((item) => String(item.id)))].sort();
-const tvIdsOf = (favorites: Favorite[]) => [...new Set(favorites.filter(isTvShow).map((item) => String(item.id)))];
+const tvIdsOf = (favorites: MediaItem[]) => [...new Set(favorites.filter(isTvShow).map((item) => String(item.id)))];
 
 // One definition per query, so the grid's badges and the episode alerts share a cache
 const animeScheduleQuery = (ids: string[]) =>
@@ -133,7 +131,7 @@ const byTvId = (results: UseQueryResult<ShowSchedule & { id: string }>[]) => ({
 });
 
 /** Aired counts and next episodes for the favorites grid */
-export const useFavoriteSchedules = (favorites: Favorite[]): FavoriteSchedules => {
+const useFavoriteSchedules = (favorites: MediaItem[]): FavoriteSchedules => {
   const animeIds = useMemo(() => animeIdsOf(favorites), [favorites]);
   const tvIds = useMemo(() => tvIdsOf(favorites), [favorites]);
 
@@ -153,7 +151,7 @@ export const useFavoriteSchedules = (favorites: Favorite[]): FavoriteSchedules =
 /** The same schedules outside React, through the shared cache; a failed fetch leaves `loaded` false */
 export const fetchFavoriteSchedules = async (
   queryClient: QueryClient,
-  favorites: Favorite[],
+  favorites: MediaItem[],
 ): Promise<FavoriteSchedules> => {
   const animeIds = animeIdsOf(favorites);
   const tvIds = TMDB_API_KEY ? tvIdsOf(favorites) : [];
@@ -170,7 +168,7 @@ export const fetchFavoriteSchedules = async (
   };
 };
 
-export const scheduleOf = (item: Favorite, { anime, tv }: FavoriteSchedules): ShowSchedule | undefined => {
+export const scheduleOf = (item: MediaItem, { anime, tv }: FavoriteSchedules): ShowSchedule | undefined => {
   const kind = favoriteKind(item);
   return kind === 'anime' ? anime?.[String(item.id)] : kind === 'tv' ? tv[String(item.id)] : undefined;
 };
@@ -180,7 +178,7 @@ export const scheduleOf = (item: Favorite, { anime, tv }: FavoriteSchedules): Sh
  * anime and TV shows. Watch progress is keyed per episode (`${anilistId}$ep=…`, `${tmdbId}-tv-s…-e…`), so the
  * finished ones are counted by that prefix. Shows with nothing left, or no count yet, are left out.
  */
-export const useUnwatchedCounts = (favorites: Favorite[]) => {
+export const useUnwatchedCounts = (favorites: MediaItem[]) => {
   const schedules = useFavoriteSchedules(favorites);
 
   const progresses = useWatchProgressStore((state) => state.progresses);
@@ -201,7 +199,7 @@ export const useUnwatchedCounts = (favorites: Favorite[]) => {
   }, [progresses]);
 
   return useMemo(() => {
-    const unwatched = new Map<Favorite, number>();
+    const unwatched = new Map<MediaItem, number>();
     for (const item of favorites) {
       const aired = scheduleOf(item, schedules)?.aired;
       if (aired === undefined) continue;

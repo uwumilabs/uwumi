@@ -62,7 +62,7 @@ async function buildThemeMap(): Promise<ThemeMap> {
 
   // Ensure every theme has the same keys (Uniwind requirement)
   const requiredKeys = Array.from(allKeys);
-  for (const [name, vars] of Object.entries(all)) {
+  for (const vars of Object.values(all)) {
     requiredKeys.forEach((key) => {
       if (!(key in vars)) {
         vars[key] = '';

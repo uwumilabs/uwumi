@@ -52,16 +52,25 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - **Code layout:**
   - No barrel (`index.ts`) files: import each thing from the file that defines it. They made every UI primitive depend on every store.
   - Only routes go in `src/app/`. expo-router registers every file there as a screen, so a route's pieces live in `src/components/<feature>/` (`watch/`, `info/`, `episode-list/`).
-  - Downloads are one feature folder, `src/downloads/` (store, FFmpeg arguments and probe, sprites, background service, file paths).
-  - Helpers are split by what they're about: `src/utils/tv.ts`, `format.ts`, `http.ts`, `files.ts` (app folders, file URIs), `share.ts`, `media.ts` (titles, meta providers), `episodes.ts` (episode fields, `/watch` params, uniqueId format), `routes.ts` (`/info` and `/read` hrefs).
+  - Downloads are one feature folder, `src/downloads/` (`model.ts` types and status rules, store, FFmpeg arguments and probe, sprites, background service, file paths).
+  - `src/utils/` holds pure helpers, split by what they're about: `tv.ts`, `format.ts`, `http.ts`, `files.ts` (app folders, file URIs), `share.ts`, `haptics.ts` (skips TV), `subtitles.ts`, `seekPreview.ts`, `manga.ts`, `media.ts` (`MediaItem`, titles, meta providers, `MEDIA_TABS`), `episodes.ts` (episode fields and labels, uniqueId format), `routes.ts` (every route's params, hooks and hrefs, the share link, `SETTINGS_SCREENS`).
+  - App services that use stores live in `src/services/`: `backup.ts`, `episodeAlerts.ts` (scheduling and opening alerts), `cache.ts`, `notifications.ts`.
+  - The reader's pieces are in `src/components/reader/`; the player's seek bar in `src/components/watch/slider/`.
   - Launch work goes in `src/bootstrap.ts`, which the root layout imports once. It must be safe to run twice (Fast Refresh).
+- **testIDs** (for argent e2e tests in `.argent/e2e/`), kebab-case:
+  - Every screen's root view: `<screen>-screen` (`anime-screen`, `info-screen`, `watch-screen`, `downloads-screen`, …).
+  - Controls: `<screen>-<what>` (`downloads-clear-all`, `search-input`). A shared component uses its own name (`media-card`, `episode-row`), not a screen's.
+  - Repeated items (cards, rows, chips) share one id. Never put an index, a data id, a title or a count in a testID; a test picks one item by id plus text.
+  - `NativeList.Item`, `Select`, `ChoiceRow` and `ConfirmDialog` take a `testID` prop. `Select` options get `<testID>-option`, a dialog's buttons `<testID>-confirm`/`-cancel`, a row's action button `<testID>-action`.
+  - A component that renders a pressable for its caller accepts `testID` and passes it on. Tabs are `tab-anime`, `tab-manga`, `tab-movies`, `tab-more` (phone and TV).
+  - The player's own parts have the toolkit's ids (`video-play-button`, `video-settings-rate`, `video-up-next`, …; listed in the toolkit's docs/content/docs/testing.mdx). Rows uwumi adds to its settings menu use the same `video-settings-` prefix (`video-settings-server`); uwumi's other player buttons are `watch-<what>` (`watch-back`, `watch-next`).
 - **UI primitives:**
   - Use heroui-native first (`Button` with `size`/`variant`; RN `ActivityIndicator` for spinners). Use the components in `src/components/native` for native controls.
   - For player panels, use the toolkit's `gestureProps`.
   - No hand-rolled Pressable chips, and no BottomSheet or portal hacks.
 - **Visible behaviour:**
   - Don't change or remove existing animations as part of perf work. Report the trade-off instead.
-  - Don't redesign the tabs. Phones keep NativeTabs; TV has the left rail in `src/components/TVTabs.tsx`.
+  - Don't redesign the tabs. Phones keep NativeTabs; TV has the left rail in `src/components/TVTabs.tsx`. Both draw from `TABS` in `src/components/homeTabs.ts`.
 - **Aniyomi and Mihon** are the UI reference (screenshots in `docs/aniyomi-reference/`). Copy the look but keep uwumi's data model: anime / manga / movies (TMDB), favorites instead of a library, no trackers or categories.
 - **TV testing:** report anything that feels unintuitive compared with mainstream TV apps (focus, Back, press count), not just bugs.
 
@@ -85,6 +94,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 
 **Metro and Fast Refresh**
 - When you add a new `X.ios.tsx` or `X.android.tsx`, the running Metro doesn't pick it up. `touch` the importing file or restart with `--clear`. Keep the base file platform-neutral.
+- `babel-plugin-module-resolver` (just `@` → `src`) stays only for `src/scripts/build-android.sh`'s `npx react-native bundle`: the community CLI doesn't read tsconfig paths, while Expo's CLI does. That path's Metro cache (`$TMPDIR/metro-cache`) also ignores `babel.config.js` changes, so clear it after editing the Babel config.
 - Fast Refresh can keep stale code for zustand store modules (`src/hooks/stores/*`, `src/downloads/useDownloadStore.ts`). After editing one, do a full reload (double R, or dev menu → Reload) before testing. A LogBox frame pointing at a comment line means the app is running old code.
 
 **UI**
@@ -94,15 +104,18 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - Import `Easing` from `react-native-reanimated`, not `react-native`, inside worklets.
 - uniwind only styles RN core views and `withUniwind` wrappers. A third-party native view styled with `className` renders 0×0, so wrap it.
 - Every inline iOS SwiftUI `Host` in a scrolling screen needs `ignoreSafeArea="container"`.
-- uwumi renders the player's seek bar itself: it passes its own `Slider` (`src/components/native/slider`) to the toolkit through `videoComponents`. Player additions to the seek bar go there, for example `SeekPreview`.
+- uwumi renders the player's seek bar itself: it passes its own `Slider` (`src/components/watch/slider`) to the toolkit through `videoComponents`. Player additions to the seek bar go there, for example `SeekPreview`.
   - Seek previews come from `useSeekPreviewStore`: the provider's `thumbnails.vtt` while streaming, or the sprites saved beside a download.
 - The toolkit's `VideoProvider` is global (`src/components/watch/AppVideoProvider.tsx`, in the root layout), and its `ended` flag stays true until the next source loads. So the watch screen only renders `VideoPlayer.UpNext` once its own source has loaded (`phase === 'playing'`). Otherwise a new episode counts down to the one after it before it plays.
   - Saved progress that's completed, or within 10 s of the end, starts the episode from 0. Resuming at the end would end it at once and set off the same chain.
   - `@expo/ui`'s Compose `Slider` takes a plain `value` and a JS `onValueChange` (58.0.27). Its `useNativeState` and `useWorkletCallback` only work with `TextField`, `SyncSwitch`, `LoadingIndicator` and some modifiers.
 - Read zustand stores with selectors, never `useXStore()` whole. In the player, use `useVideoSelector`, not `useVideo`. Rows read small stores rather than taking new props.
 - Don't call `openBrowserAsync` directly. Use `openBrowser()` from `src/utils/share.ts`, or Android shows a second task in recents.
-- Pure black is resolved once: use `useCurrentTheme()`'s `screenBackground`, `sheetBackground` and `railBackground` rather than checking `usePureBlackBackground` for a colour.
-- Build `/watch` params with `watchParams()` (`src/utils/episodes.ts`) and `/info` and `/read` hrefs with `src/utils/routes.ts`. Continue watching and downloads save them to open the episode again.
+- Pure black is resolved once, and only in dark themes: use `useCurrentTheme()`'s `screenBackground`, `sheetBackground` and `railBackground` for colours, and its `isPureBlack` for `bg-black` classes, rather than reading `usePureBlackBackground`.
+- Routes go through `src/utils/routes.ts`: read params with `useShowParams`/`useInfoParams`/`useWatchParams`/`useReaderParams`/`useBrowseParams`, build hrefs with `infoHref`, `watchHref`, `episodeWatchHref`, `readerHref`, `browseHref`, `searchHref`, and settings screens with `SETTINGS_SCREENS` (the stack titles, More and Settings rows). Continue watching and downloads save `watchHref(...).params` to open the episode again.
+- The info screen's title and poster are `useShownTitle()`: the card's until the info loads (a shared link may carry neither).
+- Home rows use `CardRow` (`src/components/TVRow.tsx`) with `ROW` and `rowCardWidth`; media tabs (favorites, history, statistics) map `MEDIA_TABS`.
+- Pick-one setting rows are `ChoiceRow` inside a `ChoiceRowHost`. A heroui Dialog can't sit inside a `NativeList`: its root `View` would land in the Compose/SwiftUI host.
 - Watch history keeps its own rules: `useWatchProgressStore.savePlayback` (incognito, forward only, the watched percent setting) and `toggleWatched`, and Continue watching's `record` skips incognito too. Don't write `progresses` from screens.
 - Worklet runtimes (`runOnRuntimeAsync`) are only for pure, high-frequency work whose input is already off the JS thread. The FFmpeg progress parsing is the only current case.
 
@@ -118,10 +131,12 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - `download()` records failures on the download instead of throwing, so read the status it resolves with. FFmpeg sessions outlive a JS reload; `initialize()` cancels them and fails the records they leave behind.
 
 **Backup**
-- `src/utils/backup.ts` lists every value a backup keeps in its `LIBRARY`, `SETTINGS` and `PREFERENCES` tables. A new persisted setting isn't backed up until it has an entry there. Keep the file format (`FORMAT`) readable by older backups.
+- `src/services/backup.ts` lists every value a backup keeps in its `LIBRARY`, `SETTINGS` and `PREFERENCES` tables. A new persisted setting isn't backed up until it has an entry there. Keep the file format (`FORMAT`) readable by older backups.
 
 **Consumet and extensions**
-- When a provider doesn't find the title, the episode has no `id`. The watch screen and the episode actions sheet show "Not on <provider>".
+- When a provider doesn't find the title, the episode has no `id`. It still opens; the watch screen and the episode actions sheet show "Not on <provider>" (`notOnProvider()` in `src/utils/episodes.ts`).
+- Installed extensions are `useExtensionStore`'s `installed` state (with `installedExtensions()` and `updateAvailable()`). Don't read the `ext_` MMKV keys for that; only the store's actions write them.
+- Providers' sources come from `watchQueries` already cleaned up (`PlayableSource`: subtitles typed, the thumbnails track split out, headers as strings). The player, the episode sheet and downloads all take that shape.
 - Don't rename the registry key `extension_registry_v2`. Keep the watch screen's `listedEpisode` lookup: it maps old Continue Watching keys.
 - The app runs providers from the registry cache and checks their sha256, so rsyncing consumet into `node_modules` doesn't change a provider. To try an unpublished provider fix in a dev build:
   1. Build its bundle in a scratch copy of consumet (`tsc -p tsconfig.dist.json && node scripts/build-extensions.js && node scripts/hermes-safe-dist.js`).

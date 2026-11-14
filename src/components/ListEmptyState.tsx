@@ -1,11 +1,11 @@
 import React, { ReactNode } from 'react';
+import { SETTINGS_SCREENS } from '@/utils/routes';
 import { Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Card, cn } from './heroui';
 import { Button } from './Button';
 import type { Provider } from '@/hooks/stores/useProviderStore';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
-import { usePureBlackBackground } from '@/hooks/stores/useThemeStore';
 import { IoniconProps, IoniconsIcon } from './Icons';
 import { HUXStack, HUYStack } from './ui-primitives';
 
@@ -18,11 +18,11 @@ interface ListEmptyStateProps {
 }
 
 export const ListEmptyState = ({ icon, title, description, detail, children }: ListEmptyStateProps) => {
-  const pureBlackBackground = usePureBlackBackground((state) => state.pureBlackBackground);
   const currentTheme = useCurrentTheme();
+  const pureBlackBackground = currentTheme.isPureBlack;
 
   return (
-    <Card className={cn('mx-4 mt-6 bg-background', pureBlackBackground && 'bg-black')}>
+    <Card testID="empty-state" className={cn('mx-4 mt-6 bg-background', pureBlackBackground && 'bg-black')}>
       <HUYStack className="items-center gap-3 px-6 py-8">
         <IoniconsIcon name={icon} size={32} color={currentTheme?.foreground} />
         <HUYStack className="items-center gap-1">
@@ -40,8 +40,8 @@ export const ListEmptyState = ({ icon, title, description, detail, children }: L
   );
 };
 
-// "Error fetching episodes: Error: [AniKoto] Network Error" -> "[AniKoto] Network Error"
-const errorDetail = (error: Error) => error.message.replace(/^(Error fetching \w+: )?(Error: )?/, '');
+// "Error: [AniKoto] Network Error" -> "[AniKoto] Network Error"
+const errorDetail = (error: Error) => error.message.replace(/^Error: /, '');
 
 interface ProviderEmptyStateProps {
   /** Installed providers for this media type */
@@ -70,7 +70,10 @@ export const ProviderEmptyState = ({
         icon="extension-puzzle-outline"
         title="No extensions installed"
         description={`Install an extension to load ${itemsLabel}.`}>
-        <Button size="sm" onPress={() => router.push('/(settings)/extensions')}>
+        <Button
+          testID="empty-state-get-extensions"
+          size="sm"
+          onPress={() => router.push(SETTINGS_SCREENS.extensions.href)}>
           <Button.Label>Get extensions</Button.Label>
         </Button>
       </ListEmptyState>
@@ -91,17 +94,20 @@ export const ProviderEmptyState = ({
       }
       detail={error ? errorDetail(error) : undefined}>
       {error && (
-        <Button size="sm" onPress={onRetry}>
+        <Button testID="empty-state-retry" size="sm" onPress={onRetry}>
           <Button.Label>Retry</Button.Label>
         </Button>
       )}
       {alternatives.map(({ name, value }) => (
-        <Button key={value} size="sm" variant="secondary" onPress={() => onProviderChange(value)}>
+        <Button
+          key={value}
+          testID="empty-state-provider"
+          size="sm"
+          variant="secondary"
+          onPress={() => onProviderChange(value)}>
           <Button.Label>{`Try ${name}`}</Button.Label>
         </Button>
       ))}
     </ListEmptyState>
   );
 };
-
-export default ListEmptyState;

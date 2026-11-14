@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
 import {
   Button,
   HStack,
@@ -25,42 +24,29 @@ import {
   padding,
   shapes,
   tint,
+  accessibilityIdentifier,
 } from '@expo/ui/swift-ui/modifiers';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
-import { IoniconsIcon, type IoniconProps } from '../../Icons';
-import { SeparatorLine } from '../separator/Separator';
 import { toggleModifiers } from '../switch/Switch.ios';
-import { FlatListContext, listItems, type ListItemProps, type ListProps } from './shared';
+import {
+  createHostedIcon,
+  createTrailing,
+  FlatListContext,
+  INSET,
+  listItems,
+  RADIUS,
+  withDividers,
+  type ListItemProps,
+  type ListProps,
+} from './shared';
 
-// heroui ListGroup's look: a rounded surface card, rows padded 16 with a 12 gap, dividers inset 16
-const RADIUS = 24;
-const INSET = 16;
+const HostedIcon = createHostedIcon(RNHostView);
 
-type HostedIconProps = { name: IoniconProps['name']; size: number; color: string; label?: string };
-
-const HostedIcon = ({ name, size, color, label }: HostedIconProps) => (
-  <RNHostView matchContents>
-    <View accessibilityLabel={label}>
-      <IoniconsIcon name={name} size={size} color={color} />
-    </View>
-  </RNHostView>
-);
-
-type TrailingProps = Pick<ListItemProps, 'trailingLoading' | 'trailingTone'> & { text?: string; chevron: boolean };
-
-const Trailing = ({ text, trailingLoading, trailingTone, chevron }: TrailingProps) => {
-  const theme = useCurrentTheme();
-  if (trailingLoading) return <ProgressView modifiers={[controlSize('small'), tint(theme.muted)]} />;
-  if (text) {
-    return (
-      <Text modifiers={[font({ size: 14 }), foregroundStyle(trailingTone === 'danger' ? theme.danger : theme.muted)]}>
-        {text}
-      </Text>
-    );
-  }
-  if (chevron) return <Image systemName="chevron.right" size={14} color={theme.muted} />;
-  return null;
-};
+const Trailing = createTrailing({
+  spinner: (color) => <ProgressView modifiers={[controlSize('small'), tint(color)]} />,
+  text: (text, color) => <Text modifiers={[font({ size: 14 }), foregroundStyle(color)]}>{text}</Text>,
+  chevron: (color) => <Image systemName="chevron.right" size={14} color={color} />,
+});
 
 const Item = ({
   title,
@@ -74,13 +60,17 @@ const Item = ({
   action,
   info,
   toggle,
+  testID,
 }: ListItemProps) => {
   const theme = useCurrentTheme();
   const flat = React.useContext(FlatListContext);
   const pressable = !!onPress && !disabled && !toggle;
+  const id = (suffix = '') => (testID ? [accessibilityIdentifier(testID + suffix)] : []);
 
   const content = (
-    <HStack spacing={flat ? 20 : 12} modifiers={[padding({ all: INSET }), contentShape(shapes.rectangle())]}>
+    <HStack
+      spacing={flat ? 20 : 12}
+      modifiers={[padding({ all: INSET }), contentShape(shapes.rectangle()), ...(pressable ? [] : id())]}>
       {icon ? <HostedIcon name={icon} size={flat ? 24 : 20} color={flat ? theme.accent : theme.foreground} /> : null}
       <VStack alignment="leading" spacing={2}>
         <Text modifiers={[font({ size: 16, weight: 'medium' }), foregroundStyle(theme.foreground)]}>{title}</Text>
@@ -101,7 +91,7 @@ const Item = ({
   );
 
   const row = pressable ? (
-    <Button onPress={onPress} modifiers={[buttonStyle('plain')]}>
+    <Button onPress={onPress} modifiers={[buttonStyle('plain'), ...id()]}>
       {content}
     </Button>
   ) : (
@@ -113,7 +103,9 @@ const Item = ({
     <HStack spacing={0}>
       {row}
       {action ? (
-        <Button onPress={action.onPress} modifiers={[buttonStyle('plain'), padding({ trailing: 12 })]}>
+        <Button
+          onPress={action.onPress}
+          modifiers={[buttonStyle('plain'), padding({ trailing: 12 }), ...id('-action')]}>
           <HostedIcon name={action.icon} size={18} color={theme.foreground} label={action.label} />
         </Button>
       ) : info ? (
@@ -177,17 +169,10 @@ const ListRoot = ({ children, variant = 'card' }: ListProps) => {
           frame({ maxWidth: Infinity }),
           background(theme.surface, shapes.roundedRectangle({ cornerRadius: RADIUS })),
         ]}>
-        {items.map((item, index) => (
-          <React.Fragment key={item.key ?? index}>
-            {index > 0 && <SeparatorLine inset={INSET} />}
-            {item}
-          </React.Fragment>
-        ))}
+        {withDividers(items)}
       </VStack>
     </Host>
   );
 };
 
 export const List = Object.assign(ListRoot, { Item });
-
-export default List;

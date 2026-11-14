@@ -1,27 +1,25 @@
-import { useShallow } from 'zustand/react/shallow';
 import {
   continueWatchingEpisodeLabel,
   mangaPageLabel,
   openContinueWatchingEntry,
   openMangaProgress,
   useMangaHistory,
+  useEntryProgress,
+  useWatchHistory,
   type MangaHistoryEntry,
 } from '@/hooks/useHistory';
 import React, { memo, useCallback, useMemo } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
-import { ROW, TVRow, rowCardWidth } from './TVRow';
-import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { TvType } from 'react-native-consumet';
+import { CardRow, ROW, rowCardWidth } from './TVRow';
+import { haptics } from '@/utils/haptics';
+import { isMovieType } from '@/utils/media';
 import { MediaType } from '@/constants/types';
-import { isTV, tvFocusScrollProps, TV_SNAP_CENTER } from '@/utils/tv';
+import { isTV } from '@/utils/tv';
 import { ContinueWatchingEntry, useContinueWatchingStore } from '@/hooks/stores/useContinueWatchingStore';
 import { resumePage, useMangaProgressStore } from '@/hooks/stores/useMangaProgressStore';
-import { useDownloadedOnlyFilter } from '@/downloads/useDownloadStore';
 import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
-import Image from './Image';
-import List from './List';
-import Progress from './native/progress/Progress';
+import { Image } from './Image';
+import { Progress } from './native/progress/Progress';
 import TVFocusWrapper from './TVFocusWrapper';
 import { HUYStack } from './ui-primitives';
 
@@ -29,50 +27,42 @@ const CARDS_PER_SCREEN = isTV ? 3.5 : 1.6;
 const THUMBNAIL_ASPECT = 9 / 16;
 const CAPTION_HEIGHT = 44;
 
-const ContinueWatchingCard = memo(({ entry, width }: { entry: ContinueWatchingEntry; width: number }) => {
-  const router = useRouter();
-  // What the card shows, rounded, so the saves every 5 s while watching only re-render it when that changes
-  const { hasProgress, isCompleted, percent, minutesLeft } = useWatchProgressStore(
-    useShallow((state) => {
-      const progress = state.progresses[entry.uniqueId];
-      return {
-        hasProgress: !!progress,
-        isCompleted: !!progress?.isCompleted,
-        percent: Math.round(progress?.progress ?? 0),
-        minutesLeft:
-          progress?.duration && !progress.isCompleted
-            ? Math.max(1, Math.round((progress.duration - progress.currentTime) / 60))
-            : null,
-      };
-    }),
-  );
-  const remove = useContinueWatchingStore((state) => state.remove);
-  const { title: episodeTitle, poster } = entry.watchParams;
+interface HistoryCardProps {
+  testID: string;
+  width: number;
+  /** Width over height */
+  aspectRatio: number;
+  image?: string;
+  badge?: string;
+  /** Shows a progress bar when set */
+  percent?: number;
+  title: string;
+  caption?: string;
+  onPress: () => void;
+  onLongPress: () => void;
+  accessibilityHint: string;
+}
 
-  const open = useCallback(() => openContinueWatchingEntry(router, entry, isCompleted), [router, isCompleted, entry]);
-
-  const removeFromRow = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    remove(entry.key);
-  }, [remove, entry.key]);
-
-  const episodeLabel = continueWatchingEpisodeLabel(entry);
-  const caption = isCompleted ? 'Watched · next episode' : minutesLeft ? `${minutesLeft}m left` : episodeTitle;
-
-  const title = entry.showTitle || episodeTitle;
-
+const HistoryCard = ({
+  width,
+  aspectRatio,
+  image,
+  badge,
+  percent,
+  title,
+  caption,
+  ...pressProps
+}: HistoryCardProps) => {
   // Fills the wrapper rather than `width`, so on TV it sits inside the focus ring's border instead of covering it
-  const thumbnail = (
-    <View
-      className="overflow-hidden rounded-xl bg-default"
-      style={{ width: '100%', aspectRatio: 1 / THUMBNAIL_ASPECT }}>
-      <Image source={poster || entry.showImage} style={{ width: '100%', height: '100%' }} />
-      {!!episodeLabel && (
+  const picture = (
+    <View className="overflow-hidden rounded-xl bg-default" style={{ width: '100%', aspectRatio }}>
+      <Image source={image} style={{ width: '100%', height: '100%' }} />
+      {!!badge && (
         <Text className="absolute left-2 top-2 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
-          {episodeLabel}
+          {badge}
         </Text>
       )}
-      {hasProgress && !isCompleted && <Progress className="absolute inset-x-2 bottom-2" value={percent} />}
+      {percent !== undefined && <Progress className="absolute inset-x-2 bottom-2" value={percent} />}
     </View>
   );
   const details = (
@@ -87,85 +77,90 @@ const ContinueWatchingCard = memo(({ entry, width }: { entry: ContinueWatchingEn
       )}
     </HUYStack>
   );
-  const pressProps = {
-    onPress: open,
-    onLongPress: removeFromRow,
-    accessibilityHint: 'Long press to remove from Continue watching',
-  };
 
-  // TV: only the thumbnail takes focus, so the ring and scale wrap the picture and the text stays below it
+  // TV: only the picture takes focus, so the ring and scale wrap it and the text stays below
   return isTV ? (
     <View style={{ width }}>
       <TVFocusWrapper {...pressProps} focusBorderRadius={12} accessibilityLabel={title}>
-        {thumbnail}
+        {picture}
       </TVFocusWrapper>
       {details}
     </View>
   ) : (
     <TVFocusWrapper {...pressProps} style={{ width }}>
-      {thumbnail}
+      {picture}
       {details}
     </TVFocusWrapper>
+  );
+};
+
+const ContinueWatchingCard = memo(({ entry, width }: { entry: ContinueWatchingEntry; width: number }) => {
+  const { isCompleted, percent, minutesLeft } = useEntryProgress(entry.uniqueId);
+  const remove = useContinueWatchingStore((state) => state.remove);
+  const { title: episodeTitle, poster } = entry.watchParams;
+
+  const open = useCallback(() => openContinueWatchingEntry(entry, isCompleted), [isCompleted, entry]);
+
+  const removeFromRow = useCallback(() => {
+    haptics.medium();
+    remove(entry.key);
+  }, [remove, entry.key]);
+
+  const episodeLabel = continueWatchingEpisodeLabel(entry);
+  const caption = isCompleted ? 'Watched · next episode' : minutesLeft ? `${minutesLeft}m left` : episodeTitle;
+
+  return (
+    <HistoryCard
+      testID="continue-watching-card"
+      width={width}
+      aspectRatio={1 / THUMBNAIL_ASPECT}
+      image={poster || entry.showImage}
+      badge={episodeLabel}
+      percent={percent}
+      title={entry.showTitle || episodeTitle || ''}
+      caption={caption}
+      onPress={open}
+      onLongPress={removeFromRow}
+      accessibilityHint="Long press to remove from Continue watching"
+    />
   );
 });
 ContinueWatchingCard.displayName = 'ContinueWatchingCard';
 
 /** The latest episode of each show watched on this media type, most recent first. Hidden when there are none. */
 export const ContinueWatchingRow = memo(({ mediaType }: { mediaType: MediaType }) => {
-  const entries = useContinueWatchingStore((state) => state.entries);
+  const history = useWatchHistory(mediaType);
   // Only which entries are finished, so the progress saves while watching don't re-render the row
   const finishedKey = useWatchProgressStore((state) =>
-    entries
+    history
       .filter((entry) => state.progresses[entry.uniqueId]?.isCompleted)
       .map((entry) => entry.uniqueId)
       .join('|'),
   );
-  const downloadedOnly = useDownloadedOnlyFilter();
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = rowCardWidth(screenWidth, CARDS_PER_SCREEN);
 
   // Nothing left to continue after a finished movie or an anime's last episode
   const items = useMemo(() => {
     const finished = new Set(finishedKey.split('|'));
-    return entries
+    return history
       .filter(
         (entry) =>
-          entry.mediaType === mediaType &&
-          (!downloadedOnly || downloadedOnly(entry.showId, entry.showTitle)) &&
-          !(
-            finished.has(entry.uniqueId) &&
-            (entry.watchParams.type === TvType.MOVIE || entry.hasNextEpisode === false)
-          ),
+          !(finished.has(entry.uniqueId) && (isMovieType(entry.watchParams.type) || entry.hasNextEpisode === false)),
       )
       .slice(0, ROW.maxItems);
-  }, [entries, mediaType, finishedKey, downloadedOnly]);
-
+  }, [history, finishedKey]);
   if (items.length === 0) return null;
 
   return (
-    <View className="gap-2" scrollSnapAlign={TV_SNAP_CENTER}>
-      <Text className="text-foreground text-lg font-semibold" style={{ paddingLeft: ROW.padding + 4 }}>
-        Continue watching
-      </Text>
-      <TVRow style={{ height: cardWidth * THUMBNAIL_ASPECT + CAPTION_HEIGHT + ROW.verticalPadding * 2 }}>
-        <List<ContinueWatchingEntry>
-          horizontal
-          data={items}
-          keyExtractor={(entry) => entry.key}
-          showsHorizontalScrollIndicator={false}
-          scrollsToTop={false}
-          contentContainerStyle={{ paddingHorizontal: ROW.padding, paddingVertical: ROW.verticalPadding }}
-          {...tvFocusScrollProps(ROW.padding)}
-          ItemSeparatorComponent={() => <View style={{ width: ROW.gap }} />}
-          ListFooterComponent={null}
-          renderItem={({ item }) => (
-            <View scrollSnapAlign={TV_SNAP_CENTER}>
-              <ContinueWatchingCard entry={item} width={cardWidth} />
-            </View>
-          )}
-        />
-      </TVRow>
-    </View>
+    <CardRow<ContinueWatchingEntry>
+      testID="continue-watching-row"
+      title="Continue watching"
+      cardHeight={cardWidth * THUMBNAIL_ASPECT + CAPTION_HEIGHT}
+      items={items}
+      keyExtractor={(entry) => entry.key}
+      renderItem={(entry) => <ContinueWatchingCard entry={entry} width={cardWidth} />}
+    />
   );
 });
 ContinueWatchingRow.displayName = 'ContinueWatchingRow';
@@ -175,52 +170,30 @@ const MANGA_CARDS_PER_SCREEN = isTV ? 6.5 : 3.2;
 const COVER_ASPECT = 3 / 2;
 
 const ContinueReadingCard = memo(({ entry, width }: { entry: MangaHistoryEntry; width: number }) => {
-  const router = useRouter();
   const hide = useMangaProgressStore((state) => state.hide);
   const { progress } = entry;
   const page = resumePage(progress, progress.lastChapterId);
   const percent = page > 1 && progress.pageCount ? (page / progress.pageCount) * 100 : 0;
 
-  const open = useCallback(() => openMangaProgress(router, entry), [router, entry]);
+  const open = useCallback(() => openMangaProgress(entry), [entry]);
   const removeFromRow = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptics.medium();
     hide(entry.key);
   }, [hide, entry.key]);
 
-  const cover = (
-    <View className="overflow-hidden rounded-xl bg-default" style={{ width: '100%', aspectRatio: 1 / COVER_ASPECT }}>
-      <Image source={progress.image} style={{ width: '100%', height: '100%' }} />
-      {percent > 0 && <Progress className="absolute inset-x-2 bottom-2" value={percent} />}
-    </View>
-  );
-  const details = (
-    <HUYStack className="pt-1.5">
-      <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
-        {progress.title}
-      </Text>
-      <Text className="text-xs text-foreground/60" numberOfLines={1}>
-        {mangaPageLabel(progress) ?? progress.lastChapterTitle}
-      </Text>
-    </HUYStack>
-  );
-  const pressProps = {
-    onPress: open,
-    onLongPress: removeFromRow,
-    accessibilityHint: 'Long press to remove from Continue reading',
-  };
-
-  return isTV ? (
-    <View style={{ width }}>
-      <TVFocusWrapper {...pressProps} focusBorderRadius={12} accessibilityLabel={progress.title}>
-        {cover}
-      </TVFocusWrapper>
-      {details}
-    </View>
-  ) : (
-    <TVFocusWrapper {...pressProps} style={{ width }}>
-      {cover}
-      {details}
-    </TVFocusWrapper>
+  return (
+    <HistoryCard
+      testID="continue-reading-card"
+      width={width}
+      aspectRatio={1 / COVER_ASPECT}
+      image={progress.image}
+      percent={percent > 0 ? percent : undefined}
+      title={progress.title ?? ''}
+      caption={mangaPageLabel(progress) ?? progress.lastChapterTitle}
+      onPress={open}
+      onLongPress={removeFromRow}
+      accessibilityHint="Long press to remove from Continue reading"
+    />
   );
 });
 ContinueReadingCard.displayName = 'ContinueReadingCard';
@@ -235,31 +208,14 @@ export const ContinueReadingRow = memo(() => {
   if (items.length === 0) return null;
 
   return (
-    <View className="gap-2" scrollSnapAlign={TV_SNAP_CENTER}>
-      <Text className="text-foreground text-lg font-semibold" style={{ paddingLeft: ROW.padding + 4 }}>
-        Continue reading
-      </Text>
-      <TVRow style={{ height: cardWidth * COVER_ASPECT + CAPTION_HEIGHT + ROW.verticalPadding * 2 }}>
-        <List<MangaHistoryEntry>
-          horizontal
-          data={items}
-          keyExtractor={(entry) => entry.key}
-          showsHorizontalScrollIndicator={false}
-          scrollsToTop={false}
-          contentContainerStyle={{ paddingHorizontal: ROW.padding, paddingVertical: ROW.verticalPadding }}
-          {...tvFocusScrollProps(ROW.padding)}
-          ItemSeparatorComponent={() => <View style={{ width: ROW.gap }} />}
-          ListFooterComponent={null}
-          renderItem={({ item }) => (
-            <View scrollSnapAlign={TV_SNAP_CENTER}>
-              <ContinueReadingCard entry={item} width={cardWidth} />
-            </View>
-          )}
-        />
-      </TVRow>
-    </View>
+    <CardRow<MangaHistoryEntry>
+      testID="continue-reading-row"
+      title="Continue reading"
+      cardHeight={cardWidth * COVER_ASPECT + CAPTION_HEIGHT}
+      items={items}
+      keyExtractor={(entry) => entry.key}
+      renderItem={(entry) => <ContinueReadingCard entry={entry} width={cardWidth} />}
+    />
   );
 });
 ContinueReadingRow.displayName = 'ContinueReadingRow';
-
-export default ContinueWatchingRow;

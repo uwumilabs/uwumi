@@ -30,9 +30,6 @@ if (!version.match(/^\d+\.\d+\.\d+(-\w+(\.\d+)?)?$/)) {
   process.exit(1);
 }
 
-const [mainVersion, preRelease] = version.split('-');
-const [major, minor, patch] = mainVersion.split('.').map(Number);
-
 let versionCode = 0;
 
 function updateBuildGradle() {

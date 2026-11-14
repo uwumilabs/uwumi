@@ -5,15 +5,9 @@ const { AndroidConfig, withAndroidManifest, withDangerousMod } = require('@expo/
 // What downloads need in the Android manifest, which prebuild doesn't generate on its own.
 //   react-native-background-actions starts its service as a dataSync foreground service: Android 14+ throws unless
 //   the manifest declares that type (the library's own manifest doesn't)
-//   POST_NOTIFICATIONS: the app requests it at startup, and Android 13+ denies it outright if it isn't declared
-const PERMISSIONS = [
-  'android.permission.FOREGROUND_SERVICE',
-  'android.permission.FOREGROUND_SERVICE_DATA_SYNC',
-  'android.permission.POST_NOTIFICATIONS',
-  'android.permission.WAKE_LOCK',
-  'android.permission.MANAGE_EXTERNAL_STORAGE',
-  'android.permission.WRITE_SETTINGS',
-];
+//   WAKE_LOCK: the service is a HeadlessJsTaskService, which holds a wake lock while it runs
+// FOREGROUND_SERVICE and POST_NOTIFICATIONS come from background-actions' and expo-notifications' own manifests
+const PERMISSIONS = ['android.permission.FOREGROUND_SERVICE_DATA_SYNC', 'android.permission.WAKE_LOCK'];
 const DOWNLOAD_SERVICE = 'com.asterinet.react.bgactions.RNBackgroundActionsTask';
 // The download notification's small icon; without it the service throws
 // "Task icon not found". 96 px is 24 dp at xxxhdpi, and Android scales it down for lower densities
@@ -68,18 +62,7 @@ const withNotificationIcon = (config) =>
 
 const withBackgroundDownloads = (config) =>
   withAndroidManifest(withBackupRules(withNotificationIcon(config)), (config) => {
-    const { manifest } = config.modResults;
-    manifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
-    manifest['uses-permission'] = manifest['uses-permission'] ?? [];
-    for (const name of PERMISSIONS) {
-      if (manifest['uses-permission'].some((permission) => permission.$['android:name'] === name)) continue;
-      manifest['uses-permission'].push({
-        $: {
-          'android:name': name,
-          ...(name.endsWith('MANAGE_EXTERNAL_STORAGE') && { 'tools:ignore': 'ScopedStorage' }),
-        },
-      });
-    }
+    AndroidConfig.Permissions.ensurePermissions(config.modResults, PERMISSIONS);
 
     const application = AndroidConfig.Manifest.getMainApplicationOrThrow(config.modResults);
     application.$['android:fullBackupContent'] = '@xml/backup_rules';

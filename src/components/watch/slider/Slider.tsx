@@ -1,8 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { View } from 'react-native';
-import { Host, Slider as NativeSlider } from '@expo/ui/swift-ui';
-import { tint } from '@expo/ui/swift-ui/modifiers';
 import type { SliderProps } from 'react-native-video-toolkit';
+import { NativeSlider } from './NativeSlider';
 import { SeekPreview } from './SeekPreview';
 
 export const Slider = ({
@@ -24,24 +23,24 @@ export const Slider = ({
   const isProgress = variant === 'progress';
 
   const slider = (
-    <Host matchContents={{ vertical: true }} style={{ width: isProgress ? '100%' : (width ?? '100%') }}>
-      <NativeSlider
-        value={value}
-        min={minimumValue}
-        max={max}
-        onValueChange={(v) => {
-          lastValue.current = v;
-          if (isProgress) setScrubTime(v);
-          onValueChange(v);
-        }}
-        onEditingChanged={(isEditing) => {
-          if (isEditing) return onSlidingStart?.();
-          setScrubTime(null);
-          onSlidingComplete?.(lastValue.current);
-        }}
-        modifiers={[tint(colors.active)]}
-      />
-    </Host>
+    <NativeSlider
+      value={value}
+      min={minimumValue}
+      max={max}
+      width={isProgress ? '100%' : (width ?? '100%')}
+      colors={colors}
+      testID={isProgress ? 'watch-seek-bar' : 'watch-volume'}
+      onValueChange={(v) => {
+        lastValue.current = v;
+        if (isProgress) setScrubTime(v);
+        onValueChange(v);
+      }}
+      onSlidingStart={onSlidingStart}
+      onSlidingEnd={() => {
+        setScrubTime(null);
+        onSlidingComplete?.(lastValue.current);
+      }}
+    />
   );
 
   if (!isProgress) return slider;
