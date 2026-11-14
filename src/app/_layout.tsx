@@ -1,11 +1,12 @@
 import '../../global.css';
 import '@/bootstrap';
 import { SETTINGS_SCREENS } from '@/utils/routes';
+import { AnimatedSplash } from '@/components/AnimatedSplash';
+import { useHomeFeedSettled } from '@/hooks/queries/mediaQueries';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHeaderHeight } from 'expo-router/react-navigation';
-import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useMemo } from 'react';
 import Animated, { Easing, FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -118,10 +119,9 @@ const AppContent = () => {
     RNOrientationDirector.lockTo(isTV ? Orientation.landscape : Orientation.portrait);
   }, []);
 
-  // Not waiting on the update check: its dialog shows whenever the check answers
-  useEffect(() => {
-    if (loaded) SplashScreen.hideAsync();
-  }, [loaded]);
+  // The launch animation waits for the fonts and the home feed's first answer, not for the update check (its dialog
+  // shows whenever the check answers)
+  const homeFeedSettled = useHomeFeedSettled();
 
   const contentWrapper = useCallback(
     (children: React.ReactNode) => (
@@ -131,10 +131,6 @@ const AppContent = () => {
     ),
     [],
   );
-
-  if (!loaded) {
-    return null;
-  }
 
   // The navigators paint their container with this background; on iOS it shows behind a
   // screen's rounded corners during push transitions, so it must match the app theme.
@@ -154,68 +150,72 @@ const AppContent = () => {
 
   return (
     <>
-      <HeroUINativeProvider
-        config={{
-          toast: {
-            disableFullWindowOverlay: true,
-            contentWrapper,
-            defaultProps: {
-              placement: 'bottom',
+      {loaded && (
+        <HeroUINativeProvider
+          config={{
+            toast: {
+              disableFullWindowOverlay: true,
+              contentWrapper,
+              defaultProps: {
+                placement: 'bottom',
+              },
             },
-          },
-          devInfo: {
-            stylingPrinciples: false,
-          },
-        }}>
-        <ThemeProvider value={navigationTheme}>
-          <IncognitoFrame>
-            {(bannerShown) => (
-              // freezeOnBlur: screens under the top one (the tabs under watch, info under watch) stop re-rendering
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  freezeOnBlur: true,
-                  unstable_nativeProps: bannerShown ? HEADER_UNDER_BANNER : undefined,
-                }}
-                screenLayout={screenLayout}>
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="browse/[mediaType]" />
-                <Stack.Screen name="search/[mediaType]" />
-                <Stack.Screen
-                  name="info/[mediaType]"
-                  options={{
-                    ...headerOptions,
-                    headerShown: true,
-                    headerTransparent: true,
-                    headerStyle: { backgroundColor: 'transparent' },
-                    title: '',
+            devInfo: {
+              stylingPrinciples: false,
+            },
+          }}>
+          <ThemeProvider value={navigationTheme}>
+            <IncognitoFrame>
+              {(bannerShown) => (
+                // freezeOnBlur: screens under the top one (the tabs under watch, info under watch) stop re-rendering
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    freezeOnBlur: true,
+                    unstable_nativeProps: bannerShown ? HEADER_UNDER_BANNER : undefined,
                   }}
-                />
-                <Stack.Screen name="watch/[mediaType]" />
-                {/* Over the pages, so the reader's menu tap can hide it without moving them */}
-                <Stack.Screen
-                  name="read/[id]"
-                  options={{ ...headerOptions, headerShown: true, headerTransparent: true, title: '' }}
-                />
-                {/* In the root stack rather than a nested one, so iOS gives the first of them a native back button too */}
-                {Object.entries(SETTINGS_SCREENS).map(([name, { title }]) => (
+                  screenLayout={screenLayout}>
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="browse/[mediaType]" />
+                  <Stack.Screen name="search/[mediaType]" />
                   <Stack.Screen
-                    key={name}
-                    name={`(settings)/${name}`}
-                    options={{ ...headerOptions, headerShown: true, title }}
+                    name="info/[mediaType]"
+                    options={{
+                      ...headerOptions,
+                      headerShown: true,
+                      headerTransparent: true,
+                      headerStyle: { backgroundColor: 'transparent' },
+                      title: '',
+                    }}
                   />
-                ))}
-                <Stack.Screen name="+not-found" />
-              </Stack>
-            )}
-          </IncognitoFrame>
-        </ThemeProvider>
-        <PerfWindows />
-        {/* Player sheets (the episodes panel) render here, inside HeroUI's provider so its components work */}
-        <VideoPortalHost name={VIDEO_PORTAL_HOST} />
-        <OtaUpdateToast />
-        <UpdateDialog />
-      </HeroUINativeProvider>
+                  <Stack.Screen name="watch/[mediaType]" />
+                  {/* Over the pages, so the reader's menu tap can hide it without moving them */}
+                  <Stack.Screen
+                    name="read/[id]"
+                    options={{ ...headerOptions, headerShown: true, headerTransparent: true, title: '' }}
+                  />
+                  {/* In the root stack rather than a nested one, so iOS gives the first of them a native back button too */}
+                  {Object.entries(SETTINGS_SCREENS).map(([name, { title }]) => (
+                    <Stack.Screen
+                      key={name}
+                      name={`(settings)/${name}`}
+                      options={{ ...headerOptions, headerShown: true, title }}
+                    />
+                  ))}
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+              )}
+            </IncognitoFrame>
+          </ThemeProvider>
+          <PerfWindows />
+          {/* Player sheets (the episodes panel) render here, inside HeroUI's provider so its components work */}
+          <VideoPortalHost name={VIDEO_PORTAL_HOST} />
+          <OtaUpdateToast />
+          <UpdateDialog />
+        </HeroUINativeProvider>
+      )}
+      {/* Last and outside the fonts check, so the app mounts under it and it never remounts */}
+      <AnimatedSplash ready={loaded && homeFeedSettled} />
     </>
   );
 };

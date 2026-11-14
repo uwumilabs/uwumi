@@ -260,6 +260,31 @@ PODS:
   - libwebp/sharpyuv (1.6.0)
   - libwebp/webp (1.6.0):
     - libwebp/sharpyuv
+  - lottie-ios (4.6.0)
+  - lottie-react-native (7.5.1):
+    - hermes-engine
+    - lottie-ios (= 4.6.0)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
+    - React-Core
+    - React-Core-prebuilt
+    - React-cxxstableapi
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - MMKVCore (2.4.0)
   - NitroMmkv (4.3.2):
     - hermes-engine
@@ -1675,7 +1700,7 @@ PODS:
     - Yoga
   - react-native-background-actions (4.1.0):
     - React-Core
-  - react-native-ffmpeg-kit (7.0.0-beta.4):
+  - react-native-ffmpeg-kit (7.0.0-beta.6):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1689,7 +1714,7 @@ PODS:
     - React-graphics
     - React-ImageManager
     - React-jsi
-    - react-native-ffmpeg-kit/https (= 7.0.0-beta.4)
+    - react-native-ffmpeg-kit/https (= 7.0.0-beta.6)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -1699,7 +1724,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-ffmpeg-kit/https (7.0.0-beta.4):
+  - react-native-ffmpeg-kit/https (7.0.0-beta.6):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2708,7 +2733,7 @@ PODS:
   - SocketRocket (0.7.1):
     - ReactNativeDependencies
   - SSZipArchive (2.6.0)
-  - VideoToolkit (1.0.0):
+  - VideoToolkit (1.1.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2775,6 +2800,7 @@ DEPENDENCIES:
   - fmt (from `build/rndeps-facades/fmt`)
   - glog (from `build/rndeps-facades/glog`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
+  - lottie-react-native (from `../node_modules/lottie-react-native`)
   - NitroMmkv (from `../node_modules/react-native-mmkv`)
   - NitroModules (from `../node_modules/react-native-nitro-modules`)
   - NitroOta (from `../node_modules/react-native-nitro-ota`)
@@ -2880,6 +2906,7 @@ SPEC REPOS:
     - libavif
     - libdav1d
     - libwebp
+    - lottie-ios
     - MMKVCore
     - SDWebImage
     - SDWebImageAVIFCoder
@@ -2969,6 +2996,8 @@ EXTERNAL SOURCES:
   hermes-engine:
     :podspec: "../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
     :tag: hermes-v260318099.0.2
+  lottie-react-native:
+    :path: "../node_modules/lottie-react-native"
   NitroMmkv:
     :path: "../node_modules/react-native-mmkv"
   NitroModules:
@@ -3210,6 +3239,8 @@ SPEC CHECKSUMS:
   libavif: 5f8e715bea24debec477006f21ef9e95432e254d
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: af5937a13536ef73f3784d69cc342b98961acf33
+  lottie-ios: 8f959969761e9c45d70353667d00af0e5b9cadb3
+  lottie-react-native: f4648abcf4590871eea8f7be70a2a62b7e7c899b
   MMKVCore: 3d16ce9f7d411e135020915fde98a056859a1efa
   NitroMmkv: 9d26ccadb2dd41ac74f6ca921fe2c3d74c9c40e0
   NitroModules: 92c2f230ec822ce8be72c8330fe292cdcf24e3a4
@@ -3256,7 +3287,7 @@ SPEC CHECKSUMS:
   React-microtasksnativemodule: f7f4adbecf30ff4cbc77d17426f5001d2115c46b
   React-mutationobservernativemodule: 991eb3c8e7b23e0ab9e989ee47f555ac4030a61e
   react-native-background-actions: 35a1e298faed0957d36469eb21d634f0b6243bcb
-  react-native-ffmpeg-kit: 4146ed5fc6e506cbc630a53b772b6db23724fdda
+  react-native-ffmpeg-kit: cfe64dfcda897e86045593c86364516fa757c2b7
   react-native-get-random-values: 903f339dfb7b6d25850f68355de9286f34635251
   react-native-keyboard-controller: 8da3439009d9bea47a38462af94227c2c228708e
   react-native-orientation-director: 9b258509febe9fa0122be1ace3712c0d8f520f37
@@ -3312,7 +3343,7 @@ SPEC CHECKSUMS:
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   SocketRocket: 9c5c51020fcd1d1d9a4c6d626d5efef98e15425c
   SSZipArchive: 8a6ee5677c8e304bebc109e39cf0da91ccef22ea
-  VideoToolkit: c5274f3b3565f53e72ed2dfd3a0bd7c6e608d830
+  VideoToolkit: 0260a16ee2b7a1dd7fad8fbb0fd807e16ca98244
   Yoga: 506238f8e7575a3c20290b98402eabc8590f57cc
 
 PODFILE CHECKSUM: fdf269faa97b921cbfc29dc6fa374ac2de6bc177

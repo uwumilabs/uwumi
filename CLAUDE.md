@@ -107,6 +107,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
   - Use heroui `Skeleton` with `animation={false}`.
   - For fire-and-forget effects, prefer Reanimated CSS animations (`css.keyframes`).
 - Import `Easing` from `react-native-reanimated`, not `react-native`, inside worklets.
+- Read and write shared values with `.get()` / `.set()` in components: the React Compiler lint (`react-hooks/immutability`) rejects assigning `.value`.
 - uniwind only styles RN core views and `withUniwind` wrappers. A third-party native view styled with `className` renders 0×0, so wrap it.
 - Every inline iOS SwiftUI `Host` in a scrolling screen needs `ignoreSafeArea="container"`.
 - On TV the player's settings menu is the toolkit's own side panel (phones use uwumi's native bottom sheet): the native sheet takes Back as "close" (`src/components/watch/AppVideoProvider.tsx`).

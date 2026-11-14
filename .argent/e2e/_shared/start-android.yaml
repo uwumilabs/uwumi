@@ -7,4 +7,6 @@ steps:
       url: exp+uwumi://?__expo_url=http%3A%2F%2F127.0.0.1%3A8081&__expo_disable_fab=1&__expo_disable_onboarding=1
   - await: { visible: { id: anime-screen }, timeout: 90000 }
   - await: { visible: { id: tab-anime } }
+  # The launch animation covers the app until it has played and the home feed has answered
+  - await: { hidden: { id: splash-overlay }, timeout: 15000 }
   - await: { idle: true, stableFor: 1000, timeout: 15000 }

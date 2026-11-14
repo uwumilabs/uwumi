@@ -1,5 +1,5 @@
 import { MediaFeedType, MediaType } from '@/constants/types';
-import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
+import { useInfiniteQuery, useIsFetching, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { ISearch, META } from 'react-native-consumet';
 import { TMDB_API_KEY } from '@/constants/config';
 
@@ -10,6 +10,14 @@ export const mediaFeeds = (mediaType: MediaType): Feed[] =>
   mediaType === MediaType.MOVIE ? ['trending'] : ['trending', 'popular'];
 
 export const mediaFeedKey = (mediaType: MediaType, feed: Feed) => ['feed', mediaType, feed];
+
+/** Whether the Anime home's first row has its first answer (data or an error), for the launch animation to wait on */
+export const useHomeFeedSettled = () => {
+  // Re-renders as feeds start and finish fetching, so the state below is read fresh
+  useIsFetching({ queryKey: ['feed'] });
+  const status = useQueryClient().getQueryState(mediaFeedKey(MediaType.ANIME, 'trending'))?.status;
+  return status === 'success' || status === 'error';
+};
 
 const nextPage = <T>(lastPage: ISearch<T>, pages: ISearch<T>[]) =>
   lastPage.hasNextPage ? pages.length + 1 : undefined;
