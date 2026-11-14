@@ -1,0 +1,23 @@
+# More → Settings → Downloads (the queue; contents are user data, so no snapshot) → back to Settings
+# Touches: nothing (opens the screen only)
+steps:
+  - run: ../_shared/start-android.yaml
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-row-settings } }
+  - await: { idle: true }
+  - tap: { id: more-row-settings }
+  - await: { visible: { id: settings-screen } }
+  - await: { visible: { id: settings-row-downloads } }
+  - await: { idle: true }
+
+  - echo: Settings → Downloads
+  - tap: { id: settings-row-downloads }
+  - await: { visible: { id: downloads-screen } }
+  - await: { hidden: { id: downloads-loading }, timeout: 15000 }
+  - await: { idle: true }
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: downloads-screen } }
+  - await: { visible: { id: settings-row-downloads } }
+  - await: { idle: true }

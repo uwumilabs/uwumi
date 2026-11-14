@@ -1,0 +1,105 @@
+# Incognito on → Manga → Popular See more → first manga → newest chapter first → open the newest chapter → pages →
+# swipe back to the chapter-start page → Previous chapter → its pages → back to info → back out → incognito off
+# Touches: network (AniList + MangaPill pages), incognito (on for the run so no reading progress is saved, then off).
+# The chapter order toggle is screen state, not saved.
+# Next chapter isn't tested: in the default paged mode it sits on a page after the chapter's last one, so reaching it
+# means swiping through every page (no page slider); the start page's Previous chapter uses the same open path.
+# More's switches are SwiftUI rows: the runner can't see them, so they are read with raw await-ui-element (the
+# switch's accessibility value is "0"/"1") and tapped at their describe frame. The incognito banner pushes More's
+# rows down, so the switch is at y 0.367 with incognito off and y 0.395 with it on (once More has been left and
+# shown again; right after turning it on, More keeps a stale top inset and the switch sits at y 0.466).
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: More tab. Turn incognito on so the reader saves no progress
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: more-row-incognito, role: button },
+        expectedText: '0',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - tool: gesture-tap
+    args: { x: 0.884, y: 0.367 }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: more-row-incognito, role: button },
+        expectedText: '1',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - await: { visible: { text: { matches: '^Incognito mode$' } } }
+  - await: { idle: true }
+
+  - echo: Manga tab. Open the Popular row's See more (the second feed row)
+  - tap: { id: tab-manga }
+  - await: { visible: { id: manga-screen } }
+  - await: { visible: { id: feed-see-more, within: { id: feed-row, after: { id: feed-row } } }, timeout: 20000 }
+  - await: { idle: true }
+  - tap: { id: feed-see-more, within: { id: feed-row, after: { id: feed-row } } }
+  - await: { visible: { id: browse-screen } }
+  - await: { visible: { id: media-card, within: { id: browse-list } }, timeout: 20000 }
+  - await: { idle: true }
+
+  - echo: Open the first manga in the grid
+  - tap: { id: media-card, next: { id: BackButton } }
+  - await: { visible: { id: info-screen } }
+  - await: { idle: true }
+  - scroll-to: { target: { id: chapter-order-toggle } }
+  - await: { visible: { id: chapter-row, within: { id: chapter-list } }, timeout: 30000 }
+  - echo: Newest chapter first, then open the top row (the newest chapter, so it has a previous one)
+  - tap: { id: chapter-order-toggle }
+  - await: { text: { in: { id: chapter-order-toggle }, equals: Show first chapter first } }
+  - await: { idle: true }
+  - tap: { id: chapter-row, next: { id: chapter-order-toggle } }
+  - await: { visible: { id: reader-screen } }
+  - await: { visible: { id: reader-page, within: { id: reader-pages } }, timeout: 30000 }
+  - await: { idle: true }
+
+  - echo: Pages shown. Swipe back to the chapter-start page and open the previous chapter
+  - swipe: right
+  - await: { visible: { id: reader-previous-chapter } }
+  - tap: { id: reader-previous-chapter }
+  - await: { hidden: { id: reader-previous-chapter } }
+  - await: { visible: { id: reader-page, within: { id: reader-pages } }, timeout: 30000 }
+  - await: { idle: true }
+
+  - echo: Native back to info (a chapter switch replaces the reader), then out to the Manga tab
+  - tap: { id: BackButton }
+  - await: { hidden: { id: reader-screen } }
+  - await: { visible: { id: info-screen } }
+  - await: { idle: true }
+  - tap: { id: BackButton }
+  - await: { hidden: { id: info-screen } }
+  - await: { visible: { id: browse-screen } }
+  - await: { idle: true }
+  - tap: { id: BackButton }
+  - await: { hidden: { id: browse-screen } }
+  - await: { visible: { id: manga-screen } }
+  - await: { idle: true }
+
+  - echo: More tab. Turn incognito off again
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true }
+  - tool: gesture-tap
+    args: { x: 0.884, y: 0.395 }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: more-row-incognito, role: button },
+        expectedText: '0',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - await: { hidden: { text: { matches: '^Incognito mode$' } } }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

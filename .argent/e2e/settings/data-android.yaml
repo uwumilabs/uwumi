@@ -1,0 +1,24 @@
+# More → Settings → Data and storage → back to Settings (no snapshot: storage sizes and the last backup time change)
+# Touches: nothing (opens the screen only)
+steps:
+  - run: ../_shared/start-android.yaml
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-row-settings } }
+  - await: { idle: true }
+  - tap: { id: more-row-settings }
+  - await: { visible: { id: settings-screen } }
+  - await: { visible: { id: settings-row-data } }
+  - await: { idle: true }
+
+  - echo: Settings → Data and storage
+  - tap: { id: settings-row-data }
+  - await: { visible: { id: data-screen } }
+  - await: { visible: { id: data-row-create-backup } }
+  - assert: { visible: { id: data-row-clear-cache } }
+  - await: { idle: true }
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: data-screen } }
+  - await: { visible: { id: settings-row-data } }
+  - await: { idle: true }

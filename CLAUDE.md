@@ -57,6 +57,8 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
   - App services that use stores live in `src/services/`: `backup.ts`, `episodeAlerts.ts` (scheduling and opening alerts), `cache.ts`, `notifications.ts`.
   - The reader's pieces are in `src/components/reader/`; the player's seek bar in `src/components/watch/slider/`.
   - Launch work goes in `src/bootstrap.ts`, which the root layout imports once. It must be safe to run twice (Fast Refresh).
+- **Argent e2e tests** go in a folder per area: `.argent/e2e/<area>/<flow>-android.yaml` and `<flow>-ios.yaml` (`navigation/`, `info/`, `watch/`, `reader/`, `more/`, `settings/`, `downloads/`), never loose in `.argent/e2e/`. Each starts with `- run: ../_shared/start-<platform>.yaml` (cold start on the Anime tab). Baselines sit in `<area>/__baselines__/`. Each folder's README lists its tests and the bugs found; the root README is the runbook. Run one by path: `argent e2e run .argent/e2e/<area>/<file>.yaml --device <id> --platform ios|android`. Android TV has no e2e runner; its screenshots and focus review are in `.argent/e2e/tv/`.
+  - Check a screen with its root id (`more-screen`, `anime-screen`): both runners see those. On iOS the runner tree doesn't include SwiftUI content, so `NativeList` rows and their text can't be selected there; tests that tap them are Android only.
 - **testIDs** (for argent e2e tests in `.argent/e2e/`), kebab-case:
   - Every screen's root view: `<screen>-screen` (`anime-screen`, `info-screen`, `watch-screen`, `downloads-screen`, …).
   - Controls: `<screen>-<what>` (`downloads-clear-all`, `search-input`). A shared component uses its own name (`media-card`, `episode-row`), not a screen's.

@@ -1,0 +1,62 @@
+# Anime info → long-press EP 1 → Download → megaplay-vidstream-1 → auto quality → More › Download queue → the card is
+# there → Cancel → confirm → Remove → confirm → the queue is empty → back
+# Needs: an empty download queue at the start, an anime provider whose servers include megaplay-vidstream-1 (AniKoto).
+# megaplay-hd fails FFmpeg downloads (a PNG in front of each segment; see CLAUDE.md), so the test picks vidstream.
+# Touches: network, FFmpeg and the download foreground service for a few seconds, a partial file in UWUMI_DIR/downloads that
+# Remove deletes. The queue ends empty.
+steps:
+  - run: ../_shared/start-android.yaml
+
+  - echo: Anime info for the first Trending title
+  - await: { visible: { id: media-card, next: { text: Trending } }, timeout: 20000 }
+  - tap: { id: media-card, next: { text: Trending } }
+  - await: { visible: { id: info-screen } }
+  - await: { visible: { id: episode-row }, timeout: 30000 }
+  - await: { idle: true }
+
+  - echo: Episode 1's actions → Download → a vidstream server → auto quality
+  - long-press: { id: episode-row, text: { matches: '^EP 1,' } }
+  - await: { visible: { id: episode-action-download } }
+  - tap: { id: episode-action-download }
+  - await: { visible: { id: episode-action-server }, timeout: 30000 }
+  - tap: { id: episode-action-server, text: megaplay-vidstream-1 }
+  - await: { visible: { id: episode-action-quality }, timeout: 30000 }
+  - tap: { id: episode-action-quality, text: auto }
+  - await: { hidden: { id: episode-action-quality } }
+  - await: { idle: true }
+
+  - echo: Back home, then More › Download queue
+  - tool: button
+    args: { button: back }
+  - await: { visible: { id: anime-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { visible: { id: more-row-download-queue } }
+  - await: { idle: true }
+  - tap: { id: more-row-download-queue }
+  - await: { visible: { id: downloads-screen } }
+  - await: { visible: { id: download-card }, timeout: 15000 }
+  - await: { idle: true }
+
+  - echo: Cancel it (it's still preparing or downloading), then remove it
+  - when: { visible: { id: download-card-cancel } }
+    steps:
+      - tap: { id: download-card-cancel }
+      - await: { visible: { id: downloads-cancel-dialog-confirm } }
+      - tap: { id: downloads-cancel-dialog-confirm }
+      - await: { hidden: { id: download-card-cancel }, timeout: 15000 }
+  # The cancelled card moves from Downloading to Failed; a tap during the move is lost
+  - await: { idle: true, stableFor: 800 }
+  - tap: { id: download-card-remove }
+  - await: { visible: { id: downloads-remove-dialog-confirm } }
+  - tap: { id: downloads-remove-dialog-confirm }
+  - await: { visible: { id: downloads-empty }, timeout: 15000 }
+  - assert: { hidden: { id: download-card } }
+  - await: { idle: true }
+
+  - tool: button
+    args: { button: back }
+  - await: { visible: { id: more-screen } }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

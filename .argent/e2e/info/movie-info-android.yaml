@@ -1,0 +1,77 @@
+# Movies & TV info for a TV show (searched, so it has seasons): episode list, season select Season 2 → back to Season 1, back,
+# then the recent search that opening a result adds is removed again
+# Needs: a movie provider installed (VegaMovies here); "breaking bad" isn't already a recent movie search
+# Touches: network (TMDB search, info, provider episodes). Season choice is session-only and is set back to Season 1;
+# the recent search is removed, so recent searches end as they started. Favorites untouched.
+steps:
+  - run: ../_shared/start-android.yaml
+
+  - echo: Movies tab. Search a TV show
+  - tap: { id: tab-movies }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true }
+  - tap: { id: home-search }
+  - await: { visible: { id: search-screen } }
+  - await: { visible: { id: search-input } }
+  - await: { idle: true }
+  - assert: { hidden: { text: breaking bad, within: { id: recent-search } } }
+  - type: { into: { id: search-input }, text: breaking bad, submit: false }
+  - await: { visible: { id: search-list }, timeout: 15000 }
+  - await: { visible: { id: media-card, next: { id: search-input } }, timeout: 20000 }
+  - await: { idle: true }
+  - echo: Open the first result (a bare media-card id would pick a card under the keyboard)
+  - tap: { id: media-card, next: { id: search-input } }
+  - await: { visible: { id: info-screen } }
+  - await: { visible: { id: info-cover }, timeout: 15000 }
+  - await: { idle: true }
+  - await: { visible: { id: episode-list }, timeout: 30000 }
+  - await: { visible: { id: episode-row }, timeout: 30000 }
+
+  - echo: Season select. Pick Season 2
+  - await: { visible: { id: episode-season-select } }
+  - assert: { text: { in: { id: episode-season-select }, contains: Season 1 } }
+  - tap: { id: episode-season-select }
+  - await: { visible: { id: episode-season-select-option, text: Season 2 } }
+  - await: { idle: true }
+  - tap: { id: episode-season-select-option, text: Season 2 }
+  - await: { hidden: { id: episode-season-select-option } }
+  - await: { text: { in: { id: episode-season-select }, contains: Season 2 } }
+  - await: { visible: { id: episode-row }, timeout: 30000 }
+  - await: { idle: true }
+  - echo: Back to Season 1
+  - tap: { id: episode-season-select }
+  - await: { visible: { id: episode-season-select-option, text: Season 1 } }
+  - await: { idle: true }
+  - tap: { id: episode-season-select-option, text: Season 1 }
+  - await: { hidden: { id: episode-season-select-option } }
+  - await: { text: { in: { id: episode-season-select }, contains: Season 1 } }
+  - await: { visible: { id: episode-row }, timeout: 30000 }
+  - await: { idle: true }
+
+  - echo: Back to search, clear it and remove the recent search the result tap added
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: info-screen } }
+  - await: { visible: { id: search-list } }
+  - await: { idle: true }
+  - tap: { id: search-clear }
+  - await: { hidden: { id: search-list } }
+  - await: { visible: { text: breaking bad, within: { id: recent-search } } }
+  # NativeList rows are Compose on Android: the id sits on the row and the text on a child, so { id, text } never matches
+  - tap: { text: Remove breaking bad from recent searches }
+  - await: { hidden: { text: breaking bad, within: { id: recent-search } } }
+  # Clearing focuses the input again, so the first Back only closes the keyboard
+  - tool: button
+    args:
+      button: back
+  - await: { visible: { id: search-screen } }
+  - wait: 500
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: search-screen } }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

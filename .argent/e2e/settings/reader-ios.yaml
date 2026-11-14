@@ -1,0 +1,28 @@
+# Settings → Reader (snapshot) → back
+# Touches: nothing.
+# iOS: the sub-screen rows are SwiftUI, outside the runner's UIView tree: they're checked with raw await-ui-element
+# (accessibility tree) and tapped at their describe frame centre. Screen roots are RN views the runner sees.
+# Idle holds 800 ms after each push/pop: a tap sent while the native stack transition is finishing is dropped.
+steps:
+  - run: ../_shared/start-ios.yaml
+  - run: ../_shared/open-settings-ios.yaml
+  - echo: Reader settings (row frame y 0.294–0.374)
+  - tool: gesture-tap
+    args: { x: 0.5, y: 0.334 }
+  - await: { visible: { id: reader-settings-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: reader-settings-row-reading-mode }, timeoutMs: 5000 }
+  - snapshot: reader-settings-screen
+  - await: { idle: true, stableFor: 800 }
+  - tap: { id: BackButton }
+  - await: { hidden: { id: reader-settings-screen } }
+  - await: { visible: { id: settings-screen } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Back to More, then Anime
+  - tap: { id: BackButton }
+  - await: { hidden: { id: settings-screen } }
+  - await: { visible: { id: more-screen } }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

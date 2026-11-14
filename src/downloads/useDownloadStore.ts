@@ -368,21 +368,23 @@ export const useDownloadedOnlyFilter = () => {
   }, [enabled, keys]);
 };
 
-/** What the downloads folder takes on disk, leftovers included; measured on each visit and when a download finishes */
+/**
+ * What the downloads folder takes on disk, leftovers included; measured on each visit and whenever a download is
+ * added, removed or changes status (finishing writes the file, cancelling and removing delete it)
+ */
 export const useDownloadsSize = () => {
   const isInitialized = useDownloadStore((state) => state.isInitialized);
-  const completedKey = useDownloadStore((state) =>
+  const statusKey = useDownloadStore((state) =>
     Object.values(state.downloads)
-      .filter(({ status }) => status === 'completed')
-      .map(({ id }) => id)
+      .map(({ id, status }) => `${id}:${status}`)
       .sort()
       .join(','),
   );
   const { data } = useQuery({
-    queryKey: ['downloads', 'size', completedKey],
+    queryKey: ['downloads', 'size', statusKey],
     queryFn: () => fsDirectory(DOWNLOADS_DIR).size ?? 0,
     enabled: isInitialized,
-    // Cancelled downloads' leftovers and sprites written after completing change it without a new key
+    // Sprites written after a download completes change it without a new key
     staleTime: 0,
     refetchOnMount: 'always',
     placeholderData: keepPreviousData,

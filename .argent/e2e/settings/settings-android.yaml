@@ -1,0 +1,13 @@
+# More → Settings → back
+steps:
+  - run: ../_shared/start-android.yaml
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-row-settings } }
+  - tap: { id: more-row-settings }
+  - await: { visible: { id: settings-row-appearance } }
+  - await: { idle: true }
+  - snapshot: settings-screen
+  - tool: button
+    args:
+      button: back
+  - await: { visible: { id: more-row-settings } }

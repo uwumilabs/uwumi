@@ -1,0 +1,48 @@
+# More → History → Manga, Movies and Anime tabs → Clear history dialog opened and cancelled → back
+# Touches: nothing (the clear dialog is cancelled). Content is device data, so no snapshot and no row checks.
+# The tabs don't expose which one is selected and their lists share one id, so a tab switch is shown by the list
+# rendering after each tap, not by which tab is active.
+# iOS: More's rows are SwiftUI (outside the runner's tree): raw await-ui-element reads the row, raw gesture-tap hits it.
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: More tab. Open History (row frame y 0.508–0.573)
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: more-row-history }, timeoutMs: 5000 }
+  - tool: gesture-tap
+    args: { x: 0.5, y: 0.540 }
+  - await: { visible: { id: history-screen } }
+  - await: { visible: { id: history-list } }
+  - await: { idle: true, stableFor: 800 }
+  - assert: { visible: { id: horizontal-tab, text: Anime } }
+
+  - echo: Manga, Movies, then Anime tab
+  - tap: { id: horizontal-tab, text: Manga }
+  - await: { visible: { id: history-list } }
+  - await: { idle: true }
+  - tap: { id: horizontal-tab, text: Movies }
+  - await: { visible: { id: history-list } }
+  - await: { idle: true }
+  - tap: { id: horizontal-tab, text: Anime }
+  - await: { visible: { id: history-list } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Open Clear history from the header and cancel it
+  - tap: { id: history-clear }
+  - await: { visible: { id: history-clear-dialog } }
+  - assert: { visible: { id: history-clear-dialog-confirm } }
+  - await: { idle: true }
+  - tap: { id: history-clear-dialog-cancel }
+  - await: { hidden: { id: history-clear-dialog } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Native back to More
+  - tap: { id: BackButton }
+  - await: { hidden: { id: history-screen } }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

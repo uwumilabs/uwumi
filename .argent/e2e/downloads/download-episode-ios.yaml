@@ -1,0 +1,67 @@
+# Anime info → long-press EP 1 → Download → megaplay-vidstream-1 → auto quality → More › Download queue → the card is
+# there → Cancel → confirm → Remove → confirm → the queue is empty → back
+# Needs: an empty download queue at the start, an anime provider whose servers include megaplay-vidstream-1 (AniKoto).
+# megaplay-hd fails FFmpeg downloads (a PNG in front of each segment; see CLAUDE.md), so the test picks vidstream.
+# Touches: network, FFmpeg for a few seconds, a partial file under the app's downloads folder that Remove deletes. The
+# queue ends empty.
+# iOS: More's rows are SwiftUI (outside the runner's tree): Download queue is checked with a raw await-ui-element and
+# tapped at its describe frame.
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: Anime info for the first Popular title
+  - await: { visible: { id: media-card, next: { text: { matches: '^Popular$' } } }, timeout: 20000 }
+  - tap: { id: media-card, next: { text: { matches: '^Popular$' } } }
+  - await: { visible: { id: info-screen } }
+  - await: { visible: { id: episode-row, within: { id: episode-list } }, timeout: 30000 }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Episode 1's actions → Download → a vidstream server → auto quality
+  - long-press: { id: episode-row, text: 'EP 1, ' }
+  - await: { visible: { id: episode-action-download } }
+  - tap: { id: episode-action-download }
+  - await: { visible: { id: episode-action-server }, timeout: 30000 }
+  - tap: { id: episode-action-server, text: megaplay-vidstream-1 }
+  - await: { visible: { id: episode-action-quality }, timeout: 30000 }
+  - tap: { id: episode-action-quality, text: auto }
+  - await: { hidden: { id: episode-action-quality } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Back home, then More › Download queue
+  - tap: { id: BackButton }
+  - await: { hidden: { id: info-screen } }
+  - await: { visible: { id: anime-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: more-row-download-queue }, timeoutMs: 5000 }
+  # Download queue row: frame (0, 0.572, 1, 0.065) with incognito off
+  - tool: gesture-tap
+    args: { x: 0.5, y: 0.604 }
+  - await: { visible: { id: downloads-screen } }
+  - await: { visible: { id: download-card }, timeout: 15000 }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Cancel it (it's still preparing or downloading), then remove it
+  - when: { visible: { id: download-card-cancel } }
+    steps:
+      - tap: { id: download-card-cancel }
+      - await: { visible: { id: downloads-cancel-dialog-confirm } }
+      - tap: { id: downloads-cancel-dialog-confirm }
+      - await: { hidden: { id: download-card-cancel }, timeout: 15000 }
+  # The cancelled card moves from Downloading to Failed; a tap during the move is lost
+  - await: { idle: true, stableFor: 800 }
+  - tap: { id: download-card-remove }
+  - await: { visible: { id: downloads-remove-dialog-confirm } }
+  - tap: { id: downloads-remove-dialog-confirm }
+  - await: { visible: { id: downloads-empty }, timeout: 15000 }
+  - assert: { hidden: { id: download-card } }
+  - await: { idle: true, stableFor: 800 }
+
+  - tap: { id: BackButton }
+  - await: { hidden: { id: downloads-screen } }
+  - await: { visible: { id: more-screen } }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

@@ -1,0 +1,30 @@
+# Settings → Appearance (snapshot) → back
+# Touches: nothing.
+# iOS: the sub-screen rows are SwiftUI, outside the runner's UIView tree: they're checked with raw await-ui-element
+# (accessibility tree) and tapped at their describe frame centre. Screen roots are RN views the runner sees.
+# Idle holds 800 ms after each push/pop: a tap sent while the native stack transition is finishing is dropped.
+steps:
+  - run: ../_shared/start-ios.yaml
+  - run: ../_shared/open-settings-ios.yaml
+  - echo: Appearance (row frame y 0.133–0.213)
+  - tool: gesture-tap
+    args: { x: 0.5, y: 0.173 }
+  - await: { visible: { id: appearance-screen } }
+  - await: { visible: { id: appearance-theme-dark } }
+  - await: { idle: true, stableFor: 800 }
+  - assert: { visible: { id: appearance-theme-light } }
+  - assert: { visible: { id: appearance-accent } }
+  - assert: { visible: { id: appearance-pure-black } }
+  - snapshot: appearance-screen
+  - await: { idle: true, stableFor: 800 }
+  - tap: { id: BackButton }
+  - await: { hidden: { id: appearance-screen } }
+  - await: { visible: { id: settings-screen } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Back to More, then Anime
+  - tap: { id: BackButton }
+  - await: { hidden: { id: settings-screen } }
+  - await: { visible: { id: more-screen } }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

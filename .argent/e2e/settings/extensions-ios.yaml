@@ -1,0 +1,53 @@
+# More → Extensions → Anime/Movies tabs → Installed only on, then off → back
+# Touches: network (extension registry). The Installed only switch is screen state (not saved) and ends off.
+# Needs at least one anime extension that isn't installed (extension-row-install), true of the default setup.
+# iOS: the Installed only switch is SwiftUI, outside the runner's tree, and its row is one accessibility element whose
+# activation does nothing on a phone, so the switch is tapped at its native frame (x 234–295 pt, y 132–160 pt of
+# 402x874, from native-full-hierarchy). The extension rows are RN, so the effect is checked through them.
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: More tab. Open Extensions (row frame y 0.702–0.767)
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: more-row-extensions }, timeoutMs: 5000 }
+  - tool: gesture-tap
+    args: { x: 0.5, y: 0.734 }
+  - await: { visible: { id: extensions-screen } }
+  - await: { visible: { id: extension-row }, timeout: 20000 }
+  - await: { idle: true, stableFor: 800 }
+  - assert: { visible: { id: extensions-installed-only } }
+  - assert: { visible: { text: { matches: '^ANIME$' } } }
+
+  - echo: Movies tab, then back to Anime (the category chip tells the lists apart)
+  - tap: { id: horizontal-tab, text: Movies }
+  - await: { visible: { text: { matches: '^MOVIES$' } } }
+  - assert: { hidden: { text: { matches: '^ANIME$' } } }
+  - await: { idle: true }
+  - tap: { id: horizontal-tab, text: Anime }
+  - await: { visible: { text: { matches: '^ANIME$' } } }
+  - assert: { hidden: { text: { matches: '^MOVIES$' } } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Installed only on hides the extensions that aren't installed
+  - assert: { visible: { id: extension-row-install } }
+  - tool: gesture-tap
+    args: { x: 0.658, y: 0.167 }
+  - await: { hidden: { id: extension-row-install } }
+  - assert: { visible: { id: extension-row-uninstall } }
+  - await: { idle: true, stableFor: 800 }
+  - echo: Installed only off shows them again
+  - tool: gesture-tap
+    args: { x: 0.658, y: 0.167 }
+  - await: { visible: { id: extension-row-install } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Native back to More
+  - tap: { id: BackButton }
+  - await: { hidden: { id: extensions-screen } }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

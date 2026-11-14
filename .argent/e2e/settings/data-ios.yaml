@@ -1,0 +1,28 @@
+# Settings → Data and storage → back (no snapshot: sizes and the last backup time change)
+# Touches: nothing.
+# iOS: the sub-screen rows are SwiftUI, outside the runner's UIView tree: they're checked with raw await-ui-element
+# (accessibility tree) and tapped at their describe frame centre. Screen roots are RN views the runner sees.
+# Idle holds 800 ms after each push/pop: a tap sent while the native stack transition is finishing is dropped.
+steps:
+  - run: ../_shared/start-ios.yaml
+  - run: ../_shared/open-settings-ios.yaml
+  - echo: Data and storage (row frame y 0.535–0.615)
+  - tool: gesture-tap
+    args: { x: 0.5, y: 0.575 }
+  - await: { visible: { id: data-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: data-row-create-backup }, timeoutMs: 5000 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: data-row-clear-cache }, timeoutMs: 5000 }
+  - tap: { id: BackButton }
+  - await: { hidden: { id: data-screen } }
+  - await: { visible: { id: settings-screen } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Back to More, then Anime
+  - tap: { id: BackButton }
+  - await: { hidden: { id: settings-screen } }
+  - await: { visible: { id: more-screen } }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

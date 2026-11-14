@@ -1,0 +1,10 @@
+# Cold-starts uwumi on the Anime tab: the dev client opens on its launcher, so the bundle is loaded from Metro by URL
+# Needs: Metro is running on 127.0.0.1:8081 (yarn start)
+steps:
+  - launch: com.x2004durgesh.uwumi
+  - tool: open-url
+    args:
+      url: exp+uwumi://?__expo_url=http%3A%2F%2F127.0.0.1%3A8081&__expo_disable_fab=1&__expo_disable_onboarding=1
+  - await: { visible: { id: anime-screen }, timeout: 90000 }
+  - await: { visible: { id: tab-anime } }
+  - await: { idle: true, stableFor: 1000, timeout: 15000 }

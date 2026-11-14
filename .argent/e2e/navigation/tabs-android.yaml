@@ -1,0 +1,15 @@
+# Anime → Manga → Movies → More → Anime through the tab bar, checking each screen's root
+steps:
+  - run: ../_shared/start-android.yaml
+  - tap: { id: tab-manga }
+  - await: { visible: { id: manga-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-movies }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true }
+  - snapshot: more-tab
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

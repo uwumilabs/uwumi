@@ -1,3 +1,4 @@
+import type { Directory } from 'expo-file-system';
 import { DOWNLOADS_DIR, ensureDirectory, fsDirectory, fsFile } from '@/utils/files';
 import { excludeFromBackup } from '@/modules/excludeFromBackup';
 
@@ -26,6 +27,14 @@ export const deleteOutputFile = (outputFile: string) => {
     if (file.exists) file.delete();
     const sprites = fsDirectory(resolveOutputFile(thumbnailsDir(outputFile)));
     if (sprites.exists) sprites.delete();
+    // The show's and season's folders go with their last episode
+    const root = fsDirectory(DOWNLOADS_DIR).uri.replace(/\/$/, '');
+    const insideRoot = (folder: Directory) => folder.uri.replace(/\/$/, '').startsWith(`${root}/`);
+    for (let folder = file.parentDirectory; insideRoot(folder) && folder.exists && folder.list().length === 0; ) {
+      const parent = folder.parentDirectory;
+      folder.delete();
+      folder = parent;
+    }
   } catch (error) {
     console.error(`❌ Failed to delete file: ${outputFile}`, error);
   }

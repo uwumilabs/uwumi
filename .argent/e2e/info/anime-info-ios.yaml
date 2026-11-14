@@ -1,0 +1,62 @@
+# Anime → first Popular card → info: episode list, display-mode cycle (back to full), episode actions sheet open/close,
+# cover preview open/close, favorite add + remove through the native header button, back
+# Touches: network (AniList + the anime provider), favorites (added then removed). Display mode is session-only and ends on full.
+# Episode rows have no per-mode id, so the mode is read from the row's accessibility label: full is "EP n, <title>, …",
+# title-only drops "EP n", number-only is "EP n, <icon glyph>, …" (the icons are private-use glyphs, U+E000–U+F8FF)
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: Anime tab. Open the first Popular card
+  - tap: { id: media-card, next: { text: { matches: '^Popular$' } } }
+  - await: { visible: { id: info-screen } }
+  - await: { visible: { id: episode-row, within: { id: episode-list } }, timeout: 30000 }
+  - await: { idle: true }
+  - assert: { visible: { id: info-cover } }
+  - assert: { visible: { id: episode-provider-select } }
+
+  # A failed earlier run can leave this show favorited; unfavorite first so the add/remove below starts clean
+  - when: { visible: { text: Remove from favorites } }
+    steps:
+      - tap: { text: Remove from favorites }
+      - await: { visible: { text: Add to favorites } }
+
+  - echo: Episode list in full mode. Cycle the display mode full → title only → number only → full
+  - assert: { text: { in: { id: episode-row }, matches: '^EP \d+, [^-]' } }
+  - tap: { id: episode-display-toggle }
+  - await: { text: { in: { id: episode-row }, matches: '^(?!EP \d+, )[^-]+, [-]' } }
+  - tap: { id: episode-display-toggle }
+  - await: { text: { in: { id: episode-row }, matches: '^EP \d+, [-], ' } }
+  - tap: { id: episode-display-toggle }
+  - await: { text: { in: { id: episode-row }, matches: '^EP \d+, [^-]' } }
+  - await: { idle: true }
+
+  - echo: Long-press episode 1 for its actions sheet, then close it
+  - long-press: { id: episode-row, text: 'EP 1, ' }
+  - await: { visible: { id: episode-action-toggle-watched } }
+  - assert: { visible: { id: episode-action-external-player } }
+  - assert: { visible: { id: episode-action-download } }
+  - assert: { visible: { id: episode-action-share } }
+  - assert: { visible: { id: episode-actions-close } }
+  - tap: { id: episode-actions-close }
+  - await: { hidden: { id: episode-action-toggle-watched } }
+  - await: { idle: true }
+
+  - echo: Tap the cover for the full-screen preview, then close it
+  - tap: { id: info-cover }
+  - await: { visible: { id: image-preview } }
+  - assert: { visible: { id: image-preview-share } }
+  - tap: { id: image-preview-close }
+  - await: { hidden: { id: image-preview } }
+  - await: { idle: true }
+
+  - echo: Favorite through the header heart, then unfavorite
+  - tap: { text: Add to favorites }
+  - await: { visible: { text: Remove from favorites } }
+  - tap: { text: Remove from favorites }
+  - await: { visible: { text: Add to favorites } }
+
+  - echo: Native back to the Anime tab
+  - tap: { id: BackButton }
+  - await: { hidden: { id: info-screen } }
+  - await: { visible: { id: anime-screen } }
+  - await: { idle: true }

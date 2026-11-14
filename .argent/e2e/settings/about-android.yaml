@@ -1,0 +1,25 @@
+# More → Settings → About → back to Settings (no snapshot: the update status line changes with releases)
+# Touches: nothing (opens the screen only)
+steps:
+  - run: ../_shared/start-android.yaml
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-row-settings } }
+  - await: { idle: true }
+  - tap: { id: more-row-settings }
+  - await: { visible: { id: settings-screen } }
+  - await: { visible: { id: settings-row-about } }
+  - await: { idle: true }
+
+  - echo: Settings → About
+  - tap: { id: settings-row-about }
+  - await: { visible: { id: about-screen } }
+  - await: { visible: { id: about-row-check-updates } }
+  - assert: { visible: { id: about-row-version } }
+  - assert: { visible: { id: about-row-report-bug } }
+  - await: { idle: true }
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: about-screen } }
+  - await: { visible: { id: settings-row-about } }
+  - await: { idle: true }

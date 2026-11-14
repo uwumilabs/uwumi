@@ -1,0 +1,42 @@
+# More → Favorites: Anime → Manga → Movies → Anime tabs, then back. Cards are user data, so each tab is checked by the
+# list being there and a cropped snapshot of the tab (selected style); nothing is removed or cleared
+# Touches: nothing
+steps:
+  - run: ../_shared/start-android.yaml
+
+  - echo: More → Favorites
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { visible: { id: more-row-favorites } }
+  - await: { idle: true }
+  - tap: { id: more-row-favorites }
+  - await: { visible: { id: favorites-screen } }
+  - await: { visible: { id: favorites-list } }
+  - await: { idle: true }
+  - snapshot: { name: anime-tab-selected, cropOn: { id: horizontal-tab, text: Anime } }
+
+  - echo: Manga tab
+  - tap: { id: horizontal-tab, text: Manga }
+  - await: { idle: true }
+  - assert: { visible: { id: favorites-list } }
+  - snapshot: { name: manga-tab-selected, cropOn: { id: horizontal-tab, text: Manga } }
+  - snapshot: { name: anime-tab-unselected, cropOn: { id: horizontal-tab, text: Anime } }
+  - echo: Movies tab
+  - tap: { id: horizontal-tab, text: Movies }
+  - await: { idle: true }
+  - assert: { visible: { id: favorites-list } }
+  - snapshot: { name: movies-tab-selected, cropOn: { id: horizontal-tab, text: Movies } }
+  - echo: Anime tab
+  - tap: { id: horizontal-tab, text: Anime }
+  - await: { idle: true }
+  - assert: { visible: { id: favorites-list } }
+  - snapshot: { name: anime-tab-selected, cropOn: { id: horizontal-tab, text: Anime } }
+
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: favorites-screen } }
+  - await: { visible: { id: more-row-favorites } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

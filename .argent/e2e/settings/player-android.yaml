@@ -1,0 +1,39 @@
+# More → Settings → Player → open the "Default playback speed" choice dialog → dismiss it with Back (the dialog has no
+# Cancel button) → back to Settings
+# Touches: nothing (the dialog is dismissed without picking)
+steps:
+  - run: ../_shared/start-android.yaml
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-row-settings } }
+  - await: { idle: true }
+  - tap: { id: more-row-settings }
+  - await: { visible: { id: settings-screen } }
+  - await: { visible: { id: settings-row-player } }
+  - await: { idle: true }
+
+  - echo: Settings → Player
+  - tap: { id: settings-row-player }
+  - await: { visible: { id: player-settings-screen } }
+  - await: { visible: { id: player-settings-row-default-speed } }
+  - await: { idle: true }
+  - snapshot: player-screen
+
+  - echo: Open the default speed choice dialog, then dismiss it
+  - tap: { id: player-settings-row-default-speed }
+  - await: { visible: { id: choice-dialog } }
+  - await: { visible: { id: choice-option, text: 1.5x } }
+  - await: { idle: true }
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: choice-dialog } }
+  - assert: { visible: { id: player-settings-screen } }
+  - await: { idle: true }
+  - snapshot: player-screen
+
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: player-settings-screen } }
+  - await: { visible: { id: settings-row-player } }
+  - await: { idle: true }

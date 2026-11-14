@@ -1,0 +1,51 @@
+# More → Settings → Extensions: Anime tab → Movies tab → Anime; "Installed only" switch on (Install buttons go) → off
+# (they come back) → back to Settings
+# Needs: the registry loads (network) and at least one anime extension isn't installed (AnimeKai here)
+# Touches: network (extension registry). The switch is screen state; it ends off. Nothing installed or removed.
+steps:
+  - run: ../_shared/start-android.yaml
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-row-settings } }
+  - await: { idle: true }
+  - tap: { id: more-row-settings }
+  - await: { visible: { id: settings-screen } }
+  - await: { visible: { id: settings-row-extensions } }
+  - await: { idle: true }
+
+  - echo: Settings → Extensions
+  - tap: { id: settings-row-extensions }
+  - await: { visible: { id: extensions-screen } }
+  - await: { visible: { id: extensions-list }, timeout: 20000 }
+  - await: { visible: { id: extension-row-install } }
+  - await: { idle: true }
+  # Type chips read "ANIME" / "MOVIES"; case-sensitive regexes so the "Anime" / "Movies" tab labels don't match
+  - assert: { visible: { text: { matches: '^ANIME$' } } }
+  - assert: { hidden: { text: { matches: '^MOVIES$' } } }
+
+  - echo: Movies tab
+  - tap: { id: horizontal-tab, text: Movies }
+  - await: { visible: { text: { matches: '^MOVIES$' } } }
+  - await: { hidden: { text: { matches: '^ANIME$' } } }
+  - await: { idle: true }
+  - echo: Anime tab
+  - tap: { id: horizontal-tab, text: Anime }
+  - await: { visible: { text: { matches: '^ANIME$' } } }
+  - await: { hidden: { text: { matches: '^MOVIES$' } } }
+  - await: { idle: true }
+
+  - echo: Installed only on. Only installed extensions stay, so no Install buttons
+  - tap: { id: extensions-installed-only-switch }
+  - await: { hidden: { id: extension-row-install } }
+  - assert: { visible: { id: extension-row-uninstall } }
+  - await: { idle: true }
+  - echo: Installed only off
+  - tap: { id: extensions-installed-only-switch }
+  - await: { visible: { id: extension-row-install } }
+  - await: { idle: true }
+
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: extensions-screen } }
+  - await: { visible: { id: settings-row-extensions } }
+  - await: { idle: true }

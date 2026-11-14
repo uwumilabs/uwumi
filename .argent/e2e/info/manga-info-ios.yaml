@@ -1,0 +1,76 @@
+# Manga info (searched "sousou no frieren", which MangaHere lists with ~150 chapters): chapter list, order toggle newest first
+# and back, back to search, then the recent search that opening a result adds is removed again
+# Needs: a manga provider with the title and more than one chapter (MangaHere labels rows Ch.001, MangaPill Chapter 1); "sousou no frieren" isn't already a
+# recent manga search
+# Touches: network (AniList search, info, provider chapters). Chapter order is screen state; recent searches end as they started.
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: Manga tab. Search a manga with many chapters
+  - tap: { id: tab-manga }
+  - await: { visible: { id: manga-screen } }
+  - await: { idle: true }
+  - tap: { id: home-search }
+  - await: { visible: { id: search-screen } }
+  - await: { visible: { id: search-input } }
+  - await: { idle: true }
+  - type: { into: { id: search-input }, text: sousou no frieren, submit: false }
+  - await: { visible: { id: search-list }, timeout: 15000 }
+  - await: { visible: { id: media-card, next: { id: search-input } }, timeout: 20000 }
+  - await: { idle: true }
+  - echo: Open the first result
+  - tap: { id: media-card, next: { id: search-input } }
+  - await: { visible: { id: info-screen } }
+  - await: { visible: { id: chapter-list }, timeout: 30000 }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Chapter list. Scroll to chapter 1 (just under the order toggle, so both are on screen and clear of the header)
+  - scroll-to: { target: { id: chapter-row, text: { matches: '^(Ch\.0*|Chapter )1(?![\d.])' } } }
+  - await: { idle: true }
+  - assert: { visible: { id: chapter-order-toggle } }
+  - assert: { text: { in: { id: chapter-order-toggle }, equals: Show newest chapter first } }
+  - echo: Newest first
+  - tap: { id: chapter-order-toggle }
+  - await: { text: { in: { id: chapter-order-toggle }, equals: Show first chapter first } }
+  - await: { idle: true }
+  - echo: First chapter first again
+  - tap: { id: chapter-order-toggle }
+  - await: { text: { in: { id: chapter-order-toggle }, equals: Show newest chapter first } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Native back to search
+  - tap: { id: BackButton }
+  - await: { hidden: { id: info-screen } }
+  - await: { visible: { id: search-screen } }
+  - await: { idle: true }
+  - tap: { id: search-clear }
+  - await: { hidden: { id: search-list } }
+  - await: { idle: true }
+  # Recent searches are a NativeList (SwiftUI on iOS): the runner can't see the rows, so the check reads the
+  # accessibility tree and the remove button is tapped by its describe frame (the newest entry is the top row)
+  - echo: Remove the recent search that opening the result added
+  - tool: await-ui-element
+    args:
+      condition: visible
+      selector: { text: Remove sousou no frieren from recent searches }
+      timeoutMs: 5000
+  - tool: gesture-tap
+    args: { x: 0.908, y: 0.239 }
+  - tool: await-ui-element
+    args:
+      condition: hidden
+      selector: { text: Remove sousou no frieren from recent searches }
+      timeoutMs: 5000
+  - echo: Edge swipe back to the Manga tab (search has no header on iOS)
+  - tool: gesture-swipe
+    args:
+      fromX: 0.01
+      fromY: 0.4
+      toX: 0.8
+      toY: 0.4
+      durationMs: 400
+  - await: { hidden: { id: search-screen } }
+  - await: { visible: { id: manga-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

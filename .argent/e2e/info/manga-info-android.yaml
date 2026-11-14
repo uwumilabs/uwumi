@@ -1,0 +1,72 @@
+# Manga info (searched "sousou no frieren", which MangaHere lists with ~150 chapters): chapter list, order toggle newest first
+# and back, back to search, then the recent search that opening a result adds is removed again
+# Needs: the manga provider is MangaHere (or one with the title and more than one chapter); "sousou no frieren" isn't already a
+# recent manga search
+# Touches: network (AniList search, info, provider chapters). Chapter order is screen state; recent searches end as they started.
+steps:
+  - run: ../_shared/start-android.yaml
+
+  - echo: Manga tab. Search a manga with many chapters
+  - tap: { id: tab-manga }
+  - await: { visible: { id: manga-screen } }
+  - await: { idle: true }
+  - tap: { id: home-search }
+  - await: { visible: { id: search-screen } }
+  - await: { visible: { id: search-input } }
+  - await: { idle: true }
+  - assert: { hidden: { text: sousou no frieren, within: { id: recent-search } } }
+  - type: { into: { id: search-input }, text: sousou no frieren, submit: false }
+  - await: { visible: { id: search-list }, timeout: 15000 }
+  - await: { visible: { id: media-card, next: { id: search-input } }, timeout: 20000 }
+  - await: { idle: true }
+  - echo: Open the first result
+  - tap: { id: media-card, next: { id: search-input } }
+  - await: { visible: { id: info-screen } }
+  - await: { visible: { id: info-cover }, timeout: 15000 }
+  - await: { idle: true }
+  - await: { visible: { id: chapter-list }, timeout: 30000 }
+  - await: { exists: { id: chapter-row }, timeout: 30000 }
+
+  - echo: Chapter list. Scroll to chapter 1 (just under the order toggle, so both are on screen and clear of the header)
+  - scroll-to: { target: { id: chapter-row, text: { matches: '^Ch\.0*1,' } } }
+  - await: { idle: true }
+  - assert: { visible: { id: chapter-order-toggle } }
+  - assert: { text: { in: { id: chapter-row }, matches: '^Ch\.0*1,' } }
+  - assert: { text: { in: { id: chapter-order-toggle }, contains: Show newest chapter first } }
+  - echo: Newest first
+  - tap: { id: chapter-order-toggle }
+  - await: { text: { in: { id: chapter-order-toggle }, contains: Show first chapter first } }
+  - await: { text: { in: { id: chapter-row }, matches: '^Ch\.(?!0*1,)' } }
+  - echo: First chapter first again
+  - tap: { id: chapter-order-toggle }
+  - await: { text: { in: { id: chapter-order-toggle }, contains: Show newest chapter first } }
+  - await: { text: { in: { id: chapter-row }, matches: '^Ch\.0*1,' } }
+  - await: { idle: true }
+
+  - echo: Back to search, clear it and remove the recent search the result tap added
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: info-screen } }
+  - await: { visible: { id: search-list } }
+  - await: { idle: true }
+  - tap: { id: search-clear }
+  - await: { hidden: { id: search-list } }
+  - await: { visible: { text: sousou no frieren, within: { id: recent-search } } }
+  # NativeList rows are Compose on Android: the id sits on the row and the text on a child, so { id, text } never matches
+  - tap: { text: Remove sousou no frieren from recent searches }
+  - await: { hidden: { text: sousou no frieren, within: { id: recent-search } } }
+  # Clearing focuses the input again, so the first Back only closes the keyboard
+  - tool: button
+    args:
+      button: back
+  - await: { visible: { id: search-screen } }
+  - wait: 500
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: search-screen } }
+  - await: { visible: { id: manga-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

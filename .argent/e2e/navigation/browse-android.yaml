@@ -1,0 +1,37 @@
+# Anime feed "See more" (first feed, Trending) → browse grid with cards → back; same on the Movies tab
+# Touches: network (feeds). No state changes.
+steps:
+  - run: ../_shared/start-android.yaml
+
+  - echo: Anime tab. Open the first feed's See more
+  - await: { visible: { id: feed-see-more }, timeout: 20000 }
+  - tap: { id: feed-see-more }
+  - await: { visible: { id: browse-screen } }
+  - await: { visible: { id: browse-list } }
+  - await: { idle: true }
+  - await: { visible: { id: media-card, within: { id: browse-list } }, timeout: 20000 }
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: browse-screen } }
+  - await: { visible: { id: anime-screen } }
+  - await: { idle: true }
+
+  - echo: Movies tab. Open the first feed's See more
+  - tap: { id: tab-movies }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true }
+  - await: { visible: { id: feed-see-more }, timeout: 20000 }
+  - tap: { id: feed-see-more }
+  - await: { visible: { id: browse-screen } }
+  - await: { visible: { id: browse-list } }
+  - await: { idle: true }
+  - await: { visible: { id: media-card, within: { id: browse-list } }, timeout: 20000 }
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: browse-screen } }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

@@ -1,0 +1,28 @@
+# Settings → About → back (no snapshot: the update status line changes)
+# Touches: nothing.
+# iOS: the sub-screen rows are SwiftUI, outside the runner's UIView tree: they're checked with raw await-ui-element
+# (accessibility tree) and tapped at their describe frame centre. Screen roots are RN views the runner sees.
+# Idle holds 800 ms after each push/pop: a tap sent while the native stack transition is finishing is dropped.
+steps:
+  - run: ../_shared/start-ios.yaml
+  - run: ../_shared/open-settings-ios.yaml
+  - echo: About (row frame y 0.616–0.696)
+  - tool: gesture-tap
+    args: { x: 0.5, y: 0.656 }
+  - await: { visible: { id: about-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: about-row-version }, timeoutMs: 5000 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: about-row-check-updates }, timeoutMs: 5000 }
+  - tap: { id: BackButton }
+  - await: { hidden: { id: about-screen } }
+  - await: { visible: { id: settings-screen } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Back to More, then Anime
+  - tap: { id: BackButton }
+  - await: { hidden: { id: settings-screen } }
+  - await: { visible: { id: more-screen } }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

@@ -1,0 +1,43 @@
+# More → Statistics → Manga, Movies and Anime tabs → back
+# Touches: nothing. The numbers are device data, so no snapshot; each tab is told apart by a fixed stat label
+# ("Watched duration" on Anime and Movies, "Chapters read" on Manga).
+# iOS: More's rows are SwiftUI (outside the runner's tree): raw await-ui-element reads the row, raw gesture-tap hits it.
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: More tab. Open Statistics (row frame y 0.767–0.832)
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: more-row-statistics }, timeoutMs: 5000 }
+  - tool: gesture-tap
+    args: { x: 0.5, y: 0.799 }
+  - await: { visible: { id: statistics-screen } }
+  - await: { visible: { id: statistics-stat } }
+  - await: { idle: true, stableFor: 800 }
+  - assert: { visible: { text: { matches: '^Watched duration$' } } }
+
+  - echo: Manga tab
+  - tap: { id: horizontal-tab, text: Manga }
+  - await: { visible: { text: { matches: '^Chapters read$' } } }
+  - assert: { hidden: { text: { matches: '^Watched duration$' } } }
+  - await: { idle: true }
+  - echo: Movies tab
+  - tap: { id: horizontal-tab, text: Movies }
+  - await: { visible: { text: { matches: '^Watched duration$' } } }
+  - assert: { hidden: { text: { matches: '^Chapters read$' } } }
+  - await: { idle: true }
+  - echo: Anime tab
+  - tap: { id: horizontal-tab, text: Anime }
+  - await: { visible: { text: { matches: '^Watched duration$' } } }
+  - assert: { hidden: { text: { matches: '^Chapters read$' } } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Native back to More
+  - tap: { id: BackButton }
+  - await: { hidden: { id: statistics-screen } }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

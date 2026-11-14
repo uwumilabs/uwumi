@@ -1,0 +1,24 @@
+# More → Settings → Reader → back to Settings
+# Touches: nothing (opens the screen only)
+steps:
+  - run: ../_shared/start-android.yaml
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-row-settings } }
+  - await: { idle: true }
+  - tap: { id: more-row-settings }
+  - await: { visible: { id: settings-screen } }
+  - await: { visible: { id: settings-row-reader } }
+  - await: { idle: true }
+
+  - echo: Settings → Reader
+  - tap: { id: settings-row-reader }
+  - await: { visible: { id: reader-settings-screen } }
+  - await: { visible: { id: reader-settings-row-reading-mode } }
+  - await: { idle: true }
+  - snapshot: reader-screen
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: reader-settings-screen } }
+  - await: { visible: { id: settings-row-reader } }
+  - await: { idle: true }

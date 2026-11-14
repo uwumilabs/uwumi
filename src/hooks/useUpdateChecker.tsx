@@ -8,8 +8,11 @@ import pkg from '../../package.json';
 /** The installed binary's version; package.json's can differ once an OTA bundle is running */
 export const APP_VERSION = Application.nativeApplicationVersion ?? pkg.version;
 
+// Android debug builds append this to the version name (build.gradle's versionNameSuffix); it isn't a release tag
+const BUILD_SUFFIX = /-debug$/;
+
 /** A build that isn't a stable release: 4.0.0-rc.1, 4.0.0-beta.2 */
-export const isPreRelease = (version: string) => version.includes('-');
+export const isPreRelease = (version: string) => version.replace(BUILD_SUFFIX, '').includes('-');
 
 type UpdateKind = 'major' | 'minor' | 'patch' | 'stable';
 

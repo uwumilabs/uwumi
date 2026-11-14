@@ -1,0 +1,167 @@
+# Play episode 1 of the first Trending anime: playback starts (the time moves off 0:00), controls show, settings menu →
+# Rate 1.5x → back → close, settings menu → Server row → server list → close, episodes panel open → Back closes it,
+# the player's back arrow returns to info
+#
+# Setup and teardown, both through the UI:
+# - Incognito on for the run, so the episode leaves no progress, history or Continue watching entry; off again at the end.
+# - Settings → Player → "Rotate to landscape" off for the run, on again at the end. argent 0.32 taps Android in the
+#   portrait (natural) orientation even when the screen is rotated, so in the landscape player every selector tap lands
+#   in the wrong place (checked: a tap meant for EP 4 in the panel played EP 4 only at the rotated point).
+# Needs: incognito off and "Rotate to landscape" on at the start; an anime provider that has the first Trending anime
+# Touches: network (feed, info, provider sources, video stream). Preferences incognito and rotateToLandscape are flipped
+# and restored; the speed change is per session (the player starts at the default speed). A failed run can leave both on/off.
+steps:
+  - run: ../_shared/start-android.yaml
+
+  # Settings first: with the incognito banner up, the Settings row's centre sits behind the tab bar
+  - echo: Setup. More → Settings → Player → Rotate to landscape off
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { visible: { id: more-row-settings } }
+  - await: { idle: true }
+  - tap: { id: more-row-settings }
+  - await: { visible: { id: settings-screen } }
+  - await: { visible: { id: settings-row-player } }
+  - await: { idle: true }
+  - tap: { id: settings-row-player }
+  - await: { visible: { id: player-settings-screen } }
+  - await: { visible: { id: player-settings-row-rotate-landscape } }
+  - await: { idle: true }
+  - tap: { id: player-settings-row-rotate-landscape }
+  - await: { idle: true }
+  - snapshot: { name: rotate-landscape-off, cropOn: { id: player-settings-row-rotate-landscape } }
+  - tool: button
+    args:
+      button: back
+  - await: { visible: { id: settings-row-player } }
+  - await: { idle: true }
+  - tool: button
+    args:
+      button: back
+  - await: { visible: { id: more-row-incognito } }
+  - await: { idle: true }
+  - echo: Setup. Incognito on
+  - tap: { id: more-row-incognito }
+  - await: { idle: true }
+
+  - echo: Anime tab. Open the first Trending card, then episode 1
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }
+  - await: { visible: { text: Incognito mode } }
+  - await: { visible: { id: media-card, next: { text: Trending } }, timeout: 20000 }
+  - tap: { id: media-card, next: { text: Trending } }
+  - await: { visible: { id: info-screen } }
+  - await: { visible: { id: info-cover }, timeout: 15000 }
+  - await: { idle: true }
+  - await: { visible: { id: episode-row, text: { matches: '^EP 1,' } }, timeout: 30000 }
+  - tap: { id: episode-row, text: { matches: '^EP 1,' } }
+  - await: { visible: { id: watch-screen } }
+  - await: { visible: { id: video } }
+
+  - echo: Playback starts. The current time leaves 0:00
+  - await: { text: { in: { id: video-time-current }, matches: '^(?!0:00$)\d+:\d\d$' }, timeout: 60000 }
+
+  # The controls hide by sliding off screen, so the title being on screen means they're shown. They auto-hide after a
+  # few seconds, which is why each control below is preceded by this check: tap the video only when they're hidden
+  # (with them shown, a tap at the video's centre would hit play/pause)
+  - echo: Show the controls
+  - when: { hidden: { id: video-title } }
+    steps:
+      - tap: { id: video }
+  - await: { visible: { id: video-title } }
+  - wait: 800
+  # Pause, so the controls stop auto-hiding while the menus are driven (a tap racing the auto-hide was flaky)
+  - tap: { id: video-play-button }
+  - wait: 800
+  - assert: { visible: { id: video-title } }
+  - echo: Settings menu → Rate → 1.5x → back → close
+  - tap: { id: video-settings-button }
+  - await: { visible: { id: video-settings } }
+  - await: { visible: { id: video-settings-rate } }
+  - tap: { id: video-settings-rate }
+  - await: { visible: { id: video-settings-rate-1.5 } }
+  - tap: { id: video-settings-rate-1.5 }
+  - tap: { id: video-settings-back }
+  - await: { text: { in: { id: video-settings-rate-value }, contains: 1.5x } }
+  - await: { idle: true }
+  # After Back, the first argent tap on a menu row is dropped (an adb tap isn't), so the menu is closed and reopened
+  # for the Server row; the header's Close takes the first tap fine
+  - tap: { id: video-settings-close }
+  - await: { hidden: { id: video-settings } }
+
+  - echo: Settings menu → Server row → server list → close
+  - when: { hidden: { id: video-title } }
+    steps:
+      - tap: { id: video }
+  - await: { visible: { id: video-title } }
+  - wait: 800
+  - tap: { id: video-settings-button }
+  - await: { visible: { id: video-settings-server } }
+  - await: { idle: true }
+  - tap: { id: video-settings-server }
+  - await: { visible: { id: video-settings-server-option } }
+  - assert: { visible: { id: video-settings-back } }
+  - tap: { id: video-settings-close }
+  - await: { hidden: { id: video-settings } }
+
+  - echo: Episodes panel open, Back closes it (the player stays)
+  - when: { hidden: { id: video-title } }
+    steps:
+      - tap: { id: video }
+  - await: { visible: { id: video-title } }
+  - wait: 800
+  - tap: { id: watch-episodes }
+  - await: { visible: { id: episodes-panel } }
+  - await: { visible: { id: episodes-panel-item } }
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: episodes-panel } }
+  - assert: { visible: { id: watch-screen } }
+
+  - echo: The player's back arrow returns to info
+  - when: { hidden: { id: video-title } }
+    steps:
+      - tap: { id: video }
+  - await: { visible: { id: video-title } }
+  - wait: 800
+  - tap: { id: watch-back }
+  - await: { hidden: { id: watch-screen } }
+  - await: { visible: { id: info-screen } }
+  - await: { idle: true }
+
+  - echo: Teardown. Back to the tabs, Incognito off, Rotate to landscape on
+  - tool: button
+    args:
+      button: back
+  - await: { visible: { id: anime-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true }
+  - tap: { id: more-row-incognito }
+  - await: { idle: true }
+  - tap: { id: more-row-settings }
+  - await: { visible: { id: settings-screen } }
+  - await: { visible: { id: settings-row-player } }
+  - await: { idle: true }
+  - tap: { id: settings-row-player }
+  - await: { visible: { id: player-settings-screen } }
+  - await: { visible: { id: player-settings-row-rotate-landscape } }
+  - await: { idle: true }
+  - tap: { id: player-settings-row-rotate-landscape }
+  - await: { idle: true }
+  - snapshot: { name: rotate-landscape-on, cropOn: { id: player-settings-row-rotate-landscape } }
+  - tool: button
+    args:
+      button: back
+  - await: { visible: { id: settings-row-player } }
+  - await: { idle: true }
+  - tool: button
+    args:
+      button: back
+  - await: { visible: { id: more-row-incognito } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }
+  - await: { hidden: { text: Incognito mode } }

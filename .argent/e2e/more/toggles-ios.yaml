@@ -1,0 +1,98 @@
+# More tab switches: Incognito on (banner shows, also on another tab) → off; Downloaded only on → off
+# Touches: incognito and downloaded-only preferences, each switched on and back off. Expects both off at the start.
+# iOS: More's switches are SwiftUI (outside the runner's tree). They are read with raw await-ui-element (the switch's
+# accessibility value is "0"/"1") and tapped at their describe frame. The incognito banner is RN, so the runner sees it.
+# With the banner up, More's rows move down: the incognito switch is at y 0.367 when off and y 0.395 when on, once
+# More has been left and shown again (right after turning it on, More keeps a stale top inset and it sits at y 0.466,
+# so the test visits the Anime tab before switching it off).
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: More tab. Both switches start off
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: more-row-incognito, role: button },
+        expectedText: '0',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: more-row-downloaded-only, role: button },
+        expectedText: '0',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - assert: { hidden: { text: { matches: '^Incognito mode$' } } }
+
+  - echo: Incognito on (switch frame centre 0.884, 0.367)
+  - tool: gesture-tap
+    args: { x: 0.884, y: 0.367 }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: more-row-incognito, role: button },
+        expectedText: '1',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - await: { visible: { text: { matches: '^Incognito mode$' } } }
+  - await: { idle: true, stableFor: 800 }
+  - echo: The banner stays on the Anime tab
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }
+  - await: { idle: true }
+  - assert: { visible: { text: { matches: '^Incognito mode$' } } }
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - echo: Incognito off (switch frame centre 0.884, 0.395 with the banner up)
+  - tool: gesture-tap
+    args: { x: 0.884, y: 0.395 }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: more-row-incognito, role: button },
+        expectedText: '0',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - await: { hidden: { text: { matches: '^Incognito mode$' } } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Downloaded only on, then off (switch frame centre 0.884, 0.286)
+  - tool: gesture-tap
+    args: { x: 0.884, y: 0.286 }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: more-row-downloaded-only, role: button },
+        expectedText: '1',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - await: { idle: true, stableFor: 800 }
+  - tool: gesture-tap
+    args: { x: 0.884, y: 0.286 }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: more-row-downloaded-only, role: button },
+        expectedText: '0',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

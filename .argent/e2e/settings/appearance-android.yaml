@@ -1,0 +1,24 @@
+# More → Settings → Appearance → back to Settings
+# Touches: nothing (opens the screen only)
+steps:
+  - run: ../_shared/start-android.yaml
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-row-settings } }
+  - await: { idle: true }
+  - tap: { id: more-row-settings }
+  - await: { visible: { id: settings-screen } }
+  - await: { visible: { id: settings-row-appearance } }
+  - await: { idle: true }
+
+  - echo: Settings → Appearance
+  - tap: { id: settings-row-appearance }
+  - await: { visible: { id: appearance-screen } }
+  - await: { visible: { id: appearance-theme-dark } }
+  - await: { idle: true }
+  - snapshot: appearance-screen
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: appearance-screen } }
+  - await: { visible: { id: settings-row-appearance } }
+  - await: { idle: true }

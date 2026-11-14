@@ -1,0 +1,61 @@
+# More → Player settings → open the Default playback speed choice dialog → dismiss it without picking → back
+# Touches: nothing (the dialog is dismissed, the speed stays as it was). Snapshot: Player settings (static).
+# iOS: the rows are SwiftUI (NativeList), outside the runner's tree: raw await-ui-element reads them, raw gesture-tap
+# hits them at their describe frame. The choice dialog is RN (choice-dialog, choice-option), so the runner sees it.
+# The dialog has no Cancel button; tapping outside it (the overlay) dismisses it.
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: More tab. Scroll to the end so the Player settings row clears the floating tab bar
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true }
+  - tool: gesture-swipe
+    args: { fromX: 0.5, fromY: 0.75, toX: 0.5, toY: 0.2, durationMs: 400, momentum: false }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: more-row-player-settings }, timeoutMs: 5000 }
+  # Player settings row at the end of More's scroll: frame (0, 0.769, 1, 0.065)
+  - tool: gesture-tap
+    args: { x: 0.5, y: 0.801 }
+  - await: { visible: { id: player-settings-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: player-settings-row-default-speed },
+        expectedText: 'Default playback speed, Normal',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - snapshot: player-settings-screen
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Open the Default playback speed dialog (row frame y 0.264–0.344)
+  - tool: gesture-tap
+    args: { x: 0.5, y: 0.304 }
+  - await: { visible: { id: choice-dialog } }
+  - await: { visible: { id: choice-option, text: '1.5x' } }
+  - await: { idle: true }
+  - echo: Dismiss it by tapping the overlay below the dialog (over the Picture-in-picture section header)
+  - tap: { x: 0.5, y: 0.78 }
+  - await: { hidden: { id: choice-dialog } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: player-settings-row-default-speed },
+        expectedText: 'Default playback speed, Normal',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+
+  - echo: Native back to More
+  - tap: { id: BackButton }
+  - await: { hidden: { id: player-settings-screen } }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

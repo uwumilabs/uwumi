@@ -1,0 +1,153 @@
+# Incognito on → Anime → first Popular card → EP 1 → player (rotates to landscape): playback, controls, settings menu
+# → speed 1.5 → back (row shows 1.5x) → speed 1x → server list → back → close; episodes panel open/close; watch-back
+# → info → back → incognito off
+# Touches: network (provider + stream), incognito (on for the run so no watch progress or history is saved, then off).
+# Speed is session state and is set back to 1x. No snapshots on the player.
+# The menu drops a tap sent while its list is still sliding, so every menu move is followed by a short idle. The
+# playing video never holds still, so those idles are capped at 2.5 s and pass with a 'never held still' warning.
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: More tab. Incognito on (SwiftUI switch, raw tap at its describe frame; value read from the a11y tree)
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: more-row-incognito, role: button },
+        expectedText: '0',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - tool: gesture-tap
+    args: { x: 0.884, y: 0.367 }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: more-row-incognito, role: button },
+        expectedText: '1',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - await: { visible: { text: { matches: '^Incognito mode$' } } }
+
+  - echo: Anime tab. Open the first Popular card, then episode 1
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tap: { id: media-card, next: { text: { matches: '^Popular$' } } }
+  - await: { visible: { id: info-screen } }
+  - await: { visible: { id: episode-row, within: { id: episode-list } }, timeout: 30000 }
+  - await: { idle: true, stableFor: 800 }
+  - tap: { id: episode-row, text: 'EP 1, ' }
+  - await: { visible: { id: watch-screen } }
+  - await: { visible: { id: video }, timeout: 30000 }
+  - await: { hidden: { id: server-loading }, timeout: 45000 }
+  - await: { idle: true, timeout: 9000 }
+
+  - echo: Playing. Tap the video for the controls
+  - tap: { id: video }
+  - await: { visible: { id: video-settings-button } }
+  - assert: { visible: { id: video-play-button } }
+  - assert: { visible: { id: watch-back } }
+  - assert: { visible: { id: watch-episodes } }
+  # The first tap on a menu row after the menu's Back is often dropped, so each check closes the menu and reopens it
+  - echo: Settings menu → Playback speed → 1.5x → back → close
+  - tap: { id: video-settings-button }
+  - await: { visible: { id: video-settings } }
+  - assert: { visible: { id: video-settings-server } }
+  - await: { idle: true, timeout: 2500 }
+  - tap: { id: video-settings-rate }
+  - await: { visible: { id: video-settings-rate-1.5 } }
+  - await: { idle: true, timeout: 2500 }
+  - tap: { id: video-settings-rate-1.5 }
+  - await: { idle: true, timeout: 2500 }
+  - tap: { id: video-settings-back }
+  - await: { text: { in: { id: video-settings-rate-value }, contains: '1.5' } }
+  - await: { idle: true, timeout: 2500 }
+  - tap: { id: video-settings-close }
+  - await: { hidden: { id: video-settings } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Back to 1x
+  - when: { hidden: { id: video-settings-button } }
+    steps:
+      - tap: { id: video }
+      - await: { visible: { id: video-settings-button } }
+  - tap: { id: video-settings-button }
+  - await: { visible: { id: video-settings-rate } }
+  - await: { idle: true, timeout: 2500 }
+  - tap: { id: video-settings-rate }
+  - await: { visible: { id: video-settings-rate-1 } }
+  - await: { idle: true, timeout: 2500 }
+  - tap: { id: video-settings-rate-1 }
+  - await: { idle: true, timeout: 2500 }
+  - tap: { id: video-settings-back }
+  - await: { text: { in: { id: video-settings-rate-value }, equals: 1x } }
+  - await: { idle: true, timeout: 2500 }
+  - tap: { id: video-settings-close }
+  - await: { hidden: { id: video-settings } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Server row → server list → close the menu
+  - when: { hidden: { id: video-settings-button } }
+    steps:
+      - tap: { id: video }
+      - await: { visible: { id: video-settings-button } }
+  - tap: { id: video-settings-button }
+  - await: { visible: { id: video-settings-server } }
+  - await: { idle: true, timeout: 2500 }
+  - tap: { id: video-settings-server }
+  - await: { visible: { id: video-settings-server-option } }
+  - await: { idle: true, timeout: 2500 }
+  - tap: { id: video-settings-close }
+  - await: { hidden: { id: video-settings } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Episodes panel open, then swipe it down
+  - when: { hidden: { id: watch-episodes } }
+    steps:
+      - tap: { id: video }
+      - await: { visible: { id: watch-episodes } }
+  - tap: { id: watch-episodes }
+  - await: { visible: { id: episodes-panel-item } }
+  - await: { idle: true, timeout: 2500 }
+  - swipe: { from: { id: episodes-panel }, direction: down }
+  - await: { hidden: { id: episodes-panel-item } }
+  - await: { idle: true, timeout: 2500 }
+
+  - echo: Leave the player with watch-back
+  - when: { hidden: { id: watch-back } }
+    steps:
+      - tap: { id: video }
+      - await: { visible: { id: watch-back } }
+  - tap: { id: watch-back }
+  - await: { hidden: { id: watch-screen } }
+  - await: { visible: { id: info-screen } }
+  - await: { idle: true, stableFor: 800, timeout: 9000 }
+  - tap: { id: BackButton }
+  - await: { hidden: { id: info-screen } }
+  - await: { visible: { id: anime-screen } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: More tab. Incognito off (switch at y 0.395 with the banner up, after More was left and shown again)
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: gesture-tap
+    args: { x: 0.884, y: 0.395 }
+  - tool: await-ui-element
+    args:
+      {
+        condition: text,
+        selector: { identifier: more-row-incognito, role: button },
+        expectedText: '0',
+        textMatch: equals,
+        timeoutMs: 5000,
+      }
+  - await: { hidden: { text: { matches: '^Incognito mode$' } } }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

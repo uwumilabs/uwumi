@@ -1,0 +1,64 @@
+# Anime info from the first Trending card: episode list, display mode (cycles through all three back to the start),
+# episode actions sheet open/close, favorite add + remove (native header button), cover preview open/close, back
+# Needs: an anime provider installed; the episode display mode starts on full metadata; the first Trending anime isn't a favorite
+# Touches: network (feed, info, episodes). Display mode and favorites end as they started.
+steps:
+  - run: ../_shared/start-android.yaml
+
+  - echo: Anime tab. Open the first Trending card
+  # A bare media-card id picks the smallest match, a half-visible card; the first card after the "Trending" title is stable
+  - await: { visible: { id: media-card, next: { text: Trending } }, timeout: 20000 }
+  - tap: { id: media-card, next: { text: Trending } }
+  - await: { visible: { id: info-screen } }
+  - await: { visible: { id: info-cover }, timeout: 15000 }
+  - await: { idle: true }
+  - await: { visible: { id: episode-list }, timeout: 30000 }
+  - await: { visible: { id: episode-row }, timeout: 30000 }
+  - await: { visible: { text: Add to favorites } }
+
+  - echo: Display mode. Full metadata rows read "EP n, <title>, ..." (icons come through as private-use glyphs, U+E000-U+F8FF)
+  - assert: { text: { in: { id: episode-row }, matches: '^EP \d+, [^\uE000-\uF8FF, ]' } }
+  - tap: { id: episode-display-toggle }
+  - echo: Title only. Rows lose the "EP n" label
+  - await: { text: { in: { id: episode-row }, matches: '^(?!EP \d)' } }
+  - tap: { id: episode-display-toggle }
+  - echo: Number only. Rows read "EP n" then the icon glyphs, no title
+  - await: { text: { in: { id: episode-row }, matches: '^EP \d+, [\uE000-\uF8FF]' } }
+  - tap: { id: episode-display-toggle }
+  - echo: Back to full metadata
+  - await: { text: { in: { id: episode-row }, matches: '^EP \d+, [^\uE000-\uF8FF, ]' } }
+  - await: { idle: true }
+
+  - echo: Episode actions sheet. Long-press episode 1 (a bare episode-row id would pick the half-visible row under the nav bar)
+  - long-press: { id: episode-row, text: { matches: '^EP 1,' } }
+  - await: { visible: { id: episode-action-toggle-watched } }
+  - assert: { visible: { id: episode-action-download } }
+  - assert: { visible: { id: episode-action-external-player } }
+  - assert: { visible: { id: episode-action-share } }
+  - await: { idle: true }
+  - tap: { id: episode-actions-close }
+  - await: { hidden: { id: episode-action-toggle-watched } }
+  - await: { idle: true }
+
+  - echo: Favorite through the native header button, then remove it again
+  - tap: { text: Add to favorites }
+  - await: { visible: { text: Remove from favorites } }
+  - tap: { text: Remove from favorites }
+  - await: { visible: { text: Add to favorites } }
+
+  - echo: Cover preview
+  - tap: { id: info-cover }
+  - await: { visible: { id: image-preview } }
+  - await: { visible: { id: image-preview-close } }
+  - await: { idle: true }
+  - tap: { id: image-preview-close }
+  - await: { hidden: { id: image-preview } }
+  - await: { idle: true }
+
+  - echo: Back to the Anime tab
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: info-screen } }
+  - await: { visible: { id: anime-screen } }
+  - await: { idle: true }

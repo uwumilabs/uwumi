@@ -1,0 +1,39 @@
+# More → Favorites → Manga, Movies and Anime tabs → back
+# Touches: nothing. Content is device data (and Downloaded only filters the anime and movie tabs), so no snapshot.
+# The tabs don't expose which one is selected and their lists share one id, so a tab switch is shown by the list
+# rendering after each tap, not by which tab is active.
+# iOS: More's rows are SwiftUI (outside the runner's tree): raw await-ui-element reads the row, raw gesture-tap hits it.
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: More tab. Open Favorites (row frame y 0.637–0.702)
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: more-row-favorites }, timeoutMs: 5000 }
+  - tool: gesture-tap
+    args: { x: 0.5, y: 0.669 }
+  - await: { visible: { id: favorites-screen } }
+  - await: { visible: { id: favorites-list } }
+  - await: { idle: true, stableFor: 800 }
+  - assert: { visible: { id: horizontal-tab, text: Anime } }
+
+  - echo: Manga, Movies, then Anime tab
+  - tap: { id: horizontal-tab, text: Manga }
+  - await: { visible: { id: favorites-list } }
+  - await: { idle: true }
+  - tap: { id: horizontal-tab, text: Movies }
+  - await: { visible: { id: favorites-list } }
+  - await: { idle: true }
+  - tap: { id: horizontal-tab, text: Anime }
+  - await: { visible: { id: favorites-list } }
+  - await: { idle: true, stableFor: 800 }
+
+  - echo: Native back to More
+  - tap: { id: BackButton }
+  - await: { hidden: { id: favorites-screen } }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

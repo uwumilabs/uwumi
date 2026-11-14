@@ -1,0 +1,42 @@
+# More → Statistics: Anime tab (watch stats) → Manga tab (reading stats) → Movies tab (watch stats) → Anime → back
+# Tabs are told apart by their fixed stat labels: "Watched duration" (anime, movies) and "Chapters read" (manga)
+# Touches: nothing (reads local stores)
+steps:
+  - run: ../_shared/start-android.yaml
+
+  - echo: More → Statistics
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { visible: { id: more-row-statistics } }
+  - await: { idle: true }
+  - tap: { id: more-row-statistics }
+  - await: { visible: { id: statistics-screen } }
+  - await: { visible: { id: statistics-stat } }
+  - await: { idle: true }
+  - assert: { visible: { text: Watched duration } }
+  - assert: { hidden: { text: Chapters read } }
+
+  - echo: Manga tab
+  - tap: { id: horizontal-tab, text: Manga }
+  - await: { visible: { text: Chapters read } }
+  - await: { hidden: { text: Watched duration } }
+  - await: { idle: true }
+  - echo: Movies tab
+  - tap: { id: horizontal-tab, text: Movies }
+  - await: { visible: { text: Watched duration } }
+  - await: { hidden: { text: Chapters read } }
+  - await: { idle: true }
+  - echo: Anime tab
+  - tap: { id: horizontal-tab, text: Anime }
+  - await: { visible: { text: Watched duration } }
+  - await: { hidden: { text: Chapters read } }
+  - await: { idle: true }
+
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: statistics-screen } }
+  - await: { visible: { id: more-row-statistics } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

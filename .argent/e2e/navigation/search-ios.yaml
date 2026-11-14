@@ -1,0 +1,59 @@
+# Anime search and Movies search: type a query (no submit, so recent searches stay as they were), see results, clear, back
+# Touches: network (search providers). Typing without Enter doesn't add a recent search.
+# No search-hint check: it only shows when that media type has no recent searches, which is device state
+# The search screen has no header on iOS (no back button), so leaving it is the system edge swipe (raw gesture-swipe)
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: Anime tab. Open search
+  - tap: { id: home-search }
+  - await: { visible: { id: search-screen } }
+  - await: { visible: { id: search-input } }
+  - await: { idle: true }
+  - type: { into: { id: search-input }, text: naruto, submit: false }
+  - await: { visible: { id: search-list }, timeout: 15000 }
+  - await: { visible: { id: media-card, within: { id: search-list } }, timeout: 20000 }
+  - echo: Results shown. Clear the query
+  - tap: { id: search-clear }
+  - await: { hidden: { id: search-list } }
+  - assert: { hidden: { id: search-clear } }
+  - echo: Edge swipe back to the Anime tab
+  - tool: gesture-swipe
+    args:
+      fromX: 0.01
+      fromY: 0.4
+      toX: 0.8
+      toY: 0.4
+      durationMs: 400
+  - await: { hidden: { id: search-screen } }
+  - await: { visible: { id: anime-screen } }
+  - await: { idle: true }
+
+  - echo: Movies tab. Open search
+  - tap: { id: tab-movies }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true }
+  - tap: { id: home-search }
+  - await: { visible: { id: search-screen } }
+  - await: { visible: { id: search-input } }
+  - await: { idle: true }
+  - type: { into: { id: search-input }, text: inception, submit: false }
+  - await: { visible: { id: search-list }, timeout: 15000 }
+  - await: { visible: { id: media-card, within: { id: search-list } }, timeout: 20000 }
+  - echo: Results shown. Clear the query
+  - tap: { id: search-clear }
+  - await: { hidden: { id: search-list } }
+  - assert: { hidden: { id: search-clear } }
+  - echo: Edge swipe back to the Movies tab
+  - tool: gesture-swipe
+    args:
+      fromX: 0.01
+      fromY: 0.4
+      toX: 0.8
+      toY: 0.4
+      durationMs: 400
+  - await: { hidden: { id: search-screen } }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

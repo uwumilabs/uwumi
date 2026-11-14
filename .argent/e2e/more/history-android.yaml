@@ -1,0 +1,43 @@
+# More → History: Anime → Manga → Movies → Anime tabs, then back. Rows are user data, so each tab is checked by the
+# list being there and a cropped snapshot of the tab (selected style); nothing is removed or cleared
+# Touches: nothing
+steps:
+  - run: ../_shared/start-android.yaml
+
+  - echo: More → History
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { visible: { id: more-row-history } }
+  - await: { idle: true }
+  - tap: { id: more-row-history }
+  - await: { visible: { id: history-screen } }
+  - await: { visible: { id: history-list } }
+  - assert: { visible: { id: history-clear } }
+  - await: { idle: true }
+  - snapshot: { name: anime-tab-selected, cropOn: { id: horizontal-tab, text: Anime } }
+
+  - echo: Manga tab
+  - tap: { id: horizontal-tab, text: Manga }
+  - await: { idle: true }
+  - assert: { visible: { id: history-list } }
+  - snapshot: { name: manga-tab-selected, cropOn: { id: horizontal-tab, text: Manga } }
+  - snapshot: { name: anime-tab-unselected, cropOn: { id: horizontal-tab, text: Anime } }
+  - echo: Movies tab
+  - tap: { id: horizontal-tab, text: Movies }
+  - await: { idle: true }
+  - assert: { visible: { id: history-list } }
+  - snapshot: { name: movies-tab-selected, cropOn: { id: horizontal-tab, text: Movies } }
+  - echo: Anime tab
+  - tap: { id: horizontal-tab, text: Anime }
+  - await: { idle: true }
+  - assert: { visible: { id: history-list } }
+  - snapshot: { name: anime-tab-selected, cropOn: { id: horizontal-tab, text: Anime } }
+
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: history-screen } }
+  - await: { visible: { id: more-row-history } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

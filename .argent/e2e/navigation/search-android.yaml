@@ -1,0 +1,58 @@
+# Anime search and Movies search: type a query (no submit, so recent searches stay as they were), see results, clear, back
+# Touches: network (search providers). Typing without Enter doesn't add a recent search.
+steps:
+  - run: ../_shared/start-android.yaml
+
+  - echo: Anime tab. Open search
+  - tap: { id: home-search }
+  - await: { visible: { id: search-screen } }
+  - await: { visible: { id: search-input } }
+  - await: { idle: true }
+  - type: { into: { id: search-input }, text: naruto, submit: false }
+  - await: { visible: { id: search-list }, timeout: 15000 }
+  - await: { visible: { id: media-card }, timeout: 20000 }
+  - echo: Results shown. Clear the query
+  - tap: { id: search-clear }
+  - await: { hidden: { id: search-list } }
+  - assert: { visible: { id: search-input } }
+  # The input keeps focus after clearing, so the first Back only closes the keyboard and the second leaves search
+  - tool: button
+    args:
+      button: back
+  - await: { visible: { id: search-screen } }
+  - wait: 500
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: search-screen } }
+  - await: { visible: { id: anime-screen } }
+  - await: { idle: true }
+
+  - echo: Movies tab. Open search
+  - tap: { id: tab-movies }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true }
+  - tap: { id: home-search }
+  - await: { visible: { id: search-screen } }
+  - await: { visible: { id: search-input } }
+  - await: { idle: true }
+  - type: { into: { id: search-input }, text: inception, submit: false }
+  - await: { visible: { id: search-list }, timeout: 15000 }
+  - await: { visible: { id: media-card }, timeout: 20000 }
+  - echo: Results shown. Clear the query
+  - tap: { id: search-clear }
+  - await: { hidden: { id: search-list } }
+  - assert: { visible: { id: search-input } }
+  - tool: button
+    args:
+      button: back
+  - await: { visible: { id: search-screen } }
+  - wait: 500
+  - tool: button
+    args:
+      button: back
+  - await: { hidden: { id: search-screen } }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

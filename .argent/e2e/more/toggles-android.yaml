@@ -1,0 +1,47 @@
+# More tab switches: Incognito on (the "Incognito mode" banner shows on the Anime tab) → off (banner gone); Downloaded only
+# on → off. The runner can't read a switch's checked state, so each row is also checked with a cropped snapshot (off, on, off)
+# Needs: both switches start off
+# Touches: preferences (incognito, downloadedOnly), both end off
+steps:
+  - run: ../_shared/start-android.yaml
+
+  - echo: More tab, both switches off
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { visible: { id: more-row-incognito } }
+  - await: { idle: true }
+  - snapshot: { name: incognito-off, cropOn: { id: more-row-incognito } }
+  - snapshot: { name: downloaded-only-off, cropOn: { id: more-row-downloaded-only } }
+
+  - echo: Incognito on. The banner is the only "Incognito mode" text on the Anime tab
+  - tap: { id: more-row-incognito }
+  - await: { idle: true }
+  - snapshot: { name: incognito-on, cropOn: { id: more-row-incognito } }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }
+  - await: { visible: { text: Incognito mode } }
+  - await: { idle: true }
+  - echo: Incognito off
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true }
+  - tap: { id: more-row-incognito }
+  - await: { idle: true }
+  - snapshot: { name: incognito-off, cropOn: { id: more-row-incognito } }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }
+  - await: { hidden: { text: Incognito mode } }
+  - await: { idle: true }
+
+  - echo: Downloaded only on, then off
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true }
+  - tap: { id: more-row-downloaded-only }
+  - await: { idle: true }
+  - snapshot: { name: downloaded-only-on, cropOn: { id: more-row-downloaded-only } }
+  - tap: { id: more-row-downloaded-only }
+  - await: { idle: true }
+  - snapshot: { name: downloaded-only-off, cropOn: { id: more-row-downloaded-only } }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

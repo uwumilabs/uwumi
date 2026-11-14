@@ -1,0 +1,20 @@
+# More → Settings on iOS. More's rows are SwiftUI (outside the runner's tree): the Settings row is checked with a raw
+# await-ui-element and tapped at its describe frame, after scrolling More to its end so it clears the floating tab bar
+executionPrerequisite: uwumi is on the Anime tab (after ../_shared/start-ios.yaml)
+steps:
+  - echo: More tab. Scroll to the end so the Settings row clears the floating tab bar
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: gesture-swipe
+    args: { fromX: 0.5, fromY: 0.75, toX: 0.5, toY: 0.2, durationMs: 400, momentum: false }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: more-row-settings }, timeoutMs: 5000 }
+  # Settings row at the end of More's scroll: frame (0, 0.704, 1, 0.065)
+  - tool: gesture-tap
+    args: { x: 0.5, y: 0.736 }
+  - await: { visible: { id: settings-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: settings-row-about }, timeoutMs: 5000 }

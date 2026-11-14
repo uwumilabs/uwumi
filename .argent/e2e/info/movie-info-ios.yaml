@@ -1,0 +1,84 @@
+# Movies search → Breaking Bad info (a TV show, so it has the season select): episode list, Season 2, back to Season 1,
+# back to search, then remove the recent search that opening a result adds, and edge-swipe back to Movies
+# Touches: network (TMDB + the movie provider), recent searches (one entry added by opening the result, then removed).
+# The movies feed is one trending row, so a multi-season show is reached through search; Breaking Bad's TMDB entry is stable.
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: Movies tab. Search breaking bad
+  - tap: { id: tab-movies }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true }
+  - tap: { id: home-search }
+  - await: { visible: { id: search-screen } }
+  - await: { visible: { id: search-input } }
+  - await: { idle: true }
+  - type: { into: { id: search-input }, text: breaking bad, submit: false }
+  - await: { visible: { id: search-list }, timeout: 15000 }
+  - await: { visible: { id: media-card, text: { matches: '^Breaking Bad$' } }, timeout: 20000 }
+  - await: { idle: true }
+
+  - echo: Open the show
+  - tap: { id: media-card, text: { matches: '^Breaking Bad$' } }
+  - await: { visible: { id: info-screen } }
+  - await: { visible: { id: episode-row, within: { id: episode-list } }, timeout: 30000 }
+  - await: { idle: true }
+  - assert: { visible: { id: episode-provider-select } }
+  - assert: { text: { in: { id: episode-season-select }, contains: Season 1 } }
+
+  - echo: Switch to Season 2
+  - tap: { id: episode-season-select }
+  - await: { visible: { id: episode-season-select-option } }
+  - tap: { id: episode-season-select-option, text: Season 2 }
+  - await: { hidden: { id: episode-season-select-option } }
+  - await: { text: { in: { id: episode-season-select }, contains: Season 2 } }
+  - await: { visible: { id: episode-row, within: { id: episode-list } }, timeout: 30000 }
+  - await: { idle: true }
+
+  - echo: Back to Season 1 (the season is kept for the session)
+  - tap: { id: episode-season-select }
+  - await: { visible: { id: episode-season-select-option } }
+  - tap: { id: episode-season-select-option, text: Season 1 }
+  - await: { hidden: { id: episode-season-select-option } }
+  - await: { text: { in: { id: episode-season-select }, contains: Season 1 } }
+  - await: { visible: { id: episode-row, within: { id: episode-list } }, timeout: 30000 }
+  - await: { idle: true }
+
+  - echo: Native back to search
+  - tap: { id: BackButton }
+  - await: { hidden: { id: info-screen } }
+  - await: { visible: { id: search-screen } }
+  - await: { idle: true }
+  - tap: { id: search-clear }
+  - await: { hidden: { id: search-list } }
+  - await: { idle: true }
+
+  # Recent searches are a NativeList (SwiftUI on iOS): the runner can't see the rows, so the check reads the
+  # accessibility tree and the remove button is tapped by its describe frame (the newest entry is the top row)
+  - echo: Remove the breaking bad recent search that opening the result added
+  - tool: await-ui-element
+    args:
+      condition: visible
+      selector: { text: Remove breaking bad from recent searches }
+      timeoutMs: 5000
+  - tool: gesture-tap
+    args: { x: 0.908, y: 0.239 }
+  - tool: await-ui-element
+    args:
+      condition: hidden
+      selector: { text: Remove breaking bad from recent searches }
+      timeoutMs: 5000
+
+  - echo: Edge swipe back to the Movies tab (search has no header on iOS)
+  - tool: gesture-swipe
+    args:
+      fromX: 0.01
+      fromY: 0.4
+      toX: 0.8
+      toY: 0.4
+      durationMs: 400
+  - await: { hidden: { id: search-screen } }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }

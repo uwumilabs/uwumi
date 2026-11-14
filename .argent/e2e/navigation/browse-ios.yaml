@@ -1,0 +1,31 @@
+# Anime → a feed's See more → the Browse grid → back; then the same from the Movies tab
+# Touches: network (feeds). No settings or files.
+steps:
+  - run: ../_shared/start-ios.yaml
+
+  - echo: Anime tab. Open the first feed's See more
+  - tap: { id: feed-see-more }
+  - await: { visible: { id: browse-screen } }
+  - await: { visible: { id: media-card, within: { id: browse-list } }, timeout: 20000 }
+  - await: { idle: true }
+  - echo: Browse grid shown. Native back
+  - tap: { id: BackButton }
+  - await: { hidden: { id: browse-screen } }
+  - await: { visible: { id: anime-screen } }
+  - await: { idle: true }
+
+  - echo: Movies tab. Open the first feed's See more
+  - tap: { id: tab-movies }
+  - await: { visible: { id: movies-screen } }
+  - await: { visible: { id: feed-see-more }, timeout: 20000 }
+  - await: { idle: true }
+  - tap: { id: feed-see-more }
+  - await: { visible: { id: browse-screen } }
+  - await: { visible: { id: media-card, within: { id: browse-list } }, timeout: 20000 }
+  - await: { idle: true }
+  - tap: { id: BackButton }
+  - await: { hidden: { id: browse-screen } }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true }
+  - tap: { id: tab-anime }
+  - await: { visible: { id: anime-screen } }
