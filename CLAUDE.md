@@ -108,6 +108,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
   - For fire-and-forget effects, prefer Reanimated CSS animations (`css.keyframes`).
 - Import `Easing` from `react-native-reanimated`, not `react-native`, inside worklets.
 - Read and write shared values with `.get()` / `.set()` in components: the React Compiler lint (`react-hooks/immutability`) rejects assigning `.value`.
+- The native splash image is a blank PNG on purpose (black screen). The Lottie overlay `src/components/AnimatedSplash.tsx` hides it, plays over the mounting app, and leaves once the home feed has answered. Don't put a logo back in `app.json`'s splash, and keep every e2e start fragment's `await hidden id=splash-overlay` step.
 - uniwind only styles RN core views and `withUniwind` wrappers. A third-party native view styled with `className` renders 0×0, so wrap it.
 - Every inline iOS SwiftUI `Host` in a scrolling screen needs `ignoreSafeArea="container"`.
 - On TV the player's settings menu is the toolkit's own side panel (phones use uwumi's native bottom sheet): the native sheet takes Back as "close" (`src/components/watch/AppVideoProvider.tsx`).
