@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { isTV } from '@/utils/tv';
 import { watchHref } from '@/utils/routes';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { useShallow } from 'zustand/react/shallow';
@@ -178,7 +179,10 @@ const DownloadCard = memo(
 
             <HUXStack className="flex-row items-center gap-2">
               <IoniconsIcon name={STATUS_ICONS[status]} size={20} />
-              <RippleButton testID="download-card-remove" onPress={() => onRemove(id, status)}>
+              <RippleButton
+                testID="download-card-remove"
+                onPress={() => onRemove(id, status)}
+                accessibilityLabel={`Remove ${download.name}`}>
                 <IoniconsIcon name="trash-outline" size={20} />
               </RippleButton>
             </HUXStack>
@@ -239,7 +243,7 @@ const EmptyState = () => (
     <IoniconsIcon name="folder-outline" size={64} className="text-foreground" />
     <Text className="text-center text-2xl font-semibold text-foreground/50">No Downloads</Text>
     <Text className="max-w-75 text-center text-base text-foreground/40">
-      Downloaded episodes will appear here. Long press an episode to access download options.
+      {`Downloaded episodes will appear here. ${isTV ? 'Hold OK on' : 'Long press'} an episode to access download options.`}
     </Text>
   </HUYStack>
 );

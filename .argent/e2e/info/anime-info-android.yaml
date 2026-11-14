@@ -16,17 +16,21 @@ steps:
   - await: { visible: { id: episode-row }, timeout: 30000 }
   - await: { visible: { text: Add to favorites } }
 
-  - echo: Display mode. Full metadata rows read "EP n, <title>, ..." (icons come through as private-use glyphs, U+E000-U+F8FF)
-  - assert: { text: { in: { id: episode-row }, matches: '^EP \d+, [^\uE000-\uF8FF, ]' } }
+  - echo: Display mode. The toggle's label names the mode it switches to; full rows read "EP n, <title>, ..."
+  - assert: { visible: { id: episode-display-toggle, text: Show titles only } }
+  - assert: { text: { in: { id: episode-row }, matches: '^EP \d+, [^,—]' } }
   - tap: { id: episode-display-toggle }
   - echo: Title only. Rows lose the "EP n" label
+  - await: { visible: { id: episode-display-toggle, text: Show numbers only } }
   - await: { text: { in: { id: episode-row }, matches: '^(?!EP \d)' } }
   - tap: { id: episode-display-toggle }
-  - echo: Number only. Rows read "EP n" then the icon glyphs, no title
-  - await: { text: { in: { id: episode-row }, matches: '^EP \d+, [\uE000-\uF8FF]' } }
+  - echo: Number only. Rows start with "EP n" again
+  - await: { visible: { id: episode-display-toggle, text: Show full details } }
+  - await: { text: { in: { id: episode-row }, matches: '^EP \d+' } }
   - tap: { id: episode-display-toggle }
   - echo: Back to full metadata
-  - await: { text: { in: { id: episode-row }, matches: '^EP \d+, [^\uE000-\uF8FF, ]' } }
+  - await: { visible: { id: episode-display-toggle, text: Show titles only } }
+  - await: { text: { in: { id: episode-row }, matches: '^EP \d+, [^,—]' } }
   - await: { idle: true }
 
   - echo: Episode actions sheet. Long-press episode 1 (a bare episode-row id would pick the half-visible row under the nav bar)

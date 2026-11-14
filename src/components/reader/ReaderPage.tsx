@@ -18,7 +18,18 @@ const pageRatios = new Map<string, number>();
  * some hosts refuse the image (403).
  */
 export const ReaderPage = memo(
-  ({ page, width, height: boxHeight }: { page: IMangaChapterPage; width: number; height?: number }) => {
+  ({
+    page,
+    width,
+    height: boxHeight,
+    preferredFocus,
+  }: {
+    page: IMangaChapterPage;
+    width: number;
+    height?: number;
+    /** TV: the page the reader opens on takes the D-pad, so Right and Down turn pages straight away */
+    preferredFocus?: boolean;
+  }) => {
     const theme = useCurrentTheme();
     // Reset when the list reuses this row for another page
     const [ratio, setRatio] = useRecyclingState<number | undefined>(() => pageRatios.get(page.img), [page.img]);
@@ -55,7 +66,11 @@ export const ReaderPage = memo(
 
     return (
       // TV: each page takes focus, so the D-pad scrolls through the chapter page by page
-      <View testID="reader-page" style={{ width, height }} focusable={isTV}>
+      <View
+        testID="reader-page"
+        style={{ width, height }}
+        focusable={isTV}
+        hasTVPreferredFocus={isTV && preferredFocus}>
         <Image
           key={attempt}
           source={{ uri: page.img, headers: page.headerForImage }}

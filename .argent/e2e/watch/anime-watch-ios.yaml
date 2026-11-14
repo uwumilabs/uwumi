@@ -13,25 +13,11 @@ steps:
   - await: { visible: { id: more-screen } }
   - await: { idle: true, stableFor: 800 }
   - tool: await-ui-element
-    args:
-      {
-        condition: text,
-        selector: { identifier: more-row-incognito, role: button },
-        expectedText: '0',
-        textMatch: equals,
-        timeoutMs: 5000,
-      }
+    args: { condition: visible, selector: { identifier: more-row-incognito, role: button, text: '0' }, timeoutMs: 5000 }
   - tool: gesture-tap
     args: { x: 0.884, y: 0.367 }
   - tool: await-ui-element
-    args:
-      {
-        condition: text,
-        selector: { identifier: more-row-incognito, role: button },
-        expectedText: '1',
-        textMatch: equals,
-        timeoutMs: 5000,
-      }
+    args: { condition: visible, selector: { identifier: more-row-incognito, role: button, text: '1' }, timeoutMs: 5000 }
   - await: { visible: { text: { matches: '^Incognito mode$' } } }
 
   - echo: Anime tab. Open the first Popular card, then episode 1
@@ -140,14 +126,7 @@ steps:
   - tool: gesture-tap
     args: { x: 0.884, y: 0.395 }
   - tool: await-ui-element
-    args:
-      {
-        condition: text,
-        selector: { identifier: more-row-incognito, role: button },
-        expectedText: '0',
-        textMatch: equals,
-        timeoutMs: 5000,
-      }
+    args: { condition: visible, selector: { identifier: more-row-incognito, role: button, text: '0' }, timeoutMs: 5000 }
   - await: { hidden: { text: { matches: '^Incognito mode$' } } }
   - tap: { id: tab-anime }
   - await: { visible: { id: anime-screen } }

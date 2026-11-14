@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { DialogContent } from '@/components/DialogContent';
 import { SETTINGS_SCREENS } from '@/utils/routes';
 import { clearWatchHistory } from '@/hooks/useHistory';
 import { Platform, ScrollView, Text } from 'react-native';
@@ -313,7 +314,7 @@ const DataAndStorage = () => {
       <Dialog isOpen={backupName !== null} onOpenChange={(open) => !open && setBackupName(null)}>
         <Dialog.Portal>
           <Dialog.Overlay className="bg-black/50" />
-          <Dialog.Content className="rounded-3xl bg-background p-4" testID="data-backup-name-dialog">
+          <DialogContent className="rounded-3xl bg-background p-4" testID="data-backup-name-dialog">
             <HUYStack className="gap-3">
               <Dialog.Title className="text-lg font-semibold text-foreground">Create backup</Dialog.Title>
               <Input
@@ -345,7 +346,7 @@ const DataAndStorage = () => {
                 </Button>
               </HUXStack>
             </HUYStack>
-          </Dialog.Content>
+          </DialogContent>
         </Dialog.Portal>
       </Dialog>
       <ConfirmDialog

@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { DialogContent } from './DialogContent';
 import { EXTERNAL_LINKS } from '@/constants/config';
 import { useUpdateChecker } from '@/hooks/useUpdateChecker';
 import { openBrowser } from '@/utils/share';
@@ -14,8 +15,8 @@ export const UpdateDialog = () => {
     <Dialog isOpen onOpenChange={(open) => !open && dismiss()}>
       <Dialog.Portal>
         <Dialog.Overlay className="bg-black/50" />
-        <Dialog.Content className="rounded-3xl bg-background p-5" testID="update-dialog">
-          <Dialog.Close className="absolute right-3 top-3" />
+        <DialogContent className="rounded-3xl bg-background p-5" testID="update-dialog">
+          <Dialog.Close className="absolute right-3 top-3" accessibilityLabel="Close" />
 
           <View className="items-center mt-1 mb-3">
             <IoniconsIcon name="arrow-up-circle-outline" className="text-accent" size={48} />
@@ -45,6 +46,7 @@ export const UpdateDialog = () => {
             <View className="gap-3">
               <Button
                 testID="update-dialog-update"
+                hasTVPreferredFocus
                 variant="primary"
                 onPress={() => openBrowser(EXTERNAL_LINKS.GITHUB_LATEST_RELEASE)}
                 className="w-full">
@@ -60,7 +62,7 @@ export const UpdateDialog = () => {
               </Dialog.Close>
             </View>
           </View>
-        </Dialog.Content>
+        </DialogContent>
       </Dialog.Portal>
     </Dialog>
   );

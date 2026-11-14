@@ -29,6 +29,9 @@ export const ListJumpBar = ({ visible, onTop, bottom }: ListJumpBarProps) => {
   return (
     <Animated.View
       pointerEvents={visible ? 'box-none' : 'none'}
+      // Faded out, it stays mounted: hide it from screen readers too
+      accessibilityElementsHidden={!visible}
+      importantForAccessibility={visible ? 'auto' : 'no-hide-descendants'}
       style={[styles.bar, { bottom: bottom ?? insets.bottom + 16 }, animatedStyle]}>
       <Button testID="list-jump-top" isIconOnly size="sm" onPress={onTop} accessibilityLabel="Back to top">
         <IoniconsIcon name="arrow-up" size={18} className="text-accent-foreground" />

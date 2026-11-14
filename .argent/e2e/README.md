@@ -1,6 +1,6 @@
 # Argent e2e tests: runbook and lessons learned
 
-Replayable UI tests for uwumi, run with [argent](https://github.com/software-mansion/argent). Every test is a YAML file, one per platform: `<flow>-android.yaml` and `<flow>-ios.yaml`. Android TV has no e2e runner, so it gets reference screenshots and a focus review instead.
+Replayable UI tests for uwumi, run with [argent](https://github.com/software-mansion/argent). Every test is a YAML file, one per platform: `<flow>-android.yaml` and `<flow>-ios.yaml`. Android TV tests (`<flow>-tv-android.yaml`) replay on the TV emulator with `--platform android`, driving the D-pad with raw `tool: tv-remote` steps (argent's docs say Android TV isn't supported, but replay works); `tv/` also has reference screenshots and the focus review.
 
 ```
 .argent/e2e/
@@ -33,7 +33,8 @@ Every flow has an Android and an iOS file with the same name. Status on 2026-11-
 | more | toggles | 2 | 1 (needs both switches off at the start) |
 | settings | settings, appearance, player, reader, downloads, extensions, data, about | 1–2 | 1–2 |
 | downloads | download-episode | 2 | 2 |
-| tv | screenshots + focus review (no runner) | 43 screens | — |
+| navigation, more | tabs-tv-android, history-tv-android (Android TV, D-pad) | 1 each | — |
+| tv | screenshots + focus review | 43 screens | — |
 
 Not covered anywhere yet: a download running to completion, movie playback, next/previous episode, subtitles, and anything that writes data (backup, restore, clearing, theme changes). Each folder's README has its own "Not tested" list.
 
@@ -67,7 +68,7 @@ The path must end in `.yaml`. Don't point it at a folder: Android and iOS files 
 Sweep one platform:
 
 ```bash
-for f in .argent/e2e/*/*-android.yaml; do printf "%-55s " "$f"
+for f in $(ls .argent/e2e/*/*-android.yaml | grep -v tv-android); do printf "%-55s " "$f"
   argent e2e run "$f" --platform android --device emulator-5556 2>&1 | grep -E "^(PASS|FAIL)"; done
 ```
 
@@ -121,9 +122,8 @@ Each folder's README lists the bugs its tests found, with dates and code locatio
 
 | Area | Bug | README |
 |---|---|---|
-| TV | The player sometimes has no focus: OK does nothing, and Back leaves instead of hiding the controls (toolkit) | `tv/` |
-| TV | The confirm and choice dialogs don't hold focus; in release builds the update dialog doesn't either | `tv/` |
-| TV | The reader can't be used: focus never reaches the pages | `tv/`, `reader/` |
+| TV | The player sometimes has no focus: OK does nothing, and Back leaves instead of hiding the controls (toolkit, open) | `tv/` |
+| TV | Manga info, Settings and Downloads open with nothing focused (open) | `tv/` |
 | iOS | The search screen has no way back except the edge swipe | `navigation/` |
 | iOS | Turning incognito on from More leaves a status-bar gap until you leave More | `more/` |
 | Both | Share says "Watch …" for manga | `info/` |
@@ -137,3 +137,5 @@ Fixed while setting up:
 | 2026-11-14 | Every Android debug build offered "The stable release" of its own version at launch: the `-debug` version suffix counted as a pre-release. The dialog also covered the screen for tests. | `src/hooks/useUpdateChecker.tsx`: `isPreRelease` ignores the build suffix |
 | 2026-11-14 | Downloads' "Storage Used" kept a removed download's size until the screen was reopened. | `src/downloads/useDownloadStore.ts`: `useDownloadsSize` re-measures on any status change |
 | 2026-11-14 | Removing a download left its empty show and season folders behind. | `src/downloads/files.ts`: `deleteOutputFile` removes them |
+| 2026-11-14 | TV: dialogs let D-pad focus escape behind them; Back in a player submenu closed the whole menu; the reader couldn't be used; label chips took focus. | `DialogContent`, the toolkit's TV menu panel, reader page focus, non-focusable `Chip` (see `tv/README.md`) |
+| 2026-11-14 | Icon glyphs leaked into screen-reader labels, and several icon-only buttons and the iOS switches had no labels. | `Icons.tsx` icons are decorative; labels on the display toggle, sheet close, download remove, extension details, accent cards, iOS list switches |

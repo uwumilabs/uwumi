@@ -7,6 +7,7 @@ The More tab's switches (Incognito mode, Downloaded only) and the History, Favor
 | `toggles` | Incognito on → the "Incognito mode" banner shows, also on the Anime tab → off → banner gone. Downloaded only on → off. Android checks each switch with cropped snapshots; iOS reads the switch value (`0`/`1`) from the accessibility tree | preferences `incognito` and `downloadedOnly`, both end off. Needs: both off at the start (the iOS simulator had Downloaded only on as user state) | Yes |
 | `history` | More → History → Manga → Movies → Anime tabs → (iOS) Clear history dialog → Cancel → back | nothing (the dialog is cancelled) | Yes |
 | `favorites` | More → Favorites → Manga → Movies → Anime tabs → back | nothing | Yes |
+| `history-tv-android` | Android TV: rail → More → History → the header's Clear history → the dialog holds the D-pad through presses in every direction → Up, OK on its Close → History still open → back | nothing (the dialog is closed from its X) | Yes |
 | `statistics` | More → Statistics → Manga ("Chapters read") → Movies → Anime ("Watched duration") → back | nothing | Yes |
 
 Both platforms have each flow, passing twice in a row on 2026-11-14, except `toggles-ios` (one pass: its second run started with the simulator's own Downloaded only switched on, and the test expects both switches off). Android's `toggles`, `history` and `favorites` keep cropped snapshots of the switches and the selected tab in `__baselines__/`.

@@ -1,0 +1,32 @@
+# Android TV: the left rail. Left from a row's first card reaches the rail on the current tab; OK on a rail item switches
+# tabs. Each tab is proven by its screen root, so a press that went somewhere else fails the next check.
+# D-pad presses are raw `tool: tv-remote` steps (argent has no D-pad directive for Android TV).
+steps:
+  - run: ../_shared/start-tv-android.yaml
+  - echo: Rail, then Manga
+  - tool: tv-remote
+    args: { button: left, repeat: 6 }
+  - tool: tv-remote
+    args: { button: [down, select] }
+  - await: { visible: { id: manga-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - echo: Rail, then Movies
+  - tool: tv-remote
+    args: { button: left, repeat: 6 }
+  - tool: tv-remote
+    args: { button: [down, select] }
+  - await: { visible: { id: movies-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - echo: Rail, then More
+  - tool: tv-remote
+    args: { button: left, repeat: 6 }
+  - tool: tv-remote
+    args: { button: [down, select] }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - echo: Rail, back up to Anime
+  - tool: tv-remote
+    args: { button: left, repeat: 6 }
+  - tool: tv-remote
+    args: { button: [up, up, up, select] }
+  - await: { visible: { id: anime-screen } }

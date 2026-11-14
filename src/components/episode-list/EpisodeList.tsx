@@ -551,6 +551,14 @@ const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
       )}
       <Pressable
         testID="episode-display-toggle"
+        accessibilityRole="button"
+        accessibilityLabel={
+          displayMode === EpisodeDisplayMode.FullMetadata
+            ? 'Show titles only'
+            : displayMode === EpisodeDisplayMode.TitleOnly
+              ? 'Show numbers only'
+              : 'Show full details'
+        }
         onPress={() => {
           setDisplayMode(
             displayMode === EpisodeDisplayMode.FullMetadata

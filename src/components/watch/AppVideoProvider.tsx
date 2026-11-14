@@ -5,17 +5,20 @@ import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { PLAYBACK_RATES, usePlayerSettingsStore } from '@/hooks/stores/usePlayerSettingsStore';
 import { BottomSheet } from '@/components/native/BottomSheet';
 import { Slider } from './slider/Slider';
+import { isTV } from '@/utils/tv';
 
 export const VIDEO_PORTAL_HOST = 'video-player';
 
-// The player's settings menu opens in the app's native bottom sheet
+// On phones the player's settings menu opens in the app's native bottom sheet
 const VideoSheet = ({ open, onOpenChange, children, style }: SheetProps) => (
   <BottomSheet open={open} onOpenChange={onOpenChange}>
     <View style={[{ width: '100%' }, style]}>{children}</View>
   </BottomSheet>
 );
 
-const videoComponents = { Sheet: VideoSheet, Slider };
+// TV keeps the toolkit's side panel: the native sheet takes Back as "close", so Back in a submenu would close the whole
+// menu instead of going up one level, and its header scrolls away on a half-height sheet
+const videoComponents = isTV ? { Slider } : { Sheet: VideoSheet, Slider };
 
 // The player keeps its speed for the session; it starts at the default speed, and moves to a new default
 const DefaultSpeed = () => {

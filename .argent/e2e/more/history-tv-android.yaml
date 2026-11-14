@@ -1,0 +1,44 @@
+# Android TV: More › History › Clear history dialog. The dialog must hold the D-pad: after presses in every direction,
+# Up lands on its Close (X) and OK closes it with History still open. If focus escaped the dialog, that OK would act on
+# the screen behind it (leave History, or press a tab) and the last checks fail. Nothing is cleared.
+steps:
+  - run: ../_shared/start-tv-android.yaml
+  - echo: Rail → More
+  - tool: tv-remote
+    args: { button: left, repeat: 6 }
+  - tool: tv-remote
+    args: { button: [down, down, down, select] }
+  - await: { visible: { id: more-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - echo: Into More's list, to its top row, then History (the third row)
+  - tool: tv-remote
+    args: { button: right }
+  - tool: tv-remote
+    args: { button: up, repeat: 8 }
+  - tool: tv-remote
+    args: { button: [down, down, select] }
+  - await: { visible: { id: history-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - echo: The header's Clear history button (Up from the tabs reaches the header's back button, Right the button)
+  - tool: tv-remote
+    args: { button: [up, right, select] }
+  - await: { visible: { id: history-clear-dialog } }
+  - await: { idle: true, stableFor: 800 }
+  - echo: Presses in every direction stay in the dialog; then Up is its Close
+  - tool: tv-remote
+    args: { button: [down, down, left, left, right, right, down, up] }
+  - assert: { visible: { id: history-clear-dialog } }
+  - tool: tv-remote
+    args: { button: select }
+  - await: { hidden: { id: history-clear-dialog } }
+  - assert: { visible: { id: history-screen } }
+  - await: { idle: true, stableFor: 800 }
+  - echo: Back to More, then the rail and Anime
+  - tool: tv-remote
+    args: { button: back }
+  - await: { visible: { id: more-screen } }
+  - tool: tv-remote
+    args: { button: left, repeat: 6 }
+  - tool: tv-remote
+    args: { button: [up, up, up, select] }
+  - await: { visible: { id: anime-screen } }

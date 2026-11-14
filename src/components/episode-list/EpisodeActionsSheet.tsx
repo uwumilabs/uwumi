@@ -309,6 +309,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
             </Text>
             <RippleButton
               testID={shouldShowBack ? 'episode-actions-back' : 'episode-actions-close'}
+              accessibilityLabel={shouldShowBack ? 'Back' : 'Close'}
               onPress={() => (shouldShowBack ? handleBackToMainMenu() : onOpenChange(false))}>
               {shouldShowBack ? (
                 <IoniconsIcon name="chevron-back" size={24} className="text-foreground" />

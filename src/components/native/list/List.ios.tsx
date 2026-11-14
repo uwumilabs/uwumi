@@ -25,6 +25,7 @@ import {
   shapes,
   tint,
   accessibilityIdentifier,
+  accessibilityLabel,
 } from '@expo/ui/swift-ui/modifiers';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { toggleModifiers } from '../switch/Switch.ios';
@@ -78,7 +79,12 @@ const Item = ({
       </VStack>
       <Spacer />
       {toggle ? (
-        <Toggle isOn={toggle.value} onIsOnChange={toggle.onValueChange} modifiers={toggleModifiers(theme)} />
+        <Toggle
+          isOn={toggle.value}
+          onIsOnChange={toggle.onValueChange}
+          // The row's title is a sibling Text, so VoiceOver would read the switch as just "0" or "1"
+          modifiers={[...toggleModifiers(theme), accessibilityLabel(title)]}
+        />
       ) : (
         <Trailing
           text={trailing}

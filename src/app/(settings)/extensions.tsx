@@ -145,7 +145,11 @@ function ExtensionCard({
               </HUYStack>
             </HUXStack>
 
-            <RippleButton testID="extension-row-details" onPress={onShowDetails} className="p-2">
+            <RippleButton
+              testID="extension-row-details"
+              onPress={onShowDetails}
+              className="p-2"
+              accessibilityLabel={`About ${extension.name}`}>
               <IoniconsIcon name="information-circle-outline" size={18} color={currentTheme?.accent} />
             </RippleButton>
           </HUXStack>

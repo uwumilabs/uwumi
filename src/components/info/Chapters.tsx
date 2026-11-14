@@ -44,7 +44,7 @@ const ChapterRow = memo(
     const details = [chapterDetails(chapter), page && `Page ${page}`].filter(Boolean).join(' · ');
     const title = chapterTitle(chapter);
     return (
-      <RippleButton testID="chapter-row" onPress={() => onOpen(chapter)}>
+      <RippleButton testID="chapter-row" onPress={() => onOpen(chapter)} focusScale={1}>
         {/* Read chapters fade back, as in Aniyomi */}
         <HUYStack className={cn('gap-1 px-4 py-3', pureBlackBackground && 'bg-black', read && 'opacity-50')}>
           <HUXStack className="items-center justify-between gap-3">

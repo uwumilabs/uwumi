@@ -128,6 +128,7 @@ const Read = () => {
   // The page's place in the list: after the start, counted from the other end when right to left
   const pageIndex = (page: number) => (rtl ? items.length - 1 - page : page);
   const startIndex = paged || startPage > 1 ? pageIndex(Math.min(startPage, pageCount)) : undefined;
+  const openingPage = Math.min(Math.max(startPage, 1), pageCount);
 
   // By where the tap lands: the menu, or Mihon's next or previous (a page when paged, three quarters of a screen in
   // the long strip)
@@ -169,7 +170,7 @@ const Read = () => {
         );
       } else if (paged) {
         const pageBox = { width: viewport?.width ?? width, height: viewport?.height ?? height };
-        const page = <ReaderPage page={item.page} {...pageBox} />;
+        const page = <ReaderPage page={item.page} {...pageBox} preferredFocus={item.number === openingPage} />;
         // Zooms with a double tap or a pinch; the tap zones come through its single tap. Keyed by page, so a
         // recycled cell starts unzoomed
         return isTV ? (
@@ -180,7 +181,7 @@ const Read = () => {
           </ZoomablePage>
         );
       } else {
-        content = <ReaderPage page={item.page} width={pageWidth} />;
+        content = <ReaderPage page={item.page} width={pageWidth} preferredFocus={item.number === openingPage} />;
       }
       // Padded per page, so the chapter buttons keep the full width. TV pages take the D-pad's focus themselves,
       // so they get no tap zones
@@ -207,6 +208,7 @@ const Read = () => {
       padding,
       onPageTap,
       tapAt,
+      openingPage,
     ],
   );
 
@@ -244,7 +246,7 @@ const Read = () => {
           }
           detail={pages.error?.message}>
           {!!pages.error && (
-            <Button testID="reader-retry" size="sm" onPress={() => pages.refetch()}>
+            <Button testID="reader-retry" size="sm" hasTVPreferredFocus onPress={() => pages.refetch()}>
               <Button.Label>Retry</Button.Label>
             </Button>
           )}

@@ -67,6 +67,8 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
   - A component that renders a pressable for its caller accepts `testID` and passes it on. Tabs are `tab-anime`, `tab-manga`, `tab-movies`, `tab-more` (phone and TV).
   - The player's own parts have the toolkit's ids (`video-play-button`, `video-settings-rate`, `video-up-next`, …; listed in the toolkit's docs/content/docs/testing.mdx). Rows uwumi adds to its settings menu use the same `video-settings-` prefix (`video-settings-server`); uwumi's other player buttons are `watch-<what>` (`watch-back`, `watch-next`).
 - **UI primitives:**
+  - Build dialogs with `DialogContent` (`src/components/DialogContent.tsx`), not heroui's `Dialog.Content`: it keeps the TV D-pad inside the dialog. Give the safe button `hasTVPreferredFocus`.
+  - The app's `Chip` (`src/components/heroui.tsx`) is a label: never focusable on TV. Icons (`src/components/Icons.tsx`) are hidden from screen readers, so every icon-only button needs an `accessibilityLabel`.
   - Use heroui-native first (`Button` with `size`/`variant`; RN `ActivityIndicator` for spinners). Use the components in `src/components/native` for native controls.
   - For player panels, use the toolkit's `gestureProps`.
   - No hand-rolled Pressable chips, and no BottomSheet or portal hacks.
@@ -106,6 +108,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - Import `Easing` from `react-native-reanimated`, not `react-native`, inside worklets.
 - uniwind only styles RN core views and `withUniwind` wrappers. A third-party native view styled with `className` renders 0×0, so wrap it.
 - Every inline iOS SwiftUI `Host` in a scrolling screen needs `ignoreSafeArea="container"`.
+- On TV the player's settings menu is the toolkit's own side panel (phones use uwumi's native bottom sheet): the native sheet takes Back as "close" (`src/components/watch/AppVideoProvider.tsx`).
 - uwumi renders the player's seek bar itself: it passes its own `Slider` (`src/components/watch/slider`) to the toolkit through `videoComponents`. Player additions to the seek bar go there, for example `SeekPreview`.
   - Seek previews come from `useSeekPreviewStore`: the provider's `thumbnails.vtt` while streaming, or the sprites saved beside a download.
 - The toolkit's `VideoProvider` is global (`src/components/watch/AppVideoProvider.tsx`, in the root layout), and its `ended` flag stays true until the next source loads. So the watch screen only renders `VideoPlayer.UpNext` once its own source has loaded (`phase === 'playing'`). Otherwise a new episode counts down to the one after it before it plays.

@@ -145,10 +145,10 @@ export const InfoHeader = ({ withRecommendations = true }: InfoHeaderProps) => {
       )}
       {/* TV: focus inside a block scrolls all of it clear of the see-through header (the page snaps below it) */}
       <View className="h-75 relative" focusable={isTV ? false : undefined} scrollSnapAlign={isTV ? 'start' : undefined}>
-        <View className="absolute inset-0 h-75 w-full" focusable={isTV ? false : undefined}>
+        <View className="absolute inset-0 h-75 w-full">
           <Image source={{ uri: data?.cover }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         </View>
-        <View className="h-75 absolute inset-0 z-10" focusable={isTV ? false : undefined}>
+        <View className="h-75 absolute inset-0 z-10">
           <LinearGradient
             className="w-full h-75 flex-1"
             colors={
@@ -167,9 +167,8 @@ export const InfoHeader = ({ withRecommendations = true }: InfoHeaderProps) => {
         {/* TV: details at the bottom of the artwork */}
         <View
           className="p-2.5 z-20"
-          style={[{ paddingTop: headerHeight }, isTV && { flex: 1, justifyContent: 'flex-end' }]}
-          focusable={isTV ? false : undefined}>
-          <HUXStack className="gap-2.5 items-center" focusable={isTV ? false : undefined}>
+          style={[{ paddingTop: headerHeight }, isTV && { flex: 1, justifyContent: 'flex-end' }]}>
+          <HUXStack className="gap-2.5 items-center">
             {!isTV && (
               <Pressable
                 testID="info-cover"
@@ -195,7 +194,7 @@ export const InfoHeader = ({ withRecommendations = true }: InfoHeaderProps) => {
                 {shownTitle}
               </Animated.Text>
 
-              <HUXStack className="item-center justify-between" focusable={isTV ? false : undefined}>
+              <HUXStack className="item-center justify-between">
                 {data?.status && <IconTitle iconName="time-outline" text={data?.status} />}
                 {episodes.length > 0 && (
                   <RippleButton
@@ -209,7 +208,7 @@ export const InfoHeader = ({ withRecommendations = true }: InfoHeaderProps) => {
                   </RippleButton>
                 )}
               </HUXStack>
-              <HUXStack className="justify-between" focusable={isTV ? false : undefined}>
+              <HUXStack className="justify-between">
                 <IconTitle iconName="star-outline" text={normalizeRating(data?.rating)} />
                 {(data?.nextAiringEpisode?.airingTime || data?.nextAiringEpisode?.releaseDate) && <AnimatedCountdown />}
                 <IconTitle iconName="film-outline" text={data?.type} />
@@ -240,7 +239,7 @@ export const InfoHeader = ({ withRecommendations = true }: InfoHeaderProps) => {
           <HUXStack className="flex-wrap gap-2">
             {chips.map((chip) => (
               // Labels only: nothing for the D-pad to stop on
-              <Chip key={chip} size="sm" focusable={isTV ? false : undefined}>
+              <Chip key={chip} size="sm">
                 {chip}
               </Chip>
             ))}

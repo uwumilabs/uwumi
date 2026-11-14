@@ -12,7 +12,6 @@ import { APP_VERSION, isPreRelease, useUpdateChecker } from '@/hooks/useUpdateCh
 import { pendingOtaVersion, runningOtaVersion, useCanRestartForUpdate } from '@/hooks/useOtaUpdates';
 import { useOtaUpdateStore } from '@/hooks/stores/useOtaUpdateStore';
 import { EXTERNAL_LINKS, DASH_HOST } from '@/constants/config';
-import { isTV } from '@/utils/tv';
 import { openBrowser } from '@/utils/share';
 
 const COMMUNITY_LINKS: { label: string; description: string; icon: IoniconProps['name']; url: string }[] = [
@@ -68,14 +67,14 @@ const About = () => {
             <Text className="text-sm text-foreground/60">Anime, manga and movies in one place</Text>
           </HUYStack>
           <HUXStack className="gap-2">
-            <Chip size="sm" focusable={isTV ? false : undefined}>{`v${APP_VERSION}`}</Chip>
+            <Chip size="sm">{`v${APP_VERSION}`}</Chip>
             {isPreRelease(APP_VERSION) && (
-              <Chip size="sm" color="warning" focusable={isTV ? false : undefined}>
+              <Chip size="sm" color="warning">
                 Pre-release
               </Chip>
             )}
             {__DEV__ && (
-              <Chip size="sm" color="default" focusable={isTV ? false : undefined}>
+              <Chip size="sm" color="default">
                 Development
               </Chip>
             )}

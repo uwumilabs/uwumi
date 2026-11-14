@@ -8,7 +8,9 @@ The home tabs (Anime, Manga, Movies, More), search, and browsing a feed's full l
 | `search` | Anime: open search → type "naruto" without submitting → results in `search-list` → clear → leave (Android: Back twice, the first closes the keyboard; iOS: edge swipe). Movies: the same with "inception" | network. No recent search is added: nothing is submitted or opened | Yes |
 | `browse` | Anime: the first feed's See more → `browse-screen` grid with cards → back. Movies: the same | network | Yes |
 
-Both platforms have each flow (`<flow>-android.yaml`, `<flow>-ios.yaml`), passing twice in a row on 2026-11-14.
+| `tabs-tv-android` | Android TV: Left ×6 to the rail (lands on the current tab) → Down, OK → Manga → the same to Movies and More → Up ×3, OK → Anime, each proven by its screen root | nothing | Yes |
+
+Both phone platforms have each flow (`<flow>-android.yaml`, `<flow>-ios.yaml`), passing twice in a row on 2026-11-14. TV tests (`-tv-android.yaml`) run on the Android TV emulator with `--platform android`; D-pad presses are raw `tool: tv-remote` steps, and a press that lands somewhere unexpected fails the next screen check.
 
 ## Bugs found
 

@@ -20,14 +20,21 @@ steps:
       - tap: { text: Remove from favorites }
       - await: { visible: { text: Add to favorites } }
 
-  - echo: Episode list in full mode. Cycle the display mode full → title only → number only → full
-  - assert: { text: { in: { id: episode-row }, matches: '^EP \d+, [^-]' } }
+  - echo: Display mode. The toggle's label names the mode it switches to; full rows read "EP n, <title>, ..."
+  - assert: { visible: { id: episode-display-toggle, text: Show titles only } }
+  - assert: { text: { in: { id: episode-row }, matches: '^EP \d+, [^,—-]' } }
   - tap: { id: episode-display-toggle }
-  - await: { text: { in: { id: episode-row }, matches: '^(?!EP \d+, )[^-]+, [-]' } }
+  - echo: Title only. Rows lose the "EP n" label
+  - await: { visible: { id: episode-display-toggle, text: Show numbers only } }
+  - await: { text: { in: { id: episode-row }, matches: '^(?!EP \d)' } }
   - tap: { id: episode-display-toggle }
-  - await: { text: { in: { id: episode-row }, matches: '^EP \d+, [-], ' } }
+  - echo: Number only. Rows start with "EP n" again
+  - await: { visible: { id: episode-display-toggle, text: Show full details } }
+  - await: { text: { in: { id: episode-row }, matches: '^EP \d+' } }
   - tap: { id: episode-display-toggle }
-  - await: { text: { in: { id: episode-row }, matches: '^EP \d+, [^-]' } }
+  - echo: Back to full metadata
+  - await: { visible: { id: episode-display-toggle, text: Show titles only } }
+  - await: { text: { in: { id: episode-row }, matches: '^EP \d+, [^,—-]' } }
   - await: { idle: true }
 
   - echo: Long-press episode 1 for its actions sheet, then close it

@@ -104,6 +104,9 @@ const AccentCard = memo(({ themeName, currentTheme, pureBlackBackground, onPress
     <HUYStack key={themeName} testID="appearance-accent">
       <TVFocusWrapper
         onPress={onPress}
+        accessibilityRole="radio"
+        accessibilityLabel={`${themeBase(themeName)} accent`}
+        accessibilityState={{ selected: isSelected }}
         focusBorderColor={theme?.accent}
         focusBorderRadius={12}
         focusBorderWidth={3}

@@ -6,6 +6,26 @@ Taken on 2026-11-14 with the dev client on Metro (`adb -s <tv> reverse tcp:8081 
 
 Side effects of the pass: network only. Frieren EP 1's progress moved (the player played), and two recent searches were added. Nothing was favourited, downloaded, cleared or changed in settings.
 
+## Status after the TV best-practices pass (2026-11-14)
+
+Fixed, following the react-native-tv-best-practices skill (trap focus in modals, give each screen a starting focus, one Back = one level):
+
+| Bug | Fix | Checked on the TV |
+|---|---|---|
+| 3, 4: confirm and choice dialogs (and the update and backup-name dialogs) let focus escape | All four use `src/components/DialogContent.tsx`, which wraps heroui's content in a `TVFocusGuideView` trapping every direction; Confirm opens on Cancel, Update on Update Now, Choice on the selected option. The dialog's X now reads "Close" | Yes: `../more/history-tv-android.yaml` presses every direction in the Clear history dialog and closes it from its X |
+| 2: Back in a player settings submenu closed the whole menu | TV keeps the toolkit's own side panel instead of uwumi's native bottom sheet (`src/components/watch/AppVideoProvider.tsx`) | Not yet: bug 1 (no player focus) kept the menu out of reach |
+| 5: the reader couldn't be used | The page the reader opens on takes focus (`ReaderPage` `preferredFocus`), so Right turns pages; Retry takes focus on the error screen | Yes: opened on page 1 with focus, Right went to 2/19. Webtoon pages in paged mode are still a narrow strip |
+| 7, 8: label chips took focus; the (i) button had no label | The app's `Chip` (`src/components/heroui.tsx`) is never focusable on TV; (i) reads "About <extension>" | Yes ("About MultiMovies") |
+| 9: chapter rows' ring ran off screen | Chapter rows don't scale on focus | — |
+| 10: "Long press" on TV | The empty queue says "Hold OK on an episode" on TV | — |
+
+Still open:
+- **1: the player sometimes has no focus** (reproduced again: OK, Up and Down did nothing until Left). The fix is in the toolkit: `src/tv/TVPlayerFocus.tsx` should set its focus target when it mounts (`controlsVisible ? 'play' : 'surface'`), not only after a hand-off, so the surface takes focus as the player opens. It needs a toolkit release.
+- **6: Back from a More or Settings sub-screen focuses the list's first row**, not the row you opened (each `NativeList` is a Compose host).
+- **Back from a dialog focuses the screen's first control**, not the button that opened it. Restoring it needs the trigger's ref passed to the dialog.
+- **Manga info opens with nothing focused**, and the first press can land on the screen behind. Its chapter controls are below the fold, and Android TV ignored `hasTVPreferredFocus` on the visible Trailer button too; needs a closer look at the native stack's focus handling.
+- **Settings and Downloads open with nothing focused** (Compose lists can't take starting focus from React).
+
 ## Screenshots
 
 | File | Screen | How to reach it (from a cold start on Anime) |
