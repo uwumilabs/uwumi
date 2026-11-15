@@ -96,6 +96,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - After `yarn install`, run `bash node_modules/expo-modules-jsi/apple/scripts/create-stub-xcframework.sh`, then `pod install`. Yarn deletes the ffmpeg-kit xcframeworks and the stub.
 - If linking fails on `RCTPackagerConnection`, or launch crashes on a missing `CDPDebugAPI`, Release core or Hermes frameworks were left in Pods. See `plugins/withRnCoreFlavorMarker.js`; `build-ios.sh` restores Debug on exit.
 - A build that breaks right after an Xcode update with "Please submit a bug report" is a compiler crash. Check the expo-modules-core changelog before patching anything.
+- After a `react-native` (react-native-tvos) bump, `pod install` updates the React pods but keeps the old prebuilt core, because `Podfile.lock` pins `React-Core-prebuilt`. Run `pod update React-Core-prebuilt --no-repo-update` and check the lock shows the new version. A stale core shows up as missing React symbols, for example expo-modules-core 58.1.0's "cannot find 'RCTStatusBarAppearance'", which needs react-native-tvos 0.88.1-0 or later.
 
 **Metro and Fast Refresh**
 - When you add a new `X.ios.tsx` or `X.android.tsx`, the running Metro doesn't pick it up. `touch` the importing file or restart with `--clear`. Keep the base file platform-neutral.

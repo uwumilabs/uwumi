@@ -105,7 +105,7 @@
     "react-native-background-actions": "^4.0.1",
     "react-native-consumet": "^3.0.1",
     "react-native-edge-to-edge": "^1.7.0",
-    "react-native-ffmpeg-kit": "^7.0.0-beta.6",
+    "react-native-ffmpeg-kit": "7.0.0-beta.7",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-get-random-values": "^2.0.0",
     "react-native-keyboard-controller": "1.22.7",

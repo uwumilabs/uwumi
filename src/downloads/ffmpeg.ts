@@ -44,9 +44,9 @@ const probe = async (url: string, headers: Record<string, string> | undefined, p
   if (!ReturnCode.isSuccess(returnCode)) {
     const output = await session.getOutput();
     const logs = await session.getAllLogsAsString();
-    console.error('[FFprobe] returnCode:', returnCode.getValue(), '\noutput:', output, '\nlogs:', logs);
+    console.error('[FFprobe] returnCode:', returnCode?.getValue(), '\noutput:', output, '\nlogs:', logs);
     throw new Error(
-      `FFprobe exited with code ${returnCode.getValue()}: ${logs?.slice(0, 300) || output?.slice(0, 300)}`,
+      `FFprobe exited with code ${returnCode?.getValue()}: ${logs?.slice(0, 300) || output?.slice(0, 300)}`,
     );
   }
 
@@ -163,12 +163,12 @@ export const downloadArgs = ({
 export const failureReason = async (session: FFmpegSession) => {
   const returnCode = await session.getReturnCode();
   const logs = (await session.getAllLogsAsString()) ?? '';
-  console.error(`[FFmpeg] failed with code ${returnCode.getValue()}:\n${logs.slice(-1500)}`);
+  console.error(`[FFmpeg] failed with code ${returnCode?.getValue()}:\n${logs.slice(-1500)}`);
   // The log opens with FFmpeg's banner; why it stopped is at the end
   const reason = logs
     .split('\n')
     .reverse()
     .find((line) => /error|invalid|no streams|failed|forbidden|not found/i.test(line))
     ?.trim();
-  return reason || `FFmpeg failed with code ${returnCode.getValue()}`;
+  return reason || `FFmpeg failed with code ${returnCode?.getValue()}`;
 };

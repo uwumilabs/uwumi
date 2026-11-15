@@ -49,7 +49,7 @@ const cutSprites = async (file: string, dir: string, duration: number, video?: V
     `${dir}/sprite_%03d.jpg`,
   ]);
   const returnCode = await session.getReturnCode();
-  if (!ReturnCode.isSuccess(returnCode)) throw new Error(`FFmpeg exited with code ${returnCode.getValue()}`);
+  if (!ReturnCode.isSuccess(returnCode)) throw new Error(`FFmpeg exited with code ${returnCode?.getValue()}`);
 
   return Array.from({ length: Math.ceil(duration / interval) }, (_, i): SeekPreviewCue => {
     const tile = i % SPRITES_PER_SHEET;
