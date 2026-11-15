@@ -92,6 +92,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - R8 is on. Classes reached through reflection or JNI need keep rules in `app.json` → expo-build-properties `extraProguardRules`; `proguard-rules.pro` gets regenerated. After changing dependencies, launch a release APK to check.
 - `react-native-google-cast`'s plugin defaults the Cast framework to `+`, which resolves to `play-services-cast-framework` 23.x, built with Kotlin 2.4. The app compiles with Kotlin 2.2, which can't read it ("incompatible version of Kotlin"). Keep `androidPlayServicesCastFrameworkVersion` pinned in `app.json` (22.3.1) until the Kotlin version moves.
 - `src/scripts/build-android.sh` re-signs release APKs with key rotation (lineage file in `signing/`).
+- If a release build fails while configuring CMake with "no such file or directory: …/CMakeTmp/testCCompiler.c" (ffmpeg-kit and nitro-ota for armeabi-v7a, 2026-11-15), delete that library's `android/.cxx/RelWithDebInfo` and build again.
 
 **iOS builds**
 - Keep `usePrecompiledModules: false`. Expo's precompiled modules crash on react-native-tvos.
@@ -161,6 +162,12 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
   - Extractors still come from the registry.
   - Delete the folder when you're done.
 
+**Releases (`yarn release`, release-it 19)**
+- `--dry-run` still runs `npm version`, so `package.json` is left bumped. Restore it afterwards.
+- Any change to `package.json` makes the running Metro rewrite `src/uniwind-types.d.ts` unformatted, which fails release-it's clean-tree check. Wait a few seconds, restore the file, then start.
+- `--config <file>` is merged with `package.json`'s `release-it` block, and the hook arrays are concatenated. To replace the config for one run (for example, Android and iOS builds in parallel), also pass `--configDir` pointing at a folder with no `package.json`.
+- release-it reads `GITHUB_TOKEN` from the environment. Load it from `.env` inline (`GITHUB_TOKEN="$(sed -n 's/^GITHUB_TOKEN=//p' .env)" npx release-it …`), never echo it.
+
 **OTA and links**
 - OTA bundles are assets on GitHub release `v<version>`. A new bundle only loads in a fresh process (Force stop, open, then Force stop and open again). About shows the stored bundle, not the running one.
 - Share links are `https://uwumi.vercel.app/info/<mediaType>?…`, with the same query as `uwumi://info/…`.
@@ -169,6 +176,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 
 - **Android emulators:**
   - `Pixel_10` (phone) and `Android_TV_14` (D-pad on the Mac keyboard).
+  - Emulators can't receive a cast, so Cast needs a real Chromecast or Google TV. Google TV images include the Cast receiver, and with `sudo emulator -avd <tv> -vmnet-bridged en0 -no-snapshot` a real phone finds it on the Wi-Fi. But the receiver has no device credentials ("Cannot get device credentials"), so senders drop it at the authentication step. Without bridging, phones can't even discover it: TV emulators only network over Ethernet, and Android TV refuses Wi-Fi while Ethernet is plugged in.
   - Serials follow boot order, so check with `adb -s <serial> emu avd name` and always pass `-s`. With both running, `adb -s <serial> reverse tcp:8081 tcp:8081`.
   - Package `com.x2004durgesh.uwumi`.
 - **Deep link to an info page:** `adb -s <serial> shell "am start -a android.intent.action.VIEW -d 'uwumi://info/movie?id=27205&metaProvider=tmdb&type=Movie&title=Inception' com.x2004durgesh.uwumi"`. The provider is the saved one; switch it from the dropdown.

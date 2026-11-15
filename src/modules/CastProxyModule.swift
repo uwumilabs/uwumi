@@ -2,6 +2,7 @@
 internal import ExpoModulesCore
 import Foundation
 import Network
+import os
 
 /**
  * Serves streams to a Cast receiver on the local network. The receiver is a browser: it can't send the Referer or
@@ -38,6 +39,7 @@ final class CastProxyServer: NSObject, URLSessionDataDelegate {
   static let shared = CastProxyServer()
 
   private static let chunk = 256 * 1024
+  private static let log = Logger(subsystem: "com.x2004durgesh.uwumi", category: "CastProxy")
   private static let cors = [
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "*",
@@ -139,6 +141,8 @@ final class CastProxyServer: NSObject, URLSessionDataDelegate {
       if let end = buffer.range(of: Data("\r\n\r\n".utf8)) {
         self.handle(connection, head: String(decoding: buffer[..<end.lowerBound], as: UTF8.self))
       } else if complete || error != nil || buffer.count > 64 * 1024 {
+        // A receiver that upgrades to HTTPS sends a TLS handshake here instead
+        Self.log.warning("Not an HTTP request from \(String(describing: connection.endpoint), privacy: .public)")
         connection.cancel()
       } else {
         self.receiveHead(connection, buffer: buffer)
@@ -157,6 +161,9 @@ final class CastProxyServer: NSObject, URLSessionDataDelegate {
     }
     guard request.count >= 2 else { return connection.cancel() }
     let method = request[0]
+    Self.log.info(
+      "\(method, privacy: .public) \(request[1].components(separatedBy: "/").last ?? "", privacy: .public) from \(String(describing: connection.endpoint), privacy: .public)"
+    )
     if method == "OPTIONS" { return reply(connection, status: 204, headers: [:], body: nil) }
 
     let parts = request[1].components(separatedBy: "/")
@@ -215,6 +222,7 @@ final class CastProxyServer: NSObject, URLSessionDataDelegate {
     }
     relay.response = http
     let type = http.value(forHTTPHeaderField: "Content-Type") ?? ""
+    Self.log.info("  upstream \(http.statusCode) \(type, privacy: .public) for \(http.url?.host ?? "", privacy: .public)")
     let path = relay.target.components(separatedBy: "?")[0].lowercased()
     relay.playlist = relay.method != "HEAD" && http.statusCode < 400
       && (type.localizedCaseInsensitiveContains("mpegurl") || path.hasSuffix(".m3u8"))
@@ -241,6 +249,7 @@ final class CastProxyServer: NSObject, URLSessionDataDelegate {
 
   func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
     guard let relay = relays.removeValue(forKey: task.taskIdentifier) else { return }
+    if let error { Self.log.warning("Upstream failed: \(error.localizedDescription, privacy: .public)") }
     if relay.playlist, error == nil, let base = relay.response?.url ?? URL(string: relay.target) {
       let body = Data(Self.rewrite(String(decoding: relay.body, as: UTF8.self), base: base, session: relay.session).utf8)
       return reply(relay.connection, status: 200,

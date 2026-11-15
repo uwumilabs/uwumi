@@ -1,6 +1,7 @@
 package com.x2004durgesh.uwumi.modules
 
 import android.util.Base64
+import android.util.Log
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import org.json.JSONObject
@@ -42,6 +43,7 @@ class CastProxyModule : Module() {
 }
 
 private object CastProxyServer {
+  private const val TAG = "CastProxy"
   private const val BUFFER = 64 * 1024
   private val pool = Executors.newCachedThreadPool()
   private val headersBySession = ConcurrentHashMap<String, Map<String, String>>()
@@ -89,7 +91,7 @@ private object CastProxyServer {
   private fun accept(server: ServerSocket) {
     while (!server.isClosed) {
       val client = runCatching { server.accept() }.getOrNull() ?: break
-      pool.execute { runCatching { handle(client) } }
+      pool.execute { runCatching { handle(client) }.onFailure { Log.w(TAG, "Request failed", it) } }
     }
   }
 
@@ -102,6 +104,12 @@ private object CastProxyServer {
       .mapNotNull { line -> line.indexOf(':').takeIf { it > 0 }?.let { line.take(it).trim().lowercase() to line.drop(it + 1).trim() } }
       .toMap()
     val method = request.getOrNull(0) ?: return
+    // A receiver that upgrades to HTTPS sends a TLS handshake here instead
+    if (method !in listOf("GET", "HEAD", "OPTIONS")) {
+      Log.w(TAG, "Not an HTTP request from ${connection.inetAddress}")
+      return
+    }
+    Log.i(TAG, "$method ${request.getOrNull(1)?.substringAfterLast('/')} from ${connection.inetAddress}")
     if (method == "OPTIONS") return writeHead(out, 204, emptyMap()).also { out.flush() }
 
     val parts = request.getOrNull(1)?.split('/') ?: return
@@ -125,6 +133,7 @@ private object CastProxyServer {
     }
     try {
       val status = upstream.responseCode
+      Log.i(TAG, "  upstream $status ${upstream.contentType} for ${URL(target).host}")
       val body = BufferedInputStream((if (status >= 400) upstream.errorStream else upstream.inputStream) ?: ByteArrayInputStream(ByteArray(0)), BUFFER)
       val playlist = method != "HEAD" && status < 400 && isPlaylist(upstream.contentType, target, body)
       if (playlist) {

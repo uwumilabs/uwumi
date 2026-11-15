@@ -368,7 +368,7 @@ const Watch = () => {
   useCastPlayback({
     url: source,
     headers: sourceHeaders,
-    hls: !localUri && !!data?.sources?.find((s) => s.url === source)?.isM3U8,
+    hls: !localUri && (!!data?.sources?.find((s) => s.url === source)?.isM3U8 || /\.m3u8(\?|$)/i.test(source)),
     subtitles: subtitleTracks,
     title,
     subtitle: isMovieType(type) ? undefined : `Episode ${episodeNumber}`,
