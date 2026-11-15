@@ -6,6 +6,7 @@ import { IAnimeInfo } from 'react-native-consumet';
 import { HUXStack, ThemedView } from '@/components/ui-primitives';
 import { MaterialIconsIcon } from '@/components/Icons';
 import { PlayerOverlay, SkipSlot, type UpNext } from '@/components/watch/PlayerOverlay';
+import { PlayerCastButton, useCastPlayback } from '@/components/watch/Cast';
 import { EpisodesPanel } from '@/components/watch/EpisodesPanel';
 import {
   AddSubtitlesItem,
@@ -364,6 +365,18 @@ const Watch = () => {
     () => [...(data?.subtitles ?? []), ...(externalSubtitles ?? []), ...addedSubtitles],
     [data?.subtitles, externalSubtitles, addedSubtitles],
   );
+  useCastPlayback({
+    url: source,
+    headers: sourceHeaders,
+    hls: !localUri && !!data?.sources?.find((s) => s.url === source)?.isM3U8,
+    subtitles: subtitleTracks,
+    title,
+    subtitle: isMovieType(type) ? undefined : `Episode ${episodeNumber}`,
+    poster,
+    startAt: () => playheadRef.current,
+    onCasting: () => videoRef?.current?.pause(),
+  });
+
   // Listed above "Off" in the Captions menu
   const addedTrackTitles = useMemo(
     () => new Set([...(externalSubtitles ?? []), ...addedSubtitles].map((track) => track.title)),
@@ -560,11 +573,14 @@ const Watch = () => {
               />
             ),
             beforeMuteButton: (
-              <BaseIconButton
-                testID="watch-episodes"
-                onTap={openEpisodes}
-                IconComponent={() => <MaterialIconsIcon name="video-library" size={24} color="white" />}
-              />
+              <>
+                <PlayerCastButton />
+                <BaseIconButton
+                  testID="watch-episodes"
+                  onTap={openEpisodes}
+                  IconComponent={() => <MaterialIconsIcon name="video-library" size={24} color="white" />}
+                />
+              </>
             ),
             beforeProgressBar: (
               <HUXStack>

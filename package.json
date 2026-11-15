@@ -108,6 +108,7 @@
     "react-native-ffmpeg-kit": "7.0.0-beta.7",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-get-random-values": "^2.0.0",
+    "react-native-google-cast": "^5.0.0-beta.0",
     "react-native-keyboard-controller": "1.22.7",
     "react-native-material-ripple": "^0.9.1",
     "react-native-mmkv": "^4.3.2",

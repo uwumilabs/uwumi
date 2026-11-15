@@ -1,6 +1,11 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
+// @generated begin react-native-google-cast-version-import - expo prebuild (DO NOT MODIFY) sync-fae6fcbd64e2326087adbd7c57efc820c842a04b
+  ext {
+        castFrameworkVersion = "22.3.1"
+  }
+// @generated end react-native-google-cast-version-import
   repositories {
     google()
     mavenCentral()

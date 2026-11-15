@@ -240,6 +240,13 @@ PODS:
     - ReactNativeDependencies
   - glog (0.3.5):
     - ReactNativeDependencies
+  - google-cast-sdk (4.8.6):
+    - GTMSessionFetcher
+  - GTMSessionFetcher (5.3.1):
+    - GTMSessionFetcher/Full (= 5.3.1)
+  - GTMSessionFetcher/Core (5.3.1)
+  - GTMSessionFetcher/Full (5.3.1):
+    - GTMSessionFetcher/Core
   - hermes-engine (260318099.0.5):
     - hermes-engine/Pre-built (= 260318099.0.5)
   - hermes-engine/Pre-built (260318099.0.5)
@@ -286,6 +293,32 @@ PODS:
     - ReactNativeDependencies
     - Yoga
   - MMKVCore (2.4.0)
+  - NitroGoogleCast (5.0.0-beta.0):
+    - google-cast-sdk
+    - hermes-engine
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-cxxstableapi
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - NitroMmkv (4.3.2):
     - hermes-engine
     - MMKVCore (= 2.4.0)
@@ -2779,6 +2812,7 @@ DEPENDENCIES:
   - glog (from `build/rndeps-facades/glog`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - lottie-react-native (from `../node_modules/lottie-react-native`)
+  - NitroGoogleCast (from `../node_modules/react-native-google-cast`)
   - NitroMmkv (from `../node_modules/react-native-mmkv`)
   - NitroModules (from `../node_modules/react-native-nitro-modules`)
   - NitroOta (from `../node_modules/react-native-nitro-ota`)
@@ -2881,6 +2915,8 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - google-cast-sdk
+    - GTMSessionFetcher
     - libavif
     - libdav1d
     - libwebp
@@ -2976,6 +3012,8 @@ EXTERNAL SOURCES:
     :tag: hermes-v260318099.0.5
   lottie-react-native:
     :path: "../node_modules/lottie-react-native"
+  NitroGoogleCast:
+    :path: "../node_modules/react-native-google-cast"
   NitroMmkv:
     :path: "../node_modules/react-native-mmkv"
   NitroModules:
@@ -3213,6 +3251,8 @@ SPEC CHECKSUMS:
   FBLazyVector: 4799445607b4d370afd39153808e144200c98576
   fmt: fffbf9ff9df784b94b83d64a2a17b483e3af1b9b
   glog: f5a1a7e2fb92892b24597efeefb5a8622a26989a
+  google-cast-sdk: e90a401e59b477644157fa782359b31b24448c9f
+  GTMSessionFetcher: a6d2b2aa203485893d4511ff64642dc811f7c09f
   hermes-engine: 79484fc4e58f328d01b9339ef899ca633d3702ee
   libavif: 5f8e715bea24debec477006f21ef9e95432e254d
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
@@ -3220,6 +3260,7 @@ SPEC CHECKSUMS:
   lottie-ios: 8f959969761e9c45d70353667d00af0e5b9cadb3
   lottie-react-native: f4648abcf4590871eea8f7be70a2a62b7e7c899b
   MMKVCore: 3d16ce9f7d411e135020915fde98a056859a1efa
+  NitroGoogleCast: 7b6b1039beaf5512b07c3123efd68c1464482d30
   NitroMmkv: 9d26ccadb2dd41ac74f6ca921fe2c3d74c9c40e0
   NitroModules: 7bf29af7ff79c45abd39262df30a18b23dd5b04a
   NitroOta: a33ceae739fb2c1112b448c8b0e5fb79c295d4f7

@@ -56,6 +56,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
   - `src/utils/` holds pure helpers, split by what they're about: `tv.ts`, `format.ts`, `http.ts`, `files.ts` (app folders, file URIs), `share.ts`, `haptics.ts` (skips TV), `subtitles.ts`, `seekPreview.ts`, `manga.ts`, `media.ts` (`MediaItem`, titles, meta providers, `MEDIA_TABS`), `episodes.ts` (episode fields and labels, uniqueId format), `routes.ts` (every route's params, hooks and hrefs, the share link, `SETTINGS_SCREENS`).
   - App services that use stores live in `src/services/`: `backup.ts`, `episodeAlerts.ts` (scheduling and opening alerts), `cache.ts`, `notifications.ts`.
   - The reader's pieces are in `src/components/reader/`; the player's seek bar in `src/components/watch/slider/`.
+  - Inline native modules live in `src/modules` (Expo `inlineModules`). On Android a Kotlin inline module is exposed to JS under its class name, which is its file name, and `Name()` is ignored. So give the Swift side the same name (`@ExpoModule("CastProxyModule")` in `CastProxyModule.swift`) and look it up by that name.
   - Launch work goes in `src/bootstrap.ts`, which the root layout imports once. It must be safe to run twice (Fast Refresh).
 - **Argent e2e tests** go in a folder per area: `.argent/e2e/<area>/<flow>-android.yaml` and `<flow>-ios.yaml` (`navigation/`, `info/`, `watch/`, `reader/`, `more/`, `settings/`, `downloads/`), never loose in `.argent/e2e/`. Each starts with `- run: ../_shared/start-<platform>.yaml` (cold start on the Anime tab). Baselines sit in `<area>/__baselines__/`. Each folder's README lists its tests and the bugs found; the root README is the runbook. Run one by path: `argent e2e run .argent/e2e/<area>/<file>.yaml --device <id> --platform ios|android`. Android TV has no e2e runner; its screenshots and focus review are in `.argent/e2e/tv/`.
   - Check a screen with its root id (`more-screen`, `anime-screen`): both runners see those. On iOS the runner tree doesn't include SwiftUI content, so `NativeList` rows and their text can't be selected there; tests that tap them are Android only.
@@ -89,6 +90,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 
 **Android builds**
 - R8 is on. Classes reached through reflection or JNI need keep rules in `app.json` → expo-build-properties `extraProguardRules`; `proguard-rules.pro` gets regenerated. After changing dependencies, launch a release APK to check.
+- `react-native-google-cast`'s plugin defaults the Cast framework to `+`, which resolves to `play-services-cast-framework` 23.x, built with Kotlin 2.4. The app compiles with Kotlin 2.2, which can't read it ("incompatible version of Kotlin"). Keep `androidPlayServicesCastFrameworkVersion` pinned in `app.json` (22.3.1) until the Kotlin version moves.
 - `src/scripts/build-android.sh` re-signs release APKs with key rotation (lineage file in `signing/`).
 
 **iOS builds**
@@ -113,6 +115,9 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - uniwind only styles RN core views and `withUniwind` wrappers. A third-party native view styled with `className` renders 0×0, so wrap it.
 - Every inline iOS SwiftUI `Host` in a scrolling screen needs `ignoreSafeArea="container"`.
 - On TV the player's settings menu is the toolkit's own side panel (phones use uwumi's native bottom sheet): the native sheet takes Back as "close" (`src/components/watch/AppVideoProvider.tsx`).
+- Google's Cast dialogs only follow the app theme if `themeCastDialog()` (`src/modules/castDialog.ts`) runs before `CastContext.showCastDialog()`.
+  - Android applies the style `plugins/withCastDialogTheme.js` generated for that theme from `src/themes/theme.ts`, so a new theme needs a prebuild. iOS sets `GCKUIStyle`.
+  - On iOS, `apply()` only partly restyles a dialog that's already open.
 - uwumi renders the player's seek bar itself: it passes its own `Slider` (`src/components/watch/slider`) to the toolkit through `videoComponents`. Player additions to the seek bar go there, for example `SeekPreview`.
   - Seek previews come from `useSeekPreviewStore`: the provider's `thumbnails.vtt` while streaming, or the sprites saved beside a download.
 - The toolkit's `VideoProvider` is global (`src/components/watch/AppVideoProvider.tsx`, in the root layout), and its `ended` flag stays true until the next source loads. So the watch screen only renders `VideoPlayer.UpNext` once its own source has loaded (`phase === 'playing'`). Otherwise a new episode counts down to the one after it before it plays.
@@ -174,4 +179,9 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - **iOS simulator:** you can't tap it. Take screenshots with `xcrun simctl io booted screenshot` and ask the user to navigate.
   - If reload fails with "no permission to save ReactNativeDevBundle.js", delete that file from the app container's `tmp/` and relaunch.
 - **Sharing devices:** one session drives an emulator at a time. If the user is tapping, stop driving it, and capture logs instead. A logcat dump can run in the background; logcat keeps its buffer from the last `-c`.
+- **Cast proxy from another device:** the work Mac's firewall drops inbound connections to its Wi-Fi IP, so the URL `register()` returns can't be reached from a sim or emulator. Instead:
+  1. Register a stream with `argent run debugger-evaluate` (`globalThis.expo.modules.CastProxyModule.register(url, headersJson)`).
+  2. For the Pixel, `adb forward` its port; the iOS sim needs nothing, since it shares the Mac's loopback.
+  3. From the TV emulator, fetch `10.0.2.2:<port>/p/…`.
+  - Toybox `nc` hangs up when stdin ends, which drops the reply. Keep stdin open: `(printf 'GET … HTTP/1.0\r\n\r\n'; sleep 30) | nc 10.0.2.2 <port>`.
 - **Device-only checks:** say what is still untested (iOS, TV, release builds) rather than implying it works.

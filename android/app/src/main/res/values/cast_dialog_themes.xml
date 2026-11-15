@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <style name="UwumiCastDialog_default_light" parent="Theme.MediaRouter.Light">
+    <item name="android:windowBackground">@drawable/cast_dialog_background</item>
+    <item name="android:colorBackground">#FCF7FF</item>
+    <item name="android:textColorPrimary">#1B1B1F</item>
+    <item name="android:textColorSecondary">#44464F</item>
+    <item name="android:textColorLink">#0058CA</item>
+    <item name="android:colorAccent">#0058CA</item>
+    <item name="android:colorControlActivated">#0058CA</item>
+    <item name="colorAccent">#0058CA</item>
+    <item name="colorControlActivated">#0058CA</item>
+    <item name="colorPrimary">#0058CA</item>
+    <item name="colorPrimaryDark">#0058CA</item>
+    <item name="android:borderlessButtonStyle">@style/UwumiCastDialogButton_default_light</item>
+  </style>
+  <!-- The app's Material 3 theme makes the dialog's buttons MaterialButtons, which ignore colorPrimary above -->
+  <style name="UwumiCastDialogButton_default_light" parent="Widget.Material3.Button.TextButton">
+    <item name="android:textColor">#0058CA</item>
+  </style>
+  <style name="UwumiCastDialogOverlay_default_light">
+    <item name="mediaRouteTheme">@style/UwumiCastDialog_default_light</item>
+  </style>
+
+  <style name="UwumiCastDialog_default_dark" parent="Theme.MediaRouter">
+    <item name="android:windowBackground">@drawable/cast_dialog_background</item>
+    <item name="android:colorBackground">#292730</item>
+    <item name="android:textColorPrimary">#E3E2E6</item>
+    <item name="android:textColorSecondary">#C5C6D0</item>
+    <item name="android:textColorLink">#B0C6FF</item>
+    <item name="android:colorAccent">#B0C6FF</item>
+    <item name="android:colorControlActivated">#B0C6FF</item>
+    <item name="colorAccent">#B0C6FF</item>
+    <item name="colorControlActivated">#B0C6FF</item>
+    <item name="colorPrimary">#B0C6FF</item>
+    <item name="colorPrimaryDark">#B0C6FF</item>
+    <item name="android:borderlessButtonStyle">@style/UwumiCastDialogButton_default_dark</item>
+  </style>
+  <!-- The app's Material 3 theme makes the dialog's buttons MaterialButtons, which ignore colorPrimary above -->
+  <style name="UwumiCastDialogButton_default_dark" parent="Widget.Material3.Button.TextButton">
+    <item name="android:textColor">#B0C6FF</item>
+  </style>
+  <style name="UwumiCastDialogOverlay_default_dark">
+    <item name="mediaRouteTheme">@style/UwumiCastDialog_default_dark</item>
+  </style>
+
+  <style name="UwumiCastDialog_cloudflare_dark" parent="Theme.MediaRouter">
+    <item name="android:windowBackground">@drawable/cast_dialog_background</item>
+    <item name="android:colorBackground">#292730</item>
+    <item name="android:textColorPrimary">#EFF2F5</item>
+    <item name="android:textColorSecondary">#FFFFFF</item>
+    <item name="android:textColorLink">#F38020</item>
+    <item name="android:colorAccent">#F38020</item>
+    <item name="android:colorControlActivated">#F38020</item>
+    <item name="colorAccent">#F38020</item>
+    <item name="colorControlActivated">#F38020</item>
+    <item name="colorPrimary">#F38020</item>
+    <item name="colorPrimaryDark">#F38020</item>
+    <item name="android:borderlessButtonStyle">@style/UwumiCastDialogButton_cloudflare_dark</item>
+  </style>
+  <!-- The app's Material 3 theme makes the dialog's buttons MaterialButtons, which ignore colorPrimary above -->
+  <style name="UwumiCastDialogButton_cloudflare_dark" parent="Widget.Material3.Button.TextButton">
+    <item name="android:textColor">#F38020</item>
+  </style>
+  <style name="UwumiCastDialogOverlay_cloudflare_dark">
+    <item name="mediaRouteTheme">@style/UwumiCastDialog_cloudflare_dark</item>
+  </style>
+
+  <style name="UwumiCastDialog_cloudflare_light" parent="Theme.MediaRouter.Light">
+    <item name="android:windowBackground">@drawable/cast_dialog_background</item>
+    <item name="android:colorBackground">#FCF7FF</item>
+    <item name="android:textColorPrimary">#1B1B22</item>
+    <item name="android:textColorSecondary">#49454E</item>
+    <item name="android:textColorLink">#F38020</item>
+    <item name="android:colorAccent">#F38020</item>
+    <item name="android:colorControlActivated">#F38020</item>
+    <item name="colorAccent">#F38020</item>
+    <item name="colorControlActivated">#F38020</item>
+    <item name="colorPrimary">#F38020</item>
+    <item name="colorPrimaryDark">#F38020</item>
+    <item name="android:borderlessButtonStyle">@style/UwumiCastDialogButton_cloudflare_light</item>
+  </style>
+  <!-- The app's Material 3 theme makes the dialog's buttons MaterialButtons, which ignore colorPrimary above -->
+  <style name="UwumiCastDialogButton_cloudflare_light" parent="Widget.Material3.Button.TextButton">
+    <item name="android:textColor">#F38020</item>
+  </style>
+  <style name="UwumiCastDialogOverlay_cloudflare_light">
+    <item name="mediaRouteTheme">@style/UwumiCastDialog_cloudflare_light</item>
+  </style>
+
+  <style name="UwumiCastDialog_cotton_candy_dark" parent="Theme.MediaRouter">
+    <item name="android:windowBackground">@drawable/cast_dialog_background</item>
+    <item name="android:colorBackground">#292730</item>
+    <item name="android:textColorPrimary">#ECE0E0</item>
+    <item name="android:textColorSecondary">#D6C2C4</item>
+    <item name="android:textColorLink">#FFB1C1</item>
+    <item name="android:colorAccent">#FFB1C1</item>
+    <item name="android:colorControlActivated">#FFB1C1</item>
+    <item name="colorAccent">#FFB1C1</item>
+    <item name="colorControlActivated">#FFB1C1</item>
+    <item name="colorPrimary">#FFB1C1</item>
+    <item name="colorPrimaryDark">#FFB1C1</item>
+    <item name="android:borderlessButtonStyle">@style/UwumiCastDialogButton_cotton_candy_dark</item>
+  </style>
+  <!-- The app's Material 3 theme makes the dialog's buttons MaterialButtons, which ignore colorPrimary above -->
+  <style name="UwumiCastDialogButton_cotton_candy_dark" parent="Widget.Material3.Button.TextButton">
+    <item name="android:textColor">#FFB1C1</item>
+  </style>
+  <style name="UwumiCastDialogOverlay_cotton_candy_dark">
+    <item name="mediaRouteTheme">@style/UwumiCastDialog_cotton_candy_dark</item>
+  </style>
+
+  <style name="UwumiCastDialog_cotton_candy_light" parent="Theme.MediaRouter.Light">
+    <item name="android:windowBackground">@drawable/cast_dialog_background</item>
+    <item name="android:colorBackground">#FCF7FF</item>
+    <item name="android:textColorPrimary">#201A1B</item>
+    <item name="android:textColorSecondary">#524345</item>
+    <item name="android:textColorLink">#9A4058</item>
+    <item name="android:colorAccent">#9A4058</item>
+    <item name="android:colorControlActivated">#9A4058</item>
+    <item name="colorAccent">#9A4058</item>
+    <item name="colorControlActivated">#9A4058</item>
+    <item name="colorPrimary">#9A4058</item>
+    <item name="colorPrimaryDark">#9A4058</item>
+    <item name="android:borderlessButtonStyle">@style/UwumiCastDialogButton_cotton_candy_light</item>
+  </style>
+  <!-- The app's Material 3 theme makes the dialog's buttons MaterialButtons, which ignore colorPrimary above -->
+  <style name="UwumiCastDialogButton_cotton_candy_light" parent="Widget.Material3.Button.TextButton">
+    <item name="android:textColor">#9A4058</item>
+  </style>
+  <style name="UwumiCastDialogOverlay_cotton_candy_light">
+    <item name="mediaRouteTheme">@style/UwumiCastDialog_cotton_candy_light</item>
+  </style>
+</resources>
