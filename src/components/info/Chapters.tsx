@@ -26,7 +26,7 @@ import type { IMangaChapter } from 'react-native-consumet';
 interface ChaptersProps {
   header?: ReactNode;
   /** Kept at the list's scroll offset */
-  scrollY?: SharedValue<number>;
+  scrollY: SharedValue<number>;
 }
 
 const ChapterRow = memo(

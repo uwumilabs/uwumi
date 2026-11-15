@@ -23,7 +23,7 @@ import {
 import { ServerMenuItem, ServerMenuView } from '@/components/watch/ServerMenu';
 import ProviderSelection from '@/components/watch/ProviderSelection';
 import { useQueryClient } from '@tanstack/react-query';
-import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
+import { useFocusEffect, useIsFocused, useNavigation, useRouter } from 'expo-router';
 import { useNowPlayingStore } from '@/hooks/stores/useEpisodesStore';
 import {
   episodeLabel,
@@ -93,6 +93,7 @@ const Watch = () => {
   const videoRef = useVideoSelector((state) => state.videoRef);
   const isPlaying = useVideoSelector((state) => state.isPlaying);
   const autoPip = usePlayerSettingsStore((state) => state.autoPip);
+  const focused = useIsFocused();
   const { enterFullscreen, exitFullscreen } = useFullscreen();
   const navigation = useNavigation();
   const [episodesOpen, setEpisodesOpen] = useState(false);
@@ -478,7 +479,7 @@ const Watch = () => {
           allowsExternalPlayback: true,
           mixWithOthers: 'mix',
           bufferingStrategy: BufferingStrategyType.DEPENDING_ON_MEMORY,
-          enterPictureInPictureOnLeave: !isTV && isPlaying && autoPip,
+          enterPictureInPictureOnLeave: !isTV && focused && isPlaying && autoPip,
           onError: () => {
             if (localUri) {
               console.error('❌ The downloaded file would not play, streaming instead:', localUri);

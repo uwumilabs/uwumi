@@ -5,8 +5,8 @@ import { isDarkTheme, usePureBlackBackground, useThemeStore } from './stores/use
 const AMOLED_SURFACE = '#0c0c0c';
 
 /**
- * The theme's colours, and what pure black changes in dark themes: screens go black, sheets and the TV rail near
- * black. `isPureBlack` is for className sites (`bg-black`).
+ * The theme's colours, and what pure black changes in dark themes: screens go black, sheets, bars and the TV rail
+ * near black. `isPureBlack` is for className sites (`bg-black`).
  */
 export const useCurrentTheme = () => {
   const themeName = useThemeStore((state) => state.themeName);
@@ -22,6 +22,7 @@ export const useCurrentTheme = () => {
       isPureBlack,
       screenBackground: isPureBlack ? '#000000' : theme.background,
       sheetBackground: isPureBlack ? AMOLED_SURFACE : theme.background,
+      barBackground: isPureBlack ? AMOLED_SURFACE : theme.surface,
       railBackground: isPureBlack ? AMOLED_SURFACE : theme.segment,
     };
   }, [themeName, pureBlack]);

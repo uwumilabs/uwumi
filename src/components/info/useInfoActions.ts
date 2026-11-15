@@ -2,12 +2,16 @@ import { useCallback, useMemo } from 'react';
 import { useInfoParams } from '@/utils/routes';
 import { isSameTitle, useFavoriteStore } from '@/hooks/stores/useFavoriteStore';
 import { useShownTitle } from '@/hooks/queries/infoQueries';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { haptics } from '@/utils/haptics';
+import { shareMedia } from '@/utils/share';
+import { isTV } from '@/utils/tv';
 
-/** Whether the info screen's title is a favorite, a toggle for it, and the toggle's label (tests select on it) */
-export const useFavoriteToggle = () => {
+/** The info screen's header actions, which each platform's bar renders (tests select on the labels) */
+export const useInfoActions = () => {
   const { mediaType, type, id } = useInfoParams();
   const { title, image } = useShownTitle();
+  const activeColor = useCurrentTheme().default;
   const addFavorite = useFavoriteStore((state) => state.addFavorite);
   const removeFavorite = useFavoriteStore((state) => state.removeFavorite);
   const titleRef = useMemo(() => ({ id, type }), [id, type]);
@@ -31,5 +35,14 @@ export const useFavoriteToggle = () => {
     }
   }, [addFavorite, id, titleRef, isFavorited, removeFavorite, image, type, mediaType, title]);
 
-  return { isFavorited, toggleFavorite, label: isFavorited ? 'Remove from favorites' : 'Add to favorites' };
+  return {
+    // Android TV has no share targets
+    share: isTV ? undefined : { label: 'Share', onPress: () => shareMedia({ mediaType, id, type, title }) },
+    favorite: {
+      active: isFavorited,
+      label: isFavorited ? 'Remove from favorites' : 'Add to favorites',
+      tint: isFavorited ? activeColor : undefined,
+      onPress: toggleFavorite,
+    },
+  };
 };

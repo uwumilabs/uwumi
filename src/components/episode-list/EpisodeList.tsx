@@ -361,7 +361,7 @@ interface EpisodeListProps {
   /** Rendered after the episode window */
   footer?: ReactNode;
   /** Kept at the page's scroll offset */
-  scrollY?: SharedValue<number>;
+  scrollY: SharedValue<number>;
 }
 
 // Info screen: episodes scroll inside a window of 3-5 full rows, sized to the screen, so the page around them stays put
@@ -386,7 +386,7 @@ const EpisodeListView = ({ header, footer, scrollY }: EpisodeListProps) => {
   // The info screen's header floats over the page, so scrolls stop below it
   const headerHeight = useContext(HeaderHeightContext) ?? 0;
   const onPageScroll = useAnimatedScrollHandler((event) => {
-    scrollY?.set(event.contentOffset.y);
+    scrollY.set(event.contentOffset.y);
   });
   const setProvider = useProviderStore((state) => state.setProvider);
   const { episodes, context: nav, movieSeasons, activeSeason, setSeason, isLoading, error, refetch } = useEpisodeList();

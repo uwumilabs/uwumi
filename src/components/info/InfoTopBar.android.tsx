@@ -20,12 +20,10 @@ import { MaterialIconsIcon } from '@/components/Icons';
 import { LinearGradient } from '@/components/LinearGradient';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { useShownTitle } from '@/hooks/queries/infoQueries';
-import { useInfoParams } from '@/utils/routes';
-import { shareMedia } from '@/utils/share';
 import { hexToRGB } from '@/utils/format';
 import { isTV } from '@/utils/tv';
 import { INFO_HERO_HEIGHT } from './InfoHeader';
-import { useFavoriteToggle } from './useFavoriteToggle';
+import { useInfoActions } from './useInfoActions';
 import type { InfoTopBarProps } from './InfoTopBar';
 
 // Material 3's small top app bar, below the status bar
@@ -104,9 +102,8 @@ export const InfoTopBar = ({ scrollY, children }: InfoTopBarProps) => {
   const { top } = useSafeAreaInsets();
   const height = top + BAR_HEIGHT;
   const theme = useCurrentTheme();
-  const { mediaType, id, type } = useInfoParams();
   const { title } = useShownTitle();
-  const { isFavorited, toggleFavorite, label } = useFavoriteToggle();
+  const { share, favorite } = useInfoActions();
 
   // The title's point is past the fill's, so the title never shows on a see-through bar
   const filled = useFadeAt(scrollY, FILL_AT);
@@ -118,9 +115,6 @@ export const InfoTopBar = ({ scrollY, children }: InfoTopBarProps) => {
     transform: [{ translateY: (1 - titled.get()) * 8 }],
   }));
 
-  const fill = theme.isPureBlack ? theme.sheetBackground : theme.surface;
-  const scrim = theme.screenBackground;
-
   return (
     // The page lays out below the bar as it would below a native header
     <HeaderHeightContext.Provider value={height}>
@@ -129,13 +123,17 @@ export const InfoTopBar = ({ scrollY, children }: InfoTopBarProps) => {
       {/* Runs on past the bar and fades out gradually, even where the bar is short (TV has no status bar above it) */}
       <Animated.View pointerEvents="none" style={[styles.top, { height: height * 1.7 }, scrimStyle]}>
         <LinearGradient
-          colors={[hexToRGB(scrim, 0.95), hexToRGB(scrim, 0.75), hexToRGB(scrim, 0)]}
+          colors={[
+            hexToRGB(theme.screenBackground, 0.95),
+            hexToRGB(theme.screenBackground, 0.75),
+            hexToRGB(theme.screenBackground, 0),
+          ]}
           locations={[0, 0.5, 1]}
           style={StyleSheet.absoluteFill}
         />
       </Animated.View>
       <View style={[styles.top, { height }]}>
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: fill }, fillStyle]} />
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: theme.barBackground }, fillStyle]} />
         <Host style={StyleSheet.absoluteFill}>
           <TopAppBar windowInsets={{ top }} colors={{ containerColor: 'transparent' }}>
             <TopAppBar.NavigationIcon>
@@ -150,20 +148,13 @@ export const InfoTopBar = ({ scrollY, children }: InfoTopBarProps) => {
               </RNHostView>
             </TopAppBar.Title>
             <TopAppBar.Actions>
-              {!isTV && (
-                <BarButton
-                  icon="share"
-                  label="Share"
-                  testID="info-share"
-                  onPress={() => shareMedia({ mediaType, id, type, title })}
-                />
-              )}
+              {share && <BarButton icon="share" label={share.label} testID="info-share" onPress={share.onPress} />}
               <BarButton
-                icon={isFavorited ? 'favorite' : 'favorite-border'}
-                label={label}
+                icon={favorite.active ? 'favorite' : 'favorite-border'}
+                label={favorite.label}
                 testID="info-favorite"
-                tint={isFavorited ? theme.default : undefined}
-                onPress={toggleFavorite}
+                tint={favorite.tint}
+                onPress={favorite.onPress}
               />
             </TopAppBar.Actions>
           </TopAppBar>
