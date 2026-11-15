@@ -21,6 +21,8 @@ Both platforms, two passes in a row on 2026-11-14. Needs an empty queue at the s
 
 ## Quirks
 
+- **`download-episode` removes the first download card it finds.** Only run it with an empty queue. On 2026-11-15 a run with another download in the queue deleted that download (JUJUTSU KAISEN E01) instead of its own.
+
 - A cancelled card moves from the Downloading section to Failed ("Cancelled"). A tap during that move is lost: wait `await: { idle: true, stableFor: 800 }` before tapping Remove.
 - The card can already have failed by the time the queue opens (a provider or FFmpeg error), so Cancel is under a `when:`; Remove works in every state.
 - Server and quality rows share `episode-action-server` / `episode-action-quality`; pick one by its text (`megaplay-vidstream-1`, `auto`).

@@ -1,7 +1,5 @@
-import { FFprobeKit, Level, type Log, ReturnCode, type FFmpegSession } from 'react-native-ffmpeg-kit';
-import { runOnRuntimeAsync } from 'react-native-worklets';
+import { FFprobeKit, Level, ReturnCode, type FFmpegSession } from 'react-native-ffmpeg-kit';
 import { SUB_LANGUAGE } from '@/constants/config';
-import { downloadRuntime } from './runtime';
 import type { ExternalSubtitle } from './model';
 
 /** What FFprobe found in a stream, as much as the download needs */
@@ -161,36 +159,6 @@ export const downloadArgs = ({
   args.push('-threads', '4', '-y', outputFile);
   return args;
 };
-
-/** Progress from one FFmpeg log line, parsed on the download runtime: pure string work, off the JS thread */
-export const parseProgressLog = (log: Log, duration: number) =>
-  runOnRuntimeAsync(
-    downloadRuntime,
-    (msg: string, dur: number) => {
-      'worklet';
-      const timeMatch = msg.match(/time=(\d+:\d+:\d+\.?\d*)/);
-      if (!timeMatch) return null;
-
-      const bitrateMatch = msg.match(/bitrate=\s*([\d.]+)kbits\/s/);
-      const speedMatch = msg.match(/speed=([\d.]+)x/);
-      const sizeMatch = msg.match(/size=\s*(\d+)kB/);
-
-      const parts = timeMatch[1].match(/(\d+):(\d+):(\d+\.?\d*)/);
-      if (!parts) return null;
-      const currentTime = parseInt(parts[1]) * 3600 + parseInt(parts[2]) * 60 + parseFloat(parts[3]);
-      const percentage = dur > 0 ? Math.min(Math.max(Math.round((currentTime / dur) * 100), 0), 100) : 0;
-
-      return {
-        currentTime,
-        percentage,
-        speed: speedMatch ? parseFloat(speedMatch[1]) : 0,
-        bitrate: bitrateMatch ? parseFloat(bitrateMatch[1]) * 1000 : 0,
-        size: sizeMatch ? parseInt(sizeMatch[1]) * 1024 : 0,
-      };
-    },
-    String(log.getMessage()),
-    duration,
-  );
 
 export const failureReason = async (session: FFmpegSession) => {
   const returnCode = await session.getReturnCode();

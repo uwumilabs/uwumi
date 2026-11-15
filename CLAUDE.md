@@ -127,7 +127,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - Home rows use `CardRow` (`src/components/TVRow.tsx`) with `ROW` and `rowCardWidth`; media tabs (favorites, history, statistics) map `MEDIA_TABS`.
 - Pick-one setting rows are `ChoiceRow` inside a `ChoiceRowHost`. A heroui Dialog can't sit inside a `NativeList`: its root `View` would land in the Compose/SwiftUI host.
 - Watch history keeps its own rules: `useWatchProgressStore.savePlayback` (incognito, forward only, the watched percent setting) and `toggleWatched`, and Continue watching's `record` skips incognito too. Don't write `progresses` from screens.
-- Worklet runtimes (`runOnRuntimeAsync`) are only for pure, high-frequency work whose input is already off the JS thread. The FFmpeg progress parsing is the only current case.
+- Worklet runtimes (`runOnRuntimeAsync`) are only for pure, high-frequency work whose input is already off the JS thread. There are none now: download progress comes from FFmpeg's statistics callback, and `useDownloadStore.initialize()` turns FFmpeg's log lines off (`disableLogs`, `NEVER_PRINT_LOGS`) so they stay native. Sessions still keep their logs for `failureReason`.
 
 **Downloads (FFmpeg n6.0, `src/downloads/`)**
 - FFmpeg n6.0 has no `-extension_picky`. Use `-allowed_extensions ALL` for disguised HLS segments, but only when the probe says the input is HLS. For a direct file (VegaMovies' MKVs), FFmpeg rejects HLS options with "Option … not found".

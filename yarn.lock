@@ -9996,6 +9996,11 @@ new-github-release-url@2.0.0:
   dependencies:
     type-fest "^2.5.1"
 
+nitro-core@0.37.2:
+  version "0.37.2"
+  resolved "https://registry.yarnpkg.com/nitro-core/-/nitro-core-0.37.2.tgz#5886030db1028869767dec5c142e38f0e58ae964"
+  integrity sha512-dhagikz9VXXzfidRH/vPNJfYWPmTBArDOo9wE/wEqeERU9C8uRWz9YccOyNUOvADccPAZq319yzhDMoJ9excSQ==
+
 nocache@^3.0.1:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/nocache/-/nocache-3.0.4.tgz#5b37a56ec6e09fc7d401dceaed2eab40c8bfdf79"
@@ -10972,10 +10977,12 @@ react-native-mmkv@^4.3.2:
   resolved "https://registry.yarnpkg.com/react-native-mmkv/-/react-native-mmkv-4.3.2.tgz#522978d2330932c538cce36093040826870ccb49"
   integrity sha512-49OAyfkg0/TMWiWELZN6VuVQPZPhizwL4DTmp8b7B1md3dB/s3LH3mGfC3T+lp9W0y/rqxZMEnotLFTIbOAenQ==
 
-react-native-nitro-modules@0.37.1:
-  version "0.37.1"
-  resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.37.1.tgz#368bda3038ebe796b219d98e0a364f9166e2cc7c"
-  integrity sha512-KpW6EQVQ/bfegpCGxN9Be+ndvsfj56t4IESEvCASu9gWpJa/NDfHpIeIwCOvZQ3eXmLEj6YD4wCLqcC1FJPr2w==
+react-native-nitro-modules@0.37.2:
+  version "0.37.2"
+  resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.37.2.tgz#fa224c44b2e63c6de2ac5db53361c0bed5b4e596"
+  integrity sha512-Odnrq/p6/q0R01qZlkqeXu9VHHMuGEnZZmyxMvehEu6QiACNHhBCmAHgyBDqOSo9Lb3G0TscFAT+HG0uxsR/GA==
+  dependencies:
+    nitro-core "0.37.2"
 
 react-native-nitro-ota@0.14.1:
   version "0.14.1"

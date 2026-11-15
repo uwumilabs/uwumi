@@ -2,14 +2,20 @@ import { useMemo } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { FFmpegKit, ReturnCode, type Log } from 'react-native-ffmpeg-kit';
+import {
+  FFmpegKit,
+  FFmpegKitConfig,
+  LogRedirectionStrategy,
+  ReturnCode,
+  type Statistics,
+} from 'react-native-ffmpeg-kit';
 import { persistStorage } from '@/hooks/stores/MMKV';
 import { usePreferencesStore } from '@/hooks/stores/usePreferencesStore';
 import { DOWNLOADS_DIR, fileUri, fsDirectory, fsFile } from '@/utils/files';
 import { episodeNumber, episodeTitle, type EpisodeContext, type EpisodeItem } from '@/utils/episodes';
 import { episodeWatchHref } from '@/utils/routes';
 import type { PlayableSource } from '@/hooks/queries/watchQueries';
-import { downloadArgs, failureReason, parseProgressLog, probeStream } from './ffmpeg';
+import { downloadArgs, failureReason, probeStream } from './ffmpeg';
 import { isActive, type DownloadProgress, type EpisodeDownload } from './model';
 import { deleteOutputFile, ensureDownloadsFolder, outputPathFor, relativeOutputFile, resolveOutputFile } from './files';
 import { saveThumbnails } from './thumbnails';
@@ -115,19 +121,26 @@ export const useDownloadStore = create<DownloadState>()(
         return id;
       };
 
-      const onLog = (id: string, duration: number) => (log: Log) => {
-        parseProgressLog(log, duration).then((parsed) => {
-          const download = get().downloads[id];
-          if (!parsed || !download || download.sessionId !== log.getSessionId?.()) return;
-          const now = Date.now();
-          const last = lastProgress.get(id);
-          if (last && Math.abs(parsed.percentage - last.pct) < THROTTLE_PCT && now - last.time < THROTTLE_MS) return;
-          lastProgress.set(id, { time: now, pct: parsed.percentage });
-          update(id, {
-            progress: { ...parsed, totalDuration: duration, size: parsed.size || (download.progress?.size ?? 0) },
-          });
-          showDownloadInNotification(get().downloads[id]);
+      const onStatistics = (id: string, duration: number) => (statistics: Statistics) => {
+        const download = get().downloads[id];
+        if (!download || download.sessionId !== statistics.getSessionId()) return;
+        const currentTime = statistics.getTime() / 1000;
+        const percentage = duration > 0 ? Math.min(Math.max(Math.round((currentTime / duration) * 100), 0), 100) : 0;
+        const now = Date.now();
+        const last = lastProgress.get(id);
+        if (last && Math.abs(percentage - last.pct) < THROTTLE_PCT && now - last.time < THROTTLE_MS) return;
+        lastProgress.set(id, { time: now, pct: percentage });
+        update(id, {
+          progress: {
+            percentage,
+            currentTime,
+            totalDuration: duration,
+            speed: statistics.getSpeed(),
+            bitrate: statistics.getBitrate() * 1000,
+            size: statistics.getSize() || (download.progress?.size ?? 0),
+          },
         });
+        showDownloadInNotification(get().downloads[id]);
       };
 
       const start = async (id: string) => {
@@ -192,7 +205,8 @@ export const useDownloadStore = create<DownloadState>()(
               }
               await syncService();
             },
-            onLog(id, stream.duration),
+            undefined,
+            onStatistics(id, stream.duration),
           );
           // Recorded now, not on completion, so removing an unfinished download also deletes its partial file
           update(id, { sessionId: session.getSessionId(), outputFile: relativeOutputFile(outputFile) });
@@ -210,6 +224,10 @@ export const useDownloadStore = create<DownloadState>()(
           initializing ??= (async () => {
             try {
               ensureDownloadsFolder(DOWNLOADS_DIR);
+              // Progress comes from statistics, so FFmpeg's log lines stay native; sessions still keep them for
+              // failureReason
+              await FFmpegKitConfig.disableLogs();
+              FFmpegKitConfig.setLogRedirectionStrategy(LogRedirectionStrategy.NEVER_PRINT_LOGS);
 
               // FFmpeg sessions outlive a JS reload (an OTA applied in-process, or dev), but their callbacks don't, and
               // a killed app leaves records stuck as downloading. Neither resumes, so stop the sessions and fail the
