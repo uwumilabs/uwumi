@@ -7,7 +7,14 @@ import { Image } from '@/components/Image';
 import { useRouter } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
-import Animated, { SharedValue, css, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
+import Animated, {
+  SharedValue,
+  css,
+  useAnimatedStyle,
+  useAnimatedScrollHandler,
+  interpolate,
+  Extrapolation,
+} from 'react-native-reanimated';
 import { haptics } from '@/utils/haptics';
 import { create } from 'zustand';
 import { useNowPlayingStore, useEpisodeDisplayStore } from '@/hooks/stores/useEpisodesStore';
@@ -353,6 +360,8 @@ interface EpisodeListProps {
   header?: ReactNode;
   /** Rendered after the episode window */
   footer?: ReactNode;
+  /** Kept at the page's scroll offset */
+  scrollY?: SharedValue<number>;
 }
 
 // Info screen: episodes scroll inside a window of 3-5 full rows, sized to the screen, so the page around them stays put
@@ -362,7 +371,7 @@ const WINDOW_MAX_ROWS = 5;
 // Room for the controls row and the margins around the window
 const WINDOW_CHROME = 120;
 
-const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
+const EpisodeListView = ({ header, footer, scrollY }: EpisodeListProps) => {
   const { mediaType, type, id, episode: sharedEpisode, season: sharedSeason } = useInfoParams();
   const isMovie = isMovieType(type);
   const { height: screenHeight } = useWindowDimensions();
@@ -374,8 +383,11 @@ const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
   const flashListRef = useRef<FlashListRef<EpisodeItem>>(null);
   const pageRef = useRef<React.ComponentRef<typeof Animated.ScrollView>>(null);
   const windowTopRef = useRef(0);
-  // The info screen's native header floats over the page, so scrolls stop below it
+  // The info screen's header floats over the page, so scrolls stop below it
   const headerHeight = useContext(HeaderHeightContext) ?? 0;
+  const onPageScroll = useAnimatedScrollHandler((event) => {
+    scrollY?.set(event.contentOffset.y);
+  });
   const setProvider = useProviderStore((state) => state.setProvider);
   const { episodes, context: nav, movieSeasons, activeSeason, setSeason, isLoading, error, refetch } = useEpisodeList();
   const providers = useProviders();
@@ -640,6 +652,7 @@ const EpisodeListView = ({ header, footer }: EpisodeListProps) => {
       <Animated.ScrollView
         ref={pageRef}
         className="flex-1"
+        onScroll={onPageScroll}
         showsVerticalScrollIndicator={false}
         {...tvFocusScrollProps(16 + headerHeight)}>
         {header}

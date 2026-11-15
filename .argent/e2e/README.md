@@ -101,7 +101,7 @@ The recorder (`e2e-start-recording`, `e2e-add-step`, `e2e-finish-recording`) wor
 - **The watch screen is fullscreen and landscape only.** The app rotates to landscape when it opens and back to portrait on leaving. Take coordinates from a `describe` made after the rotation, wait for `watch-screen` plus `await: { idle: true, timeout: 9000 }` before touching the player, and wait for the previous screen again after Back. No snapshots there.
 - **The first tap on a player settings-menu row after the menu's Back is dropped**: close the menu and reopen it instead.
 - **Providers differ per device**: the iOS simulator's manga provider labels rows "Chapter 1", Android's MangaHere "Ch.001". Match both.
-- **The info screen's Share and favorite buttons are native header items** with accessibility labels ("Share", "Add to favorites" / "Remove from favorites"), not testIDs.
+- **The info screen's Share and favorite buttons** carry accessibility labels ("Share", "Add to favorites" / "Remove from favorites"). On iOS they're native header items without testIDs. On Android the header is a Compose top app bar (`src/components/info/InfoTopBar.android.tsx`) whose buttons also have `info-back`, `info-share` and `info-favorite`.
 
 ### iOS
 - **About one tap in 16 is dropped within a second of a native push or pop.** Hold `await: { idle: true, stableFor: 800 }` after each screen change and snapshot.

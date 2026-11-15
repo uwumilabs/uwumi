@@ -1,10 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { sharedTransitionTags, useInfoParams } from '@/utils/routes';
 import { useMediaInfo, useShownTitle } from '@/hooks/queries/infoQueries';
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
-import { Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { LinearGradient } from '@/components/LinearGradient';
 import Animated from 'react-native-reanimated';
@@ -21,12 +18,13 @@ import { useExtensionStore } from '@/hooks/stores/useExtensionStore';
 import { useActiveProvider } from '@/hooks/stores/useProviderStore';
 import { hexToRGB, normalizeRating } from '@/utils/format';
 import { isTV } from '@/utils/tv';
-import { openBrowser, shareMedia } from '@/utils/share';
+import { openBrowser } from '@/utils/share';
 import type { MediaItem } from '@/utils/media';
 import { AnimatedCountdown } from './AnimatedCountdown';
-import { useFavoriteToggle } from './useFavoriteToggle';
 
 const DESCRIPTION_MAX_HEIGHT = 150;
+/** The artwork at the top, with the title and details over it */
+export const INFO_HERO_HEIGHT = 300;
 
 /** Providers return the description as HTML (or, for some manga, keyed by language). */
 const toPlainText = (description: unknown): string => {
@@ -65,53 +63,6 @@ export const InfoRecommendations = () => {
   );
 };
 
-// SF Symbol names, as expo-router types them
-type SFSymbol = Extract<React.ComponentProps<typeof Stack.Toolbar.Button>['icon'], string>;
-
-// Toolbar icons: an SF Symbol on iOS; on Android an image of the Ionicon, as its toolbar takes no font icons
-const useToolbarIcon = (ionicon: React.ComponentProps<typeof Ionicons>['name'], sfSymbol: SFSymbol) => {
-  const { data: image } = useQuery({
-    queryKey: ['toolbarIcon', ionicon],
-    queryFn: () => Ionicons.getImageSource(ionicon, 24, 'white'),
-    enabled: Platform.OS === 'android',
-    staleTime: Infinity,
-    gcTime: Infinity,
-  });
-  return Platform.OS === 'ios' ? sfSymbol : (image ?? undefined);
-};
-
-/**
- * Share and favorite as native header buttons, beside the native back button: the D-pad reaches them on TV, with
- * the same focus highlight as the back button
- */
-export const InfoToolbar = () => {
-  const { mediaType, id, type } = useInfoParams();
-  const { title } = useShownTitle();
-  const currentTheme = useCurrentTheme();
-  const { isFavorited, toggleFavorite } = useFavoriteToggle();
-  const shareIcon = useToolbarIcon('share-social-outline', 'square.and.arrow.up');
-  const heartIcon = useToolbarIcon('heart-outline', 'heart');
-  const filledHeartIcon = useToolbarIcon('heart', 'heart.fill');
-
-  return (
-    <Stack.Toolbar placement="right">
-      <Stack.Toolbar.Button
-        icon={shareIcon}
-        hidden={isTV || !shareIcon}
-        accessibilityLabel="Share"
-        onPress={() => shareMedia({ mediaType, id, type, title })}
-      />
-      <Stack.Toolbar.Button
-        icon={isFavorited ? filledHeartIcon : heartIcon}
-        hidden={!heartIcon || !filledHeartIcon}
-        tintColor={isFavorited ? currentTheme?.default : undefined}
-        accessibilityLabel={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-        onPress={toggleFavorite}
-      />
-    </Stack.Toolbar>
-  );
-};
-
 export const InfoHeader = ({ withRecommendations = true }: InfoHeaderProps) => {
   const { data } = useMediaInfo();
   const { mediaType, id, sharedTag } = useInfoParams();
@@ -144,13 +95,17 @@ export const InfoHeader = ({ withRecommendations = true }: InfoHeaderProps) => {
         <ImagePreview uri={poster} title={shownTitle} visible={previewOpen} onClose={() => setPreviewOpen(false)} />
       )}
       {/* TV: focus inside a block scrolls all of it clear of the see-through header (the page snaps below it) */}
-      <View className="h-75 relative" focusable={isTV ? false : undefined} scrollSnapAlign={isTV ? 'start' : undefined}>
-        <View className="absolute inset-0 h-75 w-full">
+      <View
+        className="relative"
+        style={{ height: INFO_HERO_HEIGHT }}
+        focusable={isTV ? false : undefined}
+        scrollSnapAlign={isTV ? 'start' : undefined}>
+        <View className="absolute inset-0">
           <Image source={{ uri: data?.cover }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         </View>
-        <View className="h-75 absolute inset-0 z-10">
+        <View className="absolute inset-0 z-10">
           <LinearGradient
-            className="w-full h-75 flex-1"
+            className="flex-1"
             colors={
               pureBlackBackground
                 ? [hexToRGB('#000000', 1), hexToRGB('#000000', 0.7), hexToRGB('#000000', 0.4)]

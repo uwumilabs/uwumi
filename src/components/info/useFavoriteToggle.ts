@@ -4,7 +4,7 @@ import { isSameTitle, useFavoriteStore } from '@/hooks/stores/useFavoriteStore';
 import { useShownTitle } from '@/hooks/queries/infoQueries';
 import { haptics } from '@/utils/haptics';
 
-/** Whether the info screen's title is a favorite, and a toggle for it */
+/** Whether the info screen's title is a favorite, a toggle for it, and the toggle's label (tests select on it) */
 export const useFavoriteToggle = () => {
   const { mediaType, type, id } = useInfoParams();
   const { title, image } = useShownTitle();
@@ -31,5 +31,5 @@ export const useFavoriteToggle = () => {
     }
   }, [addFavorite, id, titleRef, isFavorited, removeFavorite, image, type, mediaType, title]);
 
-  return { isFavorited, toggleFavorite };
+  return { isFavorited, toggleFavorite, label: isFavorited ? 'Remove from favorites' : 'Add to favorites' };
 };

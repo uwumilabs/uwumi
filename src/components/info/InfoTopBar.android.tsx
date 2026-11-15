@@ -1,0 +1,178 @@
+import React from 'react';
+import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
+import { Stack, useRouter } from 'expo-router';
+import { HeaderHeightContext } from 'expo-router/react-navigation';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import { Host, Icon, IconButton, RNHostView, TopAppBar } from '@expo/ui/jetpack-compose';
+import { testID as testTag } from '@expo/ui/jetpack-compose/modifiers';
+import { Button } from '@/components/Button';
+import { MaterialIconsIcon } from '@/components/Icons';
+import { LinearGradient } from '@/components/LinearGradient';
+import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { useShownTitle } from '@/hooks/queries/infoQueries';
+import { useInfoParams } from '@/utils/routes';
+import { shareMedia } from '@/utils/share';
+import { hexToRGB } from '@/utils/format';
+import { isTV } from '@/utils/tv';
+import { INFO_HERO_HEIGHT } from './InfoHeader';
+import { useFavoriteToggle } from './useFavoriteToggle';
+import type { InfoTopBarProps } from './InfoTopBar';
+
+// Material 3's small top app bar, below the status bar
+const BAR_HEIGHT = 64;
+const FILL_AT = 4;
+const FADE = { duration: 300, easing: Easing.out(Easing.cubic) };
+
+const BAR_ICONS = ['arrow-back', 'share', 'favorite', 'favorite-border'] as const;
+type BarIcon = (typeof BAR_ICONS)[number];
+
+// Compose takes no font icons, so the bar's Material icons as images, loaded together so a toggle never waits on one
+const useBarIcons = () =>
+  useQuery({
+    queryKey: ['infoBarIcons'],
+    queryFn: async () =>
+      Object.fromEntries(
+        await Promise.all(BAR_ICONS.map(async (name) => [name, await MaterialIcons.getImageSource(name, 24, 'white')])),
+      ) as Record<BarIcon, ImageSourcePropType | null>,
+    enabled: !isTV,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  }).data;
+
+interface BarButtonProps {
+  icon: BarIcon;
+  label: string;
+  testID: string;
+  onPress: () => void;
+  tint?: string;
+}
+
+// TV: the app's button, hosted in the bar, since Compose shows D-pad focus only as a faint circle
+const BarButton = ({ icon, label, testID, onPress, tint }: BarButtonProps) => {
+  const image = useBarIcons()?.[icon];
+  const foreground = useCurrentTheme().foreground;
+  const color = tint ?? foreground;
+  if (isTV) {
+    return (
+      <RNHostView matchContents>
+        <Button
+          testID={testID}
+          isIconOnly
+          variant="ghost"
+          className="size-12 rounded-full"
+          accessibilityLabel={label}
+          onPress={onPress}>
+          <MaterialIconsIcon name={icon} size={24} color={color} />
+        </Button>
+      </RNHostView>
+    );
+  }
+  return (
+    <IconButton onClick={onPress} modifiers={[testTag(testID)]}>
+      {image && <Icon source={image} size={24} tint={color} contentDescription={label} />}
+    </IconButton>
+  );
+};
+
+const useFadeAt = (scrollY: SharedValue<number>, at: number) => {
+  const shown = useSharedValue(0);
+  useAnimatedReaction(
+    () => scrollY.get() > at,
+    (past, wasPast) => {
+      if (past !== wasPast) shown.set(withTiming(past ? 1 : 0, FADE));
+    },
+  );
+  return shown;
+};
+
+/**
+ * Android's info header, in place of the native one: a Material 3 top app bar that works as Aniyomi's, see-through
+ * over the artwork until the page scrolls
+ */
+export const InfoTopBar = ({ scrollY, children }: InfoTopBarProps) => {
+  const router = useRouter();
+  const { top } = useSafeAreaInsets();
+  const height = top + BAR_HEIGHT;
+  const theme = useCurrentTheme();
+  const { mediaType, id, type } = useInfoParams();
+  const { title } = useShownTitle();
+  const { isFavorited, toggleFavorite, label } = useFavoriteToggle();
+
+  // The title's point is past the fill's, so the title never shows on a see-through bar
+  const filled = useFadeAt(scrollY, FILL_AT);
+  const titled = useFadeAt(scrollY, INFO_HERO_HEIGHT - height);
+  const fillStyle = useAnimatedStyle(() => ({ opacity: filled.get() }));
+  const scrimStyle = useAnimatedStyle(() => ({ opacity: 1 - filled.get() }));
+  const titleStyle = useAnimatedStyle(() => ({
+    opacity: titled.get(),
+    transform: [{ translateY: (1 - titled.get()) * 8 }],
+  }));
+
+  const fill = theme.isPureBlack ? theme.sheetBackground : theme.surface;
+  const scrim = theme.screenBackground;
+
+  return (
+    // The page lays out below the bar as it would below a native header
+    <HeaderHeightContext.Provider value={height}>
+      <Stack.Screen options={{ headerShown: false }} />
+      {children}
+      {/* Runs on past the bar and fades out gradually, even where the bar is short (TV has no status bar above it) */}
+      <Animated.View pointerEvents="none" style={[styles.top, { height: height * 1.7 }, scrimStyle]}>
+        <LinearGradient
+          colors={[hexToRGB(scrim, 0.95), hexToRGB(scrim, 0.75), hexToRGB(scrim, 0)]}
+          locations={[0, 0.5, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+      <View style={[styles.top, { height }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: fill }, fillStyle]} />
+        <Host style={StyleSheet.absoluteFill}>
+          <TopAppBar windowInsets={{ top }} colors={{ containerColor: 'transparent' }}>
+            <TopAppBar.NavigationIcon>
+              <BarButton icon="arrow-back" label="Back" testID="info-back" onPress={() => router.back()} />
+            </TopAppBar.NavigationIcon>
+            <TopAppBar.Title>
+              {/* React Native text, so it can follow the same animated values as the fill */}
+              <RNHostView matchContents={{ vertical: true }}>
+                <Animated.Text className="text-foreground text-xl font-medium" numberOfLines={1} style={titleStyle}>
+                  {title}
+                </Animated.Text>
+              </RNHostView>
+            </TopAppBar.Title>
+            <TopAppBar.Actions>
+              {!isTV && (
+                <BarButton
+                  icon="share"
+                  label="Share"
+                  testID="info-share"
+                  onPress={() => shareMedia({ mediaType, id, type, title })}
+                />
+              )}
+              <BarButton
+                icon={isFavorited ? 'favorite' : 'favorite-border'}
+                label={label}
+                testID="info-favorite"
+                tint={isFavorited ? theme.default : undefined}
+                onPress={toggleFavorite}
+              />
+            </TopAppBar.Actions>
+          </TopAppBar>
+        </Host>
+      </View>
+    </HeaderHeightContext.Provider>
+  );
+};
+
+const styles = StyleSheet.create({
+  top: { position: 'absolute', top: 0, left: 0, right: 0 },
+});

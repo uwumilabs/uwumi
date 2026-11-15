@@ -1,5 +1,5 @@
 # Anime info from the first Trending card: episode list, display mode (cycles through all three back to the start),
-# episode actions sheet open/close, favorite add + remove (native header button), cover preview open/close, back
+# episode actions sheet open/close, favorite add + remove (top bar button), cover preview open/close, back
 # Needs: an anime provider installed; the episode display mode starts on full metadata; the first Trending anime isn't a favorite
 # Touches: network (feed, info, episodes). Display mode and favorites end as they started.
 steps:
@@ -44,7 +44,7 @@ steps:
   - await: { hidden: { id: episode-action-toggle-watched } }
   - await: { idle: true }
 
-  - echo: Favorite through the native header button, then remove it again
+  - echo: Favorite through the top bar's button, then remove it again
   - tap: { text: Add to favorites }
   - await: { visible: { text: Remove from favorites } }
   - tap: { text: Remove from favorites }

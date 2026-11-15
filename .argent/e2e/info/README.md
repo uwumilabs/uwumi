@@ -21,7 +21,7 @@ Anime, movie/TV and manga info screens: the episode list and its display modes, 
 
 ## Quirks
 
-- The info screen scrolls under the transparent native header, so a control under the header gets the header's tap. Scroll targets below it first (the manga test scrolls to Ch.1).
+- The info screen scrolls under its see-through header (native on iOS, a Compose top app bar on Android), so a control under the header gets the header's tap. Scroll targets below it first (the manga test scrolls to Ch.1).
 - Episode rows share `episode-row`; pick one by its label: `{ id: episode-row, text: { matches: '^EP 1,' } }`. The label encodes the display mode (`^EP \d+, [^-]` full, number-only `^EP \d+, [-], `).
 - Glyph characters (U+E000-U+F8FF) appear in row text, so regexes must allow for them.
 - Android `NativeList` rows put the id on the row and the text on a child: `{ text: x, within: { id: recent-search } }`.

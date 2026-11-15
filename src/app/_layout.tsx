@@ -6,7 +6,6 @@ import { useHomeFeedSettled } from '@/hooks/queries/mediaQueries';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useCallback, useEffect, useMemo } from 'react';
 import Animated, { Easing, FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -26,37 +25,16 @@ import { Platform, Text, View } from 'react-native';
 import { ensureNotificationPermission } from '@/services/notifications';
 import { HeroUINativeProvider } from '@/components/heroui';
 import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
-import { LinearGradient } from '@/components/LinearGradient';
 import { OtaUpdateToast } from '@/components/OtaUpdateToast';
 import { UpdateDialog } from '@/components/UpdateDialog';
 import { AppVideoProvider, VIDEO_PORTAL_HOST } from '@/components/watch/AppVideoProvider';
 import { VideoPortalHost } from 'react-native-video-toolkit';
 import RNOrientationDirector, { Orientation } from 'react-native-orientation-director';
-import { hexToRGB } from '@/utils/format';
 import { isTV } from '@/utils/tv';
 import { PerfWindows, perfScreenLayout } from '@/perf/perfHarness';
 
 export const unstable_settings = {
   anchor: '(tabs)',
-};
-
-/**
- * Android, under the info screen's see-through header: the background fading out downwards, like iOS's scroll edge
- * effect, so the header's buttons stay readable over the artwork and whatever scrolls under them. iOS draws its own.
- * Part of the screen rather than the header, so it can run on past the header and fade out gradually even where the
- * header is short (TV has no status bar above it).
- */
-const HeaderScrim = () => {
-  const color = useCurrentTheme().screenBackground;
-  const headerHeight = useHeaderHeight();
-  return (
-    <LinearGradient
-      pointerEvents="none"
-      colors={[hexToRGB(color, 0.95), hexToRGB(color, 0.75), hexToRGB(color, 0)]}
-      locations={[0, 0.5, 1]}
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, height: headerHeight * 1.7 }}
-    />
-  );
 };
 
 // Android's native headers take the status bar's room from the window, which the banner already covers
@@ -82,17 +60,6 @@ const IncognitoFrame = ({ children }: { children: (bannerShown: boolean) => Reac
         </Animated.View>
       )}
       <SafeAreaInsetsContext.Provider value={childInsets}>{children(shown)}</SafeAreaInsetsContext.Provider>
-    </View>
-  );
-};
-
-const screenLayout = ({ route, children }: { route: { name: string }; children: React.ReactNode }) => {
-  const screen = perfScreenLayout ? perfScreenLayout({ route, children }) : <>{children}</>;
-  if (Platform.OS !== 'android' || route.name !== 'info/[mediaType]') return screen;
-  return (
-    <View style={{ flex: 1 }}>
-      {screen}
-      <HeaderScrim />
     </View>
   );
 };
@@ -174,7 +141,7 @@ const AppContent = () => {
                     freezeOnBlur: true,
                     unstable_nativeProps: bannerShown ? HEADER_UNDER_BANNER : undefined,
                   }}
-                  screenLayout={screenLayout}>
+                  screenLayout={perfScreenLayout}>
                   <Stack.Screen name="(tabs)" />
                   <Stack.Screen name="browse/[mediaType]" />
                   <Stack.Screen name="search/[mediaType]" />
