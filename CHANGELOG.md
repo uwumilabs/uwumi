@@ -1,5 +1,26 @@
 # Changelog
 
+## [4.1.0](https://github.com/uwumilabs/uwumi/compare/v4.0.0...v4.1.0) (2026-11-15)
+
+### Features
+
+* **downloads:** take progress from ffmpeg statistics instead of logs, and bump nitro modules ([3d7ea30](https://github.com/uwumilabs/uwumi/commit/3d7ea30dd266227b9dbae8fb72ddb910017021da))
+* **info:** material top app bar on android with aniyomi-style fades, and bump expo patches ([8a3aafe](https://github.com/uwumilabs/uwumi/commit/8a3aafea0ae1ccfd4565611d9e650c3bbab232c4))
+* **info:** tap the cover for a full-screen preview to zoom, swipe away or share, like aniyomi ([00aef7c](https://github.com/uwumilabs/uwumi/commit/00aef7cbbefafdf6b191b8bc868119d7b2fef3ab))
+* lottie launch splash that plays while the app loads underneath, and bump ffmpeg-kit to beta.6 ([1f2a4cf](https://github.com/uwumilabs/uwumi/commit/1f2a4cfe0921075328f67a0215bbfdc06b8589d5))
+* **player:** seek-bar thumbnail previews, kept with downloads, and fix up next skipping episodes ([7573de1](https://github.com/uwumilabs/uwumi/commit/7573de11a834c33d38b9c6c2a70e685b37f4894a))
+* **watch:** google cast through a local stream proxy, with cast dialogs in the app theme ([86b3f61](https://github.com/uwumilabs/uwumi/commit/86b3f61a7c419acc8a208fe0fa43bc12bc00cd57))
+
+### Bug Fixes
+
+* not-on-provider states, getting-ready and failure feedback for downloads, and download fixes ([fdbb7a2](https://github.com/uwumilabs/uwumi/commit/fdbb7a2145eea4f5bcf05a19bc15d7fe1db8d6ad))
+* **tv:** trap focus in dialogs, focus reader pages, keep the toolkit tv menu and label icon buttons ([f567053](https://github.com/uwumilabs/uwumi/commit/f5670531d61c34c746e8e14de501bc3ff21d9ead))
+* **watch:** arm pip only while the player is showing, and give the info bars one actions hook ([2393573](https://github.com/uwumilabs/uwumi/commit/239357315bb9a202e6f1e5a548210136071a35a5))
+
+### Performance Improvements
+
+* drop the unused gorhom bottom sheet that heroui bundled as an optional peer ([8443bdb](https://github.com/uwumilabs/uwumi/commit/8443bdbbb7822513e8c547628ac7c6af2febf031))
+
 ## [4.0.0](https://github.com/uwumilabs/uwumi/compare/v4.0.0-rc.5...v4.0.0) (2026-11-01)
 
 ### Features
