@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.2.0](https://github.com/uwumilabs/uwumi/compare/v4.1.0...v4.2.0) (2026-11-22)
+
+### Features
+
+* **downloads:** native per-platform download list, status tabs, retry and dev fake downloads ([ce29f0a](https://github.com/uwumilabs/uwumi/commit/ce29f0a40302a71026e879a1a7a84da111126f49))
+* **watch:** subtitle style settings with a live preview and a player menu shortcut ([ab8bcb0](https://github.com/uwumilabs/uwumi/commit/ab8bcb0f13d056825e2a0e2ecb69621b9831dfbe))
+* **watch:** use the toolkit's caption tracks, provider subtitle headers and load error toasts ([046ba89](https://github.com/uwumilabs/uwumi/commit/046ba89cdb080ba85a2674d0eb02e0202aec02b6))
+
+### Bug Fixes
+
+* **ui:** ios sheets keep content at the top under the handle and cap at 640 wide in landscape ([8533562](https://github.com/uwumilabs/uwumi/commit/8533562bd681f3937749d52727bfa13aa8d50f86))
+* **watch:** tell the receiver hls from the url, toast cast errors and log proxy requests ([8da35ad](https://github.com/uwumilabs/uwumi/commit/8da35adbfe8a2a968d3004bf5233cf5a904cf53a))
+
 ## [4.1.0](https://github.com/uwumilabs/uwumi/compare/v4.0.0...v4.1.0) (2026-11-15)
 
 ### Features
