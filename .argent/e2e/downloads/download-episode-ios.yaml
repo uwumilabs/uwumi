@@ -1,11 +1,13 @@
-# Anime info → long-press EP 1 → Download → megaplay-vidstream-1 → auto quality → More › Download queue → the card is
-# there → Cancel → confirm → Remove → confirm → the queue is empty → back
+# Anime info → long-press EP 1 → Download → megaplay-vidstream-1 → auto quality → More › Download queue → the row is
+# there → Clear all → confirm → the queue is empty → back
 # Needs: an empty download queue at the start, an anime provider whose servers include megaplay-vidstream-1 (AniKoto).
 # megaplay-hd fails FFmpeg downloads (a PNG in front of each segment; see CLAUDE.md), so the test picks vidstream.
 # Touches: network, FFmpeg for a few seconds, a partial file under the app's downloads folder that Remove deletes. The
 # queue ends empty.
-# iOS: More's rows are SwiftUI (outside the runner's tree): Download queue is checked with a raw await-ui-element and
-# tapped at its describe frame.
+# iOS: More's rows and the download rows are SwiftUI (outside the runner's tree, so their testIDs can't be selected):
+# Download queue is checked with a raw await-ui-element and tapped at its describe frame; the download row is checked by
+# its identifier, and the queue is emptied with Clear all (RN) instead of the row's Cancel and Remove.
+# Clear all removes every download: only run with an empty queue.
 steps:
   - run: ../_shared/start-ios.yaml
 
@@ -25,6 +27,9 @@ steps:
   - await: { visible: { id: episode-action-quality }, timeout: 30000 }
   - tap: { id: episode-action-quality, text: auto }
   - await: { hidden: { id: episode-action-quality } }
+  # The download has started once its toast says so. A bottom toast also takes taps meant for the tab bar under it
+  - await: { visible: { text: 'Download started' }, timeout: 40000 }
+  - await: { hidden: { text: 'Download started' }, timeout: 15000 }
   - await: { idle: true, stableFor: 800 }
 
   - echo: Back home, then More › Download queue
@@ -41,23 +46,18 @@ steps:
   - tool: gesture-tap
     args: { x: 0.5, y: 0.604 }
   - await: { visible: { id: downloads-screen } }
-  - await: { visible: { id: download-card }, timeout: 15000 }
+  # The download rows are SwiftUI too: the row's Remove button is checked by its accessibility identifier
+  - tool: await-ui-element
+    args: { condition: visible, selector: { identifier: download-card-remove }, timeoutMs: 15000 }
   - await: { idle: true, stableFor: 800 }
 
-  - echo: Cancel it (it's still preparing or downloading), then remove it
-  - when: { visible: { id: download-card-cancel } }
-    steps:
-      - tap: { id: download-card-cancel }
-      - await: { visible: { id: downloads-cancel-dialog-confirm } }
-      - tap: { id: downloads-cancel-dialog-confirm }
-      - await: { hidden: { id: download-card-cancel }, timeout: 15000 }
-  # The cancelled card moves from Downloading to Failed; a tap during the move is lost
-  - await: { idle: true, stableFor: 800 }
-  - tap: { id: download-card-remove }
-  - await: { visible: { id: downloads-remove-dialog-confirm } }
-  - tap: { id: downloads-remove-dialog-confirm }
+  - echo: Clear all, which cancels the running download (the rows' own Cancel and Remove are covered on Android)
+  - tap: { id: downloads-clear-all }
+  - await: { visible: { id: downloads-clear-all-dialog-confirm } }
+  - tap: { id: downloads-clear-all-dialog-confirm }
   - await: { visible: { id: downloads-empty }, timeout: 15000 }
-  - assert: { hidden: { id: download-card } }
+  - tool: await-ui-element
+    args: { condition: hidden, selector: { identifier: download-card-remove }, timeoutMs: 5000 }
   - await: { idle: true, stableFor: 800 }
 
   - tap: { id: BackButton }

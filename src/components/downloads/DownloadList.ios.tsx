@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, HStack, Host, RNHostView, Spacer, Text, VStack } from '@expo/ui/swift-ui';
 import {
   accessibilityIdentifier,
+  accessibilityLabel,
   background,
   buttonStyle,
   font,
@@ -23,9 +24,16 @@ const HostedIcon = createHostedIcon(RNHostView);
 const Item = ({ testID, overline, title, description, status, leading, progress, actions }: DownloadItemProps) => {
   const theme = useCurrentTheme();
   return (
-    <HStack spacing={12} modifiers={[padding({ all: INSET }), ...(testID ? [accessibilityIdentifier(testID)] : [])]}>
+    <HStack spacing={12} modifiers={[padding({ all: INSET })]}>
       {leading ? <RNHostView matchContents>{leading}</RNHostView> : null}
-      <VStack alignment="leading" spacing={3} modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
+      {/* The row's id goes on its texts: on the HStack, SwiftUI would give it to the buttons too, over their own */}
+      <VStack
+        alignment="leading"
+        spacing={3}
+        modifiers={[
+          frame({ maxWidth: Infinity, alignment: 'leading' }),
+          ...(testID ? [accessibilityIdentifier(testID)] : []),
+        ]}>
         {overline ? (
           <Text modifiers={[font({ size: 12 }), foregroundStyle(theme.muted), lineLimit(1)]}>{overline}</Text>
         ) : null}
@@ -62,8 +70,8 @@ const Item = ({ testID, overline, title, description, status, leading, progress,
         <Button
           key={action.testID}
           onPress={action.onPress}
-          modifiers={[buttonStyle('plain'), accessibilityIdentifier(action.testID)]}>
-          <HostedIcon name={action.icon} size={20} color={theme.foreground} label={action.label} />
+          modifiers={[buttonStyle('plain'), accessibilityLabel(action.label), accessibilityIdentifier(action.testID)]}>
+          <HostedIcon name={action.icon} size={20} color={theme.foreground} />
         </Button>
       ))}
     </HStack>
