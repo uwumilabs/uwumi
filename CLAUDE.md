@@ -120,6 +120,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - uniwind only styles RN core views and `withUniwind` wrappers. A third-party native view styled with `className` renders 0×0, so wrap it.
 - Every inline iOS SwiftUI `Host` in a scrolling screen needs `ignoreSafeArea="container"`.
 - An `aspectRatio` box in a flex column can be sized by its height and come out narrower than the row. Give it `width: '100%'` inside a padded wrapper (the Subtitle style preview).
+- uwumi's iOS sheets (`src/components/native/BottomSheet.tsx`) differ from Android's in three ways, all handled there. SwiftUI centres the content of a sheet taller than it (snap points), so iOS gets a top-aligned frame. The drag handle is drawn over the content, so iOS pads the top by 16. And an iPhone sheet spans the screen in landscape, so `SheetWidthLimit` (`src/modules/SheetWidthModule.swift`) attaches it to the bottom edge and caps it at Material's 640 like Android; SwiftUI and `@expo/ui` can't change that width.
 - On TV the player's settings menu is the toolkit's own side panel (phones use uwumi's native bottom sheet): the native sheet takes Back as "close" (`src/components/watch/AppVideoProvider.tsx`).
 - Google's Cast dialogs only follow the app theme if `themeCastDialog()` (`src/modules/castDialog.ts`) runs before `CastContext.showCastDialog()`.
   - Android applies the style `plugins/withCastDialogTheme.js` generated for that theme from `src/themes/theme.ts`, so a new theme needs a prebuild. iOS sets `GCKUIStyle`.

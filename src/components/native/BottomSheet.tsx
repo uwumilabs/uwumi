@@ -1,9 +1,15 @@
 import React, { useCallback, useState } from 'react';
 import { Platform, ScrollView, View, useWindowDimensions, type ViewProps } from 'react-native';
 import { BottomSheet as NativeBottomSheet, RNHostView, type SnapPoint } from '@expo/ui';
+import { frame } from '@expo/ui/swift-ui/modifiers';
 import { LayoutAnimationConfig } from 'react-native-reanimated';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { isTV } from '@/utils/tv';
+import { SheetWidthLimit } from '@/modules/sheetWidth';
+
+const SHEET_MAX_WIDTH = 640;
+const IOS_TOP_ALIGNED = [frame({ maxHeight: Infinity, alignment: 'top' })];
+const IOS_HANDLE_PADDING = { top: 16 };
 
 export type BottomSheetProps = {
   open: boolean;
@@ -41,7 +47,7 @@ export const BottomSheet = ({
 }: BottomSheetProps) => {
   const theme = useCurrentTheme();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const sheetWidth = Platform.OS === 'android' ? Math.min(windowWidth, 640) : windowWidth;
+  const sheetWidth = Math.min(windowWidth, SHEET_MAX_WIDTH);
 
   const dismiss = useCallback(() => onOpenChange(false), [onOpenChange]);
 
@@ -57,13 +63,15 @@ export const BottomSheet = ({
       // TVs can't drag it, and the handle would be the first thing the D-pad focuses
       showDragIndicator={!isTV}
       snapPoints={snapPoints?.map(toSnapPoint)}
-      contentPadding={0}
+      modifiers={Platform.OS === 'ios' && snapPoints ? IOS_TOP_ALIGNED : undefined}
+      contentPadding={Platform.OS === 'ios' && !isTV ? IOS_HANDLE_PADDING : 0}
       containerColor={theme.sheetBackground}
       contentColor={theme.foreground}>
       {/* matchContents lets content-sized sheets (no snapPoints) measure the RN content. */}
       <RNHostView matchContents>
         <LayoutAnimationConfig skipExiting>
           <View testID={testID} style={{ width: sheetWidth }}>
+            <SheetWidthLimit maxWidth={SHEET_MAX_WIDTH} />
             {scrollable ? (
               <ScrollView
                 // TV: the sheet opens half-expanded and can't be dragged up, so content past half the screen
