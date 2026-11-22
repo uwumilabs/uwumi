@@ -1,4 +1,6 @@
 import type { MediaType } from '@/constants/types';
+import { seasonEpisodeLabel } from '@/utils/episodes';
+import { isMovieType } from '@/utils/media';
 import type { WatchParams } from '@/utils/routes';
 
 export interface DownloadProgress {
@@ -32,6 +34,8 @@ export interface EpisodeDownload {
   headers?: Record<string, string>;
   name: string;
   showName?: string;
+  /** The episode's still, for Downloads; missing on downloads made before it */
+  image?: string;
   /** The info screen's id and media type, for "Downloaded only"; missing on downloads made before them */
   showId?: string;
   mediaType?: MediaType;
@@ -64,3 +68,18 @@ export const isActive = (status?: DownloadStatus) => status === 'downloading' ||
 /** Started, but FFmpeg isn't running yet: the stream is still being probed */
 export const isPreparing = (download?: Pick<EpisodeDownload, 'status' | 'sessionId'>) =>
   download?.status === 'downloading' && !download.sessionId;
+
+/**
+ * What a download is called. A film has one episode with no number worth showing, and its episode title is a
+ * placeholder (AniDB calls every film's "Complete Movie"), so it goes by the film's own title.
+ */
+export const downloadLabels = (
+  download: Partial<Pick<EpisodeDownload, 'name' | 'showName' | 'season' | 'episode' | 'watchParams'>>,
+): { title: string; show?: string; number?: string } =>
+  isMovieType(download.watchParams?.type)
+    ? { title: download.showName || download.name || '' }
+    : {
+        title: download.name ?? '',
+        show: download.showName,
+        number: seasonEpisodeLabel(download.season, download.episode),
+      };

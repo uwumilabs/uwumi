@@ -1,7 +1,7 @@
 import BackgroundService from 'react-native-background-actions';
 import { DOWNLOADS_LINK } from '@/utils/routes';
 import { formatBytes } from '@/utils/format';
-import { downloadBytesPerSecond, isPreparing, type EpisodeDownload } from './model';
+import { downloadBytesPerSecond, downloadLabels, isPreparing, type EpisodeDownload } from './model';
 
 // The library counts as running only once its native start resolves, so downloads starting together share one start
 let starting: Promise<void> | undefined;
@@ -49,13 +49,19 @@ export const stopDownloadService = async () => {
 };
 
 export const showDownloadInNotification = async (
-  download: Pick<EpisodeDownload, 'name' | 'season' | 'episode' | 'progress' | 'status' | 'sessionId'>,
+  download: Pick<
+    EpisodeDownload,
+    'name' | 'showName' | 'season' | 'episode' | 'watchParams' | 'progress' | 'status' | 'sessionId'
+  >,
 ) => {
   if (!BackgroundService.isRunning()) return;
   const progress = isPreparing(download) ? undefined : download.progress;
+  const { title, number } = downloadLabels(download);
   try {
     await BackgroundService.updateNotification({
-      taskTitle: `${download.name}${download.season ? ` Season ${download.season}` : ''} - Episode ${download.episode}`,
+      taskTitle: number
+        ? `${download.name}${download.season ? ` Season ${download.season}` : ''} - Episode ${download.episode}`
+        : title,
       taskDesc: progress
         ? `${progress.percentage.toFixed(1)}% • ${formatBytes(downloadBytesPerSecond(progress))}/s`
         : 'Getting ready…',

@@ -10,26 +10,44 @@ export interface TabItem {
 }
 
 /** Tabs over their contents; the first is open to start with */
-export const HorizontalTabs = ({ items }: { items: TabItem[] }) => {
+export const HorizontalTabs = ({
+  items,
+  scrollable,
+}: {
+  items: TabItem[];
+  /** Each tab keeps its own width and the row scrolls, for more tabs than fit side by side */
+  scrollable?: boolean;
+}) => {
   const [selectedTab, setSelectedTab] = useState('');
   // Items can arrive after mount, so the first tab stands in while the selection isn't among them
   const activeTab = items.some((item) => item.key === selectedTab) ? selectedTab : (items[0]?.key ?? '');
+
+  const triggers = items.map((item, index) => (
+    <FocusableTrigger
+      key={item.key}
+      testID="horizontal-tab"
+      value={item.key}
+      isFirst={index === 0}
+      className={scrollable ? 'px-4 py-2' : 'flex-1 py-2'}>
+      <Tabs.Label className="text-center text-base font-semibold">{item.label}</Tabs.Label>
+    </FocusableTrigger>
+  ));
 
   return (
     <>
       <Tabs value={activeTab} onValueChange={setSelectedTab} variant="secondary" className="w-full">
         <Tabs.List>
-          <Tabs.Indicator />
-          {items.map((item, index) => (
-            <FocusableTrigger
-              key={item.key}
-              testID="horizontal-tab"
-              value={item.key}
-              isFirst={index === 0}
-              className="flex-1 py-2">
-              <Tabs.Label className="text-center text-base font-semibold">{item.label}</Tabs.Label>
-            </FocusableTrigger>
-          ))}
+          {scrollable ? (
+            <Tabs.ScrollView scrollAlign="center">
+              <Tabs.Indicator />
+              {triggers}
+            </Tabs.ScrollView>
+          ) : (
+            <>
+              <Tabs.Indicator />
+              {triggers}
+            </>
+          )}
         </Tabs.List>
       </Tabs>
 

@@ -3,7 +3,6 @@ import { episodeWatchHref, useInfoParams } from '@/utils/routes';
 import { FlashListRef } from '@shopify/flash-list';
 import React, { useRef, useState, useCallback, useContext, useMemo, memo, ReactNode } from 'react';
 import { HeaderHeightContext } from 'expo-router/react-navigation';
-import { Image } from '@/components/Image';
 import { useRouter } from 'expo-router';
 import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
@@ -28,8 +27,9 @@ import {
   type EpisodeContext,
   type EpisodeItem,
 } from '@/utils/episodes';
+import { innerRadius } from '@/utils/layout';
 import { isMovieType } from '@/utils/media';
-import { ThumbnailProgress } from './ThumbnailProgress';
+import { EpisodeThumbnail } from './EpisodeThumbnail';
 import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
 import { useDownloadStore } from '@/downloads/useDownloadStore';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
@@ -216,6 +216,10 @@ const DownloadBadge = ({ uniqueId, size }: { uniqueId?: string; size: number }) 
   return null;
 };
 
+// The card's corner and inset, which its thumbnail's corner follows
+const CARD_RADIUS = 16;
+const CARD_PADDING = 6;
+
 const EpisodeContent = ({
   item,
   displayMode,
@@ -245,19 +249,19 @@ const EpisodeContent = ({
   return (
     <Card
       className={cn(
-        'flex-row gap-3 overflow-hidden rounded-2xl bg-background p-1.5 shadow-md border-0',
+        'flex-row gap-3 overflow-hidden bg-background shadow-md border-0',
         pureBlackBackground && 'bg-black',
         isCurrent && 'border-2 border-default',
-      )}>
-      <View className="relative overflow-hidden rounded-xl">
-        <Image source={episodeImage(item)} style={{ width: 160, height: 107 }} />
-        {!isMovie && (
-          <Text className="absolute left-2 bottom-2.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-accent">
-            {episodeLabel(episodeNumber(item))}
-          </Text>
-        )}
-        <ThumbnailProgress uniqueId={item?.uniqueId as string} />
-      </View>
+      )}
+      style={{ borderRadius: CARD_RADIUS, padding: CARD_PADDING }}>
+      <EpisodeThumbnail
+        image={episodeImage(item)}
+        label={isMovie ? undefined : episodeLabel(episodeNumber(item))}
+        uniqueId={item?.uniqueId}
+        width={160}
+        height={107}
+        radius={innerRadius(CARD_RADIUS, CARD_PADDING)}
+      />
       <HUYStack className="flex-1 justify-between gap-2 px-2 ">
         <Card.Header className="flex-row">
           <HUXStack className="flex-1 items-center justify-between gap-2">

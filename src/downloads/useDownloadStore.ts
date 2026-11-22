@@ -12,7 +12,7 @@ import {
 import { persistStorage } from '@/hooks/stores/MMKV';
 import { usePreferencesStore } from '@/hooks/stores/usePreferencesStore';
 import { DOWNLOADS_DIR, fileUri, fsDirectory, fsFile } from '@/utils/files';
-import { episodeNumber, episodeTitle, type EpisodeContext, type EpisodeItem } from '@/utils/episodes';
+import { episodeImage, episodeNumber, episodeTitle, type EpisodeContext, type EpisodeItem } from '@/utils/episodes';
 import { episodeWatchHref } from '@/utils/routes';
 import type { PlayableSource } from '@/hooks/queries/watchQueries';
 import { downloadArgs, failureReason, probeStream } from './ffmpeg';
@@ -38,6 +38,7 @@ const newDownload = ({ episode, context, showName, season, url, source }: Downlo
     headers: source?.headers,
     name: episodeTitle(episode, number),
     showName,
+    image: episodeImage(episode) || undefined,
     showId: context.id,
     mediaType: context.mediaType,
     watchParams: episodeWatchHref(episode, context).params,
@@ -67,6 +68,8 @@ interface DownloadState {
    */
   download: (request: DownloadRequest) => Promise<EpisodeDownload | undefined>;
   cancelDownload: (downloadId: string) => Promise<boolean>;
+  /** Starts a failed or cancelled download again from its saved link, which may have expired since */
+  retryDownload: (downloadId: string) => Promise<void>;
   removeDownload: (downloadId: string) => Promise<void>;
   clearCompleted: () => Promise<void>;
   clearAll: () => Promise<void>;
@@ -279,6 +282,14 @@ export const useDownloadStore = create<DownloadState>()(
             console.error('Cancel failed:', error);
             return false;
           }
+        },
+
+        retryDownload: async (id) => {
+          const download = get().downloads[id];
+          if (download?.status !== 'failed' && download?.status !== 'cancelled') return;
+          if (download.outputFile) deleteOutputFile(download.outputFile);
+          update(id, { status: 'pending', error: undefined, progress: undefined, outputFile: undefined });
+          await start(id);
         },
 
         removeDownload: async (id) => {

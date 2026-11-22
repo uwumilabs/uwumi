@@ -13,6 +13,12 @@ const deleteAllKeys = () => {
   for (const key of storage.getAllKeys()) storage.remove(key);
 };
 
+// Metro drops this require with the __DEV__ branch, so release bundles never include the fake downloads
+const devFixtures: typeof import('@/downloads/devFixtures') | undefined = __DEV__
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('@/downloads/devFixtures')
+  : undefined;
+
 const Example = () => (
   <ThemedView testID="example-screen">
     <ScrollView className="space-y-3">
@@ -24,6 +30,17 @@ const Example = () => (
         <Button testID="example-delete-keys" onPress={deleteAllKeys}>
           delete All MMKV Keys
         </Button>
+        {devFixtures && (
+          <>
+            <Text className="text-xs font-bold text-accent mt-4">Downloads</Text>
+            <Button testID="example-add-fake-downloads" onPress={devFixtures.addFakeDownloads}>
+              Add fake downloads
+            </Button>
+            <Button testID="example-remove-fake-downloads" onPress={devFixtures.removeFakeDownloads}>
+              Remove fake downloads
+            </Button>
+          </>
+        )}
       </HUYStack>
     </ScrollView>
   </ThemedView>

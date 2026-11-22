@@ -53,7 +53,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
   - No barrel (`index.ts`) files: import each thing from the file that defines it. They made every UI primitive depend on every store.
   - Only routes go in `src/app/`. expo-router registers every file there as a screen, so a route's pieces live in `src/components/<feature>/` (`watch/`, `info/`, `episode-list/`).
   - Downloads are one feature folder, `src/downloads/` (`model.ts` types and status rules, store, FFmpeg arguments and probe, sprites, background service, file paths).
-  - `src/utils/` holds pure helpers, split by what they're about: `tv.ts`, `format.ts`, `http.ts`, `files.ts` (app folders, file URIs), `share.ts`, `haptics.ts` (skips TV), `subtitles.ts`, `seekPreview.ts`, `manga.ts`, `media.ts` (`MediaItem`, titles, meta providers, `MEDIA_TABS`), `episodes.ts` (episode fields and labels, uniqueId format), `routes.ts` (every route's params, hooks and hrefs, the share link, `SETTINGS_SCREENS`).
+  - `src/utils/` holds pure helpers, split by what they're about: `tv.ts`, `format.ts`, `http.ts`, `files.ts` (app folders, file URIs), `share.ts`, `haptics.ts` (skips TV), `subtitles.ts`, `seekPreview.ts`, `layout.ts` (corner radii), `manga.ts`, `media.ts` (`MediaItem`, titles, meta providers, `MEDIA_TABS`), `episodes.ts` (episode fields and labels, uniqueId format), `routes.ts` (every route's params, hooks and hrefs, the share link, `SETTINGS_SCREENS`).
   - App services that use stores live in `src/services/`: `backup.ts`, `episodeAlerts.ts` (scheduling and opening alerts), `cache.ts`, `notifications.ts`.
   - The reader's pieces are in `src/components/reader/`; the player's seek bar in `src/components/watch/slider/`.
   - Inline native modules live in `src/modules` (Expo `inlineModules`). On Android a Kotlin inline module is exposed to JS under its class name, which is its file name, and `Name()` is ignored. So give the Swift side the same name (`@ExpoModule("CastProxyModule")` in `CastProxyModule.swift`) and look it up by that name.
@@ -71,6 +71,8 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
   - Build dialogs with `DialogContent` (`src/components/DialogContent.tsx`), not heroui's `Dialog.Content`: it keeps the TV D-pad inside the dialog. Give the safe button `hasTVPreferredFocus`.
   - The app's `Chip` (`src/components/heroui.tsx`) is a label: never focusable on TV. Icons (`src/components/Icons.tsx`) are hidden from screen readers, so every icon-only button needs an `accessibilityLabel`.
   - Use heroui-native first (`Button` with `size`/`variant`; RN `ActivityIndicator` for spinners). Use the components in `src/components/native` for native controls.
+  - Nested rounded corners: a view inset by padding `p` inside a container with radius `r` gets `innerRadius(r, p)` (`src/utils/layout.ts`), so both corners share a centre. Copying the container's radius looks too round. Keep `r` and `p` as named constants next to each other, as the Downloads rows and the episode list's card do. The formula assumes the same inset on both sides of the corner.
+  - In uwumi's themes, heroui's `primary` is the accent (pale in dark themes), and `secondary` and `tertiary` fill with the theme's `default` colour (a deep blue in default dark). For a quiet button on a dark surface, use `outline` or `ghost`.
   - For player panels, use the toolkit's `gestureProps`.
   - No hand-rolled Pressable chips, and no BottomSheet or portal hacks.
 - **Visible behaviour:**
@@ -132,6 +134,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - Routes go through `src/utils/routes.ts`: read params with `useShowParams`/`useInfoParams`/`useWatchParams`/`useReaderParams`/`useBrowseParams`, build hrefs with `infoHref`, `watchHref`, `episodeWatchHref`, `readerHref`, `browseHref`, `searchHref`, and settings screens with `SETTINGS_SCREENS` (the stack titles, More and Settings rows). Continue watching and downloads save `watchHref(...).params` to open the episode again.
 - The info screen's title and poster are `useShownTitle()`: the card's until the info loads (a shared link may carry neither).
 - On Android (phone and TV) the info screen's header is a Compose `TopAppBar` (`src/components/info/InfoTopBar.android.tsx`), which hides the native stack header itself (`<Stack.Screen options={{ headerShown: false }} />`). The bar provides `HeaderHeightContext`, and follows the page through the `scrollY` that `[mediaType].tsx` passes to `EpisodeList`/`Chapters`. Its fill and title fade on the UI thread, with no React state.
+- An `RNHostView` in a Compose `ListItem`'s supporting slot loops layout forever: the app freezes and Android shows "isn't responding". The leading slot is fine. Build such rows from `Row`/`Column`, as `src/components/downloads/DownloadList.android.tsx` does. `NativeList` stays minimal; Downloads has its own native list.
 - Compose buttons from `@expo/ui` show TV D-pad focus only as Material's faint circle, and report no focus events (only text fields do). On TV, put the app's `Button` (with its focus ring) in the Compose slot through `RNHostView`, as the info bar's `BarButton` does.
 - Home rows use `CardRow` (`src/components/TVRow.tsx`) with `ROW` and `rowCardWidth`; media tabs (favorites, history, statistics) map `MEDIA_TABS`.
 - Pick-one setting rows are `ChoiceRow` inside a `ChoiceRowHost`. A heroui Dialog can't sit inside a `NativeList`: its root `View` would land in the Compose/SwiftUI host.
@@ -148,6 +151,8 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - Downloads live in app storage (`UWUMI_DIR/downloads`). There's no migration from the old shared folder.
 - A download is `downloading` from the moment its probe starts. FFmpeg's `sessionId` (in memory only) appears once it runs; `isPreparing()` tells "Getting ready…" from real progress, and `isActive()` is running or queued.
 - `download()` records failures on the download instead of throwing, so read the status it resolves with. FFmpeg sessions outlive a JS reload; `initialize()` cancels them and fails the records they leave behind.
+- To work on the Downloads screen without downloading, use the dev-only example screen's "Add fake downloads" (`src/downloads/devFixtures.ts`). It covers every status and saves the fakes like real downloads. Their ids start with `fake-`, and "Remove fake downloads" clears only those. The file is only required behind `__DEV__`, so release bundles leave it out.
+  - Fast Refresh of the download store re-runs `initialize()`, which turns the downloading and pending fakes into "Interrupted" failures. Add them again.
 
 **Backup**
 - `src/services/backup.ts` lists every value a backup keeps in its `LIBRARY`, `SETTINGS` and `PREFERENCES` tables. A new persisted setting isn't backed up until it has an entry there. Keep the file format (`FORMAT`) readable by older backups.
