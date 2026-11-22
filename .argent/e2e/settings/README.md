@@ -7,6 +7,7 @@ Settings and every screen it opens: Appearance, Player, Reader, Downloads, Exten
 | `settings` | More → Settings (snapshot) → back | nothing | Yes |
 | `appearance` | Settings → Appearance (theme, accents, pure black present; snapshot) → back | nothing | Yes |
 | `player` | Settings → Player (snapshot) → Default playback speed dialog (`choice-dialog`) → dismiss without choosing (Android: Back; iOS: tap the overlay) → value unchanged → back | nothing | Yes |
+| `subtitle-style` (Android only) | Settings → Player → Subtitle style (the preview `subtitle-style-preview` shows, Text size reads Auto) → Text size → Large (the row reads Large) → Reset to default (Auto again) → back. iOS: the rows are SwiftUI, outside the runner's tree | the subtitle style, which ends at its default | Yes |
 | `reader` | Settings → Reader (reading mode row present; snapshot) → back | nothing | Yes |
 | `downloads` | Settings → Downloads (the queue loads) → back. No snapshot: the queue is user data | nothing | Yes |
 | `extensions` | Settings → Extensions → Movies tab (chips read MOVIES) → Anime tab (ANIME) → Installed only on (Install buttons gone) → off → back | network (the registry); the switch is screen state | Yes |

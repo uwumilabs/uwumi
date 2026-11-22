@@ -12,6 +12,8 @@ import { PLAYBACK_RATES, usePlayerSettingsStore } from '@/hooks/stores/usePlayer
 import { BottomSheet } from '@/components/native/BottomSheet';
 import { Slider } from './slider/Slider';
 import { isTV } from '@/utils/tv';
+import { captionsTheme, pickSubtitleStyle } from '@/utils/subtitleStyle';
+import { useShallow } from 'zustand/react/shallow';
 
 export const VIDEO_PORTAL_HOST = 'video-player';
 
@@ -54,6 +56,7 @@ export const AppVideoProvider = ({ children }: { children: React.ReactNode }) =>
   const controlsHideMs = usePlayerSettingsStore((state) => state.controlsHideMs);
   const pipButton = usePlayerSettingsStore((state) => state.pipButton);
   const doubleTapSeek = usePlayerSettingsStore((state) => state.doubleTapSeek);
+  const subtitleStyle = usePlayerSettingsStore(useShallow(pickSubtitleStyle));
   const config = useMemo(
     () => ({
       useCustomVideoTracks: true,
@@ -81,8 +84,9 @@ export const AppVideoProvider = ({ children }: { children: React.ReactNode }) =>
         buttonPrimaryText: theme.accentForeground,
         buttonSecondaryBorder: theme.border,
       },
+      captions: captionsTheme(subtitleStyle),
     }),
-    [theme],
+    [theme, subtitleStyle],
   );
   return (
     <VideoProvider theme={videoTheme} config={config} components={videoComponents} portalHost={VIDEO_PORTAL_HOST}>

@@ -143,6 +143,7 @@ export const SETTINGS_SCREENS = {
   about: { title: 'About', href: '/(settings)/about' },
   appearance: { title: 'Appearance', href: '/(settings)/appearance' },
   player: { title: 'Player', href: '/(settings)/player' },
+  subtitles: { title: 'Subtitle style', href: '/(settings)/subtitles' },
   reader: { title: 'Reader', href: '/(settings)/reader' },
   favorites: { title: 'Favorites', href: '/(settings)/favorites' },
   downloads: { title: 'Downloads', href: '/(settings)/downloads' },

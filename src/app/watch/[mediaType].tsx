@@ -23,6 +23,7 @@ import {
   type ServerPhase,
 } from '@/components/watch/ServerStatus';
 import { ServerMenuItem, ServerMenuView } from '@/components/watch/ServerMenu';
+import { SubtitleStyleItem, SubtitleStyleViews } from '@/components/watch/SubtitleStyleMenu';
 import ProviderSelection from '@/components/watch/ProviderSelection';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useIsFocused, useNavigation, useRouter } from 'expo-router';
@@ -575,7 +576,10 @@ const Watch = () => {
           pinCaptionTrack={(track) => addedTrackUris.has((track as CaptionTrack).uri)}
           slots={{
             beforeCaptionTracks: isTV ? undefined : (
-              <AddSubtitlesItem canSearch={canSearchSubtitles} onAddFile={addSubtitleFile} />
+              <>
+                <AddSubtitlesItem canSearch={canSearchSubtitles} onAddFile={addSubtitleFile} />
+                <SubtitleStyleItem />
+              </>
             ),
             beforeMenuItems: serverNames.length ? <ServerMenuItem current={rotation.attempt?.server} /> : undefined,
             menuViews: (
@@ -589,6 +593,7 @@ const Watch = () => {
                 {!isTV && canSearchSubtitles && (
                   <AddSubtitlesViews onAddFile={addSubtitleFile} onSearch={searchSubtitles} />
                 )}
+                <SubtitleStyleViews />
               </>
             ),
             beforeTitle: (

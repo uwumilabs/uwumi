@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { DEFAULT_SUBTITLE_STYLE, type SubtitleStyle } from '@/utils/subtitleStyle';
 import { persistStorage } from './MMKV';
 
 /** The player menu's speeds, which the default speed is one of */
 export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
-export interface PlayerSettings {
+export interface PlayerSettings extends SubtitleStyle {
   /** How far into an episode, in percent, it counts as watched */
   watchedPercent: number;
   /** Lock the player to landscape while it's open */
@@ -39,6 +40,7 @@ export const usePlayerSettingsStore = create<PlayerSettingsState>()(
       autoPip: true,
       doubleTapSeek: true,
       defaultSpeed: 1,
+      ...DEFAULT_SUBTITLE_STYLE,
       update: (settings) => set(settings),
     }),
     {

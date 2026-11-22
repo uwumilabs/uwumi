@@ -1,0 +1,43 @@
+# More → Settings → Player → Subtitle style: the preview shows → Text size → Large (the row says so) → Reset to default
+# (the row says Auto again) → back to Player
+# Needs: the default subtitle style at the start. Touches: the subtitle style setting, which ends at its default.
+# Android only: on iOS the rows are SwiftUI, outside the runner's tree.
+steps:
+  - run: ../_shared/start-android.yaml
+  - tap: { id: tab-more }
+  - await: { visible: { id: more-row-settings } }
+  - await: { idle: true }
+  - tap: { id: more-row-settings }
+  - await: { visible: { id: settings-screen } }
+  - await: { visible: { id: settings-row-player } }
+  - await: { idle: true }
+  - tap: { id: settings-row-player }
+  - await: { visible: { id: player-settings-screen } }
+  - await: { idle: true }
+
+  - echo: Player → Subtitle style, at the bottom
+  - scroll-to: { target: { id: player-settings-row-subtitle-style } }
+  - tap: { id: player-settings-row-subtitle-style }
+  - await: { visible: { id: subtitle-style-screen } }
+  - await: { visible: { id: subtitle-style-preview } }
+  - await: { text: { in: { id: subtitle-style-row-size }, contains: Auto } }
+  - await: { idle: true }
+
+  - echo: Text size → Large
+  - tap: { id: subtitle-style-row-size }
+  - await: { visible: { id: choice-dialog } }
+  - tap: { id: choice-option, text: Large }
+  - await: { hidden: { id: choice-dialog } }
+  - await: { text: { in: { id: subtitle-style-row-size }, contains: Large } }
+  - await: { idle: true }
+
+  - echo: Reset to default, under the list
+  - scroll-to: { target: { id: subtitle-style-reset } }
+  - tap: { id: subtitle-style-reset }
+  - scroll-to: { target: { id: subtitle-style-row-size }, direction: up }
+  - await: { text: { in: { id: subtitle-style-row-size }, contains: Auto } }
+
+  - tool: button
+    args:
+      button: back
+  - await: { visible: { id: player-settings-screen } }

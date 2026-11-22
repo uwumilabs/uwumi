@@ -8,6 +8,10 @@ import { SUBTITLE_LANGUAGES } from '@/constants/config';
 import { isTV } from '@/utils/tv';
 import { PLAYBACK_RATES, usePlayerSettingsStore } from '@/hooks/stores/usePlayerSettingsStore';
 import { useExternalSubtitleStore } from '@/hooks/stores/useExternalSubtitleStore';
+import { pickSubtitleStyle, subtitleStyleSummary } from '@/utils/subtitleStyle';
+import { SETTINGS_SCREENS } from '@/utils/routes';
+import { useRouter } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 
 const OFF = 'off';
 
@@ -36,6 +40,8 @@ const Player = () => {
   const update = usePlayerSettingsStore((state) => state.update);
   const language = useExternalSubtitleStore((state) => state.language);
   const setLanguage = useExternalSubtitleStore((state) => state.setLanguage);
+  const subtitleStyle = usePlayerSettingsStore(useShallow(pickSubtitleStyle));
+  const router = useRouter();
 
   return (
     <ThemedView testID="player-settings-screen">
@@ -134,6 +140,12 @@ const Player = () => {
               value={language ?? OFF}
               onChange={(value) => setLanguage(value === OFF ? null : value)}
               description={`OpenSubtitles tracks for movies and TV shows: ${choiceLabel(LANGUAGE_OPTIONS, language ?? OFF) ?? 'Off'}`}
+            />
+            <NativeList.Item
+              testID="player-settings-row-subtitle-style"
+              title={SETTINGS_SCREENS.subtitles.title}
+              description={subtitleStyleSummary(subtitleStyle)}
+              onPress={() => router.push(SETTINGS_SCREENS.subtitles.href)}
             />
           </NativeList>
         </ScrollView>
