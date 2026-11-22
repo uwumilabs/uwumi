@@ -1,7 +1,7 @@
 PODS:
   - boost (1.84.0):
     - ReactNativeDependencies
-  - Consumet (3.0.1):
+  - Consumet (4.0.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2744,7 +2744,7 @@ PODS:
   - SocketRocket (0.7.1):
     - ReactNativeDependencies
   - SSZipArchive (2.6.0)
-  - VideoToolkit (1.1.0):
+  - VideoToolkit (1.2.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -3213,7 +3213,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   boost: 013a93837a01f922ad1305e71f8c23b68277e656
-  Consumet: e8d1cddd23e7c5e0674e173ca8dbbfb94ca1ae77
+  Consumet: e637a78f65d3a5a82d4b42b564bc7e0e719a4910
   DoubleConversion: 6c34961e46ea2895439ba98d0f48deda29577158
   EXConstants: aeda76f4be923fc719522ae162dd0b8c6483f9cc
   EXJSONUtils: d59bf6b18639752631a81818559b2675a46f99e2
@@ -3362,7 +3362,7 @@ SPEC CHECKSUMS:
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   SocketRocket: 9c5c51020fcd1d1d9a4c6d626d5efef98e15425c
   SSZipArchive: 8a6ee5677c8e304bebc109e39cf0da91ccef22ea
-  VideoToolkit: 0260a16ee2b7a1dd7fad8fbb0fd807e16ca98244
+  VideoToolkit: bc5ea3cfe564a774d753b5b85ef3707172e0ceea
   Yoga: 506238f8e7575a3c20290b98402eabc8590f57cc
 
 PODFILE CHECKSUM: fdf269faa97b921cbfc29dc6fa374ac2de6bc177

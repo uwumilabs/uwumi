@@ -84,6 +84,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 **Dependencies and patches**
 - `yarn remove` (and some other dependency changes) skips `postinstall`, which silently reverts `patches/`. Run `npx patch-package`, then check each patch with `patch --dry-run -R -p1 -s -f < patches/<file>`.
 - `react-native-video` is a git fork, so `patch-package` diffs it against npm and produces garbage. Write its patch by hand.
+  - The fork has no built `lib/` and no `types` entry, so TypeScript only finds it through the `paths` entry in `tsconfig.json` (Metro uses its `react-native` field). Without that entry, library types that extend it, such as the toolkit's `CaptionTrack`, silently lose their fields.
 - Expo modules marked 📦 in the Android build log link prebuilt AARs, so patches to their Kotlin do nothing. Add the module to `expo.autolinking.android.buildFromSource` in `package.json` (`expo-ui` is already there).
 - heroui-native loads its optional peers with `try { require() }`, so an installed optional peer is bundled even when unused. `@gorhom/bottom-sheet` was removed on 2026-11-14 (152 KB of JS); uwumi's sheets are `@expo/ui`. Don't add it back for heroui.
 - RN 0.86+ removed `StyleSheet.absoluteFillObject`. A library that spreads it collapses to 0 size without a warning.
@@ -121,6 +122,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
   - On iOS, `apply()` only partly restyles a dialog that's already open.
 - uwumi renders the player's seek bar itself: it passes its own `Slider` (`src/components/watch/slider`) to the toolkit through `videoComponents`. Player additions to the seek bar go there, for example `SeekPreview`.
   - Seek previews come from `useSeekPreviewStore`: the provider's `thumbnails.vtt` while streaming, or the sprites saved beside a download.
+- The watch screen keeps the toolkit in fullscreen the whole time. Since toolkit 1.2.0, Android's Back exits the toolkit's fullscreen and swallows the press, so the screen treats a drop out of fullscreen as leaving and goes back. Re-entering instead would trap Back in the player.
 - The toolkit's `VideoProvider` is global (`src/components/watch/AppVideoProvider.tsx`, in the root layout), and its `ended` flag stays true until the next source loads. So the watch screen only renders `VideoPlayer.UpNext` once its own source has loaded (`phase === 'playing'`). Otherwise a new episode counts down to the one after it before it plays.
   - Saved progress that's completed, or within 10 s of the end, starts the episode from 0. Resuming at the end would end it at once and set off the same chain.
   - `@expo/ui`'s Compose `Slider` takes a plain `value` and a JS `onValueChange` (58.0.27). Its `useNativeState` and `useWorkletCallback` only work with `TextField`, `SyncSwitch`, `LoadingIndicator` and some modifiers.
@@ -151,6 +153,7 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - `src/services/backup.ts` lists every value a backup keeps in its `LIBRARY`, `SETTINGS` and `PREFERENCES` tables. A new persisted setting isn't backed up until it has an entry there. Keep the file format (`FORMAT`) readable by older backups.
 
 **Consumet and extensions**
+- Since consumet 4, server names start with the extractor that reads them (`<extractor>-<label>`). Some name an extractor the registry doesn't have (AniNeko's `vivibebe-…` and `dood-…`, which it extracts itself), so `watchQueries` hands those servers to the provider's `fetchEpisodeSources`.
 - When a provider doesn't find the title, the episode has no `id`. It still opens; the watch screen and the episode actions sheet show "Not on <provider>" (`notOnProvider()` in `src/utils/episodes.ts`).
 - Installed extensions are `useExtensionStore`'s `installed` state (with `installedExtensions()` and `updateAvailable()`). Don't read the `ext_` MMKV keys for that; only the store's actions write them.
 - Providers' sources come from `watchQueries` already cleaned up (`PlayableSource`: subtitles typed, the thumbnails track split out, headers as strings). The player, the episode sheet and downloads all take that shape.
@@ -192,4 +195,5 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
   2. For the Pixel, `adb forward` its port; the iOS sim needs nothing, since it shares the Mac's loopback.
   3. From the TV emulator, fetch `10.0.2.2:<port>/p/…`.
   - Toybox `nc` hangs up when stdin ends, which drops the reply. Keep stdin open: `(printf 'GET … HTTP/1.0\r\n\r\n'; sleep 30) | nc 10.0.2.2 <port>`.
+- **argent `describe` on Android** can return the previous screen's tree for a few seconds after a change (the registry refresh, an extension update). Check with a screenshot before tapping by coordinates.
 - **Device-only checks:** say what is still untested (iOS, TV, release builds) rather than implying it works.

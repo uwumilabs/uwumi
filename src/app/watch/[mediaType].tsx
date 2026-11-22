@@ -178,9 +178,15 @@ const Watch = () => {
   // The watch screen is always fullscreen. Changing episode replaces the route, so only leaving the screen exits
   // fullscreen; otherwise every episode would rotate to portrait and back.
   const leavingRef = useRef(false);
+  const wasFullscreenRef = useRef(false);
   useEffect(() => {
-    if (!fullscreen && !leavingRef.current) enterFullscreen();
-  }, [fullscreen, enterFullscreen]);
+    if (fullscreen) {
+      wasFullscreenRef.current = true;
+    } else if (!leavingRef.current) {
+      if (wasFullscreenRef.current) goBack();
+      else enterFullscreen();
+    }
+  }, [fullscreen, enterFullscreen, goBack]);
   const exitFullscreenRef = useRef(exitFullscreen);
   useEffect(() => {
     exitFullscreenRef.current = exitFullscreen;

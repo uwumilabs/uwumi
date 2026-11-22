@@ -87,18 +87,17 @@ async function fetchServerSources(target: EpisodeTarget, server: IEpisodeServer)
         ).fetchEpisodeSources(episodeId, mediaId ?? '', server.name as StreamingServers)) as ISource;
 
   const metadata = getExtensionManagers().providerManager.getExtensionMetadata(provider);
-  const extractor = needsExtractor(metadata) ? await loadServerExtractor(server.name) : undefined;
-  let data: ISource;
-  if (extractor) {
+  let data: ISource | undefined;
+  if (needsExtractor(metadata)) {
     try {
+      const extractor = await loadServerExtractor(server.name);
       data = (await extractor.extract(new PolyURL(server.url), metadata.baseUrl)) as ISource;
     } catch {
-      // The provider can often resolve a server its extractor can't
-      data = await fromProvider();
+      // The provider resolves servers the registry has no extractor for (AniNeko's vivibebe and dood), and often
+      // ones its extractor can't
     }
-  } else {
-    data = await fromProvider();
   }
+  data ??= await fromProvider();
   if (!data?.sources?.some((source) => source.url)) throw new NoSourcesError(server.name);
   return playable(data);
 }

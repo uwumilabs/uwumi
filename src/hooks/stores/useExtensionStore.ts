@@ -301,12 +301,8 @@ async function loadInstalledProvider(id: string, category: 'anime' | 'movies') {
   const metadata = providerManager.getExtensionMetadata(id);
   if (metadata.category !== category) throw new Error(`${metadata.name} isn't a ${category} provider`);
   const devCode = await readDevExtension(id);
-  if (devCode) {
-    return providerManager.executeProviderCode(devCode, metadata.factoryName, metadata, { skipIntegrity: true });
-  }
-  return runCachedCode('extension', id, false, (code) =>
-    providerManager.executeProviderCode(code, metadata.factoryName, metadata),
-  );
+  if (devCode) return providerManager.executeProviderCode(devCode, metadata, { skipIntegrity: true });
+  return runCachedCode('extension', id, false, (code) => providerManager.executeProviderCode(code, metadata));
 }
 
 export const loadAnimeProvider = async (id: string) => (await loadInstalledProvider(id, 'anime')) as IAnimeProvider;
