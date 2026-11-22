@@ -27,6 +27,8 @@ interface ChaptersProps {
   header?: ReactNode;
   /** Kept at the list's scroll offset */
   scrollY: SharedValue<number>;
+  /** Kept at how far the list can scroll */
+  scrollMax: SharedValue<number>;
 }
 
 const ChapterRow = memo(
@@ -75,7 +77,7 @@ const chapterRangeLabel = (chapters: IMangaChapter[], start: number, end: number
   const label = (index: number) => String(chapters[index].chapterNumber ?? index + 1);
   return `CH ${label(start)}–${label(end)}`;
 };
-const Chapters = ({ header, scrollY }: ChaptersProps) => {
+const Chapters = ({ header, scrollY, scrollMax }: ChaptersProps) => {
   const { mediaType, id } = useShowParams();
   const setProvider = useProviderStore((state) => state.setProvider);
   const currentProvider = useActiveProvider(mediaType);
@@ -98,6 +100,7 @@ const Chapters = ({ header, scrollY }: ChaptersProps) => {
     listRef,
     rangeLabel: chapterRangeLabel,
     scrollY,
+    scrollMax,
   });
 
   const handleProviderChange = useCallback((value: string) => setProvider(mediaType, value), [mediaType, setProvider]);

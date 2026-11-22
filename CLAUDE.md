@@ -9,7 +9,7 @@ Main libraries:
 - **Animation and gestures:** Reanimated 4.7 with worklets, Gesture Handler v3 hooks.
 - **Lists:** FlashList v2.
 - **State and data:** zustand + MMKV, TanStack Query.
-- **Media:** react-native-video (a git fork) with react-native-video-toolkit for the player, and `react-native-ffmpeg-kit` for downloads.
+- **Media:** react-native-video (npm, set up by its Expo plugin in `app.json`) with react-native-video-toolkit for the player, and `react-native-ffmpeg-kit` for downloads.
 
 Content comes from `react-native-consumet` extensions.
 
@@ -86,8 +86,8 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 
 **Dependencies and patches**
 - `yarn remove` (and some other dependency changes) skips `postinstall`, which silently reverts `patches/`. Run `npx patch-package`, then check each patch with `patch --dry-run -R -p1 -s -f < patches/<file>`.
-- `react-native-video` is a git fork, so `patch-package` diffs it against npm and produces garbage. Write its patch by hand.
-  - The fork has no built `lib/` and no `types` entry, so TypeScript only finds it through the `paths` entry in `tsconfig.json` (Metro uses its `react-native` field). Without that entry, library types that extend it, such as the toolkit's `CaptionTrack`, silently lose their fields.
+- After bumping a patched package, check the patch still applies (the dry run above) and whether the new version already has the fix. Then rename `patches/<package>+<version>.patch` to the installed version, or patch-package warns of a version mismatch on every install.
+- `react-native-video` comes from npm (6.19.3 since 2026-11-22; it was a git fork before, needing hand-written patches and a `tsconfig` path). Import it from `react-native-video`, which ships its own types, never `react-native-video/src`. Its Expo plugin in `app.json` turns on Android picture-in-picture and the iOS `audio` background mode (which iOS picture-in-picture needs), and picks the ExoPlayer extensions that get built (HLS and DASH).
 - Expo modules marked 📦 in the Android build log link prebuilt AARs, so patches to their Kotlin do nothing. Add the module to `expo.autolinking.android.buildFromSource` in `package.json` (`expo-ui` is already there).
 - heroui-native loads its optional peers with `try { require() }`, so an installed optional peer is bundled even when unused. `@gorhom/bottom-sheet` was removed on 2026-11-14 (152 KB of JS); uwumi's sheets are `@expo/ui`. Don't add it back for heroui.
 - RN 0.86+ removed `StyleSheet.absoluteFillObject`. A library that spreads it collapses to 0 size without a warning.

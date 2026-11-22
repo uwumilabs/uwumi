@@ -31,7 +31,7 @@ PODS:
   - EXJSONUtils (58.0.1)
   - EXManifests (58.0.1):
     - ExpoModulesCore
-  - Expo (58.0.25):
+  - Expo (58.0.26):
     - ExpoModulesCore
     - ExpoModulesJSI
     - hermes-engine
@@ -58,13 +58,13 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - expo-dev-client (58.0.20):
+  - expo-dev-client (58.0.21):
     - EXManifests
     - expo-dev-launcher
     - expo-dev-menu
     - expo-dev-menu-interface
     - EXUpdatesInterface
-  - expo-dev-launcher (58.0.20):
+  - expo-dev-launcher (58.0.21):
     - EXManifests
     - expo-dev-menu
     - expo-dev-menu-interface
@@ -156,7 +156,7 @@ PODS:
     - ExpoModulesCore
   - ExpoDomWebView (58.0.2):
     - ExpoModulesCore
-  - ExpoFileSystem (58.0.13):
+  - ExpoFileSystem (58.0.14):
     - ExpoModulesCore
   - ExpoFont (58.0.12):
     - ExpoModulesCore
@@ -217,18 +217,18 @@ PODS:
     - RNWorklets
   - ExpoNotifications (58.1.9):
     - ExpoModulesCore
-  - ExpoRouter (58.0.31):
+  - ExpoRouter (58.0.32):
     - ExpoModulesCore
     - RNScreens
   - ExpoSplashScreen (58.0.14):
     - ExpoModulesCore
   - ExpoStatusBar (58.0.5):
     - ExpoModulesCore
-  - ExpoUI (58.0.28):
+  - ExpoUI (58.0.29):
     - ExpoModulesCore
     - ExpoModulesWorklets
     - React-RCTFabric
-  - ExpoWebBrowser (58.0.8):
+  - ExpoWebBrowser (58.1.0):
     - ExpoModulesCore
   - EXUpdatesInterface (58.0.1):
     - ExpoModulesCore
@@ -1923,7 +1923,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-video (6.17.0):
+  - react-native-video (6.19.3):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1937,7 +1937,7 @@ PODS:
     - React-graphics
     - React-ImageManager
     - React-jsi
-    - react-native-video/Video (= 6.17.0)
+    - react-native-video/Video (= 6.19.3)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -1947,7 +1947,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-video/Fabric (6.17.0):
+  - react-native-video/Fabric (6.19.3):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1970,7 +1970,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-video/Video (6.17.0):
+  - react-native-video/Video (6.19.3):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2744,7 +2744,7 @@ PODS:
   - SocketRocket (0.7.1):
     - ReactNativeDependencies
   - SSZipArchive (2.6.0)
-  - VideoToolkit (1.2.0):
+  - VideoToolkit (1.3.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -3218,16 +3218,16 @@ SPEC CHECKSUMS:
   EXConstants: aeda76f4be923fc719522ae162dd0b8c6483f9cc
   EXJSONUtils: d59bf6b18639752631a81818559b2675a46f99e2
   EXManifests: b0b83ad894166f7e080b18814c5e73aed46e366e
-  Expo: 0f5943dd94c874be78ad7c5a3fa1ecfb5573ab73
-  expo-dev-client: 6dbc4692ec2c1cbd3bf409da2052dea6ef78df6f
-  expo-dev-launcher: 678c9fa1873ff435118fed721c8d0c08fbe06e34
+  Expo: 3e86b7779ef3e7ffedd56d8cd710df3a3878ff1c
+  expo-dev-client: eff83b1668143764a2576c93d369d4d456aaa650
+  expo-dev-launcher: eea862ce7ab3645e8f2b99e6737797cc25fe73ab
   expo-dev-menu: b86208e4963fbcd1be7360969e5398fc79db4f37
   expo-dev-menu-interface: a0ae020737b9f6de39689628181ffd572881cca9
   ExpoApplication: c83355b2f69f996b5d26b64fef39228e7f1e1208
   ExpoAsset: eda9e4844b55b78d4e71a0e2de767a038f3a0806
   ExpoDocumentPicker: 3e8fdb323db3ad2f7c8bbd21fdad3b982f1cf178
   ExpoDomWebView: b2a6d681b9d34c23b1f584321386ca8da1d36afb
-  ExpoFileSystem: b619d80b490c53117a9a9c976021a4ce5a9da440
+  ExpoFileSystem: 3f4f423755d1ed5ef084caeb3a62c4a3fca0bf12
   ExpoFont: daea737a2e3742f9a946f2884518e70dd37011f3
   ExpoGlassEffect: 6594e055df1e0b88d34cc189ba0b21589adec6bf
   ExpoHaptics: d3a61f836a88c0061644473761a6ca499a14b19a
@@ -3241,11 +3241,11 @@ SPEC CHECKSUMS:
   ExpoModulesWorklets: 03d171c0296cdffc054e9570e9393a7655ef360d
   ExpoModulesWorkletsAdapter: da13d3bb33f427fe5735362bcfff3fb2ba9efec6
   ExpoNotifications: fa890b1d743fd72ca15c52ac9f9f23c76860e228
-  ExpoRouter: 7c96a57464b14a338bef360493bcfe7190bcc5eb
+  ExpoRouter: 01c92a99308a0ebb09fe41fddb2ecb180e78b52b
   ExpoSplashScreen: 5df81b55f086d8acc7a24008537514f5379aa6f9
   ExpoStatusBar: 38eff05a54229c9a388cb56cef29117b8dc77eb1
-  ExpoUI: 9a96576076acd2bc5ac11b8f9ea8bbb7945d95ad
-  ExpoWebBrowser: fdc977a19599233f9987ab9329a743d91e231e30
+  ExpoUI: 06100040c315a2404646dee1b4d1ba7ffbadfd1d
+  ExpoWebBrowser: f70b404ac8e3a522e0757cb2b64b175e01cc47c5
   EXUpdatesInterface: 1c6a522d0eb0485f4de3fa55d0316288763b3f10
   fast_float: 9693371e9800f5a1f6226afda015031169e35b73
   FBLazyVector: 4799445607b4d370afd39153808e144200c98576
@@ -3311,7 +3311,7 @@ SPEC CHECKSUMS:
   react-native-keyboard-controller: 8da3439009d9bea47a38462af94227c2c228708e
   react-native-orientation-director: 9b258509febe9fa0122be1ace3712c0d8f520f37
   react-native-safe-area-context: f54c903d3a8c8ddd602e85d4e5bcfe9944de85bc
-  react-native-video: 42e6fdeb8ddf53ff11360d4f8bc1a28d2a625532
+  react-native-video: 9afdb6c8434e7befea683253bab69e5151d66967
   react-native-webview: 0350e63d9eff606d9923619409987b6cd1ac58f5
   React-NativeModulesApple: a649718531d14057266676835fad21c23536faaa
   React-networking: 0ea4e8ad29a594d5d99062222564ced508a28352
@@ -3362,7 +3362,7 @@ SPEC CHECKSUMS:
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   SocketRocket: 9c5c51020fcd1d1d9a4c6d626d5efef98e15425c
   SSZipArchive: 8a6ee5677c8e304bebc109e39cf0da91ccef22ea
-  VideoToolkit: bc5ea3cfe564a774d753b5b85ef3707172e0ceea
+  VideoToolkit: 4302a40a0c1f5411ea286f6cfadc17f86ff94552
   Yoga: 506238f8e7575a3c20290b98402eabc8590f57cc
 
 PODFILE CHECKSUM: fdf269faa97b921cbfc29dc6fa374ac2de6bc177

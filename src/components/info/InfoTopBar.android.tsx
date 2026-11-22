@@ -6,7 +6,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
 import { Stack, useRouter } from 'expo-router';
 import { HeaderHeightContext } from 'expo-router/react-navigation';
@@ -82,14 +81,11 @@ const BarButton = ({ icon, label, testID, onPress, tint }: BarButtonProps) => {
   );
 };
 
-const useFadeAt = (scrollY: SharedValue<number>, at: number) => {
+const useFadeWhen = (isPast: () => boolean) => {
   const shown = useSharedValue(0);
-  useAnimatedReaction(
-    () => scrollY.get() > at,
-    (past, wasPast) => {
-      if (past !== wasPast) shown.set(withTiming(past ? 1 : 0, FADE));
-    },
-  );
+  useAnimatedReaction(isPast, (past, wasPast) => {
+    if (past !== wasPast) shown.set(withTiming(past ? 1 : 0, FADE));
+  });
   return shown;
 };
 
@@ -97,7 +93,7 @@ const useFadeAt = (scrollY: SharedValue<number>, at: number) => {
  * Android's info header, in place of the native one: a Material 3 top app bar that works as Aniyomi's, see-through
  * over the artwork until the page scrolls
  */
-export const InfoTopBar = ({ scrollY, children }: InfoTopBarProps) => {
+export const InfoTopBar = ({ scrollY, scrollMax, children }: InfoTopBarProps) => {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
   const height = top + BAR_HEIGHT;
@@ -105,9 +101,17 @@ export const InfoTopBar = ({ scrollY, children }: InfoTopBarProps) => {
   const { title } = useShownTitle();
   const { share, favorite } = useInfoActions();
 
-  // The title's point is past the fill's, so the title never shows on a see-through bar
-  const filled = useFadeAt(scrollY, FILL_AT);
-  const titled = useFadeAt(scrollY, INFO_HERO_HEIGHT - height);
+  const filled = useFadeWhen(() => {
+    'worklet';
+    return scrollY.get() > FILL_AT;
+  });
+  // Once the hero's title is under the bar, or halfway down a page too short to scroll that far (a movie with few
+  // episodes). Never before the fill, so the title never shows on a see-through bar.
+  const titleAt = INFO_HERO_HEIGHT - height;
+  const titled = useFadeWhen(() => {
+    'worklet';
+    return scrollY.get() > Math.max(FILL_AT, Math.min(titleAt, scrollMax.get() / 2));
+  });
   const fillStyle = useAnimatedStyle(() => ({ opacity: filled.get() }));
   const scrimStyle = useAnimatedStyle(() => ({ opacity: 1 - filled.get() }));
   const titleStyle = useAnimatedStyle(() => ({

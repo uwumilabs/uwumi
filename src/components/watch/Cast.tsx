@@ -6,7 +6,7 @@ import CastContext, {
   type MediaLoadRequest,
 } from 'react-native-google-cast';
 import { BaseIconButton } from 'react-native-video-toolkit';
-import { TextTrackType } from 'react-native-video/src';
+import { TextTrackType } from 'react-native-video';
 import { useToast } from '@/components/heroui';
 import { MaterialIconsIcon } from '@/components/Icons';
 import type { SubtitleTrack } from '@/constants/types';

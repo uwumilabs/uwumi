@@ -1,4 +1,4 @@
-import { TextTrackType } from 'react-native-video/src';
+import { TextTrackType } from 'react-native-video';
 import { SUB_LANGUAGE } from '@/constants/config';
 
 // The toolkit draws subtitle files itself, and reads only these

@@ -1,4 +1,4 @@
-import { TextTrackType } from 'react-native-video/src';
+import { TextTrackType } from 'react-native-video';
 
 export enum MediaType {
   ANIME = 'anime',

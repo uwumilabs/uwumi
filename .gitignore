@@ -48,3 +48,5 @@ GEMINI.md
 android/app/src/main/assets/index.android.bundle
 android/app/src/main/res/raw/
 android/app/src/main/res/drawable*/node_modules_*
+# The Kotlin compiler's session cache, written by Android builds
+android/.kotlin/

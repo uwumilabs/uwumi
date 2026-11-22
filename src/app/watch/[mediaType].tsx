@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useWindowDimensions, View } from 'react-native';
-import { BufferingStrategyType, ISO639_1, OnLoadData } from 'react-native-video/src';
+import { BufferingStrategyType, ISO639_1, OnLoadData } from 'react-native-video';
 import { MediaType, SubtitleTrack } from '@/constants/types';
 import { IAnimeInfo } from 'react-native-consumet';
 import { HUXStack, ThemedView } from '@/components/ui-primitives';

@@ -28,13 +28,21 @@ interface UseListJumpOptions<T> {
   rangeLabel: (items: T[], startIndex: number, endIndex: number) => string;
   /** Kept at the list's scroll offset, for a caller that follows it too */
   scrollY?: SharedValue<number>;
+  /** Kept at how far the list can scroll, for a caller that follows it */
+  scrollMax?: SharedValue<number>;
 }
 
 /**
  * Back to top and "EP 1–100"-style range jumps for long FlashLists. Spread `listProps` on a Reanimated-animated
  * list (such as one inside heroui's ScrollShadow) and pass `jumpBar` to ListJumpBar.
  */
-export function useListJump<T>({ items, listRef, rangeLabel, scrollY: callerScrollY }: UseListJumpOptions<T>) {
+export function useListJump<T>({
+  items,
+  listRef,
+  rangeLabel,
+  scrollY: callerScrollY,
+  scrollMax,
+}: UseListJumpOptions<T>) {
   const ownScrollY = useSharedValue(0);
   const scrollY = callerScrollY ?? ownScrollY;
   const viewportHeight = useSharedValue(0);
@@ -71,6 +79,7 @@ export function useListJump<T>({ items, listRef, rangeLabel, scrollY: callerScro
   const onScroll = useAnimatedScrollHandler((event) => {
     scrollY.set(event.contentOffset.y);
     viewportHeight.set(event.layoutMeasurement.height);
+    scrollMax?.set(event.contentSize.height - event.layoutMeasurement.height);
   });
   useAnimatedReaction(
     () => scrollY.get() > viewportHeight.get() * JUMP_BAR_SCREENS,

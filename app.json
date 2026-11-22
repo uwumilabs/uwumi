@@ -85,7 +85,19 @@
     "plugins": [
       "./plugins/withAndroidDebugVariant",
       "./plugins/withRnCoreFlavorMarker",
-      "./plugins/withPictureInPicture",
+      [
+        "react-native-video",
+        {
+          "enableAndroidPictureInPicture": true,
+          "enableBackgroundAudio": true,
+          "androidExtensions": {
+            "useExoplayerHls": true,
+            "useExoplayerDash": true,
+            "useExoplayerSmoothStreaming": false,
+            "useExoplayerRtsp": false
+          }
+        }
+      ],
       "./plugins/withBackgroundDownloads",
       "./plugins/withAndroidTV",
       "expo-router",

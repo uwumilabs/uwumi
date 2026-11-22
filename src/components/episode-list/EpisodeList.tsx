@@ -366,6 +366,8 @@ interface EpisodeListProps {
   footer?: ReactNode;
   /** Kept at the page's scroll offset */
   scrollY: SharedValue<number>;
+  /** Kept at how far the page can scroll */
+  scrollMax: SharedValue<number>;
 }
 
 // Info screen: episodes scroll inside a window of 3-5 full rows, sized to the screen, so the page around them stays put
@@ -375,7 +377,7 @@ const WINDOW_MAX_ROWS = 5;
 // Room for the controls row and the margins around the window
 const WINDOW_CHROME = 120;
 
-const EpisodeListView = ({ header, footer, scrollY }: EpisodeListProps) => {
+const EpisodeListView = ({ header, footer, scrollY, scrollMax }: EpisodeListProps) => {
   const { mediaType, type, id, episode: sharedEpisode, season: sharedSeason } = useInfoParams();
   const isMovie = isMovieType(type);
   const { height: screenHeight } = useWindowDimensions();
@@ -391,6 +393,7 @@ const EpisodeListView = ({ header, footer, scrollY }: EpisodeListProps) => {
   const headerHeight = useContext(HeaderHeightContext) ?? 0;
   const onPageScroll = useAnimatedScrollHandler((event) => {
     scrollY.set(event.contentOffset.y);
+    scrollMax.set(event.contentSize.height - event.layoutMeasurement.height);
   });
   const setProvider = useProviderStore((state) => state.setProvider);
   const { episodes, context: nav, movieSeasons, activeSeason, setSeason, isLoading, error, refetch } = useEpisodeList();

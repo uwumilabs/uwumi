@@ -2,7 +2,7 @@ import { IEpisodeServer, ISource, PolyURL, StreamingServers, SubOrDub, TvType } 
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { fetchJson, HttpError } from '@/utils/http';
 import { ExternalSubtitleData, MediaType, type SubtitleTrack } from '@/constants/types';
-import { TextTrackType } from 'react-native-video/src/types/video';
+import { TextTrackType } from 'react-native-video';
 import { isThumbnailTrack, subtitleType } from '@/utils/subtitles';
 import {
   getExtensionManagers,

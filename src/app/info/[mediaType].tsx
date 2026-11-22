@@ -12,6 +12,7 @@ import Chapters from '@/components/info/Chapters';
 const Info = () => {
   const { mediaType } = useShowParams();
   const scrollY = useSharedValue(0);
+  const scrollMax = useSharedValue(0);
 
   // Episodes scroll in their own window inside the page, with "More like this" after it. Manga chapters are still
   // one scrolling list with everything above it as its header.
@@ -20,11 +21,11 @@ const Info = () => {
 
   return (
     <ThemedView testID="info-screen" useSafeArea focusable={isTV ? false : undefined}>
-      <InfoTopBar scrollY={scrollY}>
+      <InfoTopBar scrollY={scrollY} scrollMax={scrollMax}>
         {isManga ? (
-          <Chapters header={header} scrollY={scrollY} />
+          <Chapters header={header} scrollY={scrollY} scrollMax={scrollMax} />
         ) : (
-          <EpisodeList header={header} footer={<InfoRecommendations />} scrollY={scrollY} />
+          <EpisodeList header={header} footer={<InfoRecommendations />} scrollY={scrollY} scrollMax={scrollMax} />
         )}
       </InfoTopBar>
     </ThemedView>
