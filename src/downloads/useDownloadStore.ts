@@ -12,11 +12,11 @@ import {
 import { persistStorage } from '@/hooks/stores/MMKV';
 import { usePreferencesStore } from '@/hooks/stores/usePreferencesStore';
 import { DOWNLOADS_DIR, fileUri, fsDirectory, fsFile } from '@/utils/files';
-import { episodeImage, episodeNumber, episodeTitle, type EpisodeContext, type EpisodeItem } from '@/utils/episodes';
+import { episodeNumber, episodeTitle, type EpisodeContext, type EpisodeItem } from '@/utils/episodes';
 import { episodeWatchHref } from '@/utils/routes';
 import type { PlayableSource } from '@/hooks/queries/watchQueries';
 import { downloadArgs, failureReason, probeStream } from './ffmpeg';
-import { isActive, type DownloadProgress, type EpisodeDownload } from './model';
+import { canRetry, isActive, type DownloadProgress, type DownloadStatus, type EpisodeDownload } from './model';
 import { deleteOutputFile, ensureDownloadsFolder, outputPathFor, relativeOutputFile, resolveOutputFile } from './files';
 import { saveThumbnails } from './thumbnails';
 import { showDownloadInNotification, startDownloadService, stopDownloadService } from './service';
@@ -38,7 +38,6 @@ const newDownload = ({ episode, context, showName, season, url, source }: Downlo
     headers: source?.headers,
     name: episodeTitle(episode, number),
     showName,
-    image: episodeImage(episode) || undefined,
     showId: context.id,
     mediaType: context.mediaType,
     watchParams: episodeWatchHref(episode, context).params,
@@ -47,11 +46,7 @@ const newDownload = ({ episode, context, showName, season, url, source }: Downlo
     uniqueId: episode.uniqueId,
     episodeId: episode.id,
     externalSubtitles: source?.subtitles.length
-      ? source.subtitles.map(({ title, language, uri }) => ({
-          title: title || 'Unknown',
-          language: language || 'en',
-          uri,
-        }))
+      ? source.subtitles.map(({ title, language, uri }) => ({ title, language, uri }))
       : undefined,
     thumbnailsVtt: source?.thumbnails,
   } satisfies Omit<EpisodeDownload, 'id' | 'status' | 'createdAt'>;
@@ -68,6 +63,7 @@ interface DownloadState {
    */
   download: (request: DownloadRequest) => Promise<EpisodeDownload | undefined>;
   cancelDownload: (downloadId: string) => Promise<boolean>;
+  /** Starts a download again from its saved link, which may have expired since */
   /** Starts a failed or cancelled download again from its saved link, which may have expired since */
   retryDownload: (downloadId: string) => Promise<void>;
   removeDownload: (downloadId: string) => Promise<void>;
@@ -110,6 +106,10 @@ export const useDownloadStore = create<DownloadState>()(
         if (!anyActive()) await stopDownloadService();
       };
       const lastProgress = new Map<string, { time: number; pct: number }>();
+      // A failed or cancelled try can leave a partial file; another try starts without it
+      const discardPartialFile = (download: EpisodeDownload | undefined) => {
+        if (download?.outputFile && canRetry(download.status)) deleteOutputFile(download.outputFile);
+      };
 
       const add = (episode: Omit<EpisodeDownload, 'id' | 'status' | 'createdAt'>) => {
         const id =
@@ -118,6 +118,7 @@ export const useDownloadStore = create<DownloadState>()(
           `${episode.name.replace(/[^a-zA-Z0-9]/g, '_')}_E${episode.episode}_${Date.now()}`;
         const existing = get().downloads[id];
         if (existing && isActive(existing.status)) return id;
+        discardPartialFile(existing);
         set((state) => ({
           downloads: { ...state.downloads, [id]: { ...episode, id, status: 'pending', createdAt: Date.now() } },
         }));
@@ -160,8 +161,7 @@ export const useDownloadStore = create<DownloadState>()(
           try {
             probed = await probeStream(download.url, download.headers);
           } catch (error) {
-            const label = `${download.name}${download.season ? ` S${download.season}` : ''} E${download.episode}`;
-            console.error(`❌ FFprobe failed for: ${label}`, error);
+            console.error(`❌ FFprobe failed for ${id}:`, error);
             // Not if it was cancelled or removed meanwhile
             if (get().downloads[id]?.status === 'downloading') {
               update(id, {
@@ -286,8 +286,8 @@ export const useDownloadStore = create<DownloadState>()(
 
         retryDownload: async (id) => {
           const download = get().downloads[id];
-          if (download?.status !== 'failed' && download?.status !== 'cancelled') return;
-          if (download.outputFile) deleteOutputFile(download.outputFile);
+          if (!canRetry(download?.status)) return;
+          discardPartialFile(download);
           update(id, { status: 'pending', error: undefined, progress: undefined, outputFile: undefined });
           await start(id);
         },
@@ -349,6 +349,16 @@ export const useDownloadStore = create<DownloadState>()(
   ),
 );
 
+// Ids and statuses only, as a string: progress ticks change neither, so selectors on it don't re-render on them
+const entriesKey = (downloads: Record<string, EpisodeDownload>) =>
+  JSON.stringify(Object.values(downloads).map(({ id, status }) => [id, status]));
+
+/** Every download's id and status, for lists of them */
+export const useDownloadEntries = () => {
+  const key = useDownloadStore((state) => entriesKey(state.downloads));
+  return useMemo(() => (JSON.parse(key) as [string, DownloadStatus][]).map(([id, status]) => ({ id, status })), [key]);
+};
+
 export const useHasActiveDownloads = () =>
   useDownloadStore((state) => Object.values(state.downloads).some(({ status }) => isActive(status)));
 
@@ -403,12 +413,7 @@ export const useDownloadedOnlyFilter = () => {
  */
 export const useDownloadsSize = () => {
   const isInitialized = useDownloadStore((state) => state.isInitialized);
-  const statusKey = useDownloadStore((state) =>
-    Object.values(state.downloads)
-      .map(({ id, status }) => `${id}:${status}`)
-      .sort()
-      .join(','),
-  );
+  const statusKey = useDownloadStore((state) => entriesKey(state.downloads));
   const { data } = useQuery({
     queryKey: ['downloads', 'size', statusKey],
     queryFn: () => fsDirectory(DOWNLOADS_DIR).size ?? 0,

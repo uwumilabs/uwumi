@@ -120,7 +120,7 @@ export const downloadArgs = ({
     args.push('-i', sub.uri);
   });
 
-  // The first video track, every audio track, and the subtitles of every input (`?`: there may be none)
+  // `?`: an input may have no subtitles
   args.push('-map', '0:v:0', '-map', '0:a', '-map', '0:s?');
   external.forEach((_, index) => args.push('-map', `${index + 1}:s?`));
   args.push('-c:v', 'copy', '-c:a', 'copy', '-c:s', 'mov_text', '-bsf:a', 'aac_adtstoasc');
@@ -132,7 +132,7 @@ export const downloadArgs = ({
     if (code && code !== 'und') args.push(`-metadata:s:s:${index}`, `language=${code}`);
   });
 
-  // Language and title for external subtitles; English is the default track, as when streaming
+  // Players that start on the default track get the English one
   const codes = external.map((sub) => subtitleLanguageCode(sub.language));
   const defaultIndex = Math.max(codes.indexOf('eng'), 0);
   external.forEach((sub, index) => {

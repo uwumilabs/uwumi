@@ -6,10 +6,10 @@ import { Menu, useMenuContext } from 'react-native-video-toolkit';
 import { IoniconsIcon, type IoniconProps } from '@/components/Icons';
 import { SUBTITLE_FILE_TYPES } from '@/utils/subtitles';
 import { SUBTITLE_LANGUAGES } from '@/constants/config';
+import { menuListStyle } from './MenuRow';
 
-// The menu header shows a view's id, capitalized
-const ADD_VIEW = 'add subtitles';
-const LANGUAGE_VIEW = 'subtitle language';
+const ADD_VIEW = 'add-subtitles';
+const LANGUAGE_VIEW = 'subtitle-language';
 
 export interface SubtitleLanguage {
   name: string;
@@ -33,7 +33,7 @@ export const AddSubtitlesItem = ({ canSearch, onAddFile }: { canSearch: boolean;
         testID="video-settings-add-subtitles"
         variant="secondary"
         onPress={() => {
-          if (canSearch) return navigateTo(ADD_VIEW);
+          if (canSearch) return navigateTo(ADD_VIEW, 'Add subtitles');
           closeSettings();
           onAddFile();
         }}>
@@ -87,7 +87,7 @@ const AddChoices = ({ onAddFile }: { onAddFile: () => void }) => {
         icon="globe-outline"
         label="Search OpenSubtitles"
         hint="Any language"
-        onPress={() => navigateTo(LANGUAGE_VIEW)}
+        onPress={() => navigateTo(LANGUAGE_VIEW, 'Subtitle language')}
       />
     </View>
   );
@@ -132,7 +132,7 @@ const LanguageSearch = ({ onSearch }: { onSearch: (language: SubtitleLanguage) =
           <SearchField.ClearButton />
         </SearchField.Group>
       </SearchField>
-      <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: '100%' }}>
+      <ScrollView keyboardShouldPersistTaps="handled" style={menuListStyle}>
         {languages.map((language) => (
           <Menu.Item
             key={language.code}
@@ -147,7 +147,6 @@ const LanguageSearch = ({ onSearch }: { onSearch: (language: SubtitleLanguage) =
   );
 };
 
-/** Menu views behind "Add subtitles": a file, or OpenSubtitles in a language searched for. */
 export const AddSubtitlesViews = ({
   onAddFile,
   onSearch,

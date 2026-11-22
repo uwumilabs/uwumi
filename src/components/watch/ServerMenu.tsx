@@ -1,30 +1,22 @@
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Menu, Subtitle, Title, useMenuContext, useVideoSelector } from 'react-native-video-toolkit';
-import { IoniconsIcon } from '@/components/Icons';
+import { ScrollView } from 'react-native';
+import { Menu, useMenuContext } from 'react-native-video-toolkit';
 import type { ServerFailure } from '@/hooks/useServerRotation';
+import { MenuRow, menuListStyle } from './MenuRow';
 import { serverLabel } from './ServerStatus';
 
-// The menu header shows a view's id, capitalized
 const SERVERS_VIEW = 'servers';
 
-/** The settings menu's "Server" row, above Audio. */
-export const ServerMenuItem = ({ current }: { current?: string }) => {
-  const color = useVideoSelector((state) => state.theme.colors.menuText);
-  const size = useVideoSelector((state) => state.theme.iconSizes.sm);
-
-  return (
-    <Menu.Item testID="video-settings-server" navigateTo={SERVERS_VIEW}>
-      <View style={[styles.row, styles.spread]}>
-        <View style={[styles.row, styles.label]}>
-          <IoniconsIcon name="server-outline" size={size} color={color} />
-          <Title text="Server" />
-        </View>
-        <Subtitle text={current ?? 'None'} />
-      </View>
-    </Menu.Item>
-  );
-};
+export const ServerMenuItem = ({ current }: { current?: string }) => (
+  <MenuRow
+    testID="video-settings-server"
+    navigateTo={SERVERS_VIEW}
+    title="Server"
+    viewTitle="Servers"
+    value={current ?? 'None'}
+    icon="server-outline"
+  />
+);
 
 export const ServerMenuView = ({
   servers,
@@ -41,7 +33,7 @@ export const ServerMenuView = ({
 
   return (
     <Menu.SubContent viewId={SERVERS_VIEW}>
-      <ScrollView style={styles.list}>
+      <ScrollView style={menuListStyle}>
         {servers.map((name) => (
           <Menu.CheckboxItem
             key={name}
@@ -60,10 +52,3 @@ export const ServerMenuView = ({
     </Menu.SubContent>
   );
 };
-
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center' },
-  spread: { justifyContent: 'space-between' },
-  label: { gap: 12 },
-  list: { maxHeight: '100%' },
-});

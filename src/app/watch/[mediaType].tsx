@@ -1,13 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useWindowDimensions, View } from 'react-native';
-import { BufferingStrategyType, ISO639_1, OnLoadData } from 'react-native-video';
+import { BufferingStrategyType, OnLoadData, TextTrackType } from 'react-native-video';
 import { MediaType, SubtitleTrack } from '@/constants/types';
 import { IAnimeInfo } from 'react-native-consumet';
 import { HUXStack, ThemedView } from '@/components/ui-primitives';
 import { MaterialIconsIcon } from '@/components/Icons';
 import { PlayerOverlay, SkipSlot, type UpNext } from '@/components/watch/PlayerOverlay';
 import { PlayerCastButton, useCastPlayback } from '@/components/watch/Cast';
-import { subscribeCaptionErrors } from '@/components/watch/AppVideoProvider';
 import { EpisodesPanel } from '@/components/watch/EpisodesPanel';
 import {
   AddSubtitlesItem,
@@ -15,7 +14,7 @@ import {
   type SubtitleLanguage,
   type SubtitleSearchResult,
 } from '@/components/watch/AddSubtitles';
-import { isSubtitleFile, subtitleLanguageCode, subtitleType, SUBTITLE_FILE_TYPES } from '@/utils/subtitles';
+import { isSubtitleFile, subtitleFormat, SUBTITLE_FILE_TYPES } from '@/utils/subtitles';
 import {
   ServerStatusScreen,
   ServerLoadingOverlay,
@@ -72,6 +71,8 @@ import {
   type CaptionFile,
   type CaptionTrack,
 } from 'react-native-video-toolkit';
+
+const CAPTION_TYPES = { srt: TextTrackType.SUBRIP, vtt: TextTrackType.VTT } as const;
 
 const Watch = () => {
   const router = useRouter();
@@ -152,7 +153,6 @@ const Watch = () => {
     [nextEpisode],
   );
 
-  // Previous/next carry the media id this episode plays with
   const episodeContext = useMemo<EpisodeContext>(
     () => ({ ...context, mediaId: activeMediaId }),
     [context, activeMediaId],
@@ -264,7 +264,6 @@ const Watch = () => {
   const savedBucketRef = useRef('');
 
   const [addedSubtitles, setAddedSubtitles] = useState<SubtitleTrack[]>([]);
-  // The first track the viewer added, turned on once the toolkit lists it
   const pendingTrackUriRef = useRef<string | null>(null);
   const { textTracks: captionTracks, setTextTrack } = useSettings();
   const queryClient = useQueryClient();
@@ -276,21 +275,6 @@ const Watch = () => {
     pendingTrackUriRef.current = null;
     setTextTrack(added);
   }, [captionTracks, setTextTrack]);
-
-  useEffect(
-    () =>
-      subscribeCaptionErrors((error) =>
-        toast.show({
-          variant: 'danger',
-          label: "Subtitles didn't load",
-          description:
-            error.code === 'LOAD_FAILED' || error.code === 'TIMEOUT'
-              ? "The subtitle file didn't download."
-              : "The subtitle file couldn't be read.",
-        }),
-      ),
-    [toast],
-  );
 
   // Puts this show at the front of Continue watching
   const rememberEpisode = useCallback(() => {
@@ -408,9 +392,26 @@ const Watch = () => {
     onCasting: () => videoRef?.current?.pause(),
   });
 
+  // react-native-video types these fields as required, with a 2-letter language; the toolkit also reads 3-letter
+  // codes, 'und' for none, and no type (it reads the file to tell)
+  const captionFiles = useMemo(
+    () =>
+      subtitleTracks.map(
+        (track) =>
+          ({
+            title: track.title,
+            language: track.language ?? 'und',
+            type: track.format && CAPTION_TYPES[track.format],
+            uri: track.uri,
+            headers: track.headers,
+          }) as CaptionFile,
+      ),
+    [subtitleTracks],
+  );
+
   // Listed above "Off" in the Captions menu
   const addedTrackUris = useMemo(
-    () => new Set<unknown>([...(externalSubtitles ?? []), ...addedSubtitles].map((track) => track.uri)),
+    () => new Set([...(externalSubtitles ?? []), ...addedSubtitles].map((track) => track.uri)),
     [externalSubtitles, addedSubtitles],
   );
 
@@ -418,7 +419,7 @@ const Watch = () => {
     (tracks: SubtitleTrack[]) => {
       const loaded = new Set(subtitleTracks.map((track) => track.uri));
       const fresh = tracks.filter((track) => !loaded.has(track.uri));
-      // Already listed, such as the Settings language's: just turn it on
+      // Already listed, such as the Settings language's
       if (!fresh.length) {
         const existing = captionTracks.find((track) => track.uri === tracks[0]?.uri);
         if (existing) setTextTrack(existing);
@@ -442,7 +443,7 @@ const Watch = () => {
       });
       return;
     }
-    addSubtitleTracks([{ title: file.name, type: subtitleType(file.name), uri: file.uri }]);
+    addSubtitleTracks([{ title: file.name, format: subtitleFormat(file.name), uri: file.uri }]);
   }, [addSubtitleTracks, toast]);
 
   const searchSubtitles = useCallback(
@@ -545,15 +546,7 @@ const Watch = () => {
           uri: source,
           headers: sourceHeaders,
           // The toolkit fetches and draws these itself; react-native-video never sees them
-          textTracks: subtitleTracks.map(
-            (track): CaptionFile => ({
-              title: track.title || track.language || 'Untitled',
-              language: (subtitleLanguageCode(track.language) ?? track.language ?? 'und') as ISO639_1,
-              type: track.type,
-              uri: track.uri,
-              headers: track.headers,
-            }),
-          ),
+          textTracks: captionFiles,
           bufferConfig: {
             minBufferMs: 60000,
             maxBufferMs: 120000,
@@ -573,11 +566,14 @@ const Watch = () => {
           ]
             .filter(Boolean)
             .join(' · ')}
-          pinCaptionTrack={(track) => addedTrackUris.has((track as CaptionTrack).uri)}
+          pinCaptionTrack={(track) => {
+            const { uri } = track as CaptionTrack;
+            return typeof uri === 'string' && addedTrackUris.has(uri);
+          }}
           slots={{
-            beforeCaptionTracks: isTV ? undefined : (
+            beforeCaptionTracks: (
               <>
-                <AddSubtitlesItem canSearch={canSearchSubtitles} onAddFile={addSubtitleFile} />
+                {!isTV && <AddSubtitlesItem canSearch={canSearchSubtitles} onAddFile={addSubtitleFile} />}
                 <SubtitleStyleItem />
               </>
             ),

@@ -1,5 +1,3 @@
-import { TextTrackType } from 'react-native-video';
-
 export enum MediaType {
   ANIME = 'anime',
   MANGA = 'manga',
@@ -83,9 +81,11 @@ export interface ExternalSubtitleData {
 }
 
 export interface SubtitleTrack {
-  title?: string;
+  title: string;
+  /** ISO 639-2 (`eng`), from `subtitleLanguageCode` */
   language?: string;
-  type: TextTrackType;
+  /** Unset: the player tells from the file */
+  format?: 'srt' | 'vtt';
   uri: string;
   headers?: Record<string, string>;
 }

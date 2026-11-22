@@ -29,11 +29,13 @@ import {
 } from '@/utils/episodes';
 import { innerRadius } from '@/utils/layout';
 import { isMovieType } from '@/utils/media';
-import { EpisodeThumbnail } from './EpisodeThumbnail';
+import { EpisodeThumbnail } from '../EpisodeThumbnail';
 import { useWatchProgressStore } from '@/hooks/stores/useWatchProgressStore';
 import { useDownloadStore } from '@/downloads/useDownloadStore';
+import { isActive } from '@/downloads/model';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { useListJump, LIST_SHADOW_SIZE } from '@/hooks/useListJump';
+import { trackPageScroll, type PageScroll } from '@/components/info/pageScroll';
 import { useEpisodeList } from '@/hooks/useEpisodeList';
 import { WavyAnimation } from './WavyAnimation';
 import EpisodeActionsSheet from './EpisodeActionsSheet';
@@ -51,6 +53,9 @@ import { ProviderEmptyState } from '../ListEmptyState';
 import { Card, cn, ScrollShadow } from '../heroui';
 import { Button } from '../Button';
 import { IoniconsIcon, MaterialIconsIcon } from '../Icons';
+
+const CARD_RADIUS = 16;
+const CARD_PADDING = 6;
 
 const LoadingState = () => {
   const pureBlackBackground = useCurrentTheme().isPureBlack;
@@ -99,9 +104,10 @@ const ListPressable = memo(
         onPress={navigateToEpisode}
         onLongPress={handleLongPress}
         focusScale={1}
-        focusBorderRadius={16}
+        focusBorderRadius={CARD_RADIUS}
         containerStyle={{ marginHorizontal: 8 }}
-        className="rounded-2xl my-1">
+        style={{ borderRadius: CARD_RADIUS }}
+        className="my-1">
         {children}
       </TVFocusWrapper>
     );
@@ -178,7 +184,7 @@ const SwipeAction = memo(
       <Animated.View
         style={[
           animatedStyle,
-          { width: 100, justifyContent: 'center', alignItems: 'center', borderRadius: 16, backgroundColor },
+          { width: 100, justifyContent: 'center', alignItems: 'center', borderRadius: CARD_RADIUS, backgroundColor },
         ]}>
         <Animated.View
           style={[{ ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center' }, firstIconStyle]}>
@@ -211,14 +217,9 @@ type EpisodeContentOptions = { isCurrent: boolean; pureBlackBackground: boolean;
 const DownloadBadge = ({ uniqueId, size }: { uniqueId?: string; size: number }) => {
   const status = useDownloadStore((state) => (uniqueId ? state.downloads[uniqueId]?.status : undefined));
   if (status === 'completed') return <IoniconsIcon name="arrow-down-circle" size={size} />;
-  if (status === 'downloading' || status === 'pending')
-    return <IoniconsIcon name="cloud-download-outline" size={size} />;
+  if (isActive(status)) return <IoniconsIcon name="cloud-download-outline" size={size} />;
   return null;
 };
-
-// The card's corner and inset, which its thumbnail's corner follows
-const CARD_RADIUS = 16;
-const CARD_PADDING = 6;
 
 const EpisodeContent = ({
   item,
@@ -231,7 +232,8 @@ const EpisodeContent = ({
     const titleOnly = displayMode === EpisodeDisplayMode.TitleOnly;
     return (
       <HUYStack
-        className={cn('flex-1 gap-2 rounded-2xl bg-background p-3 shadow-md', pureBlackBackground && 'bg-black')}>
+        className={cn('flex-1 gap-2 bg-background p-3 shadow-md', pureBlackBackground && 'bg-black')}
+        style={{ borderRadius: CARD_RADIUS }}>
         <HUXStack className="flex-1 items-center justify-between gap-2">
           <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={titleOnly ? 2 : 1}>
             {titleOnly || isMovie ? item.title : episodeLabel(episodeNumber(item))}
@@ -364,10 +366,7 @@ interface EpisodeListProps {
   header?: ReactNode;
   /** Rendered after the episode window */
   footer?: ReactNode;
-  /** Kept at the page's scroll offset */
-  scrollY: SharedValue<number>;
-  /** Kept at how far the page can scroll */
-  scrollMax: SharedValue<number>;
+  scroll: PageScroll;
 }
 
 // Info screen: episodes scroll inside a window of 3-5 full rows, sized to the screen, so the page around them stays put
@@ -377,7 +376,7 @@ const WINDOW_MAX_ROWS = 5;
 // Room for the controls row and the margins around the window
 const WINDOW_CHROME = 120;
 
-const EpisodeListView = ({ header, footer, scrollY, scrollMax }: EpisodeListProps) => {
+const EpisodeListView = ({ header, footer, scroll }: EpisodeListProps) => {
   const { mediaType, type, id, episode: sharedEpisode, season: sharedSeason } = useInfoParams();
   const isMovie = isMovieType(type);
   const { height: screenHeight } = useWindowDimensions();
@@ -391,10 +390,7 @@ const EpisodeListView = ({ header, footer, scrollY, scrollMax }: EpisodeListProp
   const windowTopRef = useRef(0);
   // The info screen's header floats over the page, so scrolls stop below it
   const headerHeight = useContext(HeaderHeightContext) ?? 0;
-  const onPageScroll = useAnimatedScrollHandler((event) => {
-    scrollY.set(event.contentOffset.y);
-    scrollMax.set(event.contentSize.height - event.layoutMeasurement.height);
-  });
+  const onPageScroll = useAnimatedScrollHandler((event) => trackPageScroll(scroll, event));
   const setProvider = useProviderStore((state) => state.setProvider);
   const { episodes, context: nav, movieSeasons, activeSeason, setSeason, isLoading, error, refetch } = useEpisodeList();
   const providers = useProviders();
@@ -691,7 +687,7 @@ const EpisodeListView = ({ header, footer, scrollY, scrollMax }: EpisodeListProp
   );
 };
 
-// Over the card, which sits inside the row's py-1
+// Over the card, which sits inside the row's my-1
 const pulseStyles = css.create({
   border: {
     position: 'absolute',
@@ -700,7 +696,7 @@ const pulseStyles = css.create({
     top: 4,
     bottom: 4,
     borderWidth: 2,
-    borderRadius: 16,
+    borderRadius: CARD_RADIUS,
     opacity: 0,
     animationName: css.keyframes({ from: { opacity: 0 }, '50%': { opacity: 1 }, to: { opacity: 0 } }),
     animationDuration: PULSE_MS,

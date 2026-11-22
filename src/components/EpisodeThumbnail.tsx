@@ -6,21 +6,21 @@ import { ThumbnailProgress } from './ThumbnailProgress';
 
 interface EpisodeThumbnailProps {
   image?: string;
+  /** Films leave it out */
   /** The episode's number, in a pill over the image; films leave it out */
   label?: string;
   /** Draws how much of the episode was watched */
   uniqueId?: string;
   width: number;
   height: number;
-  /** Work it out with innerRadius from the container's radius and padding, so the corners sit concentric */
-  radius?: number;
-  /** Laid over the image, such as a status badge */
+  /** Work it out with innerRadius from the container's radius and padding */
+  radius: number;
   children?: ReactNode;
 }
 
-/** An episode's still with its number and how much was watched, as the episode list and Downloads show it */
+/** An episode's still with its number and how much was watched, for the episode list and Downloads */
 export const EpisodeThumbnail = memo(
-  ({ image, label, uniqueId, width, height, radius = 12, children }: EpisodeThumbnailProps) => (
+  ({ image, label, uniqueId, width, height, radius, children }: EpisodeThumbnailProps) => (
     <View
       className="relative items-center justify-center overflow-hidden bg-default"
       style={{ width, height, borderRadius: radius }}>

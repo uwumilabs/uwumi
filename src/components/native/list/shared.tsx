@@ -1,9 +1,7 @@
 // Shared by List.android/ios; it can't live in List.tsx, which those files would resolve back to themselves
 import React from 'react';
-import { View } from 'react-native';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
-import { IoniconsIcon, type IoniconProps } from '../../Icons';
-import { SeparatorLine } from '../separator/Separator';
+import type { IoniconProps } from '../../Icons';
 
 export interface ListItemProps {
   title: string;
@@ -34,45 +32,8 @@ export interface ListProps {
   variant?: 'card' | 'flat';
 }
 
-// heroui ListGroup's look: a rounded surface card, dividers inset 16 from the edges
-export const RADIUS = 24;
-export const INSET = 16;
-
 /** Whether the enclosing list is `flat`, for items to pick their icon colour */
 export const FlatListContext = React.createContext(false);
-
-/** The `List.Item` elements among children, with fragments unwrapped, so the list can put dividers between them */
-export const listItems = (children: React.ReactNode): React.ReactElement<ListItemProps>[] =>
-  React.Children.toArray(children).flatMap((child) => {
-    if (!React.isValidElement(child)) return [];
-    if (child.type === React.Fragment) return listItems((child.props as { children?: React.ReactNode }).children);
-    return [child as React.ReactElement<ListItemProps>];
-  });
-
-/** The card's items with an inset divider between each pair */
-export const withDividers = (items: React.ReactElement[]) =>
-  items.map((item, index) => (
-    <React.Fragment key={item.key ?? index}>
-      {index > 0 && <SeparatorLine inset={INSET} />}
-      {item}
-    </React.Fragment>
-  ));
-
-type RNHostViewComponent = React.ComponentType<{ matchContents?: boolean; children: React.ReactElement }>;
-
-type HostedIconProps = { name: IoniconProps['name']; size: number; color: string; label?: string };
-
-/** An Ionicon inside the native tree, in the platform's `RNHostView`; `label` names an icon-only button */
-export const createHostedIcon = (RNHostView: RNHostViewComponent) =>
-  function HostedIcon({ name, size, color, label }: HostedIconProps) {
-    return (
-      <RNHostView matchContents>
-        <View accessibilityLabel={label}>
-          <IoniconsIcon name={name} size={size} color={color} />
-        </View>
-      </RNHostView>
-    );
-  };
 
 type TrailingProps = Pick<ListItemProps, 'trailingLoading' | 'trailingTone'> & {
   text?: string;

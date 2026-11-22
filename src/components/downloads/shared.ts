@@ -1,10 +1,10 @@
 // Shared by DownloadList.android/ios; it can't live in DownloadList.tsx, which those files would resolve back to themselves
 import type React from 'react';
 import type { IoniconProps } from '../Icons';
-import { INSET, RADIUS } from '../native/list/shared';
 import { innerRadius } from '@/utils/layout';
+import { INSET, RADIUS } from '../native/card/card';
 
-export interface DownloadAction {
+interface DownloadAction {
   testID: string;
   icon: IoniconProps['name'];
   label: string;
@@ -12,7 +12,6 @@ export interface DownloadAction {
 }
 
 export interface DownloadItemProps {
-  /** On the row, for e2e tests */
   testID?: string;
   /** Above the title, such as the show */
   overline?: string;
@@ -21,18 +20,32 @@ export interface DownloadItemProps {
   description?: string;
   /** RN content before the description, such as a Chip */
   status?: React.ReactElement;
-  /** RN content at the start, such as the thumbnail */
+  /** RN content at the start: a DownloadThumbnail */
   leading?: React.ReactElement;
   /** A native bar, with `caption` under it and `detail` at its end */
   progress?: { value: number; indeterminate?: boolean; caption: string; detail?: string };
-  /** Icon buttons at the end of the row; on TV each is its own focus stop with the app's focus ring */
+  /** Icon buttons at the end of the row; on TV each is its own focus stop */
   actions: DownloadAction[];
 }
 
 export interface DownloadListProps {
-  /** `DownloadList.Item`s */
   children: React.ReactNode;
 }
 
-/** The corner for `leading`, concentric with the card's */
-export const LEADING_RADIUS = innerRadius(RADIUS, INSET);
+/** The rows' layout on both platforms */
+export const ROW = {
+  paddingStart: INSET,
+  paddingVertical: 12,
+  gap: 12,
+  textGap: 3,
+  statusGap: 6,
+  progressGap: 4,
+  overlineSize: 12,
+  titleSize: 16,
+  descriptionSize: 13,
+  captionSize: 12,
+  iconSize: 20,
+} as const;
+
+/** The thumbnail's corner, concentric with the card's across the row's start padding */
+export const THUMBNAIL_RADIUS = innerRadius(RADIUS, ROW.paddingStart);

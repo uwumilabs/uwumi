@@ -10,7 +10,8 @@ steps:
   - tool: gesture-tap
     args: { x: 0.5, y: 0.414 }
   - await: { visible: { id: downloads-screen } }
-  - await: { visible: { id: downloads-list } }
+  # The summary shows once the queue has loaded, empty or not (the list is only there with downloads in it)
+  - await: { visible: { text: Storage Used } }
   - await: { idle: true, stableFor: 800 }
   - tap: { id: BackButton }
   - await: { hidden: { id: downloads-screen } }

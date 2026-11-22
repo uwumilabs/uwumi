@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { DEFAULT_SUBTITLE_STYLE, type SubtitleStyle } from '@/utils/subtitleStyle';
+import { useShallow } from 'zustand/react/shallow';
+import {
+  DEFAULT_SUBTITLE_STYLE,
+  isDefaultSubtitleStyle,
+  pickSubtitleStyle,
+  type SubtitleStyle,
+} from '@/utils/subtitleStyle';
 import { persistStorage } from './MMKV';
 
 /** The player menu's speeds, which the default speed is one of */
@@ -49,3 +55,17 @@ export const usePlayerSettingsStore = create<PlayerSettingsState>()(
     },
   ),
 );
+
+/** The viewer's subtitle style, as an object that changes only when one of its settings does */
+export const useSubtitleStyle = () => usePlayerSettingsStore(useShallow(pickSubtitleStyle));
+
+/** One subtitle style setting and its setter, for the settings screen and the player menu */
+export const useSubtitleSetting = <K extends keyof SubtitleStyle>(key: K) => {
+  const value = usePlayerSettingsStore((state) => state[key]);
+  const update = usePlayerSettingsStore((state) => state.update);
+  return [value, (next: SubtitleStyle[K]) => update({ [key]: next })] as const;
+};
+
+export const useIsDefaultSubtitleStyle = () => usePlayerSettingsStore(isDefaultSubtitleStyle);
+
+export const resetSubtitleStyle = () => usePlayerSettingsStore.getState().update(DEFAULT_SUBTITLE_STYLE);

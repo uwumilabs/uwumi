@@ -18,7 +18,7 @@ final class SheetWidthModule: Module {
 }
 
 final class SheetWidthView: ExpoView {
-  var maxWidth: CGFloat = 640
+  var maxWidth: CGFloat = 0
 
   override func didMoveToWindow() {
     super.didMoveToWindow()
@@ -26,7 +26,7 @@ final class SheetWidthView: ExpoView {
   }
 
   func limitSheet() {
-    guard window != nil, let controller = owningController() else {
+    guard maxWidth > 0, window != nil, let controller = owningController() else {
       return
     }
     // The sheet's own hosting controller is the root of the owning controller's parents

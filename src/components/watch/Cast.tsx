@@ -6,7 +6,6 @@ import CastContext, {
   type MediaLoadRequest,
 } from 'react-native-google-cast';
 import { BaseIconButton } from 'react-native-video-toolkit';
-import { TextTrackType } from 'react-native-video';
 import { useToast } from '@/components/heroui';
 import { MaterialIconsIcon } from '@/components/Icons';
 import type { SubtitleTrack } from '@/constants/types';
@@ -72,7 +71,7 @@ export const useCastPlayback = ({
     const contentUrl = castUrl(url, headers);
     if (!contentUrl) return;
     const mediaTracks = subtitles
-      .filter((track) => track.type === TextTrackType.VTT)
+      .filter((track) => track.format !== 'srt')
       .map(
         (track, index): MediaTrack => ({
           id: index + 1,
@@ -80,7 +79,7 @@ export const useCastPlayback = ({
           subtype: 'subtitles',
           name: track.title,
           language: track.language,
-          contentId: castUrl(track.uri, headers),
+          contentId: castUrl(track.uri, track.headers),
           contentType: 'text/vtt',
         }),
       );

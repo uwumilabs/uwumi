@@ -1,5 +1,5 @@
 import React from 'react';
-import { BottomSheet } from '../BottomSheet';
+import { BottomSheet } from '../sheet/BottomSheet';
 import type { DialogProps } from './Dialog';
 
 // No universal dialog exists and SwiftUI's Alert can't host custom content, so iOS presents a sheet.

@@ -26,6 +26,7 @@ import { ensureNotificationPermission } from '@/services/notifications';
 import { HeroUINativeProvider } from '@/components/heroui';
 import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
 import { OtaUpdateToast } from '@/components/OtaUpdateToast';
+import { CaptionErrorToasts } from '@/components/watch/CaptionErrorToasts';
 import { UpdateDialog } from '@/components/UpdateDialog';
 import { AppVideoProvider, VIDEO_PORTAL_HOST } from '@/components/watch/AppVideoProvider';
 import { VideoPortalHost } from 'react-native-video-toolkit';
@@ -178,6 +179,7 @@ const AppContent = () => {
           {/* Player sheets (the episodes panel) render here, inside HeroUI's provider so its components work */}
           <VideoPortalHost name={VIDEO_PORTAL_HOST} />
           <OtaUpdateToast />
+          <CaptionErrorToasts />
           <UpdateDialog />
         </HeroUINativeProvider>
       )}

@@ -6,12 +6,11 @@ import { List as NativeList } from '@/components/native/list/List';
 import { SectionTitle, ThemedView } from '@/components/ui-primitives';
 import { SUBTITLE_LANGUAGES } from '@/constants/config';
 import { isTV } from '@/utils/tv';
-import { PLAYBACK_RATES, usePlayerSettingsStore } from '@/hooks/stores/usePlayerSettingsStore';
+import { PLAYBACK_RATES, usePlayerSettingsStore, useSubtitleStyle } from '@/hooks/stores/usePlayerSettingsStore';
 import { useExternalSubtitleStore } from '@/hooks/stores/useExternalSubtitleStore';
-import { pickSubtitleStyle, subtitleStyleSummary } from '@/utils/subtitleStyle';
+import { subtitleStyleSummary } from '@/utils/subtitleStyle';
 import { SETTINGS_SCREENS } from '@/utils/routes';
 import { useRouter } from 'expo-router';
-import { useShallow } from 'zustand/react/shallow';
 
 const OFF = 'off';
 
@@ -40,7 +39,7 @@ const Player = () => {
   const update = usePlayerSettingsStore((state) => state.update);
   const language = useExternalSubtitleStore((state) => state.language);
   const setLanguage = useExternalSubtitleStore((state) => state.setLanguage);
-  const subtitleStyle = usePlayerSettingsStore(useShallow(pickSubtitleStyle));
+  const subtitleStyle = useSubtitleStyle();
   const router = useRouter();
 
   return (

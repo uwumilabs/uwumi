@@ -4,13 +4,14 @@ import { cn } from '../../heroui';
 import { Host, LinearProgressIndicator } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth } from '@expo/ui/jetpack-compose/modifiers';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { progressFraction } from './shared';
 import type { ProgressLineProps, ProgressProps } from './Progress';
 
-export const ProgressLine = ({ value = 0, indeterminate }: ProgressLineProps) => {
+export const ProgressLine = ({ value, indeterminate }: ProgressLineProps) => {
   const currentTheme = useCurrentTheme();
   return (
     <LinearProgressIndicator
-      progress={indeterminate ? null : Math.max(0, Math.min(100, value)) / 100}
+      progress={indeterminate ? null : progressFraction(value)}
       color={currentTheme.accent}
       trackColor={currentTheme.default}
       modifiers={[fillMaxWidth()]}
@@ -18,10 +19,10 @@ export const ProgressLine = ({ value = 0, indeterminate }: ProgressLineProps) =>
   );
 };
 
-export const Progress: React.FC<ProgressProps> = ({ className, ...line }) => (
+export const Progress: React.FC<ProgressProps> = ({ className, value }) => (
   <View className={cn('self-stretch', className)}>
     <Host matchContents={{ vertical: true }} style={{ width: '100%' }}>
-      <ProgressLine {...line} />
+      <ProgressLine value={value} />
     </Host>
   </View>
 );

@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useState, type ComponentProps, type ReactNode } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,53 +10,26 @@ import { ThemedView, HUXStack, HUYStack } from '@/components/ui-primitives';
 import { HorizontalTabs } from '@/components/HorizontalTabs';
 import { Button } from '@/components/Button';
 import { IoniconsIcon, type IoniconProps } from '@/components/Icons';
-import { EpisodeThumbnail } from '@/components/episode-list/EpisodeThumbnail';
-import { DownloadList, LEADING_RADIUS } from '@/components/downloads/DownloadList';
+import { DownloadList } from '@/components/downloads/DownloadList';
+import { DownloadThumbnail } from '@/components/downloads/DownloadThumbnail';
 import { Separator } from '@/components/native/separator/Separator';
-import { downloadedFileUri, useDownloadStore, useDownloadsSize } from '@/downloads/useDownloadStore';
-import { downloadBytesPerSecond, downloadLabels, isPreparing, type DownloadStatus } from '@/downloads/model';
-import { formatBytes, formatTime } from '@/utils/format';
+import {
+  downloadedFileUri,
+  useDownloadEntries,
+  useDownloadStore,
+  useDownloadsSize,
+} from '@/downloads/useDownloadStore';
+import { downloadLabels, downloadProgressText, downloadSection, type DownloadSection } from '@/downloads/model';
+import { formatBytes, formatShortDate, joinDetails } from '@/utils/format';
 import { openVideoInOtherApp } from '@/utils/share';
-import { Chip, cn, useToast } from '@/components/heroui';
+import { Chip, useToast } from '@/components/heroui';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 
-type SectionKey = 'downloading' | 'pending' | 'completed' | 'failed';
+const PAGE_GUTTER = 16;
 
-const SECTIONS: {
-  key: SectionKey;
-  title: string;
-  statuses: DownloadStatus[];
-  icon: IoniconProps['name'];
-  tone: string;
-}[] = [
-  { key: 'downloading', title: 'Downloading', statuses: ['downloading'], icon: 'cloud-download', tone: 'text-accent' },
-  { key: 'pending', title: 'Pending', statuses: ['pending'], icon: 'time-outline', tone: 'text-accent' },
-  { key: 'completed', title: 'Completed', statuses: ['completed'], icon: 'checkmark-circle', tone: 'text-success' },
-  { key: 'failed', title: 'Failed', statuses: ['failed', 'cancelled'], icon: 'warning', tone: 'text-danger' },
-];
+type Entry = ReturnType<typeof useDownloadEntries>[number];
 
-type Entry = { id: string; status: DownloadStatus };
-
-const getStatusColor = (status: DownloadStatus): ComponentProps<typeof Chip>['color'] => {
-  switch (status) {
-    case 'completed':
-      return 'success';
-    case 'failed':
-    case 'cancelled':
-      return 'danger';
-    default:
-      return 'default';
-  }
-};
-
-const shortDate = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
-const longDate = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
-// The year only when it isn't this one, to keep the compact rows' details short
-const formatCompletedDate = (time: number) =>
-  (new Date(time).getFullYear() === new Date().getFullYear() ? shortDate : longDate).format(time);
-const joinDetails = (...details: (string | undefined)[]) => details.filter(Boolean).join('  •  ');
-
-/** The fields a row shows. Progress ticks change none of them, so they don't re-render the row */
+/** Progress ticks change none of these fields, so they don't re-render the row */
 const useDownloadRow = (id: string) =>
   useDownloadStore(
     useShallow((state) => {
@@ -66,96 +39,68 @@ const useDownloadRow = (id: string) =>
         showName: d?.showName,
         season: d?.season,
         episode: d?.episode,
-        image: d?.image ?? d?.watchParams?.poster,
         uniqueId: d?.uniqueId,
         watchParams: d?.watchParams,
         fileSize: d?.fileSize,
-        status: d?.status ?? 'pending',
+        status: d?.status,
         error: d?.error,
         completedAt: d?.completedAt,
       };
     }),
   );
 
-const SUMMARY_RADIUS = 16;
-
-const Surface = ({ className, children }: { className?: string; children: ReactNode }) => {
-  const { barBackground } = useCurrentTheme();
-  return (
-    <View
-      className={cn('border border-separator/60 p-4', className)}
-      style={{ backgroundColor: barBackground, borderRadius: SUMMARY_RADIUS }}>
-      {children}
-    </View>
-  );
-};
-
 interface RowProps {
   id: string;
-  onRemove: (id: string, status: DownloadStatus) => void;
+  onRemove: (id: string) => void;
   onCancel: (id: string) => void;
 }
 
-// Downloading or queued: the progress, with Cancel and Remove. The only rows that re-render on progress ticks
+const removeAction = (title: string, onRemove: () => void) => ({
+  testID: 'download-card-remove',
+  icon: 'trash-outline' as const,
+  label: `Remove ${title}`,
+  onPress: onRemove,
+});
+
+// The only rows that re-render on progress ticks
 const ActiveRow = ({ id, onRemove, onCancel }: RowProps) => {
   const download = useDownloadRow(id);
   const progress = useDownloadStore((state) => state.downloads[id]?.progress);
-  const preparing = useDownloadStore((state) => isPreparing(state.downloads[id]));
   const labels = downloadLabels(download);
-  const queued = download.status === 'pending';
-  const percent = Math.round(progress?.percentage || 0);
-  const bytesPerSecond = progress ? downloadBytesPerSecond(progress) : 0;
+  const text = downloadProgressText({ status: download.status, progress });
   return (
     <DownloadList.Item
       testID="download-card"
       overline={labels.show}
       title={labels.title}
       description={labels.number}
-      leading={
-        <EpisodeThumbnail
-          image={download.image}
-          uniqueId={download.uniqueId}
-          width={96}
-          height={60}
-          radius={LEADING_RADIUS}
-        />
-      }
+      leading={<DownloadThumbnail size="large" image={download.watchParams?.poster} uniqueId={download.uniqueId} />}
       progress={{
-        value: percent,
-        indeterminate: preparing,
-        caption: preparing
-          ? 'Getting ready…'
-          : joinDetails(`${percent}%`, bytesPerSecond ? `${formatBytes(bytesPerSecond)}/s` : undefined),
-        detail:
-          progress?.currentTime && progress.totalDuration
-            ? `${formatTime(progress.currentTime)} / ${formatTime(progress.totalDuration)}`
-            : undefined,
+        value: progress?.percentage ?? 0,
+        indeterminate: text.preparing,
+        caption: text.caption,
+        detail: text.detail,
       }}
       actions={[
         {
           testID: 'download-card-cancel',
-          icon: queued ? 'close-circle-outline' : 'stop-circle-outline',
+          icon: download.status === 'pending' ? 'close-circle-outline' : 'stop-circle-outline',
           label: `Cancel ${labels.title}`,
           onPress: () => onCancel(id),
         },
-        {
-          testID: 'download-card-remove',
-          icon: 'trash-outline',
-          label: `Remove ${labels.title}`,
-          onPress: () => onRemove(id, download.status),
-        },
+        removeAction(labels.title, () => onRemove(id)),
       ]}
     />
   );
 };
 
-// A finished download: Play, another player, or Remove
-const CompletedRow = ({ id, onRemove }: Omit<RowProps, 'onCancel'>) => {
+const CompletedRow = ({ id, onRemove }: RowProps) => {
   const download = useDownloadRow(id);
   const labels = downloadLabels(download);
   const router = useRouter();
   const { toast } = useToast();
   const title = labels.show ?? labels.title;
+  const { watchParams } = download;
 
   const openElsewhere = async () => {
     const uri = downloadedFileUri(useDownloadStore.getState().downloads[id]);
@@ -174,26 +119,21 @@ const CompletedRow = ({ id, onRemove }: Omit<RowProps, 'onCancel'>) => {
       description={joinDetails(
         labels.number,
         download.fileSize ? formatBytes(download.fileSize, 1) : undefined,
-        download.completedAt ? formatCompletedDate(download.completedAt) : undefined,
+        download.completedAt ? formatShortDate(download.completedAt) : undefined,
       )}
       leading={
-        <EpisodeThumbnail
-          image={download.image}
-          uniqueId={download.uniqueId}
-          width={80}
-          height={50}
-          radius={LEADING_RADIUS}>
+        <DownloadThumbnail size="small" image={download.watchParams?.poster} uniqueId={download.uniqueId}>
           <IoniconsIcon name="checkmark-circle" size={18} className="absolute bottom-1 right-1 text-success" />
-        </EpisodeThumbnail>
+        </DownloadThumbnail>
       }
       actions={[
-        ...(download.watchParams
+        ...(watchParams
           ? [
               {
                 testID: 'download-card-play',
                 icon: 'play' as const,
                 label: `Play ${title}`,
-                onPress: () => download.watchParams && router.push(watchHref(download.watchParams)),
+                onPress: () => router.push(watchHref(watchParams)),
               },
             ]
           : []),
@@ -203,19 +143,13 @@ const CompletedRow = ({ id, onRemove }: Omit<RowProps, 'onCancel'>) => {
           label: `Open ${title} in another app`,
           onPress: openElsewhere,
         },
-        {
-          testID: 'download-card-remove',
-          icon: 'trash-outline',
-          label: `Remove ${title}`,
-          onPress: () => onRemove(id, download.status),
-        },
+        removeAction(title, () => onRemove(id)),
       ]}
     />
   );
 };
 
-// Failed or cancelled: why, with Retry and Remove
-const FailedRow = ({ id, onRemove }: Omit<RowProps, 'onCancel'>) => {
+const FailedRow = ({ id, onRemove }: RowProps) => {
   const download = useDownloadRow(id);
   const labels = downloadLabels(download);
   return (
@@ -224,20 +158,12 @@ const FailedRow = ({ id, onRemove }: Omit<RowProps, 'onCancel'>) => {
       overline={labels.show}
       title={labels.title}
       status={
-        <Chip size="sm" color={getStatusColor(download.status)}>
+        <Chip size="sm" color="danger">
           <Chip.Label>{download.status === 'cancelled' ? 'Cancelled' : 'Failed'}</Chip.Label>
         </Chip>
       }
       description={joinDetails(labels.number, download.error)}
-      leading={
-        <EpisodeThumbnail
-          image={download.image}
-          uniqueId={download.uniqueId}
-          width={80}
-          height={50}
-          radius={LEADING_RADIUS}
-        />
-      }
+      leading={<DownloadThumbnail size="small" image={download.watchParams?.poster} uniqueId={download.uniqueId} />}
       actions={[
         {
           testID: 'download-card-retry',
@@ -245,32 +171,37 @@ const FailedRow = ({ id, onRemove }: Omit<RowProps, 'onCancel'>) => {
           label: `Retry ${labels.title}`,
           onPress: () => useDownloadStore.getState().retryDownload(id),
         },
-        {
-          testID: 'download-card-remove',
-          icon: 'trash-outline',
-          label: `Remove ${labels.title}`,
-          onPress: () => onRemove(id, download.status),
-        },
+        removeAction(labels.title, () => onRemove(id)),
       ]}
     />
   );
 };
 
-const SectionHeader = memo(({ section, count }: { section: SectionKey; count: number }) => {
-  const { title, icon, tone } = SECTIONS.find(({ key }) => key === section)!;
-  return (
-    <HUXStack className="flex-row items-center gap-2.5 pb-2 pt-4">
-      <IoniconsIcon name={icon} size={22} className={tone} />
-      <Text className="text-lg font-bold text-foreground">
-        {title} ({count})
-      </Text>
-    </HUXStack>
-  );
-});
-SectionHeader.displayName = 'SectionHeader';
+const SECTIONS: {
+  key: DownloadSection;
+  title: string;
+  icon: IoniconProps['name'];
+  tone: string;
+  Row: React.ComponentType<RowProps>;
+}[] = [
+  { key: 'downloading', title: 'Downloading', icon: 'cloud-download', tone: 'text-accent', Row: ActiveRow },
+  { key: 'pending', title: 'Pending', icon: 'time-outline', tone: 'text-accent', Row: ActiveRow },
+  { key: 'completed', title: 'Completed', icon: 'checkmark-circle', tone: 'text-success', Row: CompletedRow },
+  { key: 'failed', title: 'Failed', icon: 'warning', tone: 'text-danger', Row: FailedRow },
+];
+type Section = (typeof SECTIONS)[number];
+
+const SectionHeader = ({ section, count }: { section: Section; count: number }) => (
+  <HUXStack className="items-center gap-2.5 pb-2 pt-4">
+    <IoniconsIcon name={section.icon} size={22} className={section.tone} />
+    <Text className="text-lg font-bold text-foreground">
+      {section.title} ({count})
+    </Text>
+  </HUXStack>
+);
 
 const Metric = ({ icon, label, value }: { icon: IoniconProps['name']; label: string; value: string }) => (
-  <HUXStack className="flex-1 flex-row items-center gap-2.5">
+  <HUXStack className="flex-1 items-center gap-2.5">
     <View className="rounded-xl bg-accent/15 p-1.5">
       <IoniconsIcon name={icon} size={20} className="text-accent" />
     </View>
@@ -296,116 +227,87 @@ const EmptyState = () => (
 );
 
 const Downloads = () => {
+  const theme = useCurrentTheme();
   const isInitialized = useDownloadStore((state) => state.isInitialized);
-  // Ids and statuses only: progress ticks change neither, so they don't re-render the screen or the lists
-  const layoutKey = useDownloadStore((state) =>
-    Object.values(state.downloads)
-      .map(({ id, status }) => `${status}\t${id}`)
-      .join('\n'),
-  );
+  const entries = useDownloadEntries();
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [clearCompletedDialogOpen, setClearCompletedDialogOpen] = useState(false);
   const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
   const [selectedDownloadId, setSelectedDownloadId] = useState<string | null>(null);
-  const [selectedDownloadStatus, setSelectedDownloadStatus] = useState<string>('');
+  const removingFile = useDownloadStore(
+    (state) => !!selectedDownloadId && state.downloads[selectedDownloadId]?.status === 'completed',
+  );
   const insets = useSafeAreaInsets();
+  const downloadsSize = useDownloadsSize();
 
   useEffect(() => {
     useDownloadStore.getState().initialize();
   }, []);
 
-  const entries = useMemo<Entry[]>(
-    () =>
-      layoutKey
-        ? layoutKey.split('\n').map((line) => {
-            const tab = line.indexOf('\t');
-            return { status: line.slice(0, tab) as DownloadStatus, id: line.slice(tab + 1) };
-          })
-        : [],
-    [layoutKey],
-  );
-  const sectionItems = useMemo(
-    () =>
-      Object.fromEntries(
-        SECTIONS.map(({ key, statuses }) => [key, entries.filter(({ status }) => statuses.includes(status))]),
-      ) as Record<SectionKey, Entry[]>,
-    [entries],
-  );
+  const sectionItems = Object.fromEntries(
+    SECTIONS.map(({ key }) => [key, entries.filter(({ status }) => downloadSection(status) === key)]),
+  ) as Record<DownloadSection, Entry[]>;
   const completedCount = sectionItems.completed.length;
-  const downloadsSize = useDownloadsSize();
 
-  const handleRemoveDownload = useCallback((downloadId: string, status: string) => {
-    setSelectedDownloadId(downloadId);
-    setSelectedDownloadStatus(status);
+  const askRemove = (id: string) => {
+    setSelectedDownloadId(id);
     setRemoveDialogOpen(true);
-  }, []);
-
-  const confirmRemoveDownload = useCallback(async () => {
-    if (selectedDownloadId) {
-      await useDownloadStore.getState().removeDownload(selectedDownloadId);
-      setRemoveDialogOpen(false);
-      setSelectedDownloadId(null);
-    }
-  }, [selectedDownloadId]);
-
-  const handleCancelDownload = useCallback((downloadId: string) => {
-    setSelectedDownloadId(downloadId);
+  };
+  const askCancel = (id: string) => {
+    setSelectedDownloadId(id);
     setCancelDialogOpen(true);
-  }, []);
+  };
 
-  const confirmCancelDownload = useCallback(async () => {
-    if (selectedDownloadId) {
-      await useDownloadStore.getState().cancelDownload(selectedDownloadId);
-      setCancelDialogOpen(false);
-      setSelectedDownloadId(null);
-    }
-  }, [selectedDownloadId]);
+  const confirmRemoveDownload = async () => {
+    if (!selectedDownloadId) return;
+    await useDownloadStore.getState().removeDownload(selectedDownloadId);
+    setRemoveDialogOpen(false);
+    setSelectedDownloadId(null);
+  };
 
-  const confirmClearCompleted = useCallback(async () => {
+  const confirmCancelDownload = async () => {
+    if (!selectedDownloadId) return;
+    await useDownloadStore.getState().cancelDownload(selectedDownloadId);
+    setCancelDialogOpen(false);
+    setSelectedDownloadId(null);
+  };
+
+  const confirmClearCompleted = async () => {
     await useDownloadStore.getState().clearCompleted();
     setClearCompletedDialogOpen(false);
-  }, []);
+  };
 
-  const confirmClearAll = useCallback(async () => {
+  const confirmClearAll = async () => {
     await useDownloadStore.getState().clearAll();
     setClearAllDialogOpen(false);
-  }, []);
+  };
 
-  /** One native card of rows */
-  const renderCard = (items: Entry[]) => (
+  const renderCard = ({ key, Row }: Section) => (
     <DownloadList>
-      {items.map(({ id, status }) => {
-        switch (status) {
-          case 'completed':
-            return <CompletedRow key={id} id={id} onRemove={handleRemoveDownload} />;
-          case 'failed':
-          case 'cancelled':
-            return <FailedRow key={id} id={id} onRemove={handleRemoveDownload} />;
-          default:
-            return <ActiveRow key={id} id={id} onRemove={handleRemoveDownload} onCancel={handleCancelDownload} />;
-        }
-      })}
+      {sectionItems[key].map(({ id }) => (
+        <Row key={id} id={id} onRemove={askRemove} onCancel={askCancel} />
+      ))}
     </DownloadList>
   );
 
-  // "All" has every section under its heading; each status's tab, with nothing in it, isn't shown
+  // A status's tab only shows while it has downloads
   const sections = SECTIONS.filter(({ key }) => sectionItems[key].length);
   const tabs = [
     {
       key: 'all',
       label: `All ${entries.length}`,
-      content: sections.map(({ key }) => (
-        <View key={key}>
-          <SectionHeader section={key} count={sectionItems[key].length} />
-          {renderCard(sectionItems[key])}
+      content: sections.map((section) => (
+        <View key={section.key}>
+          <SectionHeader section={section} count={sectionItems[section.key].length} />
+          {renderCard(section)}
         </View>
       )),
     },
-    ...sections.map(({ key, title }) => ({
-      key,
-      label: `${title} ${sectionItems[key].length}`,
-      content: <View className="pt-3">{renderCard(sectionItems[key])}</View>,
+    ...sections.map((section) => ({
+      key: section.key,
+      label: `${section.title} ${sectionItems[section.key].length}`,
+      content: <View className="pt-3">{renderCard(section)}</View>,
     })),
   ];
 
@@ -422,15 +324,17 @@ const Downloads = () => {
 
   return (
     <ThemedView testID="downloads-screen">
-      <HUYStack className="gap-3 px-4 py-3">
-        <Surface className="flex-row items-center gap-3">
+      <HUYStack className="gap-3 py-3" style={{ paddingHorizontal: PAGE_GUTTER }}>
+        <HUXStack
+          className="items-center gap-3 rounded-2xl border border-separator/60 p-4"
+          style={{ backgroundColor: theme.surface }}>
           <Metric icon="server" label="Storage Used" value={formatBytes(downloadsSize ?? 0)} />
           <Separator orientation="vertical" />
           <Metric icon="download-outline" label="Total Downloads" value={String(completedCount)} />
-        </Surface>
+        </HUXStack>
 
         {entries.length > 0 && (
-          <HUXStack className="flex-row gap-2.5">
+          <HUXStack className="gap-2.5">
             {completedCount > 0 && (
               <View className="flex-1">
                 <Button
@@ -459,7 +363,7 @@ const Downloads = () => {
             content: (
               <ScrollView
                 testID="downloads-list"
-                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 + insets.bottom }}>
+                contentContainerStyle={{ paddingHorizontal: PAGE_GUTTER, paddingBottom: 32 + insets.bottom }}>
                 {content}
               </ScrollView>
             ),
@@ -475,9 +379,7 @@ const Downloads = () => {
         onOpenChange={setRemoveDialogOpen}
         title="Remove Download"
         description={
-          selectedDownloadStatus === 'completed'
-            ? 'This will delete the downloaded file. Continue?'
-            : 'Remove this download from the list?'
+          removingFile ? 'This will delete the downloaded file. Continue?' : 'Remove this download from the list?'
         }
         confirmText="Remove"
         onConfirm={confirmRemoveDownload}

@@ -1,21 +1,31 @@
 import { Platform } from 'react-native';
 import type { CaptionsTheme } from 'react-native-video-toolkit';
 
+type Theme = Partial<CaptionsTheme>;
+
 interface StyleOption {
   label: string;
   value: string;
-  theme: Partial<CaptionsTheme>;
+  theme: Theme;
 }
 
-/**
- * The pick-one subtitle style settings, which the settings screen and the player menu both list. Each
- * setting's first option is its default, and matches the toolkit's own.
- */
-export const SUBTITLE_STYLE = {
+type SubtitleStyleSection = 'text' | 'background' | 'position';
+
+export const SUBTITLE_STYLE_SECTIONS: { key: SubtitleStyleSection; title: string }[] = [
+  { key: 'text', title: 'Text' },
+  { key: 'background', title: 'Background' },
+  { key: 'position', title: 'Position' },
+];
+
+const NO_BACKGROUND = 'none';
+
+// The first option of each is the toolkit's own default, so it sets nothing
+const SUBTITLE_CHOICES = {
   subtitleSize: {
+    section: 'text',
     title: 'Text size',
     options: [
-      { label: 'Auto', value: 'auto', theme: { fontSize: 'auto' } },
+      { label: 'Auto', value: 'auto', theme: {} },
       { label: 'Small', value: 'small', theme: { fontSize: 16 } },
       { label: 'Medium', value: 'medium', theme: { fontSize: 20 } },
       { label: 'Large', value: 'large', theme: { fontSize: 24 } },
@@ -23,6 +33,7 @@ export const SUBTITLE_STYLE = {
     ],
   },
   subtitleFont: {
+    section: 'text',
     title: 'Font',
     options: [
       { label: 'System', value: 'system', theme: {} },
@@ -35,9 +46,10 @@ export const SUBTITLE_STYLE = {
     ],
   },
   subtitleColor: {
+    section: 'text',
     title: 'Text colour',
     options: [
-      { label: 'White', value: 'white', theme: { color: '#FFFFFF' } },
+      { label: 'White', value: 'white', theme: {} },
       { label: 'Yellow', value: 'yellow', theme: { color: '#FFEB3B' } },
       { label: 'Cyan', value: 'cyan', theme: { color: '#4DD0E1' } },
       { label: 'Green', value: 'green', theme: { color: '#69F0AE' } },
@@ -45,15 +57,17 @@ export const SUBTITLE_STYLE = {
     ],
   },
   subtitleBackground: {
+    section: 'background',
     title: 'Background',
     options: [
-      { label: 'Dark', value: 'dark', theme: { backgroundColor: 'rgba(0, 0, 0, 0.75)' } },
+      { label: 'Dark', value: 'dark', theme: {} },
       { label: 'Light', value: 'light', theme: { backgroundColor: 'rgba(0, 0, 0, 0.4)' } },
       { label: 'Solid', value: 'solid', theme: { backgroundColor: '#000000' } },
-      { label: 'None', value: 'none', theme: { backgroundColor: 'transparent' } },
+      { label: 'None', value: NO_BACKGROUND, theme: { backgroundColor: 'transparent' } },
     ],
   },
   subtitleEdge: {
+    section: 'background',
     title: 'Edge',
     options: [
       { label: 'None', value: 'none', theme: {} },
@@ -66,65 +80,95 @@ export const SUBTITLE_STYLE = {
     ],
   },
   subtitlePosition: {
+    section: 'position',
     title: 'Position',
     options: [
-      { label: 'On the picture', value: 'video', theme: { position: 'video' } },
+      { label: 'On the picture', value: 'video', theme: {} },
       { label: 'In the black bars', value: 'bars', theme: { position: 'bars' } },
     ],
   },
   subtitleMargin: {
+    section: 'position',
     title: 'Distance from bottom',
     options: [
-      { label: 'Normal', value: 'normal', theme: { bottomMargin: 0.05 } },
+      { label: 'Normal', value: 'normal', theme: {} },
       { label: 'Low', value: 'low', theme: { bottomMargin: 0.02 } },
       { label: 'High', value: 'high', theme: { bottomMargin: 0.1 } },
     ],
   },
-} satisfies Record<string, { title: string; options: StyleOption[] }>;
+} satisfies Record<string, { section: SubtitleStyleSection; title: string; options: StyleOption[] }>;
 
-export type SubtitleStyleKey = keyof typeof SUBTITLE_STYLE;
+// Off by default
+const SUBTITLE_TOGGLES = {
+  subtitleBold: { section: 'text', title: 'Bold', theme: { fontWeight: 'bold' } },
+  subtitleCaps: { section: 'text', title: 'All caps', theme: { textTransform: 'uppercase' } },
+} satisfies Record<string, { section: SubtitleStyleSection; title: string; theme: Theme }>;
 
-export const SUBTITLE_STYLE_KEYS = Object.keys(SUBTITLE_STYLE) as SubtitleStyleKey[];
+type SubtitleChoiceKey = keyof typeof SUBTITLE_CHOICES;
+type SubtitleToggleKey = keyof typeof SUBTITLE_TOGGLES;
+export type SubtitleStyle = Record<SubtitleChoiceKey, string> & Record<SubtitleToggleKey, boolean>;
 
-export type SubtitleStyle = Record<SubtitleStyleKey, string> & { subtitleBold: boolean; subtitleCaps: boolean };
+const CHOICE_KEYS = Object.keys(SUBTITLE_CHOICES) as SubtitleChoiceKey[];
+const TOGGLE_KEYS = Object.keys(SUBTITLE_TOGGLES) as SubtitleToggleKey[];
 
-/** A setting's chosen option; an unknown value, such as one from an old backup, is the default */
-export const subtitleStyleOption = (key: SubtitleStyleKey, value: string | undefined): StyleOption => {
-  const options: StyleOption[] = SUBTITLE_STYLE[key].options;
+interface RowBase {
+  section: SubtitleStyleSection;
+  title: string;
+  /** The rows' testIDs end with it: `subtitleSize` → `size` */
+  id: string;
+}
+
+export type SubtitleStyleRow =
+  | (RowBase & { kind: 'choice'; key: SubtitleChoiceKey; options: StyleOption[] })
+  | (RowBase & { kind: 'toggle'; key: SubtitleToggleKey });
+
+const rowId = (key: string) => key.replace('subtitle', '').toLowerCase();
+
+/** Every setting, in the order the settings screen (by section) and the player menu list them */
+export const SUBTITLE_STYLE_ROWS: SubtitleStyleRow[] = [
+  ...CHOICE_KEYS.map((key) => ({ kind: 'choice' as const, key, id: rowId(key), ...SUBTITLE_CHOICES[key] })),
+  ...TOGGLE_KEYS.map((key) => ({
+    kind: 'toggle' as const,
+    key,
+    id: rowId(key),
+    section: SUBTITLE_TOGGLES[key].section,
+    title: SUBTITLE_TOGGLES[key].title,
+  })),
+];
+
+/** A choice's option; an unknown value, such as one from an old backup, is the default */
+export const subtitleChoice = (key: SubtitleChoiceKey, value: string): StyleOption => {
+  const options: StyleOption[] = SUBTITLE_CHOICES[key].options;
   return options.find((option) => option.value === value) ?? options[0];
 };
 
-export const DEFAULT_SUBTITLE_STYLE: SubtitleStyle = {
-  ...(Object.fromEntries(SUBTITLE_STYLE_KEYS.map((key) => [key, SUBTITLE_STYLE[key].options[0].value])) as Record<
-    SubtitleStyleKey,
-    string
-  >),
-  subtitleBold: false,
-  subtitleCaps: false,
-};
+export const DEFAULT_SUBTITLE_STYLE = {
+  ...Object.fromEntries(CHOICE_KEYS.map((key) => [key, SUBTITLE_CHOICES[key].options[0].value])),
+  ...Object.fromEntries(TOGGLE_KEYS.map((key) => [key, false])),
+} as SubtitleStyle;
 
-/** The subtitle style fields of a settings object, for a selector that compares them shallowly */
-export const pickSubtitleStyle = (settings: SubtitleStyle): SubtitleStyle => ({
-  ...(Object.fromEntries(SUBTITLE_STYLE_KEYS.map((key) => [key, settings[key]])) as Record<SubtitleStyleKey, string>),
-  subtitleBold: settings.subtitleBold,
-  subtitleCaps: settings.subtitleCaps,
-});
+/** The style's fields alone, for a selector that compares them shallowly */
+export const pickSubtitleStyle = (settings: SubtitleStyle) =>
+  Object.fromEntries([...CHOICE_KEYS, ...TOGGLE_KEYS].map((key) => [key, settings[key]])) as SubtitleStyle;
 
 export const isDefaultSubtitleStyle = (style: SubtitleStyle) =>
-  (Object.keys(DEFAULT_SUBTITLE_STYLE) as (keyof SubtitleStyle)[]).every(
-    (key) => style[key] === DEFAULT_SUBTITLE_STYLE[key],
-  );
+  CHOICE_KEYS.every((key) => subtitleChoice(key, style[key]) === SUBTITLE_CHOICES[key].options[0]) &&
+  TOGGLE_KEYS.every((key) => !style[key]);
 
 /** The toolkit's `theme.captions` for a style */
-export const captionsTheme = (style: SubtitleStyle): Partial<CaptionsTheme> => ({
-  ...Object.assign({}, ...SUBTITLE_STYLE_KEYS.map((key) => subtitleStyleOption(key, style[key]).theme)),
-  ...(style.subtitleBold ? { fontWeight: 'bold' } : null),
-  ...(style.subtitleCaps ? { textTransform: 'uppercase' } : null),
-});
+export const captionsTheme = (style: SubtitleStyle): Theme =>
+  Object.assign(
+    {},
+    ...CHOICE_KEYS.map((key) => subtitleChoice(key, style[key]).theme),
+    ...TOGGLE_KEYS.filter((key) => style[key]).map((key) => SUBTITLE_TOGGLES[key].theme),
+  );
 
-/** A one-line summary for the settings row: "Auto size, white on dark" */
+/** "Auto size, white on dark" */
 export const subtitleStyleSummary = (style: SubtitleStyle) => {
-  const label = (key: SubtitleStyleKey) => subtitleStyleOption(key, style[key]).label.toLowerCase();
-  const background = style.subtitleBackground === 'none' ? ', no background' : ` on ${label('subtitleBackground')}`;
-  return `${subtitleStyleOption('subtitleSize', style.subtitleSize).label} size, ${label('subtitleColor')}${background}`;
+  const size = subtitleChoice('subtitleSize', style.subtitleSize).label;
+  const color = subtitleChoice('subtitleColor', style.subtitleColor).label.toLowerCase();
+  const background = subtitleChoice('subtitleBackground', style.subtitleBackground);
+  return background.value === NO_BACKGROUND
+    ? `${size} size, ${color}, no background`
+    : `${size} size, ${color} on ${background.label.toLowerCase()}`;
 };

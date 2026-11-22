@@ -93,7 +93,7 @@ const useFadeWhen = (isPast: () => boolean) => {
  * Android's info header, in place of the native one: a Material 3 top app bar that works as Aniyomi's, see-through
  * over the artwork until the page scrolls
  */
-export const InfoTopBar = ({ scrollY, scrollMax, children }: InfoTopBarProps) => {
+export const InfoTopBar = ({ scroll, children }: InfoTopBarProps) => {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
   const height = top + BAR_HEIGHT;
@@ -103,14 +103,14 @@ export const InfoTopBar = ({ scrollY, scrollMax, children }: InfoTopBarProps) =>
 
   const filled = useFadeWhen(() => {
     'worklet';
-    return scrollY.get() > FILL_AT;
+    return scroll.y.get() > FILL_AT;
   });
-  // Once the hero's title is under the bar, or halfway down a page too short to scroll that far (a movie with few
+  // Once the hero has scrolled under the bar, or halfway down a page too short to scroll that far (a movie with few
   // episodes). Never before the fill, so the title never shows on a see-through bar.
   const titleAt = INFO_HERO_HEIGHT - height;
   const titled = useFadeWhen(() => {
     'worklet';
-    return scrollY.get() > Math.max(FILL_AT, Math.min(titleAt, scrollMax.get() / 2));
+    return scroll.y.get() > Math.max(FILL_AT, Math.min(titleAt, scroll.max.get() / 2));
   });
   const fillStyle = useAnimatedStyle(() => ({ opacity: filled.get() }));
   const scrimStyle = useAnimatedStyle(() => ({ opacity: 1 - filled.get() }));

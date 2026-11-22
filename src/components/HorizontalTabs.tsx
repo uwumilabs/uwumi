@@ -19,8 +19,11 @@ export const HorizontalTabs = ({
   scrollable?: boolean;
 }) => {
   const [selectedTab, setSelectedTab] = useState('');
-  // Items can arrive after mount, so the first tab stands in while the selection isn't among them
-  const activeTab = items.some((item) => item.key === selectedTab) ? selectedTab : (items[0]?.key ?? '');
+  const selectionShown = items.some((item) => item.key === selectedTab);
+  // Items can arrive after mount, or a tab can leave: the first tab stands in, and a selection whose tab left is
+  // forgotten, so the view doesn't jump back to it when the tab returns
+  if (selectedTab && !selectionShown) setSelectedTab('');
+  const activeTab = selectionShown ? selectedTab : (items[0]?.key ?? '');
 
   const triggers = items.map((item, index) => (
     <FocusableTrigger
@@ -32,22 +35,18 @@ export const HorizontalTabs = ({
       <Tabs.Label className="text-center text-base font-semibold">{item.label}</Tabs.Label>
     </FocusableTrigger>
   ));
+  const tabsRow = (
+    <>
+      <Tabs.Indicator />
+      {triggers}
+    </>
+  );
 
   return (
     <>
       <Tabs value={activeTab} onValueChange={setSelectedTab} variant="secondary" className="w-full">
         <Tabs.List>
-          {scrollable ? (
-            <Tabs.ScrollView scrollAlign="center">
-              <Tabs.Indicator />
-              {triggers}
-            </Tabs.ScrollView>
-          ) : (
-            <>
-              <Tabs.Indicator />
-              {triggers}
-            </>
-          )}
+          {scrollable ? <Tabs.ScrollView scrollAlign="center">{tabsRow}</Tabs.ScrollView> : tabsRow}
         </Tabs.List>
       </Tabs>
 

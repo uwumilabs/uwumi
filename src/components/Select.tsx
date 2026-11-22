@@ -5,7 +5,7 @@ import { useBackHandler } from '@/hooks/useBackHandler';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { IoniconsIcon } from './Icons';
 import { isTV, tvFocusRingStyle } from '@/utils/tv';
-import { BottomSheet } from './native/BottomSheet';
+import { BottomSheet } from './native/sheet/BottomSheet';
 import { RippleButton } from './ui-primitives';
 
 type SelectOption = {

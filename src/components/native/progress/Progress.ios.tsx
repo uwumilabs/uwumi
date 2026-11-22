@@ -4,10 +4,11 @@ import { cn } from '../../heroui';
 import { Host, ProgressView } from '@expo/ui/swift-ui';
 import { background, controlSize, progressViewStyle, shapes, tint } from '@expo/ui/swift-ui/modifiers';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
+import { progressFraction } from './shared';
 import type { ProgressLineProps, ProgressProps } from './Progress';
 
-// iOS has no moving indeterminate bar (a linear ProgressView without a value stays still), so unknown progress is its spinner
-export const ProgressLine = ({ value = 0, indeterminate }: ProgressLineProps) => {
+// A linear ProgressView without a value stays still, so unknown progress is iOS's spinner
+export const ProgressLine = ({ value, indeterminate }: ProgressLineProps) => {
   const currentTheme = useCurrentTheme();
   if (indeterminate) {
     return (
@@ -16,7 +17,7 @@ export const ProgressLine = ({ value = 0, indeterminate }: ProgressLineProps) =>
   }
   return (
     <ProgressView
-      value={Math.max(0, Math.min(100, value)) / 100}
+      value={progressFraction(value)}
       modifiers={[
         progressViewStyle('linear'),
         tint(currentTheme.accent),
@@ -26,10 +27,10 @@ export const ProgressLine = ({ value = 0, indeterminate }: ProgressLineProps) =>
   );
 };
 
-export const Progress: React.FC<ProgressProps> = ({ className, ...line }) => (
+export const Progress: React.FC<ProgressProps> = ({ className, value }) => (
   <View className={cn('self-stretch', className)}>
     <Host matchContents={{ vertical: true }} ignoreSafeArea="container" style={{ width: '100%' }}>
-      <ProgressLine {...line} />
+      <ProgressLine value={value} />
     </Host>
   </View>
 );

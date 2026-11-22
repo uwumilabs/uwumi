@@ -2,8 +2,7 @@ import { IEpisodeServer, ISource, PolyURL, StreamingServers, SubOrDub, TvType } 
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { fetchJson, HttpError } from '@/utils/http';
 import { ExternalSubtitleData, MediaType, type SubtitleTrack } from '@/constants/types';
-import { TextTrackType } from 'react-native-video';
-import { isThumbnailTrack, subtitleType } from '@/utils/subtitles';
+import { isThumbnailTrack, subtitleFormat, subtitleLanguageCode } from '@/utils/subtitles';
 import {
   getExtensionManagers,
   loadAnimeProvider,
@@ -74,8 +73,8 @@ const playable = ({ sources, subtitles = [], headers }: ISource): PlayableSource
       .filter((sub) => !isThumbnailTrack(sub))
       .map((sub) => ({
         title: sub.lang,
-        language: sub.lang,
-        type: subtitleType(sub.url),
+        language: subtitleLanguageCode(sub.lang),
+        format: subtitleFormat(sub.url),
         uri: sub.url,
         headers: requestHeaders,
       })),
@@ -101,9 +100,10 @@ async function fetchServerSources(target: EpisodeTarget, server: IEpisodeServer)
     try {
       const extractor = await loadServerExtractor(server.name);
       data = (await extractor.extract(new PolyURL(server.url), metadata.baseUrl)) as ISource;
-    } catch {
+    } catch (error) {
       // The provider resolves servers the registry has no extractor for (AniNeko's vivibebe and dood), and often
       // ones its extractor can't
+      console.warn(`[sources] ${server.name}: extractor failed, asking the provider`, error);
     }
   }
   data ??= await fromProvider();
@@ -141,7 +141,7 @@ const MAX_EXTERNAL_SUBTITLES = 3;
 // The player reads subtitle files as UTF-8, so a CP1252 file's accents come out garbled. OpenSubtitles no longer
 // converts them on download.
 const isUtf8 = (item: ExternalSubtitleData) => item.SubEncoding === 'UTF-8' || item.SubEncoding === 'ASCII';
-// The player waits for these (new tracks would reload the source), so a slow response is dropped
+// The menu's OpenSubtitles search waits for these, so a slow response gives up
 const EXTERNAL_SUBTITLES_TIMEOUT_MS = 5000;
 
 interface ExternalSubtitlesParams {
@@ -192,8 +192,8 @@ export const externalSubtitlesQuery = ({
           )
           .slice(0, MAX_EXTERNAL_SUBTITLES)
           .map((item, index) => ({
-            language: item.ISO639,
-            type: TextTrackType.SUBRIP,
+            language: subtitleLanguageCode(language ?? undefined),
+            format: 'srt' as const,
             // The link without .gz serves the file uncompressed
             uri: item.SubDownloadLink.replace('.gz', ''),
             title: `${item.LanguageName} · OpenSubtitles ${index + 1}`,

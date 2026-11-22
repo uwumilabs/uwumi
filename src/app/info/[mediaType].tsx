@@ -4,15 +4,14 @@ import { useShowParams } from '@/utils/routes';
 import { EpisodeList } from '@/components/episode-list/EpisodeList';
 import { ThemedView } from '@/components/ui-primitives';
 import React from 'react';
-import { useSharedValue } from 'react-native-reanimated';
 import { MediaType } from '@/constants/types';
 import { isTV } from '@/utils/tv';
 import Chapters from '@/components/info/Chapters';
+import { usePageScroll } from '@/components/info/pageScroll';
 
 const Info = () => {
   const { mediaType } = useShowParams();
-  const scrollY = useSharedValue(0);
-  const scrollMax = useSharedValue(0);
+  const scroll = usePageScroll();
 
   // Episodes scroll in their own window inside the page, with "More like this" after it. Manga chapters are still
   // one scrolling list with everything above it as its header.
@@ -21,11 +20,11 @@ const Info = () => {
 
   return (
     <ThemedView testID="info-screen" useSafeArea focusable={isTV ? false : undefined}>
-      <InfoTopBar scrollY={scrollY} scrollMax={scrollMax}>
+      <InfoTopBar scroll={scroll}>
         {isManga ? (
-          <Chapters header={header} scrollY={scrollY} scrollMax={scrollMax} />
+          <Chapters header={header} scroll={scroll} />
         ) : (
-          <EpisodeList header={header} footer={<InfoRecommendations />} scrollY={scrollY} scrollMax={scrollMax} />
+          <EpisodeList header={header} footer={<InfoRecommendations />} scroll={scroll} />
         )}
       </InfoTopBar>
     </ThemedView>

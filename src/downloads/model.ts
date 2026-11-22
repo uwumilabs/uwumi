@@ -1,4 +1,5 @@
 import type { MediaType } from '@/constants/types';
+import { formatBytes, formatTime, joinDetails } from '@/utils/format';
 import { seasonEpisodeLabel } from '@/utils/episodes';
 import { isMovieType } from '@/utils/media';
 import type { WatchParams } from '@/utils/routes';
@@ -15,14 +16,14 @@ export interface DownloadProgress {
 }
 
 /** Bytes downloaded per second: the stream's byte rate times how much faster than real time FFmpeg runs */
-export const downloadBytesPerSecond = ({ speed, bitrate }: Pick<DownloadProgress, 'speed' | 'bitrate'>) =>
+const downloadBytesPerSecond = ({ speed, bitrate }: Pick<DownloadProgress, 'speed' | 'bitrate'>) =>
   speed > 0 && bitrate > 0 ? (bitrate / 8) * speed : 0;
 
 /** A subtitle file the provider sends beside the stream, saved into the download */
 export interface ExternalSubtitle {
   uri: string;
   title?: string;
-  /** A language name or code, as the provider gives it */
+  /** An ISO 639-2 code (`subtitleLanguageCode`) */
   language?: string;
 }
 
@@ -34,8 +35,6 @@ export interface EpisodeDownload {
   headers?: Record<string, string>;
   name: string;
   showName?: string;
-  /** The episode's still, for Downloads; missing on downloads made before it */
-  image?: string;
   /** The info screen's id and media type, for "Downloaded only"; missing on downloads made before them */
   showId?: string;
   mediaType?: MediaType;
@@ -65,9 +64,39 @@ export interface EpisodeDownload {
 /** Running or queued: restarting the app would stop it */
 export const isActive = (status?: DownloadStatus) => status === 'downloading' || status === 'pending';
 
-/** Started, but FFmpeg isn't running yet: the stream is still being probed */
-export const isPreparing = (download?: Pick<EpisodeDownload, 'status' | 'sessionId'>) =>
-  download?.status === 'downloading' && !download.sessionId;
+/** Ended without a file, so it can start again from its saved link */
+export const canRetry = (status?: DownloadStatus) => status === 'failed' || status === 'cancelled';
+
+/** The Downloads screen's groups: cancelled downloads go with the failed ones */
+export type DownloadSection = 'downloading' | 'pending' | 'completed' | 'failed';
+
+export const downloadSection = (status: DownloadStatus): DownloadSection => (canRetry(status) ? 'failed' : status);
+
+/** Started, with nothing downloaded yet: the stream is being probed, or FFmpeg hasn't reported */
+export const isPreparing = (download?: Pick<EpisodeDownload, 'status' | 'progress'>) =>
+  download?.status === 'downloading' && !download.progress?.currentTime;
+
+export const PREPARING_TEXT = 'Getting ready…';
+
+/** A download's progress in words: `caption` (percent and speed, or "Getting ready…") and `detail` (how much of the video) */
+export const downloadProgressText = (
+  download?: Pick<EpisodeDownload, 'status' | 'progress'>,
+): { preparing: boolean; caption: string; detail?: string } => {
+  if (isPreparing(download)) return { preparing: true, caption: PREPARING_TEXT };
+  const progress = download?.progress;
+  const bytesPerSecond = progress ? downloadBytesPerSecond(progress) : 0;
+  return {
+    preparing: false,
+    caption: joinDetails(
+      `${Math.round(progress?.percentage ?? 0)}%`,
+      bytesPerSecond ? `${formatBytes(bytesPerSecond)}/s` : undefined,
+    ),
+    detail:
+      progress?.currentTime && progress.totalDuration
+        ? `${formatTime(progress.currentTime)} / ${formatTime(progress.totalDuration)}`
+        : undefined,
+  };
+};
 
 /**
  * What a download is called. A film has one episode with no number worth showing, and its episode title is a

@@ -26,7 +26,7 @@ import { List } from '@/components/List';
 import { Select } from '@/components/Select';
 import { LinearGradient } from '@/components/LinearGradient';
 import { WavyAnimation } from '@/components/episode-list/WavyAnimation';
-import { ThumbnailProgress } from '@/components/episode-list/ThumbnailProgress';
+import { ThumbnailProgress } from '@/components/ThumbnailProgress';
 
 const CARD_WIDTH = 200;
 const THUMBNAIL_HEIGHT = (CARD_WIDTH * 9) / 16;

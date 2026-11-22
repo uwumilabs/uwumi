@@ -1,12 +1,10 @@
 import React, { useRef } from 'react';
 import {
-  Card,
   CircularProgressIndicator,
   Column,
   Host,
   IconButton,
   ListItem as ComposeListItem,
-  RNHostView,
   Row,
   Switch,
   Text,
@@ -15,10 +13,8 @@ import {
 } from '@expo/ui/jetpack-compose';
 import {
   clickable,
-  clip,
   fillMaxWidth,
   padding,
-  Shapes,
   size,
   toggleable,
   weight,
@@ -26,18 +22,10 @@ import {
 } from '@expo/ui/jetpack-compose/modifiers';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { switchColors } from '../switch/Switch.android';
-import {
-  createHostedIcon,
-  createTrailing,
-  FlatListContext,
-  listItems,
-  RADIUS,
-  withDividers,
-  type ListItemProps,
-  type ListProps,
-} from './shared';
-
-const HostedIcon = createHostedIcon(RNHostView);
+import { HostedIcon, listItems } from '../card/card';
+import { HostedIconButton } from '../card/HostedIconButton';
+import { NativeCard } from '../card/NativeCard';
+import { createTrailing, FlatListContext, type ListItemProps, type ListProps } from './shared';
 
 const Trailing = createTrailing({
   spinner: (color) => <CircularProgressIndicator color={color} modifiers={[size(18, 18)]} />,
@@ -115,9 +103,13 @@ const Item = ({
     <Row verticalAlignment="center" modifiers={[fillMaxWidth(), padding(0, 0, 8, 0)]}>
       {item}
       {action ? (
-        <IconButton onClick={action.onPress} modifiers={testID ? [testTag(`${testID}-action`)] : undefined}>
-          <HostedIcon name={action.icon} size={18} color={theme.foreground} label={action.label} />
-        </IconButton>
+        <HostedIconButton
+          icon={action.icon}
+          label={action.label}
+          onPress={action.onPress}
+          testID={testID ? `${testID}-action` : undefined}
+          size={18}
+        />
       ) : info ? (
         <InfoButton {...info} />
       ) : null}
@@ -154,7 +146,6 @@ const InfoButton = ({ title, text }: NonNullable<ListItemProps['info']>) => {
 };
 
 const ListRoot = ({ children, variant = 'card' }: ListProps) => {
-  const theme = useCurrentTheme();
   const items = listItems(children);
   if (items.length === 0) return null;
 
@@ -168,13 +159,7 @@ const ListRoot = ({ children, variant = 'card' }: ListProps) => {
     );
   }
 
-  return (
-    <Host matchContents={{ vertical: true }} style={{ width: '100%' }}>
-      <Card colors={{ containerColor: theme.surface }} modifiers={[fillMaxWidth(), clip(Shapes.RoundedCorner(RADIUS))]}>
-        <Column modifiers={[fillMaxWidth()]}>{withDividers(items)}</Column>
-      </Card>
-    </Host>
-  );
+  return <NativeCard>{items}</NativeCard>;
 };
 
 export const List = Object.assign(ListRoot, { Item });

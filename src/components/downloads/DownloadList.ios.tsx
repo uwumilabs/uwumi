@@ -1,100 +1,83 @@
 import React from 'react';
-import { Button, HStack, Host, RNHostView, Spacer, Text, VStack } from '@expo/ui/swift-ui';
-import {
-  accessibilityIdentifier,
-  accessibilityLabel,
-  background,
-  buttonStyle,
-  font,
-  foregroundStyle,
-  frame,
-  lineLimit,
-  padding,
-  shapes,
-} from '@expo/ui/swift-ui/modifiers';
+import { HStack, RNHostView, Spacer, Text, VStack } from '@expo/ui/swift-ui';
+import { accessibilityIdentifier, font, foregroundStyle, frame, lineLimit, padding } from '@expo/ui/swift-ui/modifiers';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
-import { createHostedIcon, INSET, listItems, RADIUS, withDividers } from '../native/list/shared';
+import { HostedIconButton } from '../native/card/HostedIconButton';
+import { NativeCard } from '../native/card/NativeCard';
 import { ProgressLine } from '../native/progress/Progress';
-import type { DownloadItemProps, DownloadListProps } from './shared';
-
-export { LEADING_RADIUS } from './shared';
-
-const HostedIcon = createHostedIcon(RNHostView);
+import { ROW, type DownloadItemProps, type DownloadListProps } from './shared';
 
 const Item = ({ testID, overline, title, description, status, leading, progress, actions }: DownloadItemProps) => {
   const theme = useCurrentTheme();
+  const caption = progress ? (
+    <Text modifiers={[font({ size: ROW.captionSize }), foregroundStyle(theme.foreground), lineLimit(1)]}>
+      {progress.caption}
+    </Text>
+  ) : null;
   return (
-    <HStack spacing={12} modifiers={[padding({ all: INSET })]}>
+    <HStack spacing={ROW.gap} modifiers={[padding({ horizontal: ROW.paddingStart, vertical: ROW.paddingVertical })]}>
       {leading ? <RNHostView matchContents>{leading}</RNHostView> : null}
       {/* The row's id goes on its texts: on the HStack, SwiftUI would give it to the buttons too, over their own */}
       <VStack
         alignment="leading"
-        spacing={3}
+        spacing={ROW.textGap}
         modifiers={[
           frame({ maxWidth: Infinity, alignment: 'leading' }),
           ...(testID ? [accessibilityIdentifier(testID)] : []),
         ]}>
         {overline ? (
-          <Text modifiers={[font({ size: 12 }), foregroundStyle(theme.muted), lineLimit(1)]}>{overline}</Text>
+          <Text modifiers={[font({ size: ROW.overlineSize }), foregroundStyle(theme.muted), lineLimit(1)]}>
+            {overline}
+          </Text>
         ) : null}
-        <Text modifiers={[font({ size: 16, weight: 'semibold' }), foregroundStyle(theme.foreground), lineLimit(1)]}>
+        <Text
+          modifiers={[
+            font({ size: ROW.titleSize, weight: 'semibold' }),
+            foregroundStyle(theme.foreground),
+            lineLimit(1),
+          ]}>
           {title}
         </Text>
         {status || description ? (
-          <HStack spacing={6}>
+          <HStack spacing={ROW.statusGap}>
             {status ? <RNHostView matchContents>{status}</RNHostView> : null}
             {description ? (
-              <Text modifiers={[font({ size: 13 }), foregroundStyle(theme.muted), lineLimit(1)]}>{description}</Text>
+              <Text modifiers={[font({ size: ROW.descriptionSize }), foregroundStyle(theme.muted), lineLimit(1)]}>
+                {description}
+              </Text>
             ) : null}
           </HStack>
         ) : null}
+        {/* iOS's indeterminate progress is a spinner, which sits beside its caption rather than above it */}
         {progress?.indeterminate ? (
-          <HStack spacing={8} modifiers={[padding({ top: 4 })]}>
+          <HStack spacing={8} modifiers={[padding({ top: ROW.progressGap })]}>
             <ProgressLine indeterminate />
-            <Text modifiers={[font({ size: 12 }), foregroundStyle(theme.foreground)]}>{progress.caption}</Text>
+            {caption}
           </HStack>
         ) : progress ? (
-          <VStack spacing={4} modifiers={[padding({ top: 4 }), frame({ maxWidth: Infinity })]}>
+          <VStack
+            spacing={ROW.progressGap}
+            modifiers={[padding({ top: ROW.progressGap }), frame({ maxWidth: Infinity })]}>
             <ProgressLine value={progress.value} />
             <HStack>
-              <Text modifiers={[font({ size: 12 }), foregroundStyle(theme.foreground)]}>{progress.caption}</Text>
+              {caption}
               <Spacer />
               {progress.detail ? (
-                <Text modifiers={[font({ size: 12 }), foregroundStyle(theme.muted)]}>{progress.detail}</Text>
+                <Text modifiers={[font({ size: ROW.captionSize }), foregroundStyle(theme.muted), lineLimit(1)]}>
+                  {progress.detail}
+                </Text>
               ) : null}
             </HStack>
           </VStack>
         ) : null}
       </VStack>
       {actions.map((action) => (
-        <Button
-          key={action.testID}
-          onPress={action.onPress}
-          modifiers={[buttonStyle('plain'), accessibilityLabel(action.label), accessibilityIdentifier(action.testID)]}>
-          <HostedIcon name={action.icon} size={20} color={theme.foreground} />
-        </Button>
+        <HostedIconButton key={action.testID} {...action} size={ROW.iconSize} />
       ))}
     </HStack>
   );
 };
 
-// ignoreSafeArea: in a ScrollView under the status bar, SwiftUI would push the rows down by the inset
-const ListRoot = ({ children }: DownloadListProps) => {
-  const { barBackground } = useCurrentTheme();
-  const items = listItems(children);
-  if (items.length === 0) return null;
-  return (
-    <Host matchContents={{ vertical: true }} ignoreSafeArea="container" style={{ width: '100%' }}>
-      <VStack
-        spacing={0}
-        modifiers={[
-          frame({ maxWidth: Infinity }),
-          background(barBackground, shapes.roundedRectangle({ cornerRadius: RADIUS })),
-        ]}>
-        {withDividers(items)}
-      </VStack>
-    </Host>
-  );
-};
-
-export const DownloadList = Object.assign(ListRoot, { Item });
+export const DownloadList = Object.assign(({ children }: DownloadListProps) => <NativeCard>{children}</NativeCard>, {
+  Item,
+});

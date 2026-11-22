@@ -2,7 +2,7 @@ import { RefObject, useCallback, useMemo, useState } from 'react';
 import type { FlashListRef, ViewToken } from '@shopify/flash-list';
 import { haptics } from '@/utils/haptics';
 import {
-  type SharedValue,
+  type ScrollEvent,
   useAnimatedReaction,
   useAnimatedScrollHandler,
   useSharedValue,
@@ -26,25 +26,16 @@ interface UseListJumpOptions<T> {
   listRef: RefObject<FlashListRef<T> | null>;
   /** Label for the range spanning these indices, e.g. "EP 1–100" */
   rangeLabel: (items: T[], startIndex: number, endIndex: number) => string;
-  /** Kept at the list's scroll offset, for a caller that follows it too */
-  scrollY?: SharedValue<number>;
-  /** Kept at how far the list can scroll, for a caller that follows it */
-  scrollMax?: SharedValue<number>;
+  /** A worklet run on each of the list's scroll events, for a caller that follows the scroll too */
+  onScroll?: (event: ScrollEvent) => void;
 }
 
 /**
  * Back to top and "EP 1–100"-style range jumps for long FlashLists. Spread `listProps` on a Reanimated-animated
  * list (such as one inside heroui's ScrollShadow) and pass `jumpBar` to ListJumpBar.
  */
-export function useListJump<T>({
-  items,
-  listRef,
-  rangeLabel,
-  scrollY: callerScrollY,
-  scrollMax,
-}: UseListJumpOptions<T>) {
-  const ownScrollY = useSharedValue(0);
-  const scrollY = callerScrollY ?? ownScrollY;
+export function useListJump<T>({ items, listRef, rangeLabel, onScroll: onCallerScroll }: UseListJumpOptions<T>) {
+  const scrollY = useSharedValue(0);
   const viewportHeight = useSharedValue(0);
   const [jumpBarVisible, setJumpBarVisible] = useState(false);
   const [visibleRangeStart, setVisibleRangeStart] = useState(0);
@@ -79,7 +70,7 @@ export function useListJump<T>({
   const onScroll = useAnimatedScrollHandler((event) => {
     scrollY.set(event.contentOffset.y);
     viewportHeight.set(event.layoutMeasurement.height);
-    scrollMax?.set(event.contentSize.height - event.layoutMeasurement.height);
+    onCallerScroll?.(event);
   });
   useAnimatedReaction(
     () => scrollY.get() > viewportHeight.get() * JUMP_BAR_SCREENS,

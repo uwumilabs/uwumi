@@ -7,13 +7,13 @@ import { useDownloadStore } from './useDownloadStore';
 
 const FAKE_ID_PREFIX = 'fake-';
 const FAKE_URL = 'https://example.invalid/fake.m3u8';
-const GB = 1024 ** 3;
-const MB = 1024 ** 2;
+// Decimal, as formatBytes shows sizes
+const GB = 1e9;
+const MB = 1e6;
 
 const fakeDownloads = (now: number): EpisodeDownload[] => [
   {
     id: `${FAKE_ID_PREFIX}film-anime`,
-    image: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/142770-YgESt2HJXlNg.jpg',
     url: FAKE_URL,
     name: 'Complete Movie',
     showName: 'Suzume no Tojimari',
@@ -23,7 +23,8 @@ const fakeDownloads = (now: number): EpisodeDownload[] => [
       id: '142770',
       type: MediaFormat.MOVIE,
       provider: 'anikoto',
-      uniqueId: 'fake$ep=1',
+      uniqueId: 'fake-142770',
+      poster: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/142770-YgESt2HJXlNg.jpg',
     },
     episode: 1,
     status: 'completed',
@@ -33,7 +34,6 @@ const fakeDownloads = (now: number): EpisodeDownload[] => [
   },
   {
     id: `${FAKE_ID_PREFIX}film-tmdb`,
-    image: 'https://image.tmdb.org/t/p/w342/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
     url: FAKE_URL,
     name: 'Inception',
     showName: 'Inception',
@@ -44,6 +44,7 @@ const fakeDownloads = (now: number): EpisodeDownload[] => [
       type: TvType.MOVIE,
       provider: 'vegamovies',
       uniqueId: 'fake-27205',
+      poster: 'https://image.tmdb.org/t/p/w342/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
     },
     episode: 1,
     status: 'completed',
@@ -53,7 +54,6 @@ const fakeDownloads = (now: number): EpisodeDownload[] => [
   },
   {
     id: `${FAKE_ID_PREFIX}episode-completed`,
-    image: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/154587-ivXNJ23SM1xB.jpg',
     url: FAKE_URL,
     name: 'The Journey’s End',
     showName: 'Frieren: Beyond Journey’s End',
@@ -63,7 +63,8 @@ const fakeDownloads = (now: number): EpisodeDownload[] => [
       id: '154587',
       type: MediaFormat.TV,
       provider: 'anikoto',
-      uniqueId: 'fake$ep=1',
+      uniqueId: 'fake-154587-1',
+      poster: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/154587-ivXNJ23SM1xB.jpg',
     },
     episode: 1,
     status: 'completed',
@@ -73,33 +74,55 @@ const fakeDownloads = (now: number): EpisodeDownload[] => [
   },
   {
     id: `${FAKE_ID_PREFIX}episode-downloading`,
-    image: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/154587-ivXNJ23SM1xB.jpg',
     url: FAKE_URL,
     name: 'It Didn’t Have to Be Magic…',
     showName: 'Frieren: Beyond Journey’s End',
+    mediaType: MediaType.ANIME,
+    watchParams: {
+      mediaType: MediaType.ANIME,
+      id: '154587',
+      type: MediaFormat.TV,
+      provider: 'anikoto',
+      uniqueId: 'fake-154587-2',
+      poster: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/154587-ivXNJ23SM1xB.jpg',
+    },
     episode: 2,
     status: 'downloading',
-    sessionId: 1,
     progress: { percentage: 42.5, currentTime: 612, totalDuration: 1440, speed: 3.2, bitrate: 2500000, size: 191 * MB },
     createdAt: now - 120000,
   },
   {
     id: `${FAKE_ID_PREFIX}episode-preparing`,
-    image: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/154587-ivXNJ23SM1xB.jpg',
     url: FAKE_URL,
     name: 'Killing Magic',
     showName: 'Frieren: Beyond Journey’s End',
+    mediaType: MediaType.ANIME,
+    watchParams: {
+      mediaType: MediaType.ANIME,
+      id: '154587',
+      type: MediaFormat.TV,
+      provider: 'anikoto',
+      uniqueId: 'fake-154587-3',
+      poster: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/154587-ivXNJ23SM1xB.jpg',
+    },
     episode: 3,
     status: 'downloading',
     createdAt: now - 30000,
   },
   {
     id: `${FAKE_ID_PREFIX}episode-pending`,
-    image: 'https://image.tmdb.org/t/p/w342/ggFHVNu6YYI5L9pCfOacjizRGt.jpg',
     url: FAKE_URL,
     name: 'Breakage',
     showName: 'Breaking Bad',
     mediaType: MediaType.MOVIE,
+    watchParams: {
+      mediaType: MediaType.MOVIE,
+      id: '1396',
+      type: TvType.TVSERIES,
+      provider: 'vegamovies',
+      uniqueId: 'fake-1396-s2e5',
+      poster: 'https://image.tmdb.org/t/p/w342/ggFHVNu6YYI5L9pCfOacjizRGt.jpg',
+    },
     episode: 5,
     season: 2,
     status: 'pending',
@@ -107,10 +130,18 @@ const fakeDownloads = (now: number): EpisodeDownload[] => [
   },
   {
     id: `${FAKE_ID_PREFIX}episode-failed`,
-    image: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/113415-jQBSkxWAAk83.jpg',
     url: FAKE_URL,
     name: 'Ryomen Sukuna',
     showName: 'Jujutsu Kaisen',
+    mediaType: MediaType.ANIME,
+    watchParams: {
+      mediaType: MediaType.ANIME,
+      id: '113415',
+      type: MediaFormat.TV,
+      provider: 'anikoto',
+      uniqueId: 'fake-113415-1',
+      poster: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/113415-jQBSkxWAAk83.jpg',
+    },
     episode: 1,
     status: 'failed',
     error: 'Try another server: this one sends pictures instead of video',
@@ -118,17 +149,24 @@ const fakeDownloads = (now: number): EpisodeDownload[] => [
   },
   {
     id: `${FAKE_ID_PREFIX}episode-cancelled`,
-    image: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/113415-jQBSkxWAAk83.jpg',
     url: FAKE_URL,
     name: 'For Myself',
     showName: 'Jujutsu Kaisen',
+    mediaType: MediaType.ANIME,
+    watchParams: {
+      mediaType: MediaType.ANIME,
+      id: '113415',
+      type: MediaFormat.TV,
+      provider: 'anikoto',
+      uniqueId: 'fake-113415-2',
+      poster: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/113415-jQBSkxWAAk83.jpg',
+    },
     episode: 2,
     status: 'cancelled',
     createdAt: now - 5000000,
   },
   {
     id: `${FAKE_ID_PREFIX}long-titles`,
-    image: 'https://s4.anilist.co/file/anilistcdn/media/anime/banner/156822-y0wPQIl3AHDA.jpg',
     url: FAKE_URL,
     name: 'An Episode Title Long Enough That It Has to Be Cut Off Somewhere on Every Phone',
     showName: 'That Time I Got Reincarnated as a Slime With a Show Name That Never Seems to End',
@@ -141,13 +179,11 @@ const fakeDownloads = (now: number): EpisodeDownload[] => [
   },
 ];
 
-/** Adds the fake downloads, replacing earlier copies of them */
 export const addFakeDownloads = () => {
   const fakes = Object.fromEntries(fakeDownloads(Date.now()).map((download) => [download.id, download]));
   useDownloadStore.setState((state) => ({ downloads: { ...state.downloads, ...fakes } }));
 };
 
-/** Removes the fake downloads and nothing else */
 export const removeFakeDownloads = () =>
   useDownloadStore.setState((state) => ({
     downloads: Object.fromEntries(Object.entries(state.downloads).filter(([id]) => !id.startsWith(FAKE_ID_PREFIX))),

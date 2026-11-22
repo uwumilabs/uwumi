@@ -20,7 +20,7 @@ import { openVideoInOtherApp, shareMedia } from '@/utils/share';
 import { useProviderName, useProviderSelectionStore } from '@/hooks/stores/useProviderStore';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { HUXStack, HUYStack, RippleButton } from '../ui-primitives';
-import { BottomSheet } from '../native/BottomSheet';
+import { BottomSheet } from '../native/sheet/BottomSheet';
 import { IoniconsIcon } from '../Icons';
 import { useToast } from '../heroui';
 
@@ -162,8 +162,6 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
     setShouldFetchSources(true);
   };
 
-  // The server is part of the sources query key, so this fetches that server's sources
-
   const handleOpenWithQuality = useCallback(
     async (videoUrl: string) => {
       const subtitles = data?.subtitles ?? [];
@@ -177,7 +175,7 @@ const EpisodeActionsSheet: React.FC<EpisodeActionsSheetProps> = memo(({ open, on
 
       if (hasSubtitles) {
         const subtitleUrls = subtitles.map((sub) => sub.uri);
-        const subtitleNames = subtitles.map((sub) => sub.language || 'Unknown');
+        const subtitleNames = subtitles.map((sub) => sub.title);
 
         if (subtitleUrls.length > 0) {
           extras['subs'] = subtitleUrls;

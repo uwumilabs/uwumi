@@ -1,19 +1,6 @@
 import React, { useState } from 'react';
+import { Button, HStack, Host, Image, Popover, ProgressView, Spacer, Text, Toggle, VStack } from '@expo/ui/swift-ui';
 import {
-  Button,
-  HStack,
-  Host,
-  Image,
-  Popover,
-  ProgressView,
-  RNHostView,
-  Spacer,
-  Text,
-  Toggle,
-  VStack,
-} from '@expo/ui/swift-ui';
-import {
-  background,
   buttonStyle,
   contentShape,
   fixedSize,
@@ -29,19 +16,10 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { toggleModifiers } from '../switch/Switch.ios';
-import {
-  createHostedIcon,
-  createTrailing,
-  FlatListContext,
-  INSET,
-  listItems,
-  RADIUS,
-  withDividers,
-  type ListItemProps,
-  type ListProps,
-} from './shared';
-
-const HostedIcon = createHostedIcon(RNHostView);
+import { HostedIcon, INSET, listItems } from '../card/card';
+import { HostedIconButton } from '../card/HostedIconButton';
+import { NativeCard } from '../card/NativeCard';
+import { createTrailing, FlatListContext, type ListItemProps, type ListProps } from './shared';
 
 const Trailing = createTrailing({
   spinner: (color) => <ProgressView modifiers={[controlSize('small'), tint(color)]} />,
@@ -106,14 +84,16 @@ const Item = ({
 
   if (!action && !info) return row;
   return (
-    <HStack spacing={0}>
+    <HStack spacing={0} modifiers={[padding({ trailing: 12 })]}>
       {row}
       {action ? (
-        <Button
+        <HostedIconButton
+          icon={action.icon}
+          label={action.label}
           onPress={action.onPress}
-          modifiers={[buttonStyle('plain'), padding({ trailing: 12 }), ...id('-action')]}>
-          <HostedIcon name={action.icon} size={18} color={theme.foreground} label={action.label} />
-        </Button>
+          testID={testID ? `${testID}-action` : undefined}
+          size={18}
+        />
       ) : info ? (
         <InfoButton {...info} />
       ) : null}
@@ -128,7 +108,7 @@ const InfoButton = ({ title, text }: NonNullable<ListItemProps['info']>) => {
   return (
     <Popover isPresented={open} onIsPresentedChange={setOpen} arrowEdge="top">
       <Popover.Trigger>
-        <Button onPress={() => setOpen(true)} modifiers={[buttonStyle('plain'), padding({ trailing: 12 })]}>
+        <Button onPress={() => setOpen(true)} modifiers={[buttonStyle('plain')]}>
           <HostedIcon name="information-circle-outline" size={20} color={theme.foreground} label={`About ${title}`} />
         </Button>
       </Popover.Trigger>
@@ -150,7 +130,6 @@ const InfoButton = ({ title, text }: NonNullable<ListItemProps['info']>) => {
 };
 
 const ListRoot = ({ children, variant = 'card' }: ListProps) => {
-  const theme = useCurrentTheme();
   const items = listItems(children);
   if (items.length === 0) return null;
 
@@ -167,18 +146,7 @@ const ListRoot = ({ children, variant = 'card' }: ListProps) => {
     );
   }
 
-  return (
-    <Host matchContents={{ vertical: true }} ignoreSafeArea="container" style={{ width: '100%' }}>
-      <VStack
-        spacing={0}
-        modifiers={[
-          frame({ maxWidth: Infinity }),
-          background(theme.surface, shapes.roundedRectangle({ cornerRadius: RADIUS })),
-        ]}>
-        {withDividers(items)}
-      </VStack>
-    </Host>
-  );
+  return <NativeCard>{items}</NativeCard>;
 };
 
 export const List = Object.assign(ListRoot, { Item });

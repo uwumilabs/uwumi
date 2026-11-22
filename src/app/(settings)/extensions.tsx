@@ -8,7 +8,7 @@ import { Avatar, Card, Chip, useToast } from '@/components/heroui';
 import { Button } from '@/components/Button';
 import TVFocusWrapper from '@/components/TVFocusWrapper';
 import { Image } from '@/components/Image';
-import { BottomSheet } from '@/components/native/BottomSheet';
+import { BottomSheet } from '@/components/native/sheet/BottomSheet';
 import { HUXStack, HUYStack, RippleButton } from '@/components/ui-primitives';
 import { IoniconsIcon, type IoniconsIconProps } from '@/components/Icons';
 import { Separator } from '@/components/native/separator/Separator';

@@ -1,33 +1,52 @@
-import { TextTrackType } from 'react-native-video';
 import { SUB_LANGUAGE } from '@/constants/config';
+import type { SubtitleTrack } from '@/constants/types';
+
+type SubtitleFormat = NonNullable<SubtitleTrack['format']>;
 
 // The toolkit draws subtitle files itself, and reads only these
-const SUBTITLE_EXTENSIONS = ['srt', 'vtt'];
+const SUBTITLE_EXTENSIONS: SubtitleFormat[] = ['srt', 'vtt'];
 
-/** The subtitle files the player takes, for a hint: ".srt or .vtt" */
-export const SUBTITLE_FILE_TYPES = `${SUBTITLE_EXTENSIONS.slice(0, -1)
-  .map((extension) => `.${extension}`)
-  .join(', ')} or .${SUBTITLE_EXTENSIONS.at(-1)}`;
-
-export const isSubtitleFile = (name: string) =>
-  SUBTITLE_EXTENSIONS.includes(name.split('.').pop()?.toLowerCase() ?? '');
-
-// Providers often leave out a subtitle's type (NetflixMirror sends .srt), and the toolkit parses a file as the type
-// it's given
-export const subtitleType = (uri: string) =>
-  uri.split(/[?#]/)[0].toLowerCase().endsWith('.srt') ? TextTrackType.SUBRIP : TextTrackType.VTT;
+/** For a hint */
+export const SUBTITLE_FILE_TYPES = SUBTITLE_EXTENSIONS.map((extension) => `.${extension}`).join(' or ');
 
 /**
- * A subtitle's language as an ISO 639-2 code (`eng`), from a code or a provider's name ("English", "Portuguese -
- * Brazilian Portuguese"). MP4 needs codes, and the player matches languages across tracks and episodes by code.
+ * A subtitle file's format from its name or URL. Providers often leave it out of the URL; then it's unset, and the
+ * player tells from the file.
  */
-export const subtitleLanguageCode = (lang?: string) => {
-  if (!lang) return undefined;
-  if (/^[a-z]{3}$/.test(lang)) return lang;
-  const name = (Object.keys(SUB_LANGUAGE) as (keyof typeof SUB_LANGUAGE)[]).find((key) =>
-    lang.toLowerCase().startsWith(key.toLowerCase()),
-  );
-  return name ? SUB_LANGUAGE[name] : undefined;
+export const subtitleFormat = (name: string): SubtitleFormat | undefined => {
+  const extension = name.split(/[?#]/)[0].split('/').pop()?.split('.').pop()?.toLowerCase();
+  return SUBTITLE_EXTENSIONS.find((format) => format === extension);
+};
+
+export const isSubtitleFile = (name: string) => subtitleFormat(name) !== undefined;
+
+// OpenSubtitles' own ids for regional variants, which aren't ISO 639-2
+const ISO_FOR_OPENSUBTITLES_ID: Record<string, string> = {
+  pob: 'por',
+  pom: 'por',
+  spn: 'spa',
+  spl: 'spa',
+  scc: 'srp',
+  zhc: 'chi',
+  zht: 'chi',
+  zhe: 'chi',
+};
+
+// Longest first, so "Portuguese (BR)" isn't taken for "Portuguese"
+const LANGUAGE_NAMES = (Object.keys(SUB_LANGUAGE) as (keyof typeof SUB_LANGUAGE)[]).sort((a, b) => b.length - a.length);
+
+/**
+ * A subtitle's language as an ISO 639-2 code (`eng`), from an OpenSubtitles language id or a provider's name ("English",
+ * "Portuguese - Brazilian Portuguese"). MP4 needs these codes, and the player matches languages across tracks and
+ * episodes by code. A 2-letter code passes through as it is.
+ */
+export const subtitleLanguageCode = (lang?: string): string | undefined => {
+  const text = lang?.trim().toLowerCase();
+  if (!text) return undefined;
+  if (/^[a-z]{2}$/.test(text)) return text;
+  if (/^[a-z]{3}$/.test(text)) return ISO_FOR_OPENSUBTITLES_ID[text] ?? text;
+  const name = LANGUAGE_NAMES.find((key) => text.startsWith(key.toLowerCase()));
+  return name && (ISO_FOR_OPENSUBTITLES_ID[SUB_LANGUAGE[name]] ?? SUB_LANGUAGE[name]);
 };
 
 /** A provider's seek-preview sprite list (thumbnails.vtt), which comes with the subtitles but isn't one */

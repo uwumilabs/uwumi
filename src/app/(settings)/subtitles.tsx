@@ -1,37 +1,40 @@
 import React from 'react';
 import { ScrollView, View } from 'react-native';
-import { CaptionsPreview } from 'react-native-video-toolkit';
+import { CaptionsPreview, useVideoSelector } from 'react-native-video-toolkit';
 import { Button } from '@/components/Button';
 import { ChoiceRow, ChoiceRowHost } from '@/components/ChoiceRow';
 import { List as NativeList } from '@/components/native/list/List';
 import { SectionTitle, ThemedView } from '@/components/ui-primitives';
-import { usePlayerSettingsStore } from '@/hooks/stores/usePlayerSettingsStore';
 import {
-  DEFAULT_SUBTITLE_STYLE,
-  isDefaultSubtitleStyle,
-  pickSubtitleStyle,
-  SUBTITLE_STYLE,
-  subtitleStyleOption,
-  type SubtitleStyleKey,
+  resetSubtitleStyle,
+  useIsDefaultSubtitleStyle,
+  useSubtitleSetting,
+} from '@/hooks/stores/usePlayerSettingsStore';
+import {
+  SUBTITLE_STYLE_ROWS,
+  SUBTITLE_STYLE_SECTIONS,
+  subtitleChoice,
+  type SubtitleStyleRow,
 } from '@/utils/subtitleStyle';
 
 const PREVIEW_RADIUS = 16;
+const ASPECT_RATIO = 16 / 9;
 
 // A frame half light and half dark, so the background and edge choices show what they do on either
 const Preview = () => {
-  const margin = usePlayerSettingsStore(
-    (state) => subtitleStyleOption('subtitleMargin', state.subtitleMargin).theme.bottomMargin ?? 0,
-  );
+  const margin = useVideoSelector((state) => state.theme.captions.bottomMargin);
   // The width is set, not left to stretch: in a flex column, an aspect-ratio box can shrink by its height instead
   return (
     <View className="px-4 pb-2 pt-4">
-      <View className="overflow-hidden" style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: PREVIEW_RADIUS }}>
+      <View
+        className="overflow-hidden"
+        style={{ width: '100%', aspectRatio: ASPECT_RATIO, borderRadius: PREVIEW_RADIUS }}>
         <View className="absolute inset-0 flex-row">
           <View className="flex-1" style={{ backgroundColor: '#C9CED6' }} />
           <View className="flex-1" style={{ backgroundColor: '#1F232B' }} />
         </View>
-        {/* Percent padding is of the width, and the height is 9/16 of it */}
-        <View className="flex-1 justify-end" style={{ paddingBottom: `${margin * 56.25}%` }}>
+        {/* The toolkit's margin is a share of the picture's height; percent padding is a share of the width */}
+        <View className="flex-1 justify-end" style={{ paddingBottom: `${(margin * 100) / ASPECT_RATIO}%` }}>
           <CaptionsPreview testID="subtitle-style-preview" />
         </View>
       </View>
@@ -39,68 +42,55 @@ const Preview = () => {
   );
 };
 
-const StyleRow = ({ setting }: { setting: SubtitleStyleKey }) => {
-  const value = usePlayerSettingsStore((state) => state[setting]);
-  const update = usePlayerSettingsStore((state) => state.update);
-  const option = subtitleStyleOption(setting, value);
+const StyleChoiceRow = ({ row }: { row: Extract<SubtitleStyleRow, { kind: 'choice' }> }) => {
+  const [value, setValue] = useSubtitleSetting(row.key);
   return (
     <ChoiceRow
-      testID={`subtitle-style-row-${setting.replace('subtitle', '').toLowerCase()}`}
-      title={SUBTITLE_STYLE[setting].title}
-      options={SUBTITLE_STYLE[setting].options}
-      value={option.value}
-      onChange={(next) => update({ [setting]: next })}
-      description={option.label}
+      testID={`subtitle-style-row-${row.id}`}
+      title={row.title}
+      options={row.options}
+      value={subtitleChoice(row.key, value).value}
+      onChange={setValue}
+    />
+  );
+};
+
+const StyleToggleRow = ({ row }: { row: Extract<SubtitleStyleRow, { kind: 'toggle' }> }) => {
+  const [value, setValue] = useSubtitleSetting(row.key);
+  return (
+    <NativeList.Item
+      testID={`subtitle-style-row-${row.id}`}
+      title={row.title}
+      toggle={{ value, onValueChange: setValue }}
     />
   );
 };
 
 const Subtitles = () => {
-  const bold = usePlayerSettingsStore((state) => state.subtitleBold);
-  const caps = usePlayerSettingsStore((state) => state.subtitleCaps);
-  const isDefault = usePlayerSettingsStore((state) => isDefaultSubtitleStyle(pickSubtitleStyle(state)));
-  const update = usePlayerSettingsStore((state) => state.update);
+  const isDefault = useIsDefaultSubtitleStyle();
 
   return (
     <ThemedView testID="subtitle-style-screen">
       <Preview />
       <ChoiceRowHost>
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-          <SectionTitle>Text</SectionTitle>
-          <NativeList variant="flat">
-            <StyleRow setting="subtitleSize" />
-            <StyleRow setting="subtitleFont" />
-            <StyleRow setting="subtitleColor" />
-            <NativeList.Item
-              testID="subtitle-style-row-bold"
-              title="Bold"
-              toggle={{ value: bold, onValueChange: (value) => update({ subtitleBold: value }) }}
-            />
-            <NativeList.Item
-              testID="subtitle-style-row-caps"
-              title="All caps"
-              toggle={{ value: caps, onValueChange: (value) => update({ subtitleCaps: value }) }}
-            />
-          </NativeList>
-
-          <SectionTitle>Background</SectionTitle>
-          <NativeList variant="flat">
-            <StyleRow setting="subtitleBackground" />
-            <StyleRow setting="subtitleEdge" />
-          </NativeList>
-
-          <SectionTitle>Position</SectionTitle>
-          <NativeList variant="flat">
-            <StyleRow setting="subtitlePosition" />
-            <StyleRow setting="subtitleMargin" />
-          </NativeList>
+          {SUBTITLE_STYLE_SECTIONS.map((section) => (
+            <React.Fragment key={section.key}>
+              <SectionTitle>{section.title}</SectionTitle>
+              <NativeList variant="flat">
+                {SUBTITLE_STYLE_ROWS.filter((row) => row.section === section.key).map((row) =>
+                  row.kind === 'choice' ? (
+                    <StyleChoiceRow key={row.key} row={row} />
+                  ) : (
+                    <StyleToggleRow key={row.key} row={row} />
+                  ),
+                )}
+              </NativeList>
+            </React.Fragment>
+          ))}
 
           <View className="mx-4 mt-6">
-            <Button
-              testID="subtitle-style-reset"
-              variant="outline"
-              isDisabled={isDefault}
-              onPress={() => update(DEFAULT_SUBTITLE_STYLE)}>
+            <Button testID="subtitle-style-reset" variant="outline" isDisabled={isDefault} onPress={resetSubtitleStyle}>
               Reset to default
             </Button>
           </View>

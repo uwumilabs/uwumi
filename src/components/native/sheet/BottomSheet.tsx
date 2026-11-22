@@ -1,15 +1,15 @@
 import React, { useCallback, useState } from 'react';
-import { Platform, ScrollView, View, useWindowDimensions, type ViewProps } from 'react-native';
+import { ScrollView, View, useWindowDimensions, type ViewProps } from 'react-native';
 import { BottomSheet as NativeBottomSheet, RNHostView, type SnapPoint } from '@expo/ui';
-import { frame } from '@expo/ui/swift-ui/modifiers';
 import { LayoutAnimationConfig } from 'react-native-reanimated';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { isTV } from '@/utils/tv';
 import { SheetWidthLimit } from '@/modules/sheetWidth';
+import { sheetContentLayout, sheetPlatformProps } from './sheetPlatform';
 
 const SHEET_MAX_WIDTH = 640;
-const IOS_TOP_ALIGNED = [frame({ maxHeight: Infinity, alignment: 'top' })];
-const IOS_HANDLE_PADDING = { top: 16 };
+// TVs can't drag a sheet, and the handle would be the first thing the D-pad focuses
+const showHandle = !isTV;
 
 export type BottomSheetProps = {
   open: boolean;
@@ -20,10 +20,9 @@ export type BottomSheetProps = {
 
   children: React.ReactNode;
 
-  /** Wraps the content in a ScrollView */
   scrollable?: boolean;
 
-  /** Props for the content's wrapper: the ScrollView, or a View when not scrollable */
+  /** Spread on the ScrollView itself, or on the View when not scrollable */
   contentContainerProps?: ViewProps;
 
   testID?: string;
@@ -47,7 +46,8 @@ export const BottomSheet = ({
 }: BottomSheetProps) => {
   const theme = useCurrentTheme();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const sheetWidth = Math.min(windowWidth, SHEET_MAX_WIDTH);
+  const content = sheetContentLayout(Math.min(windowWidth, SHEET_MAX_WIDTH));
+  const fitsContent = !snapPoints?.length;
 
   const dismiss = useCallback(() => onOpenChange(false), [onOpenChange]);
 
@@ -60,17 +60,15 @@ export const BottomSheet = ({
     <NativeBottomSheet
       isPresented={open}
       onDismiss={dismiss}
-      // TVs can't drag it, and the handle would be the first thing the D-pad focuses
-      showDragIndicator={!isTV}
-      snapPoints={snapPoints?.map(toSnapPoint)}
-      modifiers={Platform.OS === 'ios' && snapPoints ? IOS_TOP_ALIGNED : undefined}
-      contentPadding={Platform.OS === 'ios' && !isTV ? IOS_HANDLE_PADDING : 0}
+      showDragIndicator={showHandle}
+      snapPoints={fitsContent ? undefined : snapPoints.map(toSnapPoint)}
+      {...sheetPlatformProps({ fitsContent, showHandle })}
       containerColor={theme.sheetBackground}
       contentColor={theme.foreground}>
       {/* matchContents lets content-sized sheets (no snapPoints) measure the RN content. */}
-      <RNHostView matchContents>
+      <RNHostView matchContents={content.matchContents}>
         <LayoutAnimationConfig skipExiting>
-          <View testID={testID} style={{ width: sheetWidth }}>
+          <View testID={testID} style={{ width: content.width }}>
             <SheetWidthLimit maxWidth={SHEET_MAX_WIDTH} />
             {scrollable ? (
               <ScrollView

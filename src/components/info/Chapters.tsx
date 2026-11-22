@@ -19,16 +19,14 @@ import type { FlashListRef } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { cn, ScrollShadow } from '@/components/heroui';
 import React, { memo, ReactNode, useCallback, useMemo, useRef, useState } from 'react';
-import type { SharedValue } from 'react-native-reanimated';
+import { trackPageScroll, type PageScroll } from './pageScroll';
 import { ActivityIndicator, Text } from 'react-native';
 import type { IMangaChapter } from 'react-native-consumet';
 
 interface ChaptersProps {
   header?: ReactNode;
-  /** Kept at the list's scroll offset */
-  scrollY: SharedValue<number>;
-  /** Kept at how far the list can scroll */
-  scrollMax: SharedValue<number>;
+  /** The chapters' list is the page */
+  scroll: PageScroll;
 }
 
 const ChapterRow = memo(
@@ -77,7 +75,7 @@ const chapterRangeLabel = (chapters: IMangaChapter[], start: number, end: number
   const label = (index: number) => String(chapters[index].chapterNumber ?? index + 1);
   return `CH ${label(start)}–${label(end)}`;
 };
-const Chapters = ({ header, scrollY, scrollMax }: ChaptersProps) => {
+const Chapters = ({ header, scroll }: ChaptersProps) => {
   const { mediaType, id } = useShowParams();
   const setProvider = useProviderStore((state) => state.setProvider);
   const currentProvider = useActiveProvider(mediaType);
@@ -99,8 +97,10 @@ const Chapters = ({ header, scrollY, scrollMax }: ChaptersProps) => {
     items: chapters,
     listRef,
     rangeLabel: chapterRangeLabel,
-    scrollY,
-    scrollMax,
+    onScroll: (event) => {
+      'worklet';
+      trackPageScroll(scroll, event);
+    },
   });
 
   const handleProviderChange = useCallback((value: string) => setProvider(mediaType, value), [mediaType, setProvider]);

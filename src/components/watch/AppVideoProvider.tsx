@@ -1,23 +1,16 @@
 import React, { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
-import {
-  VideoProvider,
-  defaultTheme,
-  usePlaybackRate,
-  type CaptionError,
-  type SheetProps,
-} from 'react-native-video-toolkit';
+import { VideoProvider, defaultTheme, usePlaybackRate, type SheetProps } from 'react-native-video-toolkit';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
-import { PLAYBACK_RATES, usePlayerSettingsStore } from '@/hooks/stores/usePlayerSettingsStore';
-import { BottomSheet } from '@/components/native/BottomSheet';
+import { PLAYBACK_RATES, usePlayerSettingsStore, useSubtitleStyle } from '@/hooks/stores/usePlayerSettingsStore';
+import { BottomSheet } from '@/components/native/sheet/BottomSheet';
 import { Slider } from './slider/Slider';
 import { isTV } from '@/utils/tv';
-import { captionsTheme, pickSubtitleStyle } from '@/utils/subtitleStyle';
-import { useShallow } from 'zustand/react/shallow';
+import { captionsTheme } from '@/utils/subtitleStyle';
+import { reportCaptionError } from './CaptionErrorToasts';
 
 export const VIDEO_PORTAL_HOST = 'video-player';
 
-// On phones the player's settings menu opens in the app's native bottom sheet
 const VideoSheet = ({ open, onOpenChange, children, style }: SheetProps) => (
   <BottomSheet open={open} onOpenChange={onOpenChange}>
     <View style={[{ width: '100%' }, style]}>{children}</View>
@@ -28,19 +21,6 @@ const VideoSheet = ({ open, onOpenChange, children, style }: SheetProps) => (
 // menu instead of going up one level, and its header scrolls away on a half-height sheet
 const videoComponents = isTV ? { Slider } : { Sheet: VideoSheet, Slider };
 
-type CaptionErrorListener = (error: CaptionError) => void;
-const captionErrorListeners = new Set<CaptionErrorListener>();
-
-/** Subtitle files that didn't load or parse. The provider sits above the toasts, so the watch screen shows them. */
-export const subscribeCaptionErrors = (listener: CaptionErrorListener) => {
-  captionErrorListeners.add(listener);
-  return () => {
-    captionErrorListeners.delete(listener);
-  };
-};
-
-const onCaptionError = (error: CaptionError) => captionErrorListeners.forEach((listener) => listener(error));
-
 // The player keeps its speed for the session; it starts at the default speed, and moves to a new default
 const DefaultSpeed = () => {
   const defaultSpeed = usePlayerSettingsStore((state) => state.defaultSpeed);
@@ -49,14 +29,13 @@ const DefaultSpeed = () => {
   return null;
 };
 
-/** The toolkit's player state, which is app-wide, in the app's theme and with the player settings */
 export const AppVideoProvider = ({ children }: { children: React.ReactNode }) => {
   const theme = useCurrentTheme();
   const rotateToLandscape = usePlayerSettingsStore((state) => state.rotateToLandscape);
   const controlsHideMs = usePlayerSettingsStore((state) => state.controlsHideMs);
   const pipButton = usePlayerSettingsStore((state) => state.pipButton);
   const doubleTapSeek = usePlayerSettingsStore((state) => state.doubleTapSeek);
-  const subtitleStyle = usePlayerSettingsStore(useShallow(pickSubtitleStyle));
+  const subtitleStyle = useSubtitleStyle();
   const config = useMemo(
     () => ({
       useCustomVideoTracks: true,
@@ -66,7 +45,7 @@ export const AppVideoProvider = ({ children }: { children: React.ReactNode }) =>
       autoHideDelay: controlsHideMs,
       enableDoubleTapGestures: doubleTapSeek,
       playbackRates: PLAYBACK_RATES,
-      onCaptionError,
+      onCaptionError: reportCaptionError,
     }),
     [pipButton, rotateToLandscape, controlsHideMs, doubleTapSeek],
   );

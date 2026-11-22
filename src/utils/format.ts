@@ -36,3 +36,12 @@ export const formatBytes = (bytes: number, decimals = 2) => {
   const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(decimals))} ${sizes[i]}`;
 };
+
+/** Short details on one line: "S1 · EP 2  •  1.5 GB  •  Nov 19" */
+export const joinDetails = (...details: (string | undefined)[]) => details.filter(Boolean).join('  •  ');
+
+const thisYearDate = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+const fullDate = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
+/** A compact date, with the year only when it isn't this one */
+export const formatShortDate = (time: number) =>
+  (new Date(time).getFullYear() === new Date().getFullYear() ? thisYearDate : fullDate).format(time);
