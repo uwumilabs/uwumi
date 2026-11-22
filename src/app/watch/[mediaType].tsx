@@ -7,6 +7,7 @@ import { HUXStack, ThemedView } from '@/components/ui-primitives';
 import { MaterialIconsIcon } from '@/components/Icons';
 import { PlayerOverlay, SkipSlot, type UpNext } from '@/components/watch/PlayerOverlay';
 import { PlayerCastButton, useCastPlayback } from '@/components/watch/Cast';
+import { subscribeCaptionErrors } from '@/components/watch/AppVideoProvider';
 import { EpisodesPanel } from '@/components/watch/EpisodesPanel';
 import {
   AddSubtitlesItem,
@@ -14,7 +15,7 @@ import {
   type SubtitleLanguage,
   type SubtitleSearchResult,
 } from '@/components/watch/AddSubtitles';
-import { isSubtitleFile, subtitleType, SUBTITLE_FILE_TYPES } from '@/utils/subtitles';
+import { isSubtitleFile, subtitleLanguageCode, subtitleType, SUBTITLE_FILE_TYPES } from '@/utils/subtitles';
 import {
   ServerStatusScreen,
   ServerLoadingOverlay,
@@ -67,6 +68,8 @@ import {
   BaseIconButton,
   SkipNext,
   SkipPrevious,
+  type CaptionFile,
+  type CaptionTrack,
 } from 'react-native-video-toolkit';
 
 const Watch = () => {
@@ -87,7 +90,7 @@ const Watch = () => {
   } = params;
   const savePlayback = useWatchProgressStore((state) => state.savePlayback);
   const currentProvider = useActiveProvider(mediaType);
-  const { data: mediaInfo, isLoading: mediaInfoLoading } = useMediaInfo();
+  const { data: mediaInfo } = useMediaInfo();
   const recordContinueWatching = useContinueWatchingStore((state) => state.record);
   const { toast } = useToast();
   const fullscreen = useVideoSelector((state) => state.fullscreen);
@@ -241,7 +244,7 @@ const Watch = () => {
   // Only TMDB titles carry an IMDb id
   const canSearchSubtitles = mediaType === MediaType.MOVIE && canSearchExternalSubtitles(subtitleSearch);
   const wantsExternalSubtitles = !!subtitleLanguage && mediaType === MediaType.MOVIE;
-  const { data: externalSubtitles, isLoading: externalSubtitlesLoading } = useExternalSubtitles({
+  const { data: externalSubtitles } = useExternalSubtitles({
     ...subtitleSearch,
     language: subtitleLanguage,
     // A download already carries the subtitles it was saved with
@@ -249,8 +252,6 @@ const Watch = () => {
   });
 
   const data = playback.sources;
-  // New text tracks would reload the source, so the player waits for external subtitles, which give up quickly
-  const waitingForSubtitles = !localUri && wantsExternalSubtitles && (mediaInfoLoading || externalSubtitlesLoading);
 
   useBackHandler(episodesOpen, () => {
     setEpisodesOpen(false);
@@ -262,10 +263,33 @@ const Watch = () => {
   const savedBucketRef = useRef('');
 
   const [addedSubtitles, setAddedSubtitles] = useState<SubtitleTrack[]>([]);
-  // Adding tracks reloads the source, so onLoad resumes where it was and turns the first new track on
-  const pendingAddRef = useRef<{ resumeAt: number; title?: string } | null>(null);
-  const { textTracks: playerTextTracks, setTextTrack } = useSettings();
+  // The first track the viewer added, turned on once the toolkit lists it
+  const pendingTrackUriRef = useRef<string | null>(null);
+  const { textTracks: captionTracks, setTextTrack } = useSettings();
   const queryClient = useQueryClient();
+
+  // The toolkit picks a track whenever it relists the subtitle files, so the added one goes on after that
+  useEffect(() => {
+    const added = captionTracks.find((track) => track.source === 'file' && track.uri === pendingTrackUriRef.current);
+    if (!added) return;
+    pendingTrackUriRef.current = null;
+    setTextTrack(added);
+  }, [captionTracks, setTextTrack]);
+
+  useEffect(
+    () =>
+      subscribeCaptionErrors((error) =>
+        toast.show({
+          variant: 'danger',
+          label: "Subtitles didn't load",
+          description:
+            error.code === 'LOAD_FAILED' || error.code === 'TIMEOUT'
+              ? "The subtitle file didn't download."
+              : "The subtitle file couldn't be read.",
+        }),
+      ),
+    [toast],
+  );
 
   // Puts this show at the front of Continue watching
   const rememberEpisode = useCallback(() => {
@@ -384,8 +408,8 @@ const Watch = () => {
   });
 
   // Listed above "Off" in the Captions menu
-  const addedTrackTitles = useMemo(
-    () => new Set([...(externalSubtitles ?? []), ...addedSubtitles].map((track) => track.title)),
+  const addedTrackUris = useMemo(
+    () => new Set<unknown>([...(externalSubtitles ?? []), ...addedSubtitles].map((track) => track.uri)),
     [externalSubtitles, addedSubtitles],
   );
 
@@ -393,16 +417,16 @@ const Watch = () => {
     (tracks: SubtitleTrack[]) => {
       const loaded = new Set(subtitleTracks.map((track) => track.uri));
       const fresh = tracks.filter((track) => !loaded.has(track.uri));
-      // Already in the source, such as the Settings language's: selecting it needs no reload
+      // Already listed, such as the Settings language's: just turn it on
       if (!fresh.length) {
-        const existing = playerTextTracks.find((track) => track.title === tracks[0]?.title);
+        const existing = captionTracks.find((track) => track.uri === tracks[0]?.uri);
         if (existing) setTextTrack(existing);
         return;
       }
-      pendingAddRef.current = { resumeAt: playheadRef.current, title: fresh[0].title };
+      pendingTrackUriRef.current = fresh[0].uri;
       setAddedSubtitles((previous) => [...previous, ...fresh]);
     },
-    [subtitleTracks, playerTextTracks, setTextTrack],
+    [subtitleTracks, captionTracks, setTextTrack],
   );
 
   const addSubtitleFile = useCallback(async () => {
@@ -444,7 +468,7 @@ const Watch = () => {
         ? 'unavailable'
         : rotation.exhausted
           ? 'exhausted'
-          : !source || waitingForList || waitingForSubtitles
+          : !source || waitingForList
             ? 'finding'
             : playback.loaded
               ? 'playing'
@@ -510,29 +534,25 @@ const Watch = () => {
           onLoad: (value: OnLoadData) => {
             const resume = playback.onLoad();
             setLoadedLength(Math.round(value.duration));
-            const pending = pendingAddRef.current;
-            pendingAddRef.current = null;
-            const startAt = pending?.resumeAt ?? resume ?? resumeAt(uniqueId, value.duration);
+            const startAt = resume ?? resumeAt(uniqueId, value.duration);
             playheadRef.current = startAt;
             videoRef?.current?.seek(startAt);
-            const addedTrack = pending && value.textTracks.find((track) => track.title === pending.title);
-            if (addedTrack) setTextTrack(addedTrack);
           },
-
-          subtitleStyle: { paddingBottom: 50, fontSize: 20, opacity: 0.8 },
         }}
         customVideoTracks={videoTracks}
         source={{
           uri: source,
           headers: sourceHeaders,
-          textTracks: subtitleTracks.map((track, index) => ({
-            title: track.title || track.language || 'Untitled',
-            language: (track.language?.toLowerCase() as ISO639_1) || 'en',
-            type: track.type,
-            uri: track.uri,
-            index,
-          })),
-          textTracksAllowChunklessPreparation: false,
+          // The toolkit fetches and draws these itself; react-native-video never sees them
+          textTracks: subtitleTracks.map(
+            (track): CaptionFile => ({
+              title: track.title || track.language || 'Untitled',
+              language: (subtitleLanguageCode(track.language) ?? track.language ?? 'und') as ISO639_1,
+              type: track.type,
+              uri: track.uri,
+              headers: track.headers,
+            }),
+          ),
           bufferConfig: {
             minBufferMs: 60000,
             maxBufferMs: 120000,
@@ -552,7 +572,7 @@ const Watch = () => {
           ]
             .filter(Boolean)
             .join(' · ')}
-          pinCaptionTrack={(track) => !!track.title && addedTrackTitles.has(track.title)}
+          pinCaptionTrack={(track) => addedTrackUris.has((track as CaptionTrack).uri)}
           slots={{
             beforeCaptionTracks: isTV ? undefined : (
               <AddSubtitlesItem canSearch={canSearchSubtitles} onAddFile={addSubtitleFile} />

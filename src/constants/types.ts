@@ -87,4 +87,5 @@ export interface SubtitleTrack {
   language?: string;
   type: TextTrackType;
   uri: string;
+  headers?: Record<string, string>;
 }

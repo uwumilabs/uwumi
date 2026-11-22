@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
-import { VideoProvider, defaultTheme, usePlaybackRate, type SheetProps } from 'react-native-video-toolkit';
+import {
+  VideoProvider,
+  defaultTheme,
+  usePlaybackRate,
+  type CaptionError,
+  type SheetProps,
+} from 'react-native-video-toolkit';
 import { useCurrentTheme } from '@/hooks/useCurrentTheme';
 import { PLAYBACK_RATES, usePlayerSettingsStore } from '@/hooks/stores/usePlayerSettingsStore';
 import { BottomSheet } from '@/components/native/BottomSheet';
@@ -19,6 +25,19 @@ const VideoSheet = ({ open, onOpenChange, children, style }: SheetProps) => (
 // TV keeps the toolkit's side panel: the native sheet takes Back as "close", so Back in a submenu would close the whole
 // menu instead of going up one level, and its header scrolls away on a half-height sheet
 const videoComponents = isTV ? { Slider } : { Sheet: VideoSheet, Slider };
+
+type CaptionErrorListener = (error: CaptionError) => void;
+const captionErrorListeners = new Set<CaptionErrorListener>();
+
+/** Subtitle files that didn't load or parse. The provider sits above the toasts, so the watch screen shows them. */
+export const subscribeCaptionErrors = (listener: CaptionErrorListener) => {
+  captionErrorListeners.add(listener);
+  return () => {
+    captionErrorListeners.delete(listener);
+  };
+};
+
+const onCaptionError = (error: CaptionError) => captionErrorListeners.forEach((listener) => listener(error));
 
 // The player keeps its speed for the session; it starts at the default speed, and moves to a new default
 const DefaultSpeed = () => {
@@ -44,6 +63,7 @@ export const AppVideoProvider = ({ children }: { children: React.ReactNode }) =>
       autoHideDelay: controlsHideMs,
       enableDoubleTapGestures: doubleTapSeek,
       playbackRates: PLAYBACK_RATES,
+      onCaptionError,
     }),
     [pipButton, rotateToLandscape, controlsHideMs, doubleTapSeek],
   );

@@ -60,20 +60,29 @@ export interface PlayableSource {
   headers?: Record<string, string>;
 }
 
-const playable = ({ sources, subtitles = [], headers }: ISource): PlayableSource => ({
-  sources,
-  subtitles: subtitles
-    .filter((sub) => !isThumbnailTrack(sub))
-    .map((sub) => ({ title: sub.lang, language: sub.lang, type: subtitleType(sub.url), uri: sub.url })),
-  thumbnails: subtitles.find((sub) => isThumbnailTrack(sub))?.url,
-  headers:
+const playable = ({ sources, subtitles = [], headers }: ISource): PlayableSource => {
+  const requestHeaders =
     headers && typeof headers === 'object'
       ? (Object.fromEntries(Object.entries(headers).filter(([, value]) => typeof value === 'string')) as Record<
           string,
           string
         >)
-      : undefined,
-});
+      : undefined;
+  return {
+    sources,
+    subtitles: subtitles
+      .filter((sub) => !isThumbnailTrack(sub))
+      .map((sub) => ({
+        title: sub.lang,
+        language: sub.lang,
+        type: subtitleType(sub.url),
+        uri: sub.url,
+        headers: requestHeaders,
+      })),
+    thumbnails: subtitles.find((sub) => isThumbnailTrack(sub))?.url,
+    headers: requestHeaders,
+  };
+};
 
 async function fetchServerSources(target: EpisodeTarget, server: IEpisodeServer): Promise<PlayableSource> {
   const { mediaType, provider, episodeId, mediaId, dub } = target;

@@ -123,6 +123,12 @@ yarn dash                   # Next.js site in dash/ (own yarn install, excluded 
 - Google's Cast dialogs only follow the app theme if `themeCastDialog()` (`src/modules/castDialog.ts`) runs before `CastContext.showCastDialog()`.
   - Android applies the style `plugins/withCastDialogTheme.js` generated for that theme from `src/themes/theme.ts`, so a new theme needs a prebuild. iOS sets `GCKUIStyle`.
   - On iOS, `apply()` only partly restyles a dialog that's already open.
+- The toolkit draws subtitle files itself (1.2.0's caption renderer): it takes `source.textTracks`, fetches and parses them in JS, and react-native-video never sees them. So:
+  - Only `.srt` and `.vtt` work (no TTML). Adding a track doesn't reload the video, and `subtitleStyle` only reaches tracks embedded in a download.
+  - Tracks are found by `uri` in `useSettings().textTracks` (`source: 'file'`). The watch screen turns on a track the viewer added once the toolkit lists it.
+  - A file gets only its own `headers` (the toolkit's `CaptionFile`), never the stream's. Provider subtitles carry the stream's headers from `playable()` in `watchQueries`: their hosts answer 403 without the Referer. OpenSubtitles results and picked files get none.
+  - On phones, subtitles hide while the player's controls show, on purpose: there's no room between the bottom bar and the play button, so the toolkit hides cues rather than draw them over the button. They lift instead on screens with room (tablets, TV).
+  - Load failures arrive through `config.onCaptionError`. `AppVideoProvider` sits above heroui's toasts, so the watch screen shows them through `subscribeCaptionErrors`.
 - uwumi renders the player's seek bar itself: it passes its own `Slider` (`src/components/watch/slider`) to the toolkit through `videoComponents`. Player additions to the seek bar go there, for example `SeekPreview`.
   - Seek previews come from `useSeekPreviewStore`: the provider's `thumbnails.vtt` while streaming, or the sprites saved beside a download.
 - The watch screen keeps the toolkit in fullscreen the whole time. Since toolkit 1.2.0, Android's Back exits the toolkit's fullscreen and swallows the press, so the screen treats a drop out of fullscreen as leaving and goes back. Re-entering instead would trap Back in the player.

@@ -1,5 +1,5 @@
 import { FFprobeKit, Level, ReturnCode, type FFmpegSession } from 'react-native-ffmpeg-kit';
-import { SUB_LANGUAGE } from '@/constants/config';
+import { subtitleLanguageCode } from '@/utils/subtitles';
 import type { ExternalSubtitle } from './model';
 
 /** What FFprobe found in a stream, as much as the download needs */
@@ -18,19 +18,6 @@ const headerString = (headers?: Record<string, string>) =>
         .map(([k, v]) => `${k}: ${v}`)
         .join('\r\n') + '\r\n'
     : undefined;
-
-/**
- * The ISO 639-2 code MP4 needs for a subtitle's language. Providers give names ("English", "Portuguese - Brazilian
- * Portuguese"), which FFmpeg drops, so players list the tracks as "Track 1, 2, …"
- */
-const languageCode = (lang?: string) => {
-  if (!lang) return undefined;
-  if (/^[a-z]{3}$/.test(lang)) return lang;
-  const name = (Object.keys(SUB_LANGUAGE) as (keyof typeof SUB_LANGUAGE)[]).find((key) =>
-    lang.toLowerCase().startsWith(key.toLowerCase()),
-  );
-  return name ? SUB_LANGUAGE[name] : undefined;
-};
 
 const probe = async (url: string, headers: Record<string, string> | undefined, persistent: boolean) => {
   const args: string[] = ['-allowed_extensions', 'ALL'];
@@ -141,12 +128,12 @@ export const downloadArgs = ({
   // FFmpeg 6.0 writes the source's own subtitles as "und" once converted to mov_text (players then list
   // "Track 1, 2"), so give them the languages the probe read
   stream.textTracks.forEach((track, index) => {
-    const code = languageCode(track.language);
+    const code = subtitleLanguageCode(track.language);
     if (code && code !== 'und') args.push(`-metadata:s:s:${index}`, `language=${code}`);
   });
 
   // Language and title for external subtitles; English is the default track, as when streaming
-  const codes = external.map((sub) => languageCode(sub.language));
+  const codes = external.map((sub) => subtitleLanguageCode(sub.language));
   const defaultIndex = Math.max(codes.indexOf('eng'), 0);
   external.forEach((sub, index) => {
     const streamIndex = stream.textTracks.length + index;
